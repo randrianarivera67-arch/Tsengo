@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Tsengo</title>
+    <link rel="manifest" href="/manifest.json" />
+    <meta name="theme-color" content="#E91E8C" />
+    <link rel="apple-touch-icon" href="/tsengo-icon-192.png" />
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+
+    <!-- OneSignal SDK -->
+    <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
+    <script>
+      window.OneSignalDeferred = window.OneSignalDeferred || [];
+      OneSignalDeferred.push(async function(OneSignal) {
+        await OneSignal.init({
+          appId: "4906cf47-153d-4eac-bf4a-2d8ca0df0f26",
+          safari_web_id: "",
+          notifyButton: { enable: false },
+          allowLocalhostAsSecureOrigin: true,
+          serviceWorkerPath: "/OneSignalSDKWorker.js",
+          promptOptions: {
+            slidedown: {
+              enabled: true,
+              autoPrompt: true,
+              timeDelay: 3,
+              pageViews: 1,
+              actionMessage: "Manaiky handray fampandrenesana avy amin'i Tsengo ve ianao?",
+              acceptButtonText: "Eny, ekeo",
+              cancelButtonText: "Avy eo",
+            }
+          }
+        });
+      });
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>
