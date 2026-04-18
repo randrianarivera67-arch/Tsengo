@@ -23,6 +23,8 @@
           appId: "4906cf47-153d-4eac-bf4a-2d8ca0df0f26", // ← ovao ho VITE_ONESIGNAL_APP_ID anao
           safari_web_id: "",          // optional: Safari push ID raha misy
           notifyButton: { enable: true },
+          autoResubscribe: true,
+          promptOptions: { slidedown: { prompts: [{ type: "push", autoPrompt: true, text: { actionMessage: "Tsengo mila alefa notification", acceptButton: "Allow", cancelButton: "Cancel" }, delay: { pageViews: 1, timeDelay: 2 } }] } },
           allowLocalhostAsSecureOrigin: true,
         });
       });
