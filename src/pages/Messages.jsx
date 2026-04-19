@@ -524,10 +524,10 @@ export default function Messages() {
                         style={{ display: 'flex', alignItems: 'center', gap: 4, background: 'white', border: '1px solid #FFE4F3', borderRadius: 20, padding: '5px 12px', fontSize: 12, color: '#E91E8C', fontWeight: 600, cursor: 'pointer', boxShadow: '0 2px 8px rgba(233,30,140,.1)' }}>
                         <HiReply size={14} /> Répondre</button>
                       <button onClick={() => { navigator.clipboard.writeText(msg.text || ""); setMsgAction(null); }}
-                        style={{ display: "flex", alignItems: "center", gap: 4, background: "white", border: "1px solid #FFE4F3", borderRadius: 20, padding: "5px 12px", fontSize: 12, color: "#6B3A52", fontWeight: 600, cursor: "pointer", boxShadow: "0 2px 8px rgba(0,0,0,.06)" }}>
+                        style={{ display: "flex", alignItems: "center", gap: 4, background: "white", border: "1px solid #FFE4F3", borderRadius: 20, padding: "5px 12px", fontSize: 12, color: "#E91E8C", fontWeight: 600, cursor: "pointer", boxShadow: "0 2px 8px rgba(0,0,0,.06)" }}>
                         📋 Copier</button>
                       <button onClick={() => { setTransferMsg(msg); setMsgAction(null); }}
-                        style={{ display: "flex", alignItems: "center", gap: 4, background: "white", border: "1px solid #FFE4F3", borderRadius: 20, padding: "5px 12px", fontSize: 12, color: "#6B3A52", fontWeight: 600, cursor: "pointer", boxShadow: "0 2px 8px rgba(0,0,0,.06)" }}>
+                        style={{ display: "flex", alignItems: "center", gap: 4, background: "white", border: "1px solid #FFE4F3", borderRadius: 20, padding: "5px 12px", fontSize: 12, color: "#E91E8C", fontWeight: 600, cursor: "pointer", boxShadow: "0 2px 8px rgba(0,0,0,.06)" }}>
                         ↪️ Transférer
                       </button>
                       {isMe && <>
