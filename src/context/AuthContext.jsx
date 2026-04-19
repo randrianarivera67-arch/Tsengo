@@ -63,7 +63,7 @@ export function AuthProvider({ children }) {
         await fetchUserProfile(user.uid);
         // ✅ FIX BUG #1: Link OneSignal to Firebase UID on login
         setOneSignalExternalId(user.uid);
-        subscribeToFCMTopic(user.uid); // uid = Firebase UID
+
         requestNotificationPermission();
       } else {
         setUserProfile(null);
