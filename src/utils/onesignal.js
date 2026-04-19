@@ -1,48 +1,33 @@
-// src/utils/onesignal.js
+import { getMessaging, getToken, onMessage } from 'firebase/messaging';
+import app from '../firebase';
 
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'https://tsengo-backend.onrender.com';
-// ✅ FIX: Secret shared between frontend and backend to protect /notify endpoint
 const NOTIFY_SECRET = import.meta.env.VITE_NOTIFY_SECRET || '';
+const VAPID_KEY = 'BAZ7EZHTxCKO-FkGtFcggv5JSlwrxWfLS4MfkGXdbEGVgWa9nVFklOEbqqB-z3Zdjc4uE7GcXnK1-TYPOwqwifI';
+
+export async function requestNotificationPermission() {
+  try {
+    const permission = await Notification.requestPermission();
+    if (permission !== 'granted') return null;
+    const messaging = getMessaging(app);
+    const token = await getToken(messaging, { vapidKey: VAPID_KEY });
+    return token;
+  } catch (e) {
+    console.warn('FCM permission failed:', e);
+    return null;
+  }
+}
 
 export function setOneSignalExternalId(uid) {
-  try {
-    if (window.OneSignalDeferred) {
-      window.OneSignalDeferred.push(function(OneSignal) {
-        OneSignal.login(uid);
-      });
-    }
-  } catch (e) {
-    console.warn('OneSignal setExternalId failed:', e);
-  }
+  // tsy ampiasaina intsony — FCM topic no ampiasaina
 }
 
 export function removeOneSignalExternalId() {
-  try {
-    if (window.OneSignalDeferred) {
-      window.OneSignalDeferred.push(function(OneSignal) {
-        OneSignal.logout();
-      });
-    }
-  } catch (e) {
-    console.warn('OneSignal logout failed:', e);
-  }
+  // tsy ampiasaina intsony
 }
 
-export function requestNotificationPermission() {
-  try {
-    if (window.OneSignalDeferred) {
-      window.OneSignalDeferred.push(function(OneSignal) {
-        OneSignal.Notifications.requestPermission();
-      });
-    }
-  } catch (e) {
-    console.warn('OneSignal requestPermission failed:', e);
-  }
-}
-
-// ✅ FIX: Include x-notify-secret header in every call
 export async function sendPushNotification({ toExternalId, title, message, data }) {
-  if (!toExternalId || !NOTIFY_SECRET) return;
+  if (!toExternalId) return;
   try {
     await fetch(`${BACKEND_URL}/notify`, {
       method: 'POST',
@@ -53,6 +38,24 @@ export async function sendPushNotification({ toExternalId, title, message, data 
       body: JSON.stringify({ toExternalId, title, message, data }),
     });
   } catch (err) {
-    console.warn('Push notification failed (non-critical):', err);
+    console.warn('Push notification failed:', err);
+  }
+}
+
+export async function subscribeToFCMTopic(uid) {
+  try {
+    const messaging = getMessaging(app);
+    const token = await getToken(messaging, { vapidKey: VAPID_KEY });
+    if (!token) return;
+    await fetch(`${BACKEND_URL}/subscribe`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-notify-secret': NOTIFY_SECRET,
+      },
+      body: JSON.stringify({ token, uid }),
+    });
+  } catch (e) {
+    console.warn('FCM subscribe failed:', e);
   }
 }
