@@ -105,6 +105,14 @@ export default function Profile() {
     setFriendStatus('requested');
   }
 
+  async function blockUser(targetUid) {
+    if (!window.confirm("Bloquer cet utilisateur ?")) return;
+    await updateDoc(doc(db,"users",currentUser.uid), { blocked: arrayUnion(targetUid), friends: arrayRemove(targetUid) });
+    await updateDoc(doc(db,"users",targetUid), { friends: arrayRemove(currentUser.uid) });
+    setUserProfile(p => ({ ...p, blocked: [...(p.blocked||[]), targetUid], friends: (p.friends||[]).filter(u=>u!==targetUid) }));
+    setFriendStatus("blocked");
+  }
+
   async function reactToPost(postId, emoji) {
     const post = posts.find(p=>p.id===postId); if (!post) return;
     const r = post.reactions||{}, my = r[currentUser.uid];
@@ -186,7 +194,6 @@ export default function Profile() {
                   <p style={{ fontSize:11, color:'#C4829F' }}>{label}</p>
                 </div>
               ))}
-            </div>
             <div style={{ display:'flex', justifyContent:'center', gap:10, marginTop:14 }}>
               {isOwn ? (
                 <button onClick={() => setEditing(true)} style={{ display:'inline-flex', alignItems:'center', gap:6, background:'#FFE4F3', border:'none', borderRadius:20, padding:'8px 18px', color:'#E91E8C', fontWeight:600, cursor:'pointer', fontSize:13 }}><HiPencil size={14}/>{t('editProfile')}</button>
@@ -195,7 +202,8 @@ export default function Profile() {
                   <button onClick={() => navigate(`/messages/${getChatId(currentUser.uid,targetUid)}`)} className="btn-primary" style={{ fontSize:13, padding:'8px 18px' }}><HiChat size={14} style={{ display:'inline', marginRight:4 }}/>Message</button>
                   {friendStatus==='none'&&<button onClick={sendFriendRequest} style={{ display:'inline-flex', alignItems:'center', gap:6, background:'#FFE4F3', border:'none', borderRadius:20, padding:'8px 16px', color:'#E91E8C', fontWeight:600, cursor:'pointer', fontSize:13 }}><HiUserAdd size={14}/>Ajouter</button>}
                   {friendStatus==='requested'&&<span style={{ display:'inline-flex', alignItems:'center', background:'#F3F4F6', borderRadius:20, padding:'8px 16px', color:'#9CA3AF', fontSize:13 }}>Demande envoyée</span>}
-                  {friendStatus==='friend'&&<span style={{ display:'inline-flex', alignItems:'center', background:'#D1FAE5', borderRadius:20, padding:'8px 16px', color:'#065F46', fontSize:13 }}>✓ Ami</span>}
+                  {friendStatus==="friend"&&<span style={{ display:"inline-flex", alignItems:"center", background:"#D1FAE5", borderRadius:20, padding:"8px 16px", color:"#065F46", fontSize:13 }}>✓ Ami</span>}
+                  {friendStatus==="friend"&&<button onClick={()=>blockUser(targetUid)} style={{ display:"inline-flex", alignItems:"center", gap:6, background:"none", border:"1px solid #E91E8C", borderRadius:20, padding:"8px 16px", color:"#E91E8C", fontWeight:600, cursor:"pointer", fontSize:13 }}>🚫 Bloquer</button>}
                 </>
               )}
             </div>

@@ -142,6 +142,14 @@ export default function Friends() {
     setFriends(p => p.filter(f => f.uid !== friendUid));
   }
 
+  async function blockFriend(friendUid) {
+    if (!window.confirm("Bloquer cet ami ?")) return;
+    await updateDoc(doc(db, "users", currentUser.uid), { friends: arrayRemove(friendUid), blocked: arrayUnion(friendUid) });
+    await updateDoc(doc(db, "users", friendUid), { friends: arrayRemove(currentUser.uid) });
+    setUserProfile(p => ({ ...p, friends: (p.friends || []).filter(u => u !== friendUid), blocked: [...(p.blocked || []), friendUid] }));
+    setFriends(p => p.filter(f => f.uid !== friendUid));
+  }
+
   function getRelation(uid) {
     if ((userProfile?.friends || []).includes(uid)) return 'friend';
     if ((userProfile?.sentRequests || []).includes(uid)) return 'sent';
@@ -210,6 +218,9 @@ export default function Friends() {
                       </button>
                       <button onClick={() => removeFriend(user.uid)} style={{ background: 'none', border: '1px solid #E8C5D8', borderRadius: 20, padding: '5px 12px', cursor: 'pointer', color: '#C4829F', fontSize: 12 }}>
                         {t('removeFriend')}
+                      <button onClick={() => blockFriend(user.uid)} style={{ background: "none", border: "1px solid #E91E8C", borderRadius: 20, padding: "5px 12px", cursor: "pointer", color: "#E91E8C", fontSize: 12 }}>
+                        🚫 Bloquer
+                      </button>
                       </button>
                     </>
                   ) : rel === 'sent' ? (
