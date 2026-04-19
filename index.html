@@ -2,9 +2,9 @@
 <html lang="fr">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon"             type="image/png" href="/icon-192.png" />
-    <link rel="apple-touch-icon" sizes="192x192"  href="/icon-192.png" />
-    <link rel="apple-touch-icon" sizes="152x152"  href="/icon-152.png" />
+    <link rel="icon" type="image/png" href="/icon-192.png" />
+    <link rel="apple-touch-icon" sizes="192x192" href="/icon-192.png" />
+    <link rel="apple-touch-icon" sizes="152x152" href="/icon-152.png" />
     <link rel="manifest" href="/manifest.json" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <meta name="theme-color" content="#E91E8C" />
@@ -13,22 +13,6 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="apple-mobile-web-app-title" content="Tsengo" />
     <title>Tsengo</title>
-
-    <!-- ✅ FIX #1: OneSignal SDK -->
-    <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
-    <script>
-      window.OneSignalDeferred = window.OneSignalDeferred || [];
-      OneSignalDeferred.push(async function(OneSignal) {
-        await OneSignal.init({
-          appId: "4906cf47-153d-4eac-bf4a-2d8ca0df0f26", // ← ovao ho VITE_ONESIGNAL_APP_ID anao
-          safari_web_id: "",          // optional: Safari push ID raha misy
-          notifyButton: { enable: true },
-          autoResubscribe: true,
-          promptOptions: { slidedown: { prompts: [{ type: "push", autoPrompt: true, text: { actionMessage: "Tsengo mila alefa notification", acceptButton: "Allow", cancelButton: "Cancel" }, delay: { pageViews: 1, timeDelay: 2 } }] } },
-          allowLocalhostAsSecureOrigin: true,
-        });
-      });
-    </script>
   </head>
   <body>
     <div id="root"></div>
