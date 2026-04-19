@@ -1,31 +1,32 @@
-import { getMessaging, getToken, onMessage } from 'firebase/messaging';
+import { getMessaging, getToken } from 'firebase/messaging';
 import app from '../firebase';
 
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'https://tsengo-backend.onrender.com';
 const NOTIFY_SECRET = import.meta.env.VITE_NOTIFY_SECRET || '';
 const VAPID_KEY = 'BAZ7EZHTxCKO-FkGtFcggv5JSlwrxWfLS4MfkGXdbEGVgWa9nVFklOEbqqB-z3Zdjc4uE7GcXnK1-TYPOwqwifI';
 
-export async function requestNotificationPermission() {
+async function getFCMToken() {
   try {
     const permission = await Notification.requestPermission();
     if (permission !== 'granted') return null;
+    const reg = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
+    await navigator.serviceWorker.ready;
     const messaging = getMessaging(app);
-    const token = await getToken(messaging, { vapidKey: VAPID_KEY });
-    alert("FCM TOKEN: " + token);
+    const token = await getToken(messaging, { vapidKey: VAPID_KEY, serviceWorkerRegistration: reg });
+    alert('FCM TOKEN: ' + token);
     return token;
   } catch (e) {
-    console.warn('FCM permission failed:', e);
+    console.warn('FCM token failed:', e);
     return null;
   }
 }
 
-export function setOneSignalExternalId(uid) {
-  // tsy ampiasaina intsony — FCM topic no ampiasaina
+export async function requestNotificationPermission() {
+  return await getFCMToken();
 }
 
-export function removeOneSignalExternalId() {
-  // tsy ampiasaina intsony
-}
+export function setOneSignalExternalId(uid) {}
+export function removeOneSignalExternalId() {}
 
 export async function sendPushNotification({ toExternalId, title, message, data }) {
   if (!toExternalId) return;
@@ -45,8 +46,7 @@ export async function sendPushNotification({ toExternalId, title, message, data 
 
 export async function subscribeToFCMTopic(uid) {
   try {
-    const messaging = getMessaging(app);
-    const token = await getToken(messaging, { vapidKey: VAPID_KEY });
+    const token = await getFCMToken();
     if (!token) return;
     await fetch(`${BACKEND_URL}/subscribe`, {
       method: 'POST',
