@@ -47,7 +47,8 @@ export async function sendPushNotification({ toExternalId, title, message, data 
 export async function subscribeToFCMTopic(uid) {
   try {
     const token = await getFCMToken();
-    if (!token) return;
+    if (!token) { console.warn("FCM subscribe: no token"); return; }
+    console.log("FCM subscribing uid:", uid, "token:", token.substring(0,20));
     await fetch(`${BACKEND_URL}/subscribe`, {
       method: 'POST',
       headers: {
