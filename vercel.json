@@ -1,4 +1,10 @@
 {
+  "rewrites": [
+    {
+      "source": "/((?!OneSignalSDKWorker.js).*)",
+      "destination": "/index.html"
+    }
+  ],
   "headers": [
     {
       "source": "/OneSignalSDKWorker.js",
