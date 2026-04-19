@@ -10,7 +10,7 @@ import {
 import { doc, setDoc, getDoc, serverTimestamp } from 'firebase/firestore';
 import { auth, db } from '../firebase';
 // ✅ FIX BUG #1: Import OneSignal utils
-import { setOneSignalExternalId, removeOneSignalExternalId, requestNotificationPermission } from '../utils/onesignal';
+import { setOneSignalExternalId, removeOneSignalExternalId, requestNotificationPermission, subscribeToFCMTopic } from '../utils/onesignal';
 
 const AuthContext = createContext();
 
@@ -63,6 +63,7 @@ export function AuthProvider({ children }) {
         await fetchUserProfile(user.uid);
         // ✅ FIX BUG #1: Link OneSignal to Firebase UID on login
         setOneSignalExternalId(user.uid);
+        subscribeToFCMTopic(user.uid);
         requestNotificationPermission();
       } else {
         setUserProfile(null);
