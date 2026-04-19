@@ -36,6 +36,7 @@ export default function Profile() {
   const navigate = useNavigate();
 
   const isOwn     = !uid || uid === currentUser?.uid;
+  const isBlocked = (userProfile?.blocked || []).includes(targetUid);
   const targetUid = uid  || currentUser?.uid;
 
   const [profile,        setProfile]     = useState(null);
@@ -147,7 +148,8 @@ export default function Profile() {
     return [];
   }
 
-  if (!profile) return <div style={{ padding:40, textAlign:'center', color:'#C4829F' }}>{t('loading')}</div>;
+  if (!profile) return <div style={{ padding:40, textAlign:"center", color:"#C4829F" }}>{t("loading")}</div>;
+  if (isBlocked) return <div style={{ padding:40, textAlign:"center", color:"#C4829F" }}><div style={{ fontSize:40 }}>🚫</div><p style={{ fontWeight:700, marginTop:16 }}>Utilisateur bloqué</p><p style={{ fontSize:13, marginTop:8 }}>Vous avez bloqué cet utilisateur.</p></div>;
   const friendCount = profile.friends?.length||0;
 
   return (

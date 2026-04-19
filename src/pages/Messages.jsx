@@ -77,6 +77,8 @@ export default function Messages() {
         if (!chatId.includes(currentUser.uid)) continue;
         const otherUid = chatId.split('_').find(p => p !== currentUser.uid);
         if (!otherUid) continue;
+        const blocked = userProfile?.blocked || [];
+        if (blocked.includes(otherUid)) continue;
         try {
           const s = await getDoc(doc(db, 'users', otherUid));
           if (!s.exists()) continue;

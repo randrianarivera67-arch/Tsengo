@@ -73,7 +73,8 @@ export default function Home() {
   useEffect(() => {
     const q = query(collection(db, 'posts'), orderBy('createdAt', 'desc'));
     return onSnapshot(q, snap => {
-      const all = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      const blocked = userProfile?.blocked || [];
+      const all = snap.docs.map(d => ({ id: d.id, ...d.data() })).filter(p => !blocked.includes(p.uid));
       const now = new Date();
       const sorted = [...all].sort((a, b) => {
         const aB = a.isBoosted && a.boostUntil && new Date(a.boostUntil) > now;
