@@ -3,7 +3,7 @@ import app from '../firebase';
 
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'https://tsengo-backend.onrender.com';
 const NOTIFY_SECRET = import.meta.env.VITE_NOTIFY_SECRET || '';
-const VAPID_KEY = import.meta.env.VITE_FIREBASE_VAPID_KEY || 'BAZ7EZHTxCKO-FkGtFcggv5JSlwrxWfLS4MfkGXdbEGVgWa9nVFklOEbqqB-z3Zdjc4uE7GcXnK1-TYPOwqwifI';
+const VAPID_KEY = import.meta.env.VITE_FIREBASE_VAPID_KEY || 'BAZ7EZHTxCKO-FkGtFcggv5JSIwrxWfLS4MfkGXdbEGVgWa9nVFkIOEbqqB-z3Zdjc4uE7GcXnK1-TYPOwqwifI';
 
 async function getFCMToken() {
   try {
