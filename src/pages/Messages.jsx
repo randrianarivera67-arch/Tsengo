@@ -43,7 +43,8 @@ export default function Messages() {
   const [editingMsgId,  setEditingMsgId]  = useState(null);
   const [msgAction,     setMsgAction]     = useState(null);  // msgId showing actions
   const [convMenu,      setConvMenu]      = useState(null);  // chatId showing menu
-  const [deleteConfirm, setDeleteConfirm] = useState(null);  // chatId | 'all'
+  const [deleteConfirm, setDeleteConfirm] = useState(null);
+  const [transferMsg, setTransferMsg] = useState(null);  // chatId | 'all'
 
   const mrRef      = useRef(null);
   const chunksRef  = useRef([]);
@@ -287,6 +288,34 @@ export default function Messages() {
     <div style={{ display: 'flex', height: 'calc(100vh - 70px)', background: '#FDF4F8', fontFamily: 'Poppins,sans-serif' }}>
 
       {/* ── Confirmation dialog ───────────────────────────────── */}
+      {transferMsg && (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", zIndex: 500, display: "flex", alignItems: "flex-end", justifyContent: "center" }} onClick={() => setTransferMsg(null)}>
+          <div style={{ background: "white", borderRadius: "20px 20px 0 0", padding: 24, width: "100%", maxHeight: "60vh", overflowY: "auto" }} onClick={e => e.stopPropagation()}>
+            <p style={{ fontWeight: 700, fontSize: 16, color: "#2D1220", marginBottom: 16 }}>↪️ Transférer à...</p>
+            {conversations.map(conv => (
+              <div key={conv.chatId} onClick={async () => { await push(ref(rtdb, `conversations/${conv.chatId}/messages`), { fromUid: currentUser.uid, fromName: userProfile.fullName, fromPhoto: userProfile.photoURL || "", text: transferMsg.text || "", mediaURL: transferMsg.mediaURL || "", mediaType: transferMsg.mediaType || "", ts: Date.now(), read: false, forwarded: true }); setTransferMsg(null); }}
+                style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 0", cursor: "pointer", borderBottom: "1px solid #FFE4F3" }}>
+                <img src={conv.user.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(conv.user.fullName)}&background=E91E8C&color=fff`} alt="" style={{ width: 40, height: 40, borderRadius: "50%", objectFit: "cover" }} />
+                <p style={{ fontWeight: 600, fontSize: 14 }}>{conv.user.fullName}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+      {transferMsg && (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", zIndex: 500, display: "flex", alignItems: "flex-end", justifyContent: "center" }} onClick={() => setTransferMsg(null)}>
+          <div style={{ background: "white", borderRadius: "20px 20px 0 0", padding: 24, width: "100%", maxHeight: "60vh", overflowY: "auto" }} onClick={e => e.stopPropagation()}>
+            <p style={{ fontWeight: 700, fontSize: 16, color: "#2D1220", marginBottom: 16 }}>↪️ Transférer à...</p>
+            {conversations.map(conv => (
+              <div key={conv.chatId} onClick={async () => { await push(ref(rtdb, `conversations/${conv.chatId}/messages`), { fromUid: currentUser.uid, fromName: userProfile.fullName, fromPhoto: userProfile.photoURL || "", text: transferMsg.text || "", mediaURL: transferMsg.mediaURL || "", mediaType: transferMsg.mediaType || "", ts: Date.now(), read: false, forwarded: true }); setTransferMsg(null); }}
+                style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 0", cursor: "pointer", borderBottom: "1px solid #FFE4F3" }}>
+                <img src={conv.user.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(conv.user.fullName)}&background=E91E8C&color=fff`} alt="" style={{ width: 40, height: 40, borderRadius: "50%", objectFit: "cover" }} />
+                <p style={{ fontWeight: 600, fontSize: 14 }}>{conv.user.fullName}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
       {deleteConfirm && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 500, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
           <div style={{ background: 'white', borderRadius: 20, padding: 24, maxWidth: 320, width: '100%', textAlign: 'center', boxShadow: '0 20px 60px rgba(0,0,0,.2)' }}>
@@ -497,7 +526,7 @@ export default function Messages() {
                       <button onClick={() => { navigator.clipboard.writeText(msg.text || ""); setMsgAction(null); }}
                         style={{ display: "flex", alignItems: "center", gap: 4, background: "white", border: "1px solid #FFE4F3", borderRadius: 20, padding: "5px 12px", fontSize: 12, color: "#6B3A52", fontWeight: 600, cursor: "pointer", boxShadow: "0 2px 8px rgba(0,0,0,.06)" }}>
                         📋 Copier</button>
-                      <button onClick={() => { setMsgAction(null); }}
+                      <button onClick={() => { setTransferMsg(msg); setMsgAction(null); }}
                         style={{ display: "flex", alignItems: "center", gap: 4, background: "white", border: "1px solid #FFE4F3", borderRadius: 20, padding: "5px 12px", fontSize: 12, color: "#6B3A52", fontWeight: 600, cursor: "pointer", boxShadow: "0 2px 8px rgba(0,0,0,.06)" }}>
                         ↪️ Transférer
                       </button>
