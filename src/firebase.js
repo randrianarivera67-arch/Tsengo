@@ -21,5 +21,5 @@ export const auth = getAuth(app);
 export const db = getFirestore(app);
 export const storage = getStorage(app);
 export const rtdb = getDatabase(app);
-export const messaging = (await isSupported()) ? getMessaging(app) : null;
+export const getFirebaseMessaging = async () => { const supported = await isSupported(); return supported ? getMessaging(app) : null; };
 export default app;
