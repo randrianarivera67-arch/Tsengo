@@ -10,7 +10,7 @@ import {
 import { doc, setDoc, getDoc, serverTimestamp } from 'firebase/firestore';
 import { auth, db } from '../firebase';
 // ✅ FIX BUG #1: Import OneSignal utils
-import { setOneSignalExternalId, removeOneSignalExternalId, requestNotificationPermission, subscribeToFCMTopic } from '../utils/onesignal';
+import { setOneSignalExternalId, removeOneSignalExternalId, requestNotificationPermission } from '../utils/onesignal';
 
 const AuthContext = createContext();
 
