@@ -196,6 +196,7 @@ export default function Profile() {
                   <p style={{ fontSize:11, color:'#C4829F' }}>{label}</p>
                 </div>
               ))}
+            </div>
             <div style={{ display:'flex', justifyContent:'center', gap:10, marginTop:14 }}>
               {isOwn ? (
                 <button onClick={() => setEditing(true)} style={{ display:'inline-flex', alignItems:'center', gap:6, background:'#FFE4F3', border:'none', borderRadius:20, padding:'8px 18px', color:'#E91E8C', fontWeight:600, cursor:'pointer', fontSize:13 }}><HiPencil size={14}/>{t('editProfile')}</button>
