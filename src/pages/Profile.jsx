@@ -36,7 +36,6 @@ export default function Profile() {
   const navigate = useNavigate();
 
   const isOwn     = !uid || uid === currentUser?.uid;
-  const isBlocked = (userProfile?.blocked || []).includes(targetUid);
   const targetUid = uid  || currentUser?.uid;
 
   const [profile,        setProfile]     = useState(null);
@@ -148,8 +147,7 @@ export default function Profile() {
     return [];
   }
 
-  if (!profile) return <div style={{ padding:40, textAlign:"center", color:"#C4829F" }}>{t("loading")}</div>;
-  if (isBlocked) return <div style={{ padding:40, textAlign:"center", color:"#C4829F" }}><div style={{ fontSize:40 }}>🚫</div><p style={{ fontWeight:700, marginTop:16 }}>Utilisateur bloqué</p><p style={{ fontSize:13, marginTop:8 }}>Vous avez bloqué cet utilisateur.</p></div>;
+  if (!profile) return <div style={{ padding:40, textAlign:'center', color:'#C4829F' }}>{t('loading')}</div>;
   const friendCount = profile.friends?.length||0;
 
   return (
@@ -196,7 +194,6 @@ export default function Profile() {
                   <p style={{ fontSize:11, color:'#C4829F' }}>{label}</p>
                 </div>
               ))}
-            </div>
             <div style={{ display:'flex', justifyContent:'center', gap:10, marginTop:14 }}>
               {isOwn ? (
                 <button onClick={() => setEditing(true)} style={{ display:'inline-flex', alignItems:'center', gap:6, background:'#FFE4F3', border:'none', borderRadius:20, padding:'8px 18px', color:'#E91E8C', fontWeight:600, cursor:'pointer', fontSize:13 }}><HiPencil size={14}/>{t('editProfile')}</button>
