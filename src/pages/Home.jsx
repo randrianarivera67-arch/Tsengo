@@ -92,7 +92,7 @@ export default function Home() {
       ? ['image/jpeg','image/png','image/gif','image/webp']
       : ['video/mp4','video/webm','video/quicktime'];
     if (!allowed.includes(file.type)) { alert('Type non accepté'); return; }
-    if (file.size > 50 * 1024 * 1024) { alert('Max 50 MB'); return; }
+    // no size limit
     setMF(file); setMT(type); setMP(URL.createObjectURL(file));
   }
   function removeMedia() { setMF(null); setMP(null); setMT(''); }
