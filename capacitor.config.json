@@ -1,0 +1,8 @@
+{
+  "appId": "com.tsengo.app",
+  "appName": "Tsengo",
+  "webDir": "dist",
+  "server": {
+    "androidScheme": "https"
+  }
+}

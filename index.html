@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/png" href="/icon-192.png" />
+    <link rel="apple-touch-icon" sizes="192x192" href="/icon-192.png" />
+    <link rel="apple-touch-icon" sizes="152x152" href="/icon-152.png" />
+    <link rel="manifest" href="/manifest.json" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <meta name="theme-color" content="#E91E8C" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="Tsengo" />
+    <title>Tsengo - Réseau social malgache</title>
+    <meta name="google-site-verification" content="5MLcENlngzdtI1-FS5vj7iqGtbX-1wG_FuQ88rL9Sl4" />
+    <meta name="description" content="Tsengo - Le réseau social malgache. Partagez, connectez-vous et communiquez avec vos amis à Madagascar." />
+    <meta name="keywords" content="Tsengo, réseau social, Madagascar, malgache, chat, amis" />
+    <meta property="og:title" content="Tsengo - Réseau social malgache" />
+    <meta property="og:description" content="Le réseau social malgache. Partagez, connectez-vous et communiquez avec vos amis." />
+    <meta property="og:url" content="https://tsengo.vercel.app" />
+    <meta property="og:type" content="website" />
+    <meta property="og:image" content="https://tsengo.vercel.app/icon-512.png" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Tsengo - Réseau social malgache" />
+    <meta name="twitter:description" content="Le réseau social malgache." />
+    <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
+    <script>
+      window.OneSignalDeferred = window.OneSignalDeferred || [];
+      OneSignalDeferred.push(async function(OneSignal) {
+        await OneSignal.init({
+          appId: "4906cf47-153d-4eac-bf4a-2d8ca0df0f26",
+          safari_web_id: "web.onesignal.auto.2c5a7aa8-83b4-45ba-8e8f-e5cd6a2881a0",
+          notifyButton: { enable: false },
+          promptOptions: { slidedown: { prompts: [{ type: "push", autoPrompt: true, delay: { pageViews: 1, timeDelay: 3 } }] } }, welcomeNotification: { disable: true },
+          defaultIconUrl: "/icon-192.png",
+          autoResubscribe: true,
+        });
+      });
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>

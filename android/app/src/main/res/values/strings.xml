@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Tsengo</string>
+    <string name="title_activity_main">Tsengo</string>
+    <string name="package_name">com.tsengo.app</string>
+    <string name="custom_url_scheme">com.tsengo.app</string>
+</resources>
