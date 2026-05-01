@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#1A0A12"/>
+      <stop offset="100%" style="stop-color:#2D0A1A"/>
+    </linearGradient>
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="3" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+
+  <!-- Fond sombre arrondi style TikTok -->
+  <rect width="192" height="192" rx="38" fill="url(#bg)"/>
+
+  <!-- Reflet rose en bas à droite -->
+  <ellipse cx="150" cy="155" rx="60" ry="50" fill="#E91E8C" opacity="0.08"/>
+
+  <!-- Ombre rose du T (décalée) -->
+  <text x="101" y="141"
+    text-anchor="middle"
+    font-family="'Arial Black', 'Impact', sans-serif"
+    font-size="118"
+    font-weight="900"
+    fill="#E91E8C"
+    opacity="0.55"
+    filter="url(#glow)">T</text>
+
+  <!-- T blanc principal -->
+  <text x="96" y="136"
+    text-anchor="middle"
+    font-family="'Arial Black', 'Impact', sans-serif"
+    font-size="118"
+    font-weight="900"
+    fill="white">T</text>
+
+  <!-- Petite barre rose en bas (style TikTok) -->
+  <rect x="56" y="155" width="80" height="4" rx="2" fill="#E91E8C" opacity="0.7"/>
+</svg>
