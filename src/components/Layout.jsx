@@ -241,8 +241,8 @@ export default function Layout({ children }) {
           </div>
 
           {/* Icône Messages — rose, cercle */}
-          <button onClick={() => navigate('/messages')} style={{ position: 'relative', background: 'linear-gradient(135deg,#E91E8C,#FF6BB5)', color: 'white', border: 'none', borderRadius: '50%', width: 40, height: 40, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0, boxShadow: '0 2px 10px rgba(233,30,140,.4)' }}>
-            <HiChat size={20} />
+          <button onClick={() => navigate('/messages')} style={{ position: 'relative', background: 'linear-gradient(135deg,#E91E8C,#FF6BB5)', color: 'white', border: 'none', borderRadius: 20, padding: '8px 16px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0, boxShadow: '0 2px 10px rgba(233,30,140,.4)', fontWeight: 600, fontSize: 14, fontFamily: 'Poppins' }}>
+            Messages
             {msgCount > 0 && (
               <span style={{ position: 'absolute', top: -4, right: -4, background: '#FF1744', color: 'white', borderRadius: '50%', minWidth: 18, height: 18, fontSize: 10, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 2px', border: '2px solid white' }}>
                 {msgCount > 9 ? '9+' : msgCount}
