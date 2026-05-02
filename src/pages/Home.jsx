@@ -25,7 +25,7 @@ const MAX_PRICE   = 999_999_999;
 const REACTIONS   = ['❤️','😂','😮','😢','😡','👍'];
 
 function VIPBadge() {
-  return <svg style={{ marginLeft:4, verticalAlign:'middle', display:'inline-block' }} width='16' height='16' viewBox='0 0 24 24' fill='#E91E8C'><circle cx='12' cy='12' r='12' fill='#E91E8C'/><path d='M9 12.5l2.5 2.5 5-5' stroke='white' strokeWidth='2.2' strokeLinecap='round' strokeLinejoin='round' fill='none'/></svg>;
+  return <svg style={{ marginLeft:4, verticalAlign:'middle', display:'inline-block' }} width='16' height='16' viewBox='0 0 24 24'><path d='M12 1l2.5 3.5L18 3l1 4 4 1-2 3.5 2 3.5-4 1-1 4-3.5-1.5L12 23l-2.5-3.5L6 21l-1-4-4-1 2-3.5L1 9l4-1 1-4 3.5 1.5z' fill='#E91E8C'/><path d='M8.5 12.5l2.5 2.5 5-5' stroke='white' strokeWidth='2' strokeLinecap='round' strokeLinejoin='round' fill='none'/></svg>;
 }
 
 export default function Home() {
