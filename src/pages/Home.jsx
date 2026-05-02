@@ -492,12 +492,12 @@ export default function Home() {
             {total > 0 && (
               <div style={{ padding:'0 16px 8px', display:'flex', gap:4, flexWrap:'wrap', cursor:'pointer' }} onClick={() => openReactionModal(post)}>
                 {Object.entries(rc).map(([e,c]) => <span key={e} style={{ background:'#FFE4F3', borderRadius:12, padding:'2px 8px', fontSize:12 }}>{e} {c}</span>)}
-                <span style={{ fontSize:11, color:'#C4829F', alignSelf:'center' }}>· {total} {t('reactions')}</span>
+                </div><div className='reactions-bar-right'>{post.comments?.length||0} commentaires</div>
               </div>
             )}
 
             {/* Actions */}
-            <div style={{ borderTop:'1px solid #FFE4F3', padding:'8px 16px', display:'flex', gap:6, alignItems:'center' }}>
+            <div className='post-actions-row'>
               <div style={{ position:'relative' }}>
                 <button onClick={() => setShowReact(p=>({...p,[post.id]:!p[post.id]}))} style={{ display:'flex', alignItems:'center', gap:4, background:'none', border:'none', cursor:'pointer', color:myR?'#E91E8C':'#C4829F', fontSize:13, padding:'6px 10px', borderRadius:20 }}>
                   {myR?<span style={{ fontSize:16 }}>{myR}</span>:<HiOutlineHeart size={18}/>}
@@ -509,10 +509,10 @@ export default function Home() {
                   </div>
                 )}
               </div>
-              <button onClick={() => setOpenCmt(p=>({...p,[post.id]:!p[post.id]}))} style={{ display:'flex', alignItems:'center', gap:4, background:'none', border:'none', cursor:'pointer', color:'#C4829F', fontSize:13, padding:'6px 10px', borderRadius:20 }}>
+              <button onClick={() => setOpenCmt(p=>({...p,[post.id]:!p[post.id]}))} className='post-action-btn'>
                 <HiChat size={18}/>{post.comments?.length>0&&<span>{post.comments.length}</span>}
               </button>
-              <button onClick={() => sharePost(post)} style={{ display:'flex', alignItems:'center', gap:4, background:'none', border:'none', cursor:'pointer', color:'#C4829F', fontSize:13, padding:'6px 10px', borderRadius:20 }}>
+              <button onClick={() => sharePost(post)} className='post-action-btn'>
                 <HiShare size={18}/>
               </button>
             </div>
