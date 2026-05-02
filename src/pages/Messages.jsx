@@ -464,7 +464,7 @@ export default function Messages() {
             {activeUser && <>
               <div style={{ position: 'relative' }}>
                 <img src={activeUser.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(activeUser.fullName)}&background=E91E8C&color=fff`}
-                  alt="" className="avatar" style={{ width: 40, height: 40 }} />
+                  alt="" className="avatar" style={{ width: 40, height: 40, cursor:'pointer' }} onClick={()=>navigate(`/profile/${otherUid}`)} />
                 <span style={{ position: 'absolute', bottom: 1, right: 1, width: 10, height: 10, background: online[otherUid] ? '#22c55e' : '#9ca3af', borderRadius: '50%', border: '2px solid white' }} />
               </div>
               <div style={{ flex: 1 }}>

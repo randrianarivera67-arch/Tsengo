@@ -63,6 +63,7 @@ export default function Profile() {
   const [replyTo,        setReplyTo]     = useState({});
   const [friendsData,    setFriendsData] = useState([]);
   const [loadingFriends, setLoadingF]    = useState(false);
+  const [zoomPhoto,      setZoomPhoto]   = useState(null);
   const [friendStatus,   setFriendStatus] = useState('none');
 
   const photoRef  = useRef();
@@ -111,6 +112,15 @@ export default function Profile() {
       const r = await uploadToTelegram(file);
       await updateDoc(doc(db,'users',currentUser.uid), { photoURL: r.url });
       setProfile(p=>({...p,photoURL:r.url})); setUserProfile(p=>({...p,photoURL:r.url}));
+      await addDoc(collection(db,'posts'),{
+        uid:currentUser.uid, authorName:userProfile.fullName,
+        authorPhoto:r.url, authorUsername:userProfile.username,
+        authorIsVip:userProfile.isVip||false,
+        content:'📸 a mis à jour sa photo de profil',
+        mediaURL:r.url, mediaType:'image',
+        isProfilePhoto:true, reactions:{}, comments:[],
+        createdAt:serverTimestamp(),
+      });
     } catch(err) { alert('Erreur upload'); }
     setUploading(false);
   }
@@ -433,14 +443,14 @@ export default function Profile() {
   return (
     <div>
       <div style={{ height:200, background:'linear-gradient(135deg,#E91E8C,#FF6BB5,#FFB3D9)', position:'relative' }}>
-        {coverURL && <img src={coverURL} alt='cover' style={{ width:'100%', height:'100%', objectFit:'cover', position:'absolute', inset:0 }}/>}
+        {coverURL && <img src={coverURL} alt='cover' onClick={()=>setZoomPhoto(coverURL)} style={{ width:'100%', height:'100%', objectFit:'cover', position:'absolute', inset:0, cursor:'pointer' }}/>}
         {isOwn && <>
           <button onClick={()=>coverRef.current.click()} disabled={uploadingCover} style={{ position:'absolute', bottom:10, right:10, background:'#E91E8C', border:'2px solid white', borderRadius:'50%', width:32, height:32, cursor:'pointer', color:'white', display:'flex', alignItems:'center', justifyContent:'center', zIndex:2 }}>{uploadingCover?'...':<HiCamera size={16}/>}</button>
           <input ref={coverRef} type='file' accept='image/*' onChange={uploadCoverPhoto} style={{ display:'none' }}/>
         </>}
         <div style={{ position:'absolute', bottom:-55, left:'50%', transform:'translateX(-50%)' }}>
           <div style={{ position:'relative' }}>
-            <img src={profile.photoURL||`https://ui-avatars.com/api/?name=${encodeURIComponent(profile.fullName)}&background=E91E8C&color=fff&size=100`} alt="" className="avatar avatar-ring" style={{ width:100, height:100, border:'4px solid white', objectFit:'cover' }}/>
+            <img src={profile.photoURL||`https://ui-avatars.com/api/?name=${encodeURIComponent(profile.fullName)}&background=E91E8C&color=fff&size=100`} alt="" className="avatar avatar-ring" onClick={()=>setZoomPhoto(profile.photoURL)} style={{ width:100, height:100, border:'4px solid white', objectFit:'cover', cursor:'pointer' }}/>
             {isOwn&&<><button onClick={() => photoRef.current.click()} disabled={uploadingPhoto} style={{ position:'absolute', bottom:2, right:2, background:'#E91E8C', border:'2px solid white', borderRadius:'50%', width:28, height:28, cursor:'pointer', color:'white', display:'flex', alignItems:'center', justifyContent:'center' }}>{uploadingPhoto?'...':<HiCamera size={14}/>}</button><input ref={photoRef} type="file" accept="image/*" onChange={uploadProfilePhoto} style={{ display:'none' }}/></>}
           </div>
         </div>
@@ -506,6 +516,13 @@ export default function Profile() {
         ))}
       </div>
 
+      {zoomPhoto && (
+        <div onClick={()=>setZoomPhoto(null)} style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.95)', zIndex:300, display:'flex', alignItems:'center', justifyContent:'center' }}>
+          <img src={zoomPhoto} alt='' style={{ maxWidth:'100%', maxHeight:'100%', objectFit:'contain' }}/>
+          <button onClick={()=>setZoomPhoto(null)} style={{ position:'absolute', top:16, right:16, background:'none', border:'none', color:'white', fontSize:28, cursor:'pointer' }}>✕</button>
+        </div>
+      )}
+
       {editPost && (
         <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,.5)', zIndex:200, display:'flex', alignItems:'center', justifyContent:'center', padding:20 }}>
           <div className="card" style={{ width:'100%', maxWidth:400, padding:20 }}>
@@ -558,7 +575,7 @@ export default function Profile() {
         {activeTab==='photos'&&(photoPosts.length===0
           ? <div style={{ textAlign:'center', padding:40, color:'#C4829F' }}>Aucune photo</div>
           : <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:4 }}>
-              {allPhotos.map(p => <div key={p.id} onClick={() => !p.isProfilePhoto&&!p.isCoverPhoto&&navigate(`/post/${p.id}`)} style={{ aspectRatio:'1', overflow:'hidden', borderRadius:8, cursor:'pointer' }}><img src={p.mediaURL} alt="" style={{ width:'100%', height:'100%', objectFit:'cover' }}/></div>)}
+              {allPhotos.map(p => <div key={p.id} onClick={() => p.isProfilePhoto||p.isCoverPhoto ? setZoomPhoto(p.mediaURL) : navigate(`/post/${p.id}`)} style={{ aspectRatio:'1', overflow:'hidden', borderRadius:8, cursor:'pointer' }}><img src={p.mediaURL} alt="" style={{ width:'100%', height:'100%', objectFit:'cover' }}/></div>)}
             </div>
         )}
 
