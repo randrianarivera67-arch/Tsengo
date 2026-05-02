@@ -435,7 +435,7 @@ export default function Profile() {
       <div style={{ height:180, background:'linear-gradient(135deg,#E91E8C,#FF6BB5,#FFB3D9)', position:'relative', overflow:'hidden' }}>
         {coverURL && <img src={coverURL} alt='cover' style={{ width:'100%', height:'100%', objectFit:'cover', position:'absolute', inset:0 }}/>}
         {isOwn && <>
-          <button onClick={()=>coverRef.current.click()} disabled={uploadingCover} style={{ position:'absolute', bottom:10, right:10, background:'rgba(0,0,0,0.5)', border:'none', borderRadius:20, padding:'6px 12px', cursor:'pointer', color:'white', fontSize:12, display:'flex', alignItems:'center', gap:6, zIndex:2 }}>{uploadingCover?'...':'📷 Modifier'}</button>
+          <button onClick={()=>coverRef.current.click()} disabled={uploadingCover} style={{ position:'absolute', bottom:10, right:10, background:'#E91E8C', border:'2px solid white', borderRadius:'50%', width:32, height:32, cursor:'pointer', color:'white', display:'flex', alignItems:'center', justifyContent:'center', zIndex:2 }}>{uploadingCover?'...':<HiCamera size={16}/>}</button>
           <input ref={coverRef} type='file' accept='image/*' onChange={uploadCoverPhoto} style={{ display:'none' }}/>
         </>}
         <div style={{ position:'absolute', bottom:-50, left:'50%', transform:'translateX(-50%)' }}>
