@@ -42,7 +42,8 @@ export default function Messages() {
   const [replyTo,       setReplyTo]       = useState(null);  // { id, text, fromName, fromPhoto }
   const [editingMsgId,  setEditingMsgId]  = useState(null);
   const [msgAction,     setMsgAction]     = useState(null);
-  const [bottomSheet,   setBottomSheet]   = useState(null); // {msg, isMe}
+  const [bottomSheet,   setBottomSheet]   = useState(null);
+  const [msgReactions,  setMsgReactions]  = useState({});
   const [convMenu,      setConvMenu]      = useState(null);  // chatId showing menu
   const [deleteConfirm, setDeleteConfirm] = useState(null);
   const [transferMsg, setTransferMsg] = useState(null);  // chatId | 'all'
@@ -122,7 +123,7 @@ export default function Messages() {
     prevMsgLen.current = messages.length;
   }, [messages]);
 
-  useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages]);
+  undefined
 
   useEffect(() => {
     if (!activeChatId) return;
@@ -265,6 +266,14 @@ export default function Messages() {
 
   async function deleteForMe(msgId) {
     await remove(ref(rtdb, `conversations/${activeChatId}/messages/${msgId}`));
+    setBottomSheet(null);
+  }
+
+  async function reactToMsg(msgId, emoji) {
+    const msgRef = ref(rtdb, `conversations/${activeChatId}/messages/${msgId}/reactions/${currentUser.uid}`);
+    const cur = msgReactions[msgId]?.[currentUser.uid];
+    if (cur===emoji) { await remove(msgRef); }
+    else { await set(msgRef, emoji); }
     setBottomSheet(null);
   }
 
@@ -441,7 +450,7 @@ export default function Messages() {
 
       {/* ── Zone de discussion ──────────────────────────────────── */}
       {activeChatId && (
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: '#FDF4F8', width: '100%' }}>
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: '#FDF4F8', width: '100%', overflow: 'hidden' }}>
 
           {/* Header chat */}
           <div style={{ background: 'white', borderBottom: '1px solid #FFE4F3', padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 10, position: 'sticky', top: 0, zIndex: 10 }}>
@@ -527,7 +536,7 @@ export default function Messages() {
                   {/* Actions du message */}
                   {isActived && (
                     <div onClick={e=>e.stopPropagation()} style={{ display:'flex', justifyContent:isMe?'flex-end':'flex-start', marginTop:4, paddingLeft:isMe?0:34 }}>
-                      <button onClick={()=>setBottomSheet({msg,isMe})} style={{ background:'rgba(233,30,140,0.08)', border:'none', borderRadius:20, padding:'4px 12px', fontSize:11, color:'#E91E8C', cursor:'pointer' }}>⋯ Options</button>
+                      <div style={{display:'flex',gap:4,flexWrap:'wrap',marginBottom:2}}>{Object.entries(msgReactions[msg.id]||{}).reduce((a,[,e])=>{a[e]=(a[e]||0)+1;return a;},{}) && Object.entries(Object.entries(msgReactions[msg.id]||{}).reduce((a,[,e])=>{a[e]=(a[e]||0)+1;return a;},{})).map(([e,n])=><span key={e} style={{background:'white',borderRadius:12,padding:'2px 6px',fontSize:11,boxShadow:'0 1px 4px rgba(0,0,0,.1)'}}>{e} {n}</span>)}</div><button onClick={()=>setBottomSheet({msg,isMe})} style={{ background:'rgba(233,30,140,0.08)', border:'none', borderRadius:20, padding:'4px 12px', fontSize:11, color:'#E91E8C', cursor:'pointer' }}>⋯ Options</button>
                     </div>
                   )}
                 </div>
@@ -607,7 +616,7 @@ export default function Messages() {
             {/* Reactions */}
             <div style={{ display:'flex', justifyContent:'center', gap:16, padding:'12px 20px 16px', borderBottom:'1px solid #FFE4F3' }}>
               {['❤️','😂','😮','😢','😡','👍'].map(em=>(
-                <span key={em} onClick={()=>{ setBottomSheet(null); }} style={{ fontSize:32, cursor:'pointer' }}>{em}</span>
+                <span key={em} onClick={()=>reactToMsg(bottomSheet.msg.id,em)} style={{ fontSize:32, cursor:'pointer', opacity: msgReactions[bottomSheet.msg.id]?.[currentUser.uid]===em?1:0.5 }}>{em}</span>
               ))}
             </div>
             {/* Actions */}
@@ -624,7 +633,7 @@ export default function Messages() {
               ]),
             ].map(({icon,label,fn,red})=>(
               <button key={label} onClick={fn} style={{ width:'100%', display:'flex', alignItems:'center', gap:16, padding:'14px 24px', background:'none', border:'none', cursor:'pointer', borderBottom:'1px solid #FFF0F8', fontFamily:'Poppins', fontSize:15, color:red?'#ef4444':'#2D1220', fontWeight:500 }}>
-                <span style={{ fontSize:20 }}>{icon}</span>{label}
+                {label}
               </button>
             ))}
           </div>

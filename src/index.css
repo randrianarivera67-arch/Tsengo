@@ -200,7 +200,7 @@ body {
 
 /* Message bubble — BLUE for sender */
 .msg-bubble-me {
-  background: linear-gradient(135deg, #2563eb, #3b82f6);
+  background: linear-gradient(135deg, #E91E8C, #FF6BB5);
   color: white;
   border-radius: 18px 18px 4px 18px;
   padding: 10px 14px;
