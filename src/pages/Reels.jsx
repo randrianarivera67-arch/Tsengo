@@ -192,7 +192,7 @@ export default function Reels() {
     const c={}; Object.values(r).forEach(e=>{c[e]=(c[e]||0)+1;}); return c;
   }
 
-  if (posts.length===0) {
+  if (posts.length===0) { return ( <div style={{ display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", height:"calc(100vh - 130px)", color:"#C4829F", gap:8 }}> <style>{`@keyframes dot { 0%,80%,100%{opacity:0} 40%{opacity:1} } .d1{animation:dot 1.4s infinite .0s} .d2{animation:dot 1.4s infinite .2s} .d3{animation:dot 1.4s infinite .4s}`}</style> <p style={{ fontSize:18, fontWeight:600 }}>Chargement<span className="d1">.</span><span className="d2">.</span><span className="d3">.</span></p> </div> ); } if (posts.length===-999) {
     return (
       <div style={{ display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', height:'calc(100vh - 130px)', color:'#C4829F', gap:16 }}>
         <span style={{ fontSize:48 }}>🎬</span>
