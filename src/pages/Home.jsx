@@ -29,7 +29,7 @@ function VIPBadge() {
 }
 
 export default function Home() {
-  const { currentUser, userProfile } = useAuth();
+  const { currentUser, userProfile, setUserProfile } = useAuth();
   const { t } = useLang();
   const navigate = useNavigate();
 
@@ -270,6 +270,7 @@ export default function Home() {
       status: 'pending', createdAt: serverTimestamp(),
     });
     await updateDoc(doc(db,'users',currentUser.uid), { sentRequests: arrayUnion(toUid) });
+    setUserProfile(p=>({...p, sentRequests:[...(p.sentRequests||[]),toUid]}));
     await addDoc(collection(db,'notifications'), {
       toUid, fromUid: currentUser.uid,
       fromName: userProfile.fullName, fromPhoto: userProfile.photoURL||'',
@@ -290,7 +291,7 @@ export default function Home() {
       {reelPosts.length > 0 && (
         <div style={{ marginBottom:16 }}>
           <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:8 }}>
-            <p style={{ fontWeight:700, fontSize:14, color:'#E91E8C', display:'flex', alignItems:'center', gap:4 }}><HiFilm size={16}/> Reels</p>
+            <p style={{ fontWeight:700, fontSize:14, color:'#E91E8C', display:'flex', alignItems:'center', gap:6 }}><svg viewBox='0 0 24 24' width='18' height='18' fill='#E91E8C'><path d='M23.495 6.205a3.007 3.007 0 0 0-2.088-2.088c-1.87-.501-9.396-.501-9.396-.501s-7.507-.01-9.396.501A3.007 3.007 0 0 0 .527 6.205a31.247 31.247 0 0 0-.522 5.805 31.247 31.247 0 0 0 .522 5.783 3.007 3.007 0 0 0 2.088 2.088c1.868.502 9.396.502 9.396.502s7.506 0 9.396-.502a3.007 3.007 0 0 0 2.088-2.088 31.247 31.247 0 0 0 .5-5.783 31.247 31.247 0 0 0-.5-5.805zM9.609 15.601V8.408l6.264 3.602z'/></svg> Vidéos courtes</p>
             <button onClick={() => navigate('/reels')} style={{ background:'none', border:'none', color:'#C4829F', fontSize:12, cursor:'pointer' }}>Voir tout</button>
           </div>
           <div style={{ display:'flex', gap:10, overflowX:'auto', paddingBottom:8, scrollbarWidth:'none' }}>
