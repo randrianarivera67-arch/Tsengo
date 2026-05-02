@@ -48,6 +48,8 @@ export default function Profile() {
   const [editing,        setEditing]     = useState(false);
   const [editForm,       setEditForm]    = useState({ fullName:'', bio:'' });
   const [uploadingPhoto, setUploading]   = useState(false);
+  const [coverURL,       setCoverURL]    = useState(null);
+  const [uploadingCover, setUploadCover] = useState(false);
   const [openCmt,        setOpenCmt]     = useState({});
   const [cmtText,        setCmtText]     = useState({});
   const [cmtMedia,       setCmtMedia]    = useState({});
@@ -64,6 +66,7 @@ export default function Profile() {
   const [friendStatus,   setFriendStatus] = useState('none');
 
   const photoRef  = useRef();
+  const coverRef  = useRef();
   const cPhotoRef = useRef({});
   const cVideoRef = useRef({});
 
@@ -76,7 +79,7 @@ export default function Profile() {
   useEffect(() => {
     if (!targetUid) return;
     getDoc(doc(db,'users',targetUid)).then(s => {
-      if (s.exists()) { setProfile(s.data()); setEditForm({ fullName:s.data().fullName, bio:s.data().bio||'' }); }
+      if (s.exists()) { setProfile(s.data()); setEditForm({ fullName:s.data().fullName, bio:s.data().bio||'' }); setCoverURL(s.data().coverURL||null); }
     });
   }, [targetUid]);
 
@@ -110,6 +113,33 @@ export default function Profile() {
       setProfile(p=>({...p,photoURL:r.url})); setUserProfile(p=>({...p,photoURL:r.url}));
     } catch(err) { alert('Erreur upload'); }
     setUploading(false);
+  }
+
+  async function uploadCoverPhoto(e) {
+    const file = e.target.files[0]; if (!file) return;
+    setUploadCover(true);
+    try {
+      const r = await uploadToTelegram(file);
+      await updateDoc(doc(db,'users',currentUser.uid), { coverURL: r.url });
+      setCoverURL(r.url);
+      setProfile(p=>({...p,coverURL:r.url}));
+      // Voatahiry ao amin'ny photos tab
+      await addDoc(collection(db,'posts'), {
+        uid: currentUser.uid,
+        authorName: userProfile.fullName,
+        authorPhoto: userProfile.photoURL||'',
+        authorUsername: userProfile.username,
+        authorIsVip: userProfile.isVip||false,
+        content: 'Photo de couverture',
+        mediaURL: r.url,
+        mediaType: 'image',
+        isCoverPhoto: true,
+        reactions: {},
+        comments: [],
+        createdAt: serverTimestamp(),
+      });
+    } catch(err) { alert('Erreur upload cover'); }
+    setUploadCover(false);
   }
 
   async function saveProfile() {
@@ -245,7 +275,9 @@ export default function Profile() {
 
   const regularPosts = posts.filter(p=>!p.isSale);
   const salePosts    = posts.filter(p=>p.isSale);
-  const photoPosts   = posts.filter(p=>p.mediaType==='image'&&p.mediaURL);
+  const profilePhoto = profile.photoURL ? [{ id:'profile-photo', mediaURL:profile.photoURL, isProfilePhoto:true }] : [];
+  const coverPhoto   = coverURL ? [{ id:'cover-photo', mediaURL:coverURL, isCoverPhoto:true }] : [];
+  const photoPosts   = [...coverPhoto, ...profilePhoto, ...posts.filter(p=>p.mediaType==='image'&&p.mediaURL)];
   const videoPosts   = posts.filter(p=>p.mediaType==='video'&&p.mediaURL);
 
   function getTabContent() {
@@ -399,7 +431,12 @@ export default function Profile() {
 
   return (
     <div>
-      <div style={{ height:140, background:'linear-gradient(135deg,#E91E8C,#FF6BB5,#FFB3D9)', position:'relative' }}>
+      <div style={{ height:180, background:'linear-gradient(135deg,#E91E8C,#FF6BB5,#FFB3D9)', position:'relative', overflow:'hidden' }}>
+        {coverURL && <img src={coverURL} alt='cover' style={{ width:'100%', height:'100%', objectFit:'cover', position:'absolute', inset:0 }}/>}
+        {isOwn && <>
+          <button onClick={()=>coverRef.current.click()} disabled={uploadingCover} style={{ position:'absolute', bottom:10, right:10, background:'rgba(0,0,0,0.5)', border:'none', borderRadius:20, padding:'6px 12px', cursor:'pointer', color:'white', fontSize:12, display:'flex', alignItems:'center', gap:6, zIndex:2 }}>{uploadingCover?'...':'📷 Modifier'}</button>
+          <input ref={coverRef} type='file' accept='image/*' onChange={uploadCoverPhoto} style={{ display:'none' }}/>
+        </>}
         <div style={{ position:'absolute', bottom:-50, left:'50%', transform:'translateX(-50%)' }}>
           <div style={{ position:'relative' }}>
             <img src={profile.photoURL||`https://ui-avatars.com/api/?name=${encodeURIComponent(profile.fullName)}&background=E91E8C&color=fff&size=100`} alt="" className="avatar avatar-ring" style={{ width:100, height:100, border:'4px solid white', objectFit:'cover' }}/>
