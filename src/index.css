@@ -237,7 +237,7 @@ body {
   cursor: pointer;
   border-radius: 12px;
   transition: all 0.2s;
-  color: #C4829F;
+  color: #6B3A52;
   font-size: 11px;
   gap: 3px;
   flex: 1;
@@ -373,4 +373,10 @@ body {
 }
 
 /* Input placeholder maizina */
-.input::placeholder { color: #6B7280 !important; }
+.input::placeholder { color: #9B5E7A !important; font-size: 14px; }
+
+/* Placeholder malemy — tsy hita be */
+input::placeholder, textarea::placeholder {
+  color: #C4B5C0 !important;
+  font-size: 13px;
+}

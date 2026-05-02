@@ -257,14 +257,14 @@ export default function Layout({ children }) {
             <HiSearch style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: '#C4829F', pointerEvents: 'none', zIndex: 1 }} size={15} />
             <input
               type="text"
-              placeholder="Publications, personnes, ventes, vidéos, photos..."
+              placeholder="Rechercher..."
               value={search}
               onChange={e => handleSearch(e.target.value)}
               onFocus={() => search.trim() && setSearchOpen(true)}
               style={{
                 width: '100%', padding: '8px 12px 8px 34px',
-                border: `1.5px solid ${isDark ? '#4A2535' : '#FFE4F3'}`, borderRadius: 22,
-                background: isDark ? '#3D1A2A' : '#FFF8FC', color: text,
+                border: `1.5px solid ${isDark ? '#4A2535' : '#D1D5DB'}`, borderRadius: 22,
+                background: isDark ? '#3D1A2A' : 'white', color: text,
                 fontSize: 13, outline: 'none', boxSizing: 'border-box', fontFamily: 'Poppins',
               }}
             />
