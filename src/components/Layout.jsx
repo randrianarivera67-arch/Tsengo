@@ -174,7 +174,7 @@ export default function Layout({ children }) {
         {/* Header */}
         <div style={{ padding: '18px 16px 14px', borderBottom: `1px solid ${bdr}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <img src="/tsengo-logo.png" alt="Tsengo" className="logo-shimmer" style={{ width:32, height:32, objectFit:"contain" }}/>
+            <img src="/tsengo-logo.png" alt="Tsengo" className="logo-shimmer" style={{ width:48, height:48, objectFit:"contain" }}/>
             <span style={{ fontWeight: 800, fontSize: 18, color: '#E91E8C' }}>Tsengo</span>
           </div>
           <button onClick={() => setDrawerOpen(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#C4829F' }}><HiX size={22} /></button>
@@ -236,7 +236,7 @@ export default function Layout({ children }) {
           </button>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', flex: 1 }} onClick={() => navigate('/')}>
-            <img src="/tsengo-logo.png" alt="Tsengo" className="logo-shimmer" style={{ width:30, height:30, objectFit:"contain" }}/>
+            <img src="/tsengo-logo.png" alt="Tsengo" className="logo-shimmer" style={{ width:48, height:48, objectFit:"contain" }}/>
             <span style={{ fontWeight: 800, fontSize: 20, color: '#E91E8C', letterSpacing: -1 }}>Tsengo</span>
           </div>
 
