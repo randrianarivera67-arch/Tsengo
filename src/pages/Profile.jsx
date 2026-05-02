@@ -442,11 +442,11 @@ export default function Profile() {
             </div>
             <div style={{ display:'flex', justifyContent:'center', gap:10, marginTop:14 }}>
               {isOwn ? (
-                <button onClick={() => setEditing(true)} style={{ display:'inline-flex', alignItems:'center', gap:6, background:'#FFE4F3', border:'none', borderRadius:20, padding:'8px 18px', color:'#E91E8C', fontWeight:600, cursor:'pointer', fontSize:13 }}><HiPencil size={14}/>{t('editProfile')}</button>
+                <button onClick={() => setEditing(true)} style={{ display:'inline-flex', alignItems:'center', gap:6, background:'linear-gradient(135deg,#0a0a2e,#2d1b69)', border:'1px solid rgba(150,130,255,0.3)', borderRadius:20, padding:'8px 18px', color:'rgba(180,160,255,0.95)', fontWeight:600, cursor:'pointer', fontSize:13, boxShadow:'0 2px 12px rgba(45,27,105,0.4), inset 0 1px 0 rgba(255,255,255,0.1)' }}><HiPencil size={14}/>{t('editProfile')}</button>
               ) : (
                 <>
                   <button onClick={() => navigate(`/messages/${getChatId(currentUser.uid,targetUid)}`)} className="btn-primary" style={{ fontSize:13, padding:'8px 18px' }}><HiChat size={14} style={{ display:'inline', marginRight:4 }}/>Message</button>
-                  {friendStatus==='none'&&<button onClick={sendFriendRequest} style={{ display:'inline-flex', alignItems:'center', gap:6, background:'#FFE4F3', border:'none', borderRadius:20, padding:'8px 16px', color:'#E91E8C', fontWeight:600, cursor:'pointer', fontSize:13 }}><HiUserAdd size={14}/>Ajouter</button>}
+                  {friendStatus==='none'&&<button onClick={sendFriendRequest} style={{ display:'inline-flex', alignItems:'center', gap:6, background:'linear-gradient(135deg,#0a0a2e,#2d1b69)', border:'1px solid rgba(150,130,255,0.3)', borderRadius:20, padding:'8px 16px', color:'rgba(180,160,255,0.95)', fontWeight:600, cursor:'pointer', fontSize:13, boxShadow:'0 2px 12px rgba(45,27,105,0.4), inset 0 1px 0 rgba(255,255,255,0.1)' }}><HiUserAdd size={14}/>Ajouter</button>}
                   {friendStatus==='requested'&&<span style={{ display:'inline-flex', alignItems:'center', background:'#F3F4F6', borderRadius:20, padding:'8px 16px', color:'#9CA3AF', fontSize:13 }}>Demande envoyée</span>}
                   {friendStatus==='friend'&&<span style={{ display:'inline-flex', alignItems:'center', background:'#D1FAE5', borderRadius:20, padding:'8px 16px', color:'#065F46', fontSize:13 }}>✓ Ami</span>}
                 </>
