@@ -3,22 +3,26 @@ import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   doc, getDoc, updateDoc, collection, query, where,
-  onSnapshot, orderBy, addDoc, serverTimestamp, arrayUnion, arrayRemove
+  onSnapshot, orderBy, addDoc, serverTimestamp, arrayUnion, arrayRemove, deleteDoc
 } from 'firebase/firestore';
 import { db } from '../firebase';
 import { useAuth } from '../context/AuthContext';
 import { useLang } from '../context/LanguageContext';
 import { uploadToTelegram } from '../utils/telegram';
 import { getChatId } from '../utils/chat';
+import { sendPushNotification } from '../utils/onesignal';
 import { v4 as uuidv4 } from 'uuid';
 import {
   HiCamera, HiPencil, HiTag, HiChat, HiOutlineHeart,
-  HiShare, HiStar, HiX, HiUserAdd, HiPhotograph, HiFilm, HiUserGroup
+  HiShare, HiStar, HiX, HiUserAdd, HiPhotograph, HiVideoCamera,
+  HiDotsVertical, HiTrash, HiLightningBolt, HiDownload,
+  HiReply, HiPhone, HiLocationMarker
 } from 'react-icons/hi';
 
 const REACTIONS = ['❤️','😂','😮','😢','😡','👍'];
+
 function VIPBadge() {
-  return <span style={{ background:'linear-gradient(135deg,#E91E8C,#FF6BB5)', color:'white', fontSize:9, fontWeight:700, padding:'1px 6px', borderRadius:8, marginLeft:5, verticalAlign:'middle' }}>VIP ✓</span>;
+  return <span style={{ background:'linear-gradient(135deg,#E91E8C,#FF6BB5)', color:'white', fontSize:9, fontWeight:700, padding:'1px 5px', borderRadius:8, marginLeft:4, verticalAlign:'middle' }}>VIP</span>;
 }
 
 const TABS = [
@@ -46,11 +50,28 @@ export default function Profile() {
   const [uploadingPhoto, setUploading]   = useState(false);
   const [openCmt,        setOpenCmt]     = useState({});
   const [cmtText,        setCmtText]     = useState({});
+  const [cmtMedia,       setCmtMedia]    = useState({});
   const [showReact,      setShowReact]   = useState({});
+  const [reactionModal,  setRM]          = useState(null);
+  const [cmtReactionPicker, setCmtReactionPicker] = useState(null);
+  const [editPost,       setEditPost]    = useState(null);
+  const [editContent,    setEditContent] = useState('');
+  const [postMenu,       setPostMenu]    = useState(null);
+  const [editCmt,        setEditCmt]     = useState(null);
+  const [replyTo,        setReplyTo]     = useState({});
   const [friendsData,    setFriendsData] = useState([]);
   const [loadingFriends, setLoadingF]    = useState(false);
   const [friendStatus,   setFriendStatus] = useState('none');
-  const photoRef = useRef();
+
+  const photoRef  = useRef();
+  const cPhotoRef = useRef({});
+  const cVideoRef = useRef({});
+
+  useEffect(() => {
+    const fn = () => setPostMenu(null);
+    document.addEventListener('click', fn);
+    return () => document.removeEventListener('click', fn);
+  }, []);
 
   useEffect(() => {
     if (!targetUid) return;
@@ -106,24 +127,120 @@ export default function Profile() {
   }
 
   async function reactToPost(postId, emoji) {
+    if (!REACTIONS.includes(emoji)) return;
     const post = posts.find(p=>p.id===postId); if (!post) return;
-    const r = post.reactions||{}, my = r[currentUser.uid];
-    if (my===emoji) { const u={...r}; delete u[currentUser.uid]; await updateDoc(doc(db,'posts',postId),{reactions:u}); }
-    else await updateDoc(doc(db,'posts',postId),{[`reactions.${currentUser.uid}`]:emoji});
+    const reactions = post.reactions||{}, my = reactions[currentUser.uid];
+    if (my===emoji) {
+      const u={...reactions}; delete u[currentUser.uid];
+      await updateDoc(doc(db,'posts',postId),{reactions:u});
+    } else {
+      await updateDoc(doc(db,'posts',postId),{[`reactions.${currentUser.uid}`]:emoji});
+      if (post.uid !== currentUser.uid) {
+        await addDoc(collection(db,'notifications'), {
+          toUid:post.uid, fromUid:currentUser.uid,
+          fromName:userProfile.fullName, fromPhoto:userProfile.photoURL||'',
+          type:'reaction', postId, emoji,
+          message:`${userProfile.fullName} a réagi ${emoji} à votre publication`,
+          read:false, createdAt:serverTimestamp(),
+        });
+        sendPushNotification({ toExternalId:post.uid, title:userProfile.fullName, message:`a réagi ${emoji}`, data:{type:'reaction',postId} });
+      }
+    }
     setShowReact(p=>({...p,[postId]:false}));
   }
 
+  async function openReactionModal(post) {
+    const reactions = post.reactions||{};
+    if (!Object.keys(reactions).length) return;
+    const userData = {};
+    await Promise.all(Object.keys(reactions).map(async uid => {
+      try {
+        const s = await getDoc(doc(db,'users',uid));
+        userData[uid] = s.exists() ? { name:s.data().fullName, photo:s.data().photoURL } : { name:uid, photo:'' };
+      } catch { userData[uid] = { name:uid, photo:'' }; }
+    }));
+    setRM({ reactions, userData });
+  }
+
+  async function reactToCmt(postId, cmtId, emoji) {
+    const post = posts.find(p=>p.id===postId); if (!post) return;
+    const updated = post.comments.map(c => {
+      if (c.id !== cmtId) return c;
+      const reactions = c.reactions||{};
+      const my = reactions[currentUser.uid];
+      if (my===emoji) { const u={...reactions}; delete u[currentUser.uid]; return {...c,reactions:u}; }
+      return {...c,reactions:{...reactions,[currentUser.uid]:emoji}};
+    });
+    await updateDoc(doc(db,'posts',postId),{comments:updated});
+    setCmtReactionPicker(null);
+  }
+
   async function addComment(postId) {
-    const text = cmtText[postId]; if (!text?.trim()) return;
-    const cmt = { id:uuidv4(), uid:currentUser.uid, authorName:userProfile.fullName, authorPhoto:userProfile.photoURL||'', authorIsVip:userProfile.isVip||false, text:text.trim(), createdAt:new Date().toISOString() };
-    await updateDoc(doc(db,'posts',postId), { comments:arrayUnion(cmt) });
+    const rt = replyTo[postId];
+    const raw = rt ? `@${rt} ${cmtText[postId]||''}` : (cmtText[postId]||'');
+    const text = raw.trim(); const media = cmtMedia[postId];
+    if (!text && !media) return;
+    let mediaURL='', cMT='';
+    if (media) { try { const r=await uploadToTelegram(media.file); mediaURL=r.url; cMT=r.type; } catch {} }
+    const post = posts.find(p=>p.id===postId);
+    const cmt = {
+      id:uuidv4(), uid:currentUser.uid,
+      authorName:userProfile.fullName, authorPhoto:userProfile.photoURL||'',
+      authorIsVip:userProfile.isVip||false,
+      text:text.slice(0,500), mediaURL, mediaType:cMT,
+      createdAt:new Date().toISOString(),
+    };
+    await updateDoc(doc(db,'posts',postId),{comments:arrayUnion(cmt)});
     setCmtText(p=>({...p,[postId]:''}));
+    setCmtMedia(p=>({...p,[postId]:null}));
+    setReplyTo(p=>({...p,[postId]:null}));
+    if (post && post.uid !== currentUser.uid) {
+      await addDoc(collection(db,'notifications'), {
+        toUid:post.uid, fromUid:currentUser.uid,
+        fromName:userProfile.fullName, fromPhoto:userProfile.photoURL||'',
+        type:'comment', postId,
+        message:`${userProfile.fullName} a commenté votre publication`,
+        read:false, createdAt:serverTimestamp(),
+      });
+      sendPushNotification({ toExternalId:post.uid, title:userProfile.fullName, message:text?`a commenté : "${text.slice(0,50)}"`:' a commenté', data:{type:'comment',postId} });
+    }
+  }
+
+  async function deleteCmt(postId, cmt) {
+    if (cmt.uid !== currentUser.uid) return;
+    if (!window.confirm('Supprimer ce commentaire ?')) return;
+    await updateDoc(doc(db,'posts',postId),{comments:arrayRemove(cmt)});
+  }
+
+  async function saveEditCmt(postId, oldCmt, newText) {
+    if (!newText.trim()) return;
+    const post = posts.find(p=>p.id===postId); if (!post) return;
+    const updated = post.comments.map(c => c.id===oldCmt.id ? {...c,text:newText.trim()} : c);
+    await updateDoc(doc(db,'posts',postId),{comments:updated});
+    setEditCmt(null);
+  }
+
+  async function deletePost(postId) {
+    const post = posts.find(p=>p.id===postId);
+    if (!post || post.uid !== currentUser.uid) return;
+    if (!window.confirm('Supprimer cette publication ?')) return;
+    await deleteDoc(doc(db,'posts',postId));
+  }
+
+  async function saveEditPost() {
+    if (!editContent.trim()||!editPost||editPost.uid!==currentUser.uid) return;
+    await updateDoc(doc(db,'posts',editPost.id),{content:editContent.trim().slice(0,2000)});
+    setEditPost(null);
   }
 
   async function sharePost(post) {
     const url = `${window.location.origin}/post/${post.id}`;
-    if (navigator.share) { try { await navigator.share({title:'Tsengo',url}); } catch {} }
+    if (navigator.share) { try { await navigator.share({title:'Tsengo',text:post.content,url}); } catch {} }
     else { navigator.clipboard?.writeText(url); alert('Lien copié !'); }
+  }
+
+  function countReactions(r={}) {
+    const c={}; Object.values(r).forEach(e=>{c[e]=(c[e]||0)+1;}); return c;
   }
 
   const regularPosts = posts.filter(p=>!p.isSale);
@@ -142,9 +259,146 @@ export default function Profile() {
   if (!profile) return <div style={{ padding:40, textAlign:'center', color:'#C4829F' }}>{t('loading')}</div>;
   const friendCount = profile.friends?.length||0;
 
+  function renderPost(post) {
+    const rc     = countReactions(post.reactions);
+    const myR    = post.reactions?.[currentUser.uid];
+    const total  = Object.keys(post.reactions||{}).length;
+    const isOwnPost = post.uid === currentUser?.uid;
+    const boosted = post.isBoosted && post.boostUntil && new Date(post.boostUntil)>new Date();
+
+    return (
+      <div key={post.id} className="card post-card animate-fade" style={{ marginBottom:14, border:boosted?'1px solid #a855f755':undefined }}>
+        {boosted && (
+          <div style={{ background:'linear-gradient(135deg,#7c3aed18,#a855f718)', borderBottom:'1px solid #a855f733', padding:'5px 14px' }}>
+            <span style={{ fontSize:10, color:'#a855f7', fontWeight:600 }}>⚡ Sponsorisé</span>
+          </div>
+        )}
+
+        <div style={{ padding:'14px 16px 0', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+          <div style={{ display:'flex', alignItems:'center', gap:10, flex:1, minWidth:0 }}>
+            <img src={profile.photoURL||`https://ui-avatars.com/api/?name=${encodeURIComponent(profile.fullName||'U')}&background=E91E8C&color=fff`} alt="" className="avatar" style={{ width:40, height:40, flexShrink:0 }}/>
+            <div style={{ minWidth:0 }}>
+              <p style={{ fontWeight:600, fontSize:14, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{profile.fullName}{profile.isVip&&<VIPBadge/>}</p>
+              <p style={{ fontSize:12, color:'#C4829F' }}>@{profile.username} · {post.createdAt?.toDate?new Date(post.createdAt.toDate()).toLocaleDateString('fr-FR'):'Maintenant'}</p>
+            </div>
+          </div>
+
+          <div style={{ display:'flex', alignItems:'center', gap:6, flexShrink:0 }}>
+            {post.isSale && <div style={{ textAlign:'right' }}><span className="sale-badge">{t('sale')}</span><p className="price-tag" style={{ marginTop:2, fontSize:13 }}>{post.price} Ar</p></div>}
+            <div style={{ position:'relative' }} onClick={e=>e.stopPropagation()}>
+              <button onClick={() => setPostMenu(postMenu===post.id?null:post.id)}
+                style={{ background:'none', border:'none', cursor:'pointer', color:'#C4829F', padding:4, display:'flex', alignItems:'center' }}><HiDotsVertical size={18}/></button>
+              {postMenu===post.id && (
+                <div style={{ position:'absolute', top:'100%', right:0, background:'white', border:'1px solid #FFE4F3', borderRadius:12, boxShadow:'0 4px 20px rgba(0,0,0,.12)', minWidth:170, zIndex:50, overflow:'hidden' }}>
+                  {isOwnPost && <>
+                    <button onClick={() => { setEditPost(post); setEditContent(post.content); setPostMenu(null); }} style={{ width:'100%', display:'flex', alignItems:'center', gap:10, padding:'11px 16px', background:'none', border:'none', cursor:'pointer', color:'#2D1220', fontSize:14, borderBottom:'1px solid #FFF0F8', fontFamily:'Poppins' }}><HiPencil size={15} color="#E91E8C"/> Modifier</button>
+                    <button onClick={() => { navigate('/boost'); setPostMenu(null); }} style={{ width:'100%', display:'flex', alignItems:'center', gap:10, padding:'11px 16px', background:'none', border:'none', cursor:'pointer', color:'#2D1220', fontSize:14, borderBottom:'1px solid #FFF0F8', fontFamily:'Poppins' }}><HiLightningBolt size={15} color="#a855f7"/> Booster</button>
+                    <button onClick={() => { deletePost(post.id); setPostMenu(null); }} style={{ width:'100%', display:'flex', alignItems:'center', gap:10, padding:'11px 16px', background:'none', border:'none', cursor:'pointer', color:'#E91E8C', fontSize:14, borderBottom:'1px solid #FFF0F8', fontFamily:'Poppins' }}><HiTrash size={15}/> Supprimer</button>
+                  </>}
+                  {post.mediaURL && <button onClick={() => { window.open(post.mediaURL,'_blank'); setPostMenu(null); }} style={{ width:'100%', display:'flex', alignItems:'center', gap:10, padding:'11px 16px', background:'none', border:'none', cursor:'pointer', color:'#2D1220', fontSize:14, fontFamily:'Poppins' }}><HiDownload size={15} color="#3b82f6"/> Télécharger</button>}
+                  {!isOwnPost && !post.mediaURL && <div style={{ padding:'10px 16px', color:'#C4829F', fontSize:13 }}>Aucune action</div>}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        <div style={{ padding:'10px 16px', cursor:'pointer' }} onClick={() => navigate(`/post/${post.id}`)}>
+          {post.content && <p style={{ fontSize:15, lineHeight:1.6, wordBreak:'break-word' }}>{post.content}</p>}
+          {post.isSale && (post.contact||post.lieu) && (
+            <div style={{ marginTop:8, display:'flex', flexWrap:'wrap', gap:8 }}>
+              {post.contact && <a href={`tel:${post.contact}`} onClick={e=>e.stopPropagation()} style={{ display:'flex', alignItems:'center', gap:5, background:'#FFE4F3', borderRadius:20, padding:'5px 12px', color:'#E91E8C', fontSize:13, fontWeight:600, textDecoration:'none' }}><HiPhone size={13}/>{post.contact}</a>}
+              {post.lieu && <span style={{ display:'flex', alignItems:'center', gap:5, background:'#FFF0F8', borderRadius:20, padding:'5px 12px', color:'#8B5A6F', fontSize:13 }}><HiLocationMarker size={13} color="#E91E8C"/>{post.lieu}</span>}
+            </div>
+          )}
+          {post.mediaURL && (
+            <div style={{ marginTop:8 }}>
+              {post.mediaType==='image' ? <img src={post.mediaURL} alt="" style={{ width:'100%', borderRadius:10, maxHeight:350, objectFit:'cover' }}/> : <video src={post.mediaURL} controls onClick={e=>e.stopPropagation()} style={{ width:'100%', borderRadius:10 }}/>}
+            </div>
+          )}
+        </div>
+
+        {total > 0 && (
+          <div style={{ padding:'0 16px 8px', display:'flex', gap:4, flexWrap:'wrap', cursor:'pointer' }} onClick={() => openReactionModal(post)}>
+            {Object.entries(rc).map(([e,c]) => <span key={e} style={{ background:'#FFE4F3', borderRadius:12, padding:'2px 8px', fontSize:12 }}>{e} {c}</span>)}
+            <span style={{ fontSize:11, color:'#C4829F', alignSelf:'center' }}>· {total} {t('reactions')}</span>
+          </div>
+        )}
+
+        <div style={{ borderTop:'1px solid #FFE4F3', padding:'8px 16px', display:'flex', gap:6, alignItems:'center' }}>
+          <div style={{ position:'relative' }}>
+            <button onClick={() => setShowReact(p=>({...p,[post.id]:!p[post.id]}))} style={{ display:'flex', alignItems:'center', gap:4, background:'none', border:'none', cursor:'pointer', color:myR?'#E91E8C':'#C4829F', fontSize:13, padding:'6px 10px', borderRadius:20 }}>
+              {myR?<span style={{ fontSize:16 }}>{myR}</span>:<HiOutlineHeart size={18}/>}
+              {total>0&&<span>{total}</span>}
+            </button>
+            {showReact[post.id] && (
+              <div style={{ position:'absolute', bottom:'110%', left:0, background:'white', borderRadius:30, padding:'8px 12px', display:'flex', gap:6, boxShadow:'0 4px 20px rgba(0,0,0,.15)', zIndex:10, border:'1px solid #FFE4F3' }}>
+                {REACTIONS.map(e => <button key={e} onClick={() => reactToPost(post.id,e)} style={{ background:'none', border:'none', cursor:'pointer', fontSize:22 }}>{e}</button>)}
+              </div>
+            )}
+          </div>
+          <button onClick={() => setOpenCmt(p=>({...p,[post.id]:!p[post.id]}))} style={{ display:'flex', alignItems:'center', gap:4, background:'none', border:'none', cursor:'pointer', color:'#C4829F', fontSize:13, padding:'6px 10px', borderRadius:20 }}>
+            <HiChat size={18}/>{post.comments?.length>0&&<span>{post.comments.length}</span>}
+          </button>
+          <button onClick={() => sharePost(post)} style={{ display:'flex', alignItems:'center', gap:4, background:'none', border:'none', cursor:'pointer', color:'#C4829F', fontSize:13, padding:'6px 10px', borderRadius:20 }}>
+            <HiShare size={18}/>
+          </button>
+        </div>
+
+        {openCmt[post.id] && (
+          <div style={{ padding:'0 16px 14px', borderTop:'1px solid #FFE4F3' }}>
+            {post.comments?.map(c => (
+              <div key={c.id} style={{ display:'flex', gap:8, marginTop:10 }}>
+                <img src={c.authorPhoto||`https://ui-avatars.com/api/?name=${encodeURIComponent(c.authorName||'U')}&background=E91E8C&color=fff`} alt="" className="avatar" style={{ width:30, height:30, flexShrink:0, cursor:'pointer' }} onClick={() => navigate(`/profile/${c.uid}`)}/>
+                <div style={{ flex:1, background:'#FFF8FC', borderRadius:12, padding:'8px 10px' }}>
+                  <span style={{ fontWeight:600, fontSize:13 }}>{c.authorName}{c.authorIsVip&&<VIPBadge/>}{' '}</span>
+                  {c.text&&<span style={{ fontSize:13 }}>{c.text}</span>}
+                  {c.mediaURL&&<div style={{ marginTop:4 }}>{c.mediaType==='image'?<img src={c.mediaURL} alt="" style={{ maxWidth:200, borderRadius:8 }}/>:<video src={c.mediaURL} controls style={{ maxWidth:200, borderRadius:8 }}/>}</div>}
+                  <div style={{ display:'flex', gap:10, marginTop:5, flexWrap:'wrap' }}>
+                    <button onClick={() => setReplyTo(p=>({...p,[post.id]:c.authorName}))} style={{ background:'none', border:'none', cursor:'pointer', color:'#C4829F', fontSize:11, display:'flex', alignItems:'center', gap:3 }}><HiReply size={12}/> Répondre</button>
+                    <button onClick={() => setCmtReactionPicker(p => p===c.id?null:c.id)} style={{ background:'none', border:'none', cursor:'pointer', color:'#C4829F', fontSize:11 }}>{c.reactions?.[currentUser.uid] || '😊'} {Object.keys(c.reactions||{}).length||''}</button>
+                    {cmtReactionPicker===c.id && <div style={{ display:'flex', gap:4, background:'white', borderRadius:20, padding:'4px 8px', boxShadow:'0 2px 12px rgba(0,0,0,.15)', zIndex:10 }}>{['❤️','😂','😮','😢','👍','🔥'].map(em=><span key={em} onClick={()=>reactToCmt(post.id,c.id,em)} style={{ fontSize:18, cursor:'pointer' }}>{em}</span>)}</div>}
+                    {c.uid===currentUser.uid&&<>
+                      <button onClick={() => setEditCmt({ postId:post.id, cmt:c, text:c.text })} style={{ background:'none', border:'none', cursor:'pointer', color:'#C4829F', fontSize:11, display:'flex', alignItems:'center', gap:3 }}><HiPencil size={12}/> Modifier</button>
+                      <button onClick={() => deleteCmt(post.id,c)} style={{ background:'none', border:'none', cursor:'pointer', color:'#E91E8C', fontSize:11, display:'flex', alignItems:'center', gap:3 }}><HiTrash size={12}/> Supprimer</button>
+                    </>}
+                  </div>
+                </div>
+              </div>
+            ))}
+
+            {replyTo[post.id] && (
+              <div style={{ display:'flex', alignItems:'center', gap:6, marginTop:8, background:'#FFF0F8', padding:'6px 10px', borderRadius:10 }}>
+                <HiReply size={14} color="#E91E8C"/>
+                <span style={{ fontSize:12, color:'#8B5A6F' }}>Répondre à <strong>{replyTo[post.id]}</strong></span>
+                <button onClick={() => setReplyTo(p=>({...p,[post.id]:null}))} style={{ marginLeft:'auto', background:'none', border:'none', cursor:'pointer', color:'#C4829F' }}><HiX size={14}/></button>
+              </div>
+            )}
+
+            {cmtMedia[post.id] && (
+              <div style={{ position:'relative', marginTop:8, display:'inline-block' }}>
+                {cmtMedia[post.id].type==='image'?<img src={cmtMedia[post.id].preview} alt="" style={{ maxWidth:150, borderRadius:8 }}/>:<video src={cmtMedia[post.id].preview} style={{ maxWidth:150, borderRadius:8 }}/>}
+                <button onClick={() => setCmtMedia(p=>({...p,[post.id]:null}))} style={{ position:'absolute', top:2, right:2, background:'rgba(0,0,0,.5)', border:'none', borderRadius:'50%', width:20, height:20, cursor:'pointer', color:'white', fontSize:10 }}>✕</button>
+              </div>
+            )}
+
+            <div style={{ display:'flex', gap:6, marginTop:10, alignItems:'center' }}>
+              <img src={userProfile?.photoURL||`https://ui-avatars.com/api/?name=${encodeURIComponent(userProfile?.fullName||'U')}&background=E91E8C&color=fff`} alt="" className="avatar" style={{ width:30, height:30, flexShrink:0 }}/>
+              <input ref={el=>cPhotoRef.current[post.id]=el} type="file" accept="image/jpeg,image/png,image/gif,image/webp" style={{ display:'none' }} onChange={e=>{const f=e.target.files[0];if(f)setCmtMedia(p=>({...p,[post.id]:{file:f,type:'image',preview:URL.createObjectURL(f)}}));}}/>
+              <input ref={el=>cVideoRef.current[post.id]=el} type="file" accept="video/mp4,video/webm,video/quicktime" style={{ display:'none' }} onChange={e=>{const f=e.target.files[0];if(f)setCmtMedia(p=>({...p,[post.id]:{file:f,type:'video',preview:URL.createObjectURL(f)}}));}}/>
+              <input className="input" placeholder={replyTo[post.id]?`Répondre à ${replyTo[post.id]}...`:t('writeComment')} value={cmtText[post.id]||''} onChange={e=>setCmtText(p=>({...p,[post.id]:e.target.value}))} onKeyDown={e=>e.key==='Enter'&&addComment(post.id)} style={{ flex:1, padding:'7px 12px', fontSize:13 }} maxLength={500}/>
+              <button onClick={() => cPhotoRef.current[post.id]?.click()} style={{ background:'none', border:'none', cursor:'pointer', color:'#C4829F', padding:4 }}><HiPhotograph size={18}/></button>
+              <button onClick={() => cVideoRef.current[post.id]?.click()} style={{ background:'none', border:'none', cursor:'pointer', color:'#C4829F', padding:4 }}><HiVideoCamera size={18}/></button>
+              <button onClick={() => addComment(post.id)} style={{ background:'linear-gradient(135deg,#E91E8C,#FF6BB5)', border:'none', borderRadius:'50%', width:32, height:32, cursor:'pointer', color:'white', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>➤</button>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
+
   return (
     <div>
-      {/* Cover */}
       <div style={{ height:140, background:'linear-gradient(135deg,#E91E8C,#FF6BB5,#FFB3D9)', position:'relative' }}>
         <div style={{ position:'absolute', bottom:-50, left:'50%', transform:'translateX(-50%)' }}>
           <div style={{ position:'relative' }}>
@@ -154,7 +408,6 @@ export default function Profile() {
         </div>
       </div>
 
-      {/* Info */}
       <div style={{ paddingTop:60, textAlign:'center', padding:'60px 20px 16px' }}>
         {editing ? (
           <div style={{ maxWidth:300, margin:'0 auto' }}>
@@ -162,7 +415,7 @@ export default function Profile() {
             <textarea className="input" value={editForm.bio} onChange={e=>setEditForm(p=>({...p,bio:e.target.value}))} placeholder={t('bio')} rows={2} style={{ resize:'none', marginBottom:10 }}/>
             <div style={{ display:'flex', gap:10 }}>
               <button className="btn-secondary" onClick={() => setEditing(false)} style={{ flex:1 }}>{t('cancel')}</button>
-              <button className="btn-primary"   onClick={saveProfile}           style={{ flex:1 }}>{t('save')}</button>
+              <button className="btn-primary" onClick={saveProfile} style={{ flex:1 }}>{t('save')}</button>
             </div>
             <div onClick={() => navigate('/vip')} style={{ marginTop:12, padding:'10px 16px', background:'linear-gradient(135deg,#fef3c7,#fde68a)', borderRadius:12, cursor:'pointer', display:'flex', alignItems:'center', gap:8, border:'1px solid #fcd34d' }}>
               <HiStar size={18} color="#f59e0b"/>
@@ -178,8 +431,8 @@ export default function Profile() {
             <div style={{ display:'flex', justifyContent:'center', gap:28, marginTop:16 }}>
               {[
                 { label:'Publications', value:regularPosts.length },
-                { label:'Ventes',       value:salePosts.length },
-                { label:'Amis',         value:friendCount, onClick:()=>setActiveTab('amis') },
+                { label:'Ventes', value:salePosts.length },
+                { label:'Amis', value:friendCount, onClick:()=>setActiveTab('amis') },
               ].map(({label,value,onClick}) => (
                 <div key={label} style={{ textAlign:'center', cursor:onClick?'pointer':'default' }} onClick={onClick}>
                   <p style={{ fontWeight:700, fontSize:20, color:'#E91E8C' }}>{value}</p>
@@ -203,7 +456,6 @@ export default function Profile() {
         )}
       </div>
 
-      {/* Tabs */}
       <div style={{ display:'flex', borderTop:'1px solid #FFE4F3', borderBottom:'1px solid #FFE4F3', background:'white', overflowX:'auto', scrollbarWidth:'none' }}>
         {TABS.map(tab => (
           <button key={tab.key} onClick={() => setActiveTab(tab.key)}
@@ -216,8 +468,55 @@ export default function Profile() {
         ))}
       </div>
 
+      {editPost && (
+        <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,.5)', zIndex:200, display:'flex', alignItems:'center', justifyContent:'center', padding:20 }}>
+          <div className="card" style={{ width:'100%', maxWidth:400, padding:20 }}>
+            <h3 style={{ marginBottom:12 }}>Modifier la publication</h3>
+            <textarea className="input" rows={4} value={editContent} onChange={e=>setEditContent(e.target.value)} style={{ resize:'none' }} maxLength={2000}/>
+            <div style={{ display:'flex', gap:10, marginTop:12 }}>
+              <button className="btn-secondary" onClick={() => setEditPost(null)} style={{ flex:1 }}>{t('cancel')}</button>
+              <button className="btn-primary" onClick={saveEditPost} style={{ flex:1 }}>{t('save')}</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {editCmt && (
+        <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,.5)', zIndex:200, display:'flex', alignItems:'center', justifyContent:'center', padding:20 }}>
+          <div className="card" style={{ width:'100%', maxWidth:400, padding:20 }}>
+            <h3 style={{ marginBottom:12 }}>Modifier le commentaire</h3>
+            <textarea className="input" rows={3} value={editCmt.text} onChange={e=>setEditCmt(p=>({...p,text:e.target.value}))} style={{ resize:'none' }} maxLength={500}/>
+            <div style={{ display:'flex', gap:10, marginTop:12 }}>
+              <button className="btn-secondary" onClick={() => setEditCmt(null)} style={{ flex:1 }}>{t('cancel')}</button>
+              <button className="btn-primary" onClick={() => saveEditCmt(editCmt.postId, editCmt.cmt, editCmt.text)} style={{ flex:1 }}>{t('save')}</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {reactionModal && (
+        <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,.5)', zIndex:200, display:'flex', alignItems:'center', justifyContent:'center', padding:20 }}>
+          <div className="card" style={{ width:'100%', maxWidth:360, padding:20, maxHeight:'70vh', overflowY:'auto' }}>
+            <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:14 }}>
+              <h3 style={{ color:'#E91E8C', fontWeight:700 }}>Réactions</h3>
+              <button onClick={() => setRM(null)} style={{ background:'none', border:'none', cursor:'pointer', color:'#C4829F' }}><HiX size={20}/></button>
+            </div>
+            {Object.entries(reactionModal.reactions).map(([uid, emoji]) => {
+              const info = reactionModal.userData?.[uid]||{};
+              return (
+                <div key={uid} onClick={() => { setRM(null); navigate(`/profile/${uid}`); }}
+                  style={{ display:'flex', alignItems:'center', gap:10, padding:'8px 0', borderBottom:'1px solid #FFE4F3', cursor:'pointer' }}>
+                  <img src={info.photo||`https://ui-avatars.com/api/?name=${encodeURIComponent(info.name||'U')}&background=E91E8C&color=fff`} alt="" style={{ width:36, height:36, borderRadius:'50%', objectFit:'cover' }}/>
+                  <p style={{ fontSize:14, fontWeight:600, flex:1 }}>{uid===currentUser.uid?'Vous':(info.name||uid)}</p>
+                  <span style={{ fontSize:20 }}>{emoji}</span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       <div style={{ padding:12 }}>
-        {/* Photos grid */}
         {activeTab==='photos'&&(photoPosts.length===0
           ? <div style={{ textAlign:'center', padding:40, color:'#C4829F' }}>Aucune photo</div>
           : <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:4 }}>
@@ -225,7 +524,6 @@ export default function Profile() {
             </div>
         )}
 
-        {/* Videos grid */}
         {activeTab==='videos'&&(videoPosts.length===0
           ? <div style={{ textAlign:'center', padding:40, color:'#C4829F' }}>Aucune vidéo</div>
           : <div style={{ display:'grid', gridTemplateColumns:'repeat(2,1fr)', gap:8 }}>
@@ -240,7 +538,6 @@ export default function Profile() {
             </div>
         )}
 
-        {/* Amis grid */}
         {activeTab==='amis'&&(
           loadingFriends ? <div style={{ textAlign:'center', padding:30, color:'#C4829F' }}>{t('loading')}</div>
           : friendsData.length===0 ? <div style={{ textAlign:'center', padding:40, color:'#C4829F' }}>Aucun ami pour le moment</div>
@@ -259,51 +556,10 @@ export default function Profile() {
             </div>
         )}
 
-        {/* Posts & Sales */}
         {(activeTab==='posts'||activeTab==='sales')&&(
           getTabContent().length===0
             ? <div style={{ textAlign:'center', padding:40, color:'#C4829F' }}>Aucun contenu</div>
-            : getTabContent().map(post => {
-              const myR   = post.reactions?.[currentUser.uid];
-              const total = Object.keys(post.reactions||{}).length;
-              return (
-                <div key={post.id} className="card" style={{ marginBottom:12, overflow:'hidden' }}>
-                  {post.isSale&&<div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', padding:'10px 14px 0' }}><span className="sale-badge"><HiTag size={12} style={{ display:'inline' }}/> Vente</span><span className="price-tag">{post.price} Ar</span></div>}
-                  <div style={{ padding:'10px 14px', cursor:'pointer' }} onClick={() => navigate(`/post/${post.id}`)}>
-                    {post.content&&<p style={{ fontSize:14, wordBreak:'break-word', lineHeight:1.6 }}>{post.content}</p>}
-                    {post.mediaURL&&(post.mediaType==='image'?<img src={post.mediaURL} alt="" style={{ width:'100%', borderRadius:10, maxHeight:220, objectFit:'cover', marginTop:8 }}/>:<video src={post.mediaURL} controls style={{ width:'100%', borderRadius:10, marginTop:8 }} onClick={e=>e.stopPropagation()}/>)}
-                  </div>
-                  <div style={{ borderTop:'1px solid #FFE4F3', padding:'8px 14px', display:'flex', gap:4 }}>
-                    <div style={{ position:'relative' }}>
-                      <button onClick={() => setShowReact(p=>({...p,[post.id]:!p[post.id]}))} style={{ display:'flex', alignItems:'center', gap:4, background:'none', border:'none', cursor:'pointer', color:myR?'#E91E8C':'#C4829F', fontSize:13, padding:'6px 10px', borderRadius:20 }}>
-                        {myR?<span>{myR}</span>:<HiOutlineHeart size={17}/>}{total>0&&<span>{total}</span>}
-                      </button>
-                      {showReact[post.id]&&<div style={{ position:'absolute', bottom:'110%', left:0, background:'white', borderRadius:30, padding:'6px 10px', display:'flex', gap:6, boxShadow:'0 4px 20px rgba(0,0,0,.15)', zIndex:10, border:'1px solid #FFE4F3' }}>
-                        {REACTIONS.map(e=><button key={e} onClick={() => reactToPost(post.id,e)} style={{ background:'none', border:'none', cursor:'pointer', fontSize:20 }}>{e}</button>)}
-                      </div>}
-                    </div>
-                    <button onClick={() => setOpenCmt(p=>({...p,[post.id]:!p[post.id]}))} style={{ display:'flex', alignItems:'center', gap:4, background:'none', border:'none', cursor:'pointer', color:'#C4829F', fontSize:13, padding:'6px 10px', borderRadius:20 }}>
-                      <HiChat size={17}/>{post.comments?.length>0&&<span>{post.comments.length}</span>}
-                    </button>
-                    <button onClick={() => sharePost(post)} style={{ display:'flex', alignItems:'center', gap:4, background:'none', border:'none', cursor:'pointer', color:'#C4829F', fontSize:13, padding:'6px 10px', borderRadius:20 }}><HiShare size={17}/></button>
-                  </div>
-                  {openCmt[post.id]&&(
-                    <div style={{ padding:'0 14px 12px', borderTop:'1px solid #FFE4F3' }}>
-                      {post.comments?.map(c=>(
-                        <div key={c.id} style={{ display:'flex', gap:8, marginTop:8 }}>
-                          <img src={c.authorPhoto||`https://ui-avatars.com/api/?name=${encodeURIComponent(c.authorName||'U')}&background=E91E8C&color=fff`} alt="" className="avatar" style={{ width:28, height:28, flexShrink:0, cursor:'pointer' }} onClick={()=>navigate(`/profile/${c.uid}`)}/>
-                          <div><span style={{ fontWeight:600, fontSize:12 }}>{c.authorName}{c.authorIsVip&&<span style={{ marginLeft:3, background:'linear-gradient(135deg,#E91E8C,#FF6BB5)', color:'white', fontSize:8, fontWeight:700, padding:'1px 3px', borderRadius:4 }}>VIP</span>} </span><span style={{ fontSize:12 }}>{c.text}</span></div>
-                        </div>
-                      ))}
-                      <div style={{ display:'flex', gap:6, marginTop:8 }}>
-                        <input className="input" placeholder={t('writeComment')} value={cmtText[post.id]||''} onChange={e=>setCmtText(p=>({...p,[post.id]:e.target.value}))} onKeyDown={e=>e.key==='Enter'&&addComment(post.id)} style={{ flex:1, padding:'6px 12px', fontSize:13 }}/>
-                        <button onClick={() => addComment(post.id)} style={{ background:'linear-gradient(135deg,#E91E8C,#FF6BB5)', border:'none', borderRadius:'50%', width:32, height:32, cursor:'pointer', color:'white', display:'flex', alignItems:'center', justifyContent:'center' }}>➤</button>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              );
-            })
+            : getTabContent().map(post => renderPost(post))
         )}
       </div>
     </div>
