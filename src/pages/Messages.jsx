@@ -103,6 +103,9 @@ export default function Messages() {
       const msgs = Object.entries(snap.val()).map(([id, m]) => ({ id, ...m }));
       msgs.sort((a, b) => a.ts - b.ts);
       setMessages(msgs);
+      const r = {};
+      msgs.forEach(m => { if (m.reactions) r[m.id]=m.reactions; });
+      setMsgReactions(r);
       msgs.forEach(m => {
         if (m.toUid === currentUser.uid && !m.read) {
           update(ref(rtdb, `conversations/${activeChatId}/messages/${m.id}`), { read: true });
