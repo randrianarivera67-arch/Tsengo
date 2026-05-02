@@ -483,7 +483,7 @@ export default function Home() {
               )}
               {post.mediaURL && (
                 <div style={{ marginTop:8 }}>
-                  {post.mediaType==='image' ? <img src={post.mediaURL} alt="" style={{ width:'100%', borderRadius:10, maxHeight:350, objectFit:'cover' }}/> : <video src={post.mediaURL} controls onClick={e=>e.stopPropagation()} style={{ width:'100%', borderRadius:10 }}/>}
+                  {post.mediaType==='image' ? <img src={post.mediaURL} alt="" style={{ width:'100%', borderRadius:10, maxHeight:350, objectFit:'cover' }}/> : <video src={post.mediaURL} controls onClick={e=>{e.stopPropagation();navigate('/reels',{state:{startId:post.id}});}} style={{ width:'100%', borderRadius:10 }}/>}
                 </div>
               )}
             </div>
