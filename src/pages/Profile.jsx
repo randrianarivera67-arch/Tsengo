@@ -446,7 +446,7 @@ export default function Profile() {
         </div>
       </div>
 
-      <div style={{ paddingTop:60, textAlign:'center', padding:'60px 20px 16px' }}>
+      <div style={{ textAlign:'center', padding:'70px 20px 16px' }}>
         {editing ? (
           <div style={{ maxWidth:300, margin:'0 auto' }}>
             <input className="input" value={editForm.fullName} onChange={e=>setEditForm(p=>({...p,fullName:e.target.value}))} style={{ marginBottom:10 }} placeholder={t('fullName')}/>
