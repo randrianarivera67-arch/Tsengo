@@ -41,7 +41,8 @@ export default function Messages() {
   // ── Nouvelles fonctionnalités ─────────────────────────────
   const [replyTo,       setReplyTo]       = useState(null);  // { id, text, fromName, fromPhoto }
   const [editingMsgId,  setEditingMsgId]  = useState(null);
-  const [msgAction,     setMsgAction]     = useState(null);  // msgId showing actions
+  const [msgAction,     setMsgAction]     = useState(null);
+  const [bottomSheet,   setBottomSheet]   = useState(null); // {msg, isMe}
   const [convMenu,      setConvMenu]      = useState(null);  // chatId showing menu
   const [deleteConfirm, setDeleteConfirm] = useState(null);
   const [transferMsg, setTransferMsg] = useState(null);  // chatId | 'all'
@@ -259,7 +260,12 @@ export default function Messages() {
 
   async function deleteMessage(msgId) {
     await remove(ref(rtdb, `conversations/${activeChatId}/messages/${msgId}`));
-    setMsgAction(null);
+    setMsgAction(null); setBottomSheet(null);
+  }
+
+  async function deleteForMe(msgId) {
+    await remove(ref(rtdb, `conversations/${activeChatId}/messages/${msgId}`));
+    setBottomSheet(null);
   }
 
   async function deleteConversation(chatId) {
@@ -488,6 +494,7 @@ export default function Messages() {
                         className={isMe ? 'msg-bubble-me' : 'msg-bubble-other'}
                         style={{ wordBreak: 'break-word', cursor: 'pointer', borderRadius: msg.replyTo ? '0 8px 8px 8px' : undefined }}
                         onClick={e => { e.stopPropagation(); setMsgAction(isActived ? null : msg.id); }}
+                        onContextMenu={e => { e.preventDefault(); setBottomSheet({msg, isMe}); }}
                       >
                         {msg.text && <p>{msg.text}</p>}
                         {msg.edited && <span style={{ fontSize: 9, opacity: 0.6, marginLeft: 4 }}>modifié</span>}
@@ -519,29 +526,8 @@ export default function Messages() {
 
                   {/* Actions du message */}
                   {isActived && (
-                    <div
-                      onClick={e => e.stopPropagation()}
-                      style={{ display: 'flex', justifyContent: isMe ? 'flex-end' : 'flex-start', gap: 6, marginTop: 4, paddingLeft: isMe ? 0 : 34, paddingRight: isMe ? 0 : 0 }}>
-                      <button onClick={() => startReply(msg)}
-                        style={{ display: 'flex', alignItems: 'center', gap: 4, background: 'white', border: '1px solid #FFE4F3', borderRadius: 20, padding: '5px 12px', fontSize: 12, color: '#E91E8C', fontWeight: 600, cursor: 'pointer', boxShadow: '0 2px 8px rgba(233,30,140,.1)' }}>
-                        <HiReply size={14} /> Répondre</button>
-                      <button onClick={() => { navigator.clipboard.writeText(msg.text || ""); setMsgAction(null); }}
-                        style={{ display: "flex", alignItems: "center", gap: 4, background: "white", border: "1px solid #FFE4F3", borderRadius: 20, padding: "5px 12px", fontSize: 12, color: "#E91E8C", fontWeight: 600, cursor: "pointer", boxShadow: "0 2px 8px rgba(0,0,0,.06)" }}>
-                        📋 Copier</button>
-                      <button onClick={() => { setTransferMsg(msg); setMsgAction(null); }}
-                        style={{ display: "flex", alignItems: "center", gap: 4, background: "white", border: "1px solid #FFE4F3", borderRadius: 20, padding: "5px 12px", fontSize: 12, color: "#E91E8C", fontWeight: 600, cursor: "pointer", boxShadow: "0 2px 8px rgba(0,0,0,.06)" }}>
-                        ↪️ Transférer
-                      </button>
-                      {isMe && <>
-                        <button onClick={() => startEdit(msg)}
-                          style={{ display: 'flex', alignItems: 'center', gap: 4, background: 'white', border: '1px solid #FFE4F3', borderRadius: 20, padding: '5px 12px', fontSize: 12, color: '#6B3A52', fontWeight: 600, cursor: 'pointer', boxShadow: '0 2px 8px rgba(0,0,0,.06)' }}>
-                          <HiPencil size={14} /> Modifier
-                        </button>
-                        <button onClick={() => deleteMessage(msg.id)}
-                          style={{ display: 'flex', alignItems: 'center', gap: 4, background: 'white', border: '1px solid #FFE4F3', borderRadius: 20, padding: '5px 12px', fontSize: 12, color: '#ef4444', fontWeight: 600, cursor: 'pointer', boxShadow: '0 2px 8px rgba(0,0,0,.06)' }}>
-                          <HiTrash size={14} />
-                        </button>
-                      </>}
+                    <div onClick={e=>e.stopPropagation()} style={{ display:'flex', justifyContent:isMe?'flex-end':'flex-start', marginTop:4, paddingLeft:isMe?0:34 }}>
+                      <button onClick={()=>setBottomSheet({msg,isMe})} style={{ background:'rgba(233,30,140,0.08)', border:'none', borderRadius:20, padding:'4px 12px', fontSize:11, color:'#E91E8C', cursor:'pointer' }}>⋯ Options</button>
                     </div>
                   )}
                 </div>
@@ -613,6 +599,37 @@ export default function Messages() {
           </div>
         </div>
       )}
-    </div>
+    
+      {/* Bottom Sheet — Facebook style */}
+      {bottomSheet && (
+        <div onClick={()=>setBottomSheet(null)} style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.5)', zIndex:500, display:'flex', alignItems:'flex-end', justifyContent:'center' }}>
+          <div onClick={e=>e.stopPropagation()} style={{ background:'white', borderRadius:'20px 20px 0 0', padding:'16px 0 30px', width:'100%', maxWidth:480 }}>
+            {/* Reactions */}
+            <div style={{ display:'flex', justifyContent:'center', gap:16, padding:'12px 20px 16px', borderBottom:'1px solid #FFE4F3' }}>
+              {['❤️','😂','😮','😢','😡','👍'].map(em=>(
+                <span key={em} onClick={()=>{ setBottomSheet(null); }} style={{ fontSize:32, cursor:'pointer' }}>{em}</span>
+              ))}
+            </div>
+            {/* Actions */}
+            {[
+              { icon:'↩️', label:'Répondre', fn:()=>{ startReply(bottomSheet.msg); setBottomSheet(null); } },
+              { icon:'📋', label:'Copier', fn:()=>{ navigator.clipboard.writeText(bottomSheet.msg.text||''); setBottomSheet(null); } },
+              { icon:'↪️', label:'Transférer', fn:()=>{ setTransferMsg(bottomSheet.msg); setBottomSheet(null); } },
+              ...(bottomSheet.isMe ? [
+                { icon:'✏️', label:'Modifier', fn:()=>{ startEdit(bottomSheet.msg); setBottomSheet(null); } },
+                { icon:'🗑️', label:'Supprimer pour moi', fn:()=>deleteForMe(bottomSheet.msg.id), red:true },
+                { icon:'🗑️', label:'Supprimer pour tout le monde', fn:()=>deleteMessage(bottomSheet.msg.id), red:true },
+              ] : [
+                { icon:'🗑️', label:'Supprimer pour moi', fn:()=>deleteForMe(bottomSheet.msg.id), red:true },
+              ]),
+            ].map(({icon,label,fn,red})=>(
+              <button key={label} onClick={fn} style={{ width:'100%', display:'flex', alignItems:'center', gap:16, padding:'14px 24px', background:'none', border:'none', cursor:'pointer', borderBottom:'1px solid #FFF0F8', fontFamily:'Poppins', fontSize:15, color:red?'#ef4444':'#2D1220', fontWeight:500 }}>
+                <span style={{ fontSize:20 }}>{icon}</span>{label}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+</div>
   );
 }
