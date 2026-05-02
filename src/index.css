@@ -284,3 +284,14 @@ body {
 /* Hide native scrollbar in horizontal strips */
 .no-scrollbar::-webkit-scrollbar { display: none; }
 .no-scrollbar { scrollbar-width: none; }
+
+/* Logo shimmer effect */
+@keyframes logoShimmer {
+  0%   { filter: brightness(1) drop-shadow(0 0 0px #E91E8C); }
+  50%  { filter: brightness(1.4) drop-shadow(0 0 18px #FF6BB5) drop-shadow(0 0 35px #a855f7); }
+  100% { filter: brightness(1) drop-shadow(0 0 0px #E91E8C); }
+}
+
+.logo-shimmer {
+  animation: logoShimmer 2s ease-in-out infinite;
+}
