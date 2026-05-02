@@ -432,13 +432,13 @@ export default function Profile() {
 
   return (
     <div>
-      <div style={{ height:180, background:'linear-gradient(135deg,#E91E8C,#FF6BB5,#FFB3D9)', position:'relative', overflow:'hidden' }}>
+      <div style={{ height:200, background:'linear-gradient(135deg,#E91E8C,#FF6BB5,#FFB3D9)', position:'relative', overflow:'hidden' }}>
         {coverURL && <img src={coverURL} alt='cover' style={{ width:'100%', height:'100%', objectFit:'cover', position:'absolute', inset:0 }}/>}
         {isOwn && <>
           <button onClick={()=>coverRef.current.click()} disabled={uploadingCover} style={{ position:'absolute', bottom:10, right:10, background:'#E91E8C', border:'2px solid white', borderRadius:'50%', width:32, height:32, cursor:'pointer', color:'white', display:'flex', alignItems:'center', justifyContent:'center', zIndex:2 }}>{uploadingCover?'...':<HiCamera size={16}/>}</button>
           <input ref={coverRef} type='file' accept='image/*' onChange={uploadCoverPhoto} style={{ display:'none' }}/>
         </>}
-        <div style={{ position:'absolute', bottom:-60, left:'50%', transform:'translateX(-50%)' }}>
+        <div style={{ position:'absolute', bottom:-50, left:'50%', transform:'translateX(-50%)' }}>
           <div style={{ position:'relative' }}>
             <img src={profile.photoURL||`https://ui-avatars.com/api/?name=${encodeURIComponent(profile.fullName)}&background=E91E8C&color=fff&size=100`} alt="" className="avatar avatar-ring" style={{ width:100, height:100, border:'4px solid white', objectFit:'cover' }}/>
             {isOwn&&<><button onClick={() => photoRef.current.click()} disabled={uploadingPhoto} style={{ position:'absolute', bottom:2, right:2, background:'#E91E8C', border:'2px solid white', borderRadius:'50%', width:28, height:28, cursor:'pointer', color:'white', display:'flex', alignItems:'center', justifyContent:'center' }}>{uploadingPhoto?'...':<HiCamera size={14}/>}</button><input ref={photoRef} type="file" accept="image/*" onChange={uploadProfilePhoto} style={{ display:'none' }}/></>}
@@ -446,7 +446,7 @@ export default function Profile() {
         </div>
       </div>
 
-      <div style={{ textAlign:'center', padding:'75px 20px 16px' }}>
+      <div style={{ textAlign:'center', padding:'65px 20px 16px' }}>
         {editing ? (
           <div style={{ maxWidth:300, margin:'0 auto' }}>
             <input className="input" value={editForm.fullName} onChange={e=>setEditForm(p=>({...p,fullName:e.target.value}))} style={{ marginBottom:10 }} placeholder={t('fullName')}/>
