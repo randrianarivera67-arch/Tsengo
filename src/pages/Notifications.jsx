@@ -92,12 +92,10 @@ export default function Notifications() {
                 </div>
                 {!notif.read&&<div style={{ width:9, height:9, background:'#E91E8C', borderRadius:'50%', flexShrink:0 }}/>}
               </div>
-              {/* ✅ Bouton supprimer */}
-              <button onClick={e => { e.stopPropagation(); deleteNotification(notif.id); }}
-                style={{ background:'none', border:'none', cursor:'pointer', color:'#C4829F', padding:4, flexShrink:0, display:'flex', alignItems:'center' }}
-                title="Supprimer">
-                <HiX size={16}/>
-              </button>
+              <div style={{ display:'flex', flexDirection:'column', gap:6, flexShrink:0, alignItems:'flex-end' }}>
+                <button onClick={e=>{ e.stopPropagation(); handleClick(notif); }} style={{ background:'#E91E8C', border:'none', borderRadius:20, padding:'5px 14px', color:'white', fontSize:12, fontWeight:600, cursor:'pointer', fontFamily:'Poppins' }}>Voir</button>
+                <button onClick={e=>{ e.stopPropagation(); deleteNotification(notif.id); }} style={{ background:'none', border:'none', cursor:'pointer', color:'#E91E8C', fontSize:11, fontWeight:600, fontFamily:'Poppins' }}>Fermer</button>
+              </div>
             </div>
           );
         })
