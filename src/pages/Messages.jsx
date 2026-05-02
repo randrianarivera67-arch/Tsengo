@@ -515,7 +515,7 @@ export default function Messages() {
 
                       {/* Bulle du message */}
                       <div
-                        className={isMe ? 'msg-bubble-me' : 'msg-bubble-other'} style={{position:'relative'}}
+                        className={isMe ? 'msg-bubble-me' : 'msg-bubble-other'} style={{ position:'relative' }}
                         style={{ wordBreak: 'break-word', cursor: 'pointer', borderRadius: msg.replyTo ? '0 8px 8px 8px' : undefined }}
                         onClick={e => { e.stopPropagation(); setMsgAction(isActived ? null : msg.id); }}
                         onContextMenu={e => { e.preventDefault(); setBottomSheet({msg, isMe}); }}
