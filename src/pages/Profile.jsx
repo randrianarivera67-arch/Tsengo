@@ -275,9 +275,7 @@ export default function Profile() {
 
   const regularPosts = posts.filter(p=>!p.isSale);
   const salePosts    = posts.filter(p=>p.isSale);
-  const profilePhoto = profile.photoURL ? [{ id:'profile-photo', mediaURL:profile.photoURL, isProfilePhoto:true }] : [];
-  const coverPhoto   = coverURL ? [{ id:'cover-photo', mediaURL:coverURL, isCoverPhoto:true }] : [];
-  const photoPosts   = [...coverPhoto, ...profilePhoto, ...posts.filter(p=>p.mediaType==='image'&&p.mediaURL)];
+  const photoPosts   = posts.filter(p=>p.mediaType==='image'&&p.mediaURL);
   const videoPosts   = posts.filter(p=>p.mediaType==='video'&&p.mediaURL);
 
   function getTabContent() {
@@ -290,6 +288,9 @@ export default function Profile() {
 
   if (!profile) return <div style={{ padding:40, textAlign:'center', color:'#C4829F' }}>{t('loading')}</div>;
   const friendCount = profile.friends?.length||0;
+  const profilePhoto = profile.photoURL ? [{ id:'profile-photo', mediaURL:profile.photoURL, isProfilePhoto:true }] : [];
+  const coverPhotoArr = coverURL ? [{ id:'cover-photo', mediaURL:coverURL, isCoverPhoto:true }] : [];
+  const allPhotos = [...coverPhotoArr, ...profilePhoto, ...photoPosts];
 
   function renderPost(post) {
     const rc     = countReactions(post.reactions);
@@ -557,7 +558,7 @@ export default function Profile() {
         {activeTab==='photos'&&(photoPosts.length===0
           ? <div style={{ textAlign:'center', padding:40, color:'#C4829F' }}>Aucune photo</div>
           : <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:4 }}>
-              {photoPosts.map(p => <div key={p.id} onClick={() => navigate(`/post/${p.id}`)} style={{ aspectRatio:'1', overflow:'hidden', borderRadius:8, cursor:'pointer' }}><img src={p.mediaURL} alt="" style={{ width:'100%', height:'100%', objectFit:'cover' }}/></div>)}
+              {allPhotos.map(p => <div key={p.id} onClick={() => !p.isProfilePhoto&&!p.isCoverPhoto&&navigate(`/post/${p.id}`)} style={{ aspectRatio:'1', overflow:'hidden', borderRadius:8, cursor:'pointer' }}><img src={p.mediaURL} alt="" style={{ width:'100%', height:'100%', objectFit:'cover' }}/></div>)}
             </div>
         )}
 
