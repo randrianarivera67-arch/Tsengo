@@ -2,7 +2,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ref, push, onValue, update, set, remove } from 'firebase/database';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, getDoc, addDoc, collection, serverTimestamp } from 'firebase/firestore';
 import { rtdb, db } from '../firebase';
 import { useAuth } from '../context/AuthContext';
 import { useLang } from '../context/LanguageContext';
@@ -276,7 +276,19 @@ export default function Messages() {
     const msgRef = ref(rtdb, `conversations/${activeChatId}/messages/${msgId}/reactions/${currentUser.uid}`);
     const cur = msgReactions[msgId]?.[currentUser.uid];
     if (cur===emoji) { await remove(msgRef); }
-    else { await set(msgRef, emoji); }
+    else {
+      await set(msgRef, emoji);
+      const msg = messages.find(m=>m.id===msgId);
+      if (msg && msg.fromUid!==currentUser.uid) {
+        await addDoc(collection(db,'notifications'),{
+          toUid:msg.fromUid, fromUid:currentUser.uid,
+          fromName:userProfile.fullName, fromPhoto:userProfile.photoURL||'',
+          type:'reaction', message:`${userProfile.fullName} a réagi ${emoji} à votre message`,
+          read:false, createdAt:serverTimestamp(),
+        });
+        sendPushNotification({toExternalId:msg.fromUid, title:userProfile.fullName, message:`a réagi ${emoji} à votre message`, fromPhoto:userProfile.photoURL||'', data:{type:'message'}});
+      }
+    }
     setBottomSheet(null);
   }
 
@@ -539,7 +551,14 @@ export default function Messages() {
                   {/* Actions du message */}
                   {isActived && (
                     <div onClick={e=>e.stopPropagation()} style={{ display:'flex', justifyContent:isMe?'flex-end':'flex-start', marginTop:4, paddingLeft:isMe?0:34 }}>
-                      <div style={{display:'flex',gap:4,flexWrap:'wrap',marginBottom:2}}>{Object.entries(msgReactions[msg.id]||{}).reduce((a,[,e])=>{a[e]=(a[e]||0)+1;return a;},{}) && Object.entries(Object.entries(msgReactions[msg.id]||{}).reduce((a,[,e])=>{a[e]=(a[e]||0)+1;return a;},{})).map(([e,n])=><span key={e} style={{background:'white',borderRadius:12,padding:'2px 6px',fontSize:11,boxShadow:'0 1px 4px rgba(0,0,0,.1)'}}>{e} {n}</span>)}</div><button onClick={()=>setBottomSheet({msg,isMe})} style={{ background:'rgba(233,30,140,0.08)', border:'none', borderRadius:20, padding:'4px 12px', fontSize:11, color:'#E91E8C', cursor:'pointer' }}>⋯ Options</button>
+                      <div style={{display:'flex',flexDirection:'column',alignItems:isMe?'flex-end':'flex-start',gap:2}}>
+                      {Object.keys(msgReactions[msg.id]||{}).length>0&&(
+                        <div style={{display:'flex',gap:2,background:'white',borderRadius:12,padding:'2px 6px',boxShadow:'0 1px 4px rgba(0,0,0,.15)',position:'relative',zIndex:1,marginTop:-8,marginLeft:isMe?0:8,marginRight:isMe?8:0}}>
+                          {Object.entries(Object.entries(msgReactions[msg.id]||{}).reduce((a,[,e])=>{a[e]=(a[e]||0)+1;return a;},{})).map(([e,n])=><span key={e} style={{fontSize:13}}>{e}{n>1&&<span style={{fontSize:10}}>{n}</span>}</span>)}
+                        </div>
+                      )}
+                      <button onClick={()=>setBottomSheet({msg,isMe})} style={{ background:'rgba(233,30,140,0.08)', border:'none', borderRadius:20, padding:'4px 12px', fontSize:11, color:'#E91E8C', cursor:'pointer' }}>⋯ Options</button>
+                    </div>
                     </div>
                   )}
                 </div>
