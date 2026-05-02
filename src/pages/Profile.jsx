@@ -22,7 +22,7 @@ import {
 const REACTIONS = ['❤️','😂','😮','😢','😡','👍'];
 
 function VIPBadge() {
-  return <span style={{ background:'linear-gradient(135deg,#E91E8C,#FF6BB5)', color:'white', fontSize:9, fontWeight:700, padding:'1px 5px', borderRadius:8, marginLeft:4, verticalAlign:'middle' }}>VIP</span>;
+  return <svg style={{ marginLeft:4, verticalAlign:'middle', display:'inline-block' }} width='16' height='16' viewBox='0 0 24 24' fill='#E91E8C'><circle cx='12' cy='12' r='12' fill='#E91E8C'/><path d='M9 12.5l2.5 2.5 5-5' stroke='white' strokeWidth='2.2' strokeLinecap='round' strokeLinejoin='round' fill='none'/></svg>;
 }
 
 const TABS = [
