@@ -41,7 +41,7 @@ export function subscribeToFCMTopic(uid) {
   // tsy ampiasaina intsony
 }
 
-export async function sendPushNotification({ toExternalId, title, message, data }) {
+export async function sendPushNotification({ toExternalId, title, message, data, fromPhoto }) {
   if (!toExternalId) return;
   try {
     await fetch(`${BACKEND_URL}/notify`, {
@@ -50,7 +50,7 @@ export async function sendPushNotification({ toExternalId, title, message, data 
         'Content-Type': 'application/json',
         'x-notify-secret': NOTIFY_SECRET,
       },
-      body: JSON.stringify({ toExternalId, title, message, data }),
+      body: JSON.stringify({ toExternalId, title, message, data, fromPhoto }),
     });
   } catch (err) {
     console.warn('Push notification failed:', err);
