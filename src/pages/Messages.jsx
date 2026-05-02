@@ -128,6 +128,8 @@ export default function Messages() {
 
   undefined
 
+  useEffect(() => { bottomRef.current?.scrollIntoView({ behavior:'smooth' }); }, [messages]);
+
   useEffect(() => {
     if (!activeChatId) return;
     const otherUid = activeChatId.split('_').find(p => p !== currentUser.uid);
