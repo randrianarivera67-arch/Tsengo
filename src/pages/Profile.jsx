@@ -207,7 +207,7 @@ export default function Profile() {
   }
 
   async function deleteCmt(postId, cmt) {
-    if (cmt.uid !== currentUser.uid) return;
+    if (cmt.uid !== currentUser.uid && post.uid !== currentUser.uid) return;
     if (!window.confirm('Supprimer ce commentaire ?')) return;
     await updateDoc(doc(db,'posts',postId),{comments:arrayRemove(cmt)});
   }
@@ -358,7 +358,7 @@ export default function Profile() {
                     <button onClick={() => setReplyTo(p=>({...p,[post.id]:c.authorName}))} style={{ background:'none', border:'none', cursor:'pointer', color:'#C4829F', fontSize:11, display:'flex', alignItems:'center', gap:3 }}><HiReply size={12}/> Répondre</button>
                     <button onClick={() => setCmtReactionPicker(p => p===c.id?null:c.id)} style={{ background:'none', border:'none', cursor:'pointer', color:'#C4829F', fontSize:11 }}>{c.reactions?.[currentUser.uid] || '😊'} {Object.keys(c.reactions||{}).length||''}</button>
                     {cmtReactionPicker===c.id && <div style={{ display:'flex', gap:4, background:'white', borderRadius:20, padding:'4px 8px', boxShadow:'0 2px 12px rgba(0,0,0,.15)', zIndex:10 }}>{['❤️','😂','😮','😢','👍','🔥'].map(em=><span key={em} onClick={()=>reactToCmt(post.id,c.id,em)} style={{ fontSize:18, cursor:'pointer' }}>{em}</span>)}</div>}
-                    {c.uid===currentUser.uid&&<>
+                    {(c.uid===currentUser.uid||post.uid===currentUser.uid)&&<>
                       <button onClick={() => setEditCmt({ postId:post.id, cmt:c, text:c.text })} style={{ background:'none', border:'none', cursor:'pointer', color:'#C4829F', fontSize:11, display:'flex', alignItems:'center', gap:3 }}><HiPencil size={12}/> Modifier</button>
                       <button onClick={() => deleteCmt(post.id,c)} style={{ background:'none', border:'none', cursor:'pointer', color:'#E91E8C', fontSize:11, display:'flex', alignItems:'center', gap:3 }}><HiTrash size={12}/> Supprimer</button>
                     </>}
