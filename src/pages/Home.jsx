@@ -498,8 +498,8 @@ export default function Home() {
 
             {/* Actions */}
             <div className='post-actions-row'>
-              <div style={{ position:'relative' }}>
-                <button onClick={() => setShowReact(p=>({...p,[post.id]:!p[post.id]}))} style={{ display:'flex', alignItems:'center', gap:4, background:'none', border:'none', cursor:'pointer', color:myR?'#E91E8C':'#C4829F', fontSize:13, padding:'6px 10px', borderRadius:20 }}>
+              <div style={{ position:'relative', flex:1 }}>
+                <button onClick={() => setShowReact(p=>({...p,[post.id]:!p[post.id]}))} className={'post-action-btn'+(myR?' active':'')}>
                   {myR?<span style={{ fontSize:16 }}>{myR}</span>:<HiOutlineHeart size={18}/>}
                   {total>0&&<span>{total}</span>}
                 </button>
