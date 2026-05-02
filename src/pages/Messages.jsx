@@ -549,16 +549,16 @@ export default function Messages() {
                   </div>
 
                   {/* Actions du message */}
+                  {Object.keys(msgReactions[msg.id]||{}).length>0&&(
+                    <div style={{display:'flex',justifyContent:isMe?'flex-end':'flex-start',paddingLeft:isMe?0:34,marginTop:-6,marginBottom:4}}>
+                      <div style={{display:'flex',gap:2,background:'white',borderRadius:12,padding:'2px 8px',boxShadow:'0 1px 4px rgba(0,0,0,.15)',zIndex:1}}>
+                        {Object.entries(Object.entries(msgReactions[msg.id]||{}).reduce((a,[,e])=>{a[e]=(a[e]||0)+1;return a;},{})).map(([e,n])=><span key={e} style={{fontSize:14}}>{e}{n>1&&<span style={{fontSize:10,marginLeft:1}}>{n}</span>}</span>)}
+                      </div>
+                    </div>
+                  )}
                   {isActived && (
                     <div onClick={e=>e.stopPropagation()} style={{ display:'flex', justifyContent:isMe?'flex-end':'flex-start', marginTop:4, paddingLeft:isMe?0:34 }}>
-                      <div style={{display:'flex',flexDirection:'column',alignItems:isMe?'flex-end':'flex-start',gap:2}}>
-                      {Object.keys(msgReactions[msg.id]||{}).length>0&&(
-                        <div style={{display:'flex',gap:2,background:'white',borderRadius:12,padding:'2px 6px',boxShadow:'0 1px 4px rgba(0,0,0,.15)',position:'relative',zIndex:1,marginTop:-8,marginLeft:isMe?0:8,marginRight:isMe?8:0}}>
-                          {Object.entries(Object.entries(msgReactions[msg.id]||{}).reduce((a,[,e])=>{a[e]=(a[e]||0)+1;return a;},{})).map(([e,n])=><span key={e} style={{fontSize:13}}>{e}{n>1&&<span style={{fontSize:10}}>{n}</span>}</span>)}
-                        </div>
-                      )}
                       <button onClick={()=>setBottomSheet({msg,isMe})} style={{ background:'rgba(233,30,140,0.08)', border:'none', borderRadius:20, padding:'4px 12px', fontSize:11, color:'#E91E8C', cursor:'pointer' }}>⋯ Options</button>
-                    </div>
                     </div>
                   )}
                 </div>
