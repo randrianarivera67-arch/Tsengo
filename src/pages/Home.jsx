@@ -2,7 +2,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  collection, addDoc, serverTimestamp, query, orderBy, onSnapshot,
+  collection, addDoc, serverTimestamp, query, orderBy, onSnapshot, limit,
   doc, updateDoc, arrayUnion, arrayRemove, deleteDoc, writeBatch, getDoc
 } from 'firebase/firestore';
 import { db } from '../firebase';
@@ -71,7 +71,7 @@ export default function Home() {
 
   // Load posts
   useEffect(() => {
-    const q = query(collection(db, 'posts'), orderBy('createdAt', 'desc'));
+    const q = query(collection(db, 'posts'), orderBy('createdAt', 'desc'), limit(20));
     return onSnapshot(q, snap => {
       const blocked = userProfile?.blocked || [];
       const all = snap.docs.map(d => ({ id: d.id, ...d.data() })).filter(p => !blocked.includes(p.uid));

@@ -3,7 +3,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   doc, getDoc, updateDoc, collection, query, where,
-  onSnapshot, orderBy, addDoc, serverTimestamp, arrayUnion, arrayRemove, deleteDoc
+  onSnapshot, orderBy, addDoc, serverTimestamp, arrayUnion, arrayRemove, deleteDoc, limit
 } from 'firebase/firestore';
 import { db } from '../firebase';
 import { useAuth } from '../context/AuthContext';
@@ -86,7 +86,7 @@ export default function Profile() {
 
   useEffect(() => {
     if (!targetUid) return;
-    const q = query(collection(db,'posts'), where('uid','==',targetUid), orderBy('createdAt','desc'));
+    const q = query(collection(db,'posts'), where('uid','==',targetUid), orderBy('createdAt','desc'), limit(30));
     return onSnapshot(q, snap => setPosts(snap.docs.map(d=>({id:d.id,...d.data()}))));
   }, [targetUid]);
 
