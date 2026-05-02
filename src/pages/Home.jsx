@@ -492,7 +492,7 @@ export default function Home() {
             {total > 0 && (
               <div style={{ padding:'0 16px 8px', display:'flex', gap:4, flexWrap:'wrap', cursor:'pointer' }} onClick={() => openReactionModal(post)}>
                 {Object.entries(rc).map(([e,c]) => <span key={e} style={{ background:'#FFE4F3', borderRadius:12, padding:'2px 8px', fontSize:12 }}>{e} {c}</span>)}
-                </div><div className='reactions-bar-right'>{post.comments?.length||0} commentaires</div>
+                <span style={{ fontSize:11, color:'#65676B', alignSelf:'center' }}>· {total} {t('reactions')}</span>
               </div>
             )}
 
