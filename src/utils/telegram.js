@@ -31,5 +31,6 @@ export async function uploadToTelegram(file, onProgress) {
   const data = await res.json();
   if (data.error) throw new Error(data.error);
 
-  return { url: data.url, fileId: data.fileId, type: data.type };
+  const proxyUrl = data.fileId ? `${BACKEND_URL}/file?file_id=${data.fileId}` : data.url;
+  return { url: proxyUrl, fileId: data.fileId, type: data.type };
 }
