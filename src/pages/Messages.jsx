@@ -50,6 +50,13 @@ export default function Messages() {
   const [themeModal,    setThemeModal]    = useState(false);
   const [chatTheme,     setChatTheme]     = useState('rose');
   const [zoomMedia,     setZoomMedia]     = useState(null);
+
+  const THEMES = {
+    rose:   { me:'linear-gradient(135deg,#E91E8C,#FF6BB5)', other:'#F5E6EF', bg:'#FDF4F8' },
+    violet: { me:'linear-gradient(135deg,#7c3aed,#a855f7)', other:'#EDE9FE', bg:'#F5F3FF' },
+    blue:   { me:'linear-gradient(135deg,#2563eb,#3b82f6)', other:'#DBEAFE', bg:'#EFF6FF' },
+  };
+  const theme = THEMES[chatTheme]||THEMES.rose;
   const [convMenu,      setConvMenu]      = useState(null);  // chatId showing menu
   const [deleteConfirm, setDeleteConfirm] = useState(null);
   const [transferMsg, setTransferMsg] = useState(null);  // chatId | 'all'
@@ -473,7 +480,7 @@ export default function Messages() {
 
       {/* ── Zone de discussion ──────────────────────────────────── */}
       {activeChatId && (
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: '#FDF4F8', width: '100%' }}>
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: theme.bg, width: '100%' }}>
 
           {/* Header chat */}
           <div style={{ background: 'white', borderBottom: '1px solid #FFE4F3', padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 10, position: 'sticky', top: 0, zIndex: 10 }}>
@@ -528,7 +535,7 @@ export default function Messages() {
 
                       {/* Bulle du message */}
                       <div
-                        className={isMe ? 'msg-bubble-me' : 'msg-bubble-other'} style={{ position:'relative', wordBreak: 'break-word', cursor: 'pointer', borderRadius: msg.replyTo ? '0 8px 8px 8px' : undefined }}
+                        style={{ position:'relative', wordBreak:'break-word', cursor:'pointer', borderRadius: msg.replyTo ? (isMe?'8px 8px 0 8px':'0 8px 8px 8px') : (isMe?'18px 18px 4px 18px':'18px 18px 18px 4px'), padding:'10px 14px', maxWidth:'100%', whiteSpace:'pre-wrap', lineHeight:1.5, fontSize:14, background: isMe ? theme.me : theme.other, color: isMe ? 'white' : '#2D1220' }}
                         onClick={e => { e.stopPropagation(); setMsgAction(isActived ? null : msg.id); }}
                         onContextMenu={e => { e.preventDefault(); setBottomSheet({msg, isMe}); }}
                       >
