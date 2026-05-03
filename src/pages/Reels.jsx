@@ -53,7 +53,14 @@ export default function Reels() {
       setPosts(all);
       if (location.state?.startId) {
         const idx = all.findIndex(p=>p.id===location.state.startId);
-        if (idx>=0) setActiveIndex(idx);
+        if (idx>=0) {
+          setActiveIndex(idx);
+          setTimeout(()=>{
+            if(containerRef.current){
+              containerRef.current.scrollTop = idx * containerRef.current.clientHeight;
+            }
+          }, 100);
+        }
       }
     });
     return unsub;
