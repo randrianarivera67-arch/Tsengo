@@ -491,9 +491,9 @@ export default function Home() {
 
             {/* Reaction count */}
             {total > 0 && (
-              <div style={{ padding:'0 16px 8px', display:'flex', gap:4, flexWrap:'wrap', cursor:'pointer' }} onClick={() => openReactionModal(post)}>
-                {Object.entries(rc).map(([e,c]) => <span key={e} style={{ background:'#FFE4F3', borderRadius:12, padding:'2px 8px', fontSize:12 }}>{e} {c}</span>)}
-                <span style={{ fontSize:11, color:'#65676B', alignSelf:'center' }}>· {total} {t('reactions')}</span>
+              <div style={{ padding:'6px 16px 8px', display:'flex', alignItems:'center', gap:6, cursor:'pointer' }} onClick={() => openReactionModal(post)}>
+                <div style={{ display:'flex', gap:1 }}>{Object.entries(rc).slice(0,3).map(([e])=><span key={e} style={{ fontSize:16 }}>{e}</span>)}</div>
+                <span style={{ fontSize:13, color:'#65676B' }}>{total} personne{total>1?'s':''} ont réagi</span>
               </div>
             )}
 
