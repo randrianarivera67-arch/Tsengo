@@ -48,7 +48,7 @@ export default function Messages() {
   const [headerMenu,    setHeaderMenu]    = useState(false);
   const [mediaModal,    setMediaModal]    = useState(false);
   const [themeModal,    setThemeModal]    = useState(false);
-  const [chatTheme,     setChatTheme]     = useState('rose');
+  const [chatTheme,     setChatTheme]     = useState('blue');
   const [zoomMedia,     setZoomMedia]     = useState(null);
 
   const THEMES = {
@@ -142,6 +142,13 @@ export default function Messages() {
   undefined
 
   useEffect(() => { bottomRef.current?.scrollIntoView({ behavior:'smooth' }); }, [messages]);
+
+  useEffect(() => {
+    if (!activeChatId) return;
+    // Load theme
+    const themeRef = ref(rtdb, `conversations/${activeChatId}/theme`);
+    onValue(themeRef, snap => { if(snap.exists()) setChatTheme(snap.val()); else setChatTheme('blue'); }, {onlyOnce:true});
+  }, [activeChatId]);
 
   useEffect(() => {
     if (!activeChatId) return;
@@ -717,7 +724,8 @@ export default function Messages() {
               { key:'violet', label:'Musique', icon:<HiMusicNote size={20} color='#a855f7'/>, color:'#a855f7' },
               { key:'blue', label:'Ami', icon:<HiUserGroup size={20} color='#3b82f6'/>, color:'#3b82f6' },
             ].map(t=>(
-              <button key={t.key} onClick={()=>{setChatTheme(t.key);setThemeModal(false);}} style={{ width:'100%', display:'flex', alignItems:'center', gap:14, padding:'14px 8px', background:'none', border:'none', cursor:'pointer', borderBottom:'1px solid #FFE4F3', fontFamily:'Poppins', fontSize:15, color:'#2D1220', fontWeight:chatTheme===t.key?700:400 }}>
+              <button key={t.key} onClick={()=>{setChatTheme(t.key);setThemeModal(false);
+              set(ref(rtdb,`conversations/${activeChatId}/theme`),t.key);}} style={{ width:'100%', display:'flex', alignItems:'center', gap:14, padding:'14px 8px', background:'none', border:'none', cursor:'pointer', borderBottom:'1px solid #FFE4F3', fontFamily:'Poppins', fontSize:15, color:'#2D1220', fontWeight:chatTheme===t.key?700:400 }}>
                 {t.icon} {t.label}
                 {chatTheme===t.key && <HiCheck size={18} color={t.color} style={{ marginLeft:'auto' }}/>}
               </button>
