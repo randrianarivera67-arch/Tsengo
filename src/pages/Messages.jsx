@@ -14,6 +14,7 @@ import {
   HiArrowLeft, HiPaperAirplane, HiSearch, HiPhotograph,
   HiVideoCamera, HiPaperClip, HiX, HiDownload, HiMicrophone, HiStop,
   HiTrash, HiPencil, HiReply, HiDotsVertical, HiCheck,
+  HiArchive, HiColorSwatch, HiMusicNote, HiHeart, HiUserGroup,
 } from 'react-icons/hi';
 
 export default function Messages() {
@@ -44,6 +45,11 @@ export default function Messages() {
   const [msgAction,     setMsgAction]     = useState(null);
   const [bottomSheet,   setBottomSheet]   = useState(null);
   const [msgReactions,  setMsgReactions]  = useState({});
+  const [headerMenu,    setHeaderMenu]    = useState(false);
+  const [mediaModal,    setMediaModal]    = useState(false);
+  const [themeModal,    setThemeModal]    = useState(false);
+  const [chatTheme,     setChatTheme]     = useState('rose');
+  const [zoomMedia,     setZoomMedia]     = useState(null);
   const [convMenu,      setConvMenu]      = useState(null);  // chatId showing menu
   const [deleteConfirm, setDeleteConfirm] = useState(null);
   const [transferMsg, setTransferMsg] = useState(null);  // chatId | 'all'
@@ -487,11 +493,16 @@ export default function Messages() {
                   {online[otherUid] ? '● En ligne' : t('offline')}
                 </p>
               </div>
-              {/* Supprimer cette conversation */}
-              <button onClick={() => setDeleteConfirm(activeChatId)}
-                style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#C4829F', padding: 4 }}>
-                <HiTrash size={18} />
-              </button>
+              <div style={{ position:'relative' }} onClick={e=>e.stopPropagation()}>
+                <button onClick={()=>setHeaderMenu(p=>!p)} style={{ background:'none', border:'none', cursor:'pointer', color:'#C4829F', padding:4 }}><HiDotsVertical size={20}/></button>
+                {headerMenu&&(
+                  <div style={{ position:'absolute', top:'100%', right:0, background:'white', border:'1px solid #FFE4F3', borderRadius:12, boxShadow:'0 4px 20px rgba(0,0,0,.12)', minWidth:200, zIndex:50, overflow:'hidden' }}>
+                    <button onClick={()=>{setMediaModal(true);setHeaderMenu(false);}} style={{ width:'100%', display:'flex', alignItems:'center', gap:12, padding:'12px 16px', background:'none', border:'none', cursor:'pointer', borderBottom:'1px solid #FFE4F3', fontFamily:'Poppins', fontSize:14, color:'#2D1220' }}><HiArchive size={18} color='#E91E8C'/> Médias partagés</button>
+                    <button onClick={()=>{setThemeModal(true);setHeaderMenu(false);}} style={{ width:'100%', display:'flex', alignItems:'center', gap:12, padding:'12px 16px', background:'none', border:'none', cursor:'pointer', borderBottom:'1px solid #FFE4F3', fontFamily:'Poppins', fontSize:14, color:'#2D1220' }}><HiColorSwatch size={18} color='#a855f7'/> Thème</button>
+                    <button onClick={()=>{setDeleteConfirm(activeChatId);setHeaderMenu(false);}} style={{ width:'100%', display:'flex', alignItems:'center', gap:12, padding:'12px 16px', background:'none', border:'none', cursor:'pointer', fontFamily:'Poppins', fontSize:14, color:'#ef4444' }}><HiTrash size={18}/> Supprimer</button>
+                  </div>
+                )}
+              </div>
             </>}
           </div>
 
@@ -525,8 +536,8 @@ export default function Messages() {
                         {msg.edited && <span style={{ fontSize: 9, opacity: 0.6, marginLeft: 4 }}>modifié</span>}
                         {msg.mediaURL && (
                           <div style={{ marginTop: msg.text ? 6 : 0 }}>
-                            {msg.mediaType === 'image' && <img src={msg.mediaURL} alt="" style={{ maxWidth: '100%', borderRadius: 8, display: 'block' }} />}
-                            {msg.mediaType === 'video' && <video src={msg.mediaURL} controls style={{ maxWidth: '100%', borderRadius: 8 }} />}
+                            {msg.mediaType === 'image' && <img src={msg.mediaURL} alt="" onClick={()=>setZoomMedia({url:msg.mediaURL,type:'image'})} style={{ maxWidth: '100%', borderRadius: 8, display: 'block', cursor:'pointer' }} />}
+                            {msg.mediaType === 'video' && <div style={{position:'relative'}} onClick={()=>setZoomMedia({url:msg.mediaURL,type:'video'})}><video src={msg.mediaURL} style={{ maxWidth: '100%', borderRadius: 8, cursor:'pointer' }} /><div style={{position:'absolute',inset:0,display:'flex',alignItems:'center',justifyContent:'center'}}><div style={{width:36,height:36,background:'rgba(0,0,0,0.5)',borderRadius:'50%',display:'flex',alignItems:'center',justifyContent:'center'}}><span style={{color:'white',fontSize:16}}>▶</span></div></div></div>}
                             {msg.mediaType === 'audio' && (
                               <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '4px 0' }}>
                                 <HiMicrophone size={16} color={isMe ? 'rgba(255,255,255,.8)' : '#E91E8C'} />
@@ -633,6 +644,80 @@ export default function Messages() {
         </div>
       )}
     
+
+      {/* Zoom media modal */}
+      {zoomMedia && (
+        <div onClick={()=>setZoomMedia(null)} style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.95)', zIndex:300, display:'flex', alignItems:'center', justifyContent:'center' }}>
+          {zoomMedia.type==='image' ? <img src={zoomMedia.url} alt='' style={{ maxWidth:'100%', maxHeight:'100%', objectFit:'contain' }}/> : <video src={zoomMedia.url} controls style={{ maxWidth:'100%', maxHeight:'100%' }}/>}
+          <button onClick={()=>setZoomMedia(null)} style={{ position:'absolute', top:16, right:16, background:'none', border:'none', color:'white', fontSize:28, cursor:'pointer' }}>✕</button>
+        </div>
+      )}
+
+      {/* Médias partagés modal */}
+      {mediaModal && (
+        <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.5)', zIndex:200, display:'flex', alignItems:'flex-end', justifyContent:'center' }} onClick={()=>setMediaModal(false)}>
+          <div onClick={e=>e.stopPropagation()} style={{ background:'white', borderRadius:'20px 20px 0 0', padding:20, width:'100%', maxHeight:'75vh', overflowY:'auto' }}>
+            <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:16 }}>
+              <h3 style={{ fontWeight:700, color:'#E91E8C' }}>Médias partagés</h3>
+              <button onClick={()=>setMediaModal(false)} style={{ background:'none', border:'none', cursor:'pointer', color:'#C4829F' }}><HiX size={20}/></button>
+            </div>
+            {/* Photos */}
+            <p style={{ fontWeight:600, fontSize:13, color:'#8B5A6F', marginBottom:8, display:'flex', alignItems:'center', gap:6 }}><HiPhotograph size={16} color='#E91E8C'/> Photos</p>
+            <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:4, marginBottom:16 }}>
+              {messages.filter(m=>m.mediaType==='image'&&m.mediaURL).map(m=>(
+                <div key={m.id} onClick={()=>{setZoomMedia({url:m.mediaURL,type:'image'});setMediaModal(false);}} style={{ aspectRatio:'1', overflow:'hidden', borderRadius:8, cursor:'pointer' }}>
+                  <img src={m.mediaURL} alt='' style={{ width:'100%', height:'100%', objectFit:'cover' }}/>
+                </div>
+              ))}
+              {messages.filter(m=>m.mediaType==='image').length===0 && <p style={{ color:'#C4829F', fontSize:12, gridColumn:'span 3' }}>Aucune photo</p>}
+            </div>
+            {/* Vidéos */}
+            <p style={{ fontWeight:600, fontSize:13, color:'#8B5A6F', marginBottom:8, display:'flex', alignItems:'center', gap:6 }}><HiVideoCamera size={16} color='#E91E8C'/> Vidéos</p>
+            <div style={{ display:'grid', gridTemplateColumns:'repeat(2,1fr)', gap:8, marginBottom:16 }}>
+              {messages.filter(m=>m.mediaType==='video'&&m.mediaURL).map(m=>(
+                <div key={m.id} onClick={()=>{setZoomMedia({url:m.mediaURL,type:'video'});setMediaModal(false);}} style={{ aspectRatio:'16/9', overflow:'hidden', borderRadius:8, cursor:'pointer', position:'relative', background:'#000' }}>
+                  <video src={m.mediaURL} style={{ width:'100%', height:'100%', objectFit:'cover' }}/>
+                  <div style={{ position:'absolute', inset:0, display:'flex', alignItems:'center', justifyContent:'center' }}><div style={{ width:32, height:32, background:'rgba(0,0,0,0.5)', borderRadius:'50%', display:'flex', alignItems:'center', justifyContent:'center' }}><span style={{ color:'white', fontSize:14 }}>▶</span></div></div>
+                </div>
+              ))}
+              {messages.filter(m=>m.mediaType==='video').length===0 && <p style={{ color:'#C4829F', fontSize:12, gridColumn:'span 2' }}>Aucune vidéo</p>}
+            </div>
+            {/* Vocaux */}
+            <p style={{ fontWeight:600, fontSize:13, color:'#8B5A6F', marginBottom:8, display:'flex', alignItems:'center', gap:6 }}><HiMicrophone size={16} color='#E91E8C'/> Vocaux</p>
+            <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
+              {messages.filter(m=>m.mediaType==='audio'&&m.mediaURL).map(m=>(
+                <div key={m.id} style={{ display:'flex', alignItems:'center', gap:8, background:'#FFF0F8', borderRadius:12, padding:'8px 12px' }}>
+                  <HiMicrophone size={16} color='#E91E8C'/>
+                  <audio src={m.mediaURL} controls style={{ flex:1, height:32 }}/>
+                </div>
+              ))}
+              {messages.filter(m=>m.mediaType==='audio').length===0 && <p style={{ color:'#C4829F', fontSize:12 }}>Aucun vocal</p>}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Thème modal */}
+      {themeModal && (
+        <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.5)', zIndex:200, display:'flex', alignItems:'flex-end', justifyContent:'center' }} onClick={()=>setThemeModal(false)}>
+          <div onClick={e=>e.stopPropagation()} style={{ background:'white', borderRadius:'20px 20px 0 0', padding:20, width:'100%' }}>
+            <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:16 }}>
+              <h3 style={{ fontWeight:700, color:'#E91E8C' }}>Thème</h3>
+              <button onClick={()=>setThemeModal(false)} style={{ background:'none', border:'none', cursor:'pointer', color:'#C4829F' }}><HiX size={20}/></button>
+            </div>
+            {[
+              { key:'rose', label:'Amour', icon:<HiHeart size={20} color='#E91E8C'/>, color:'#E91E8C' },
+              { key:'violet', label:'Musique', icon:<HiMusicNote size={20} color='#a855f7'/>, color:'#a855f7' },
+              { key:'blue', label:'Ami', icon:<HiUserGroup size={20} color='#3b82f6'/>, color:'#3b82f6' },
+            ].map(t=>(
+              <button key={t.key} onClick={()=>{setChatTheme(t.key);setThemeModal(false);}} style={{ width:'100%', display:'flex', alignItems:'center', gap:14, padding:'14px 8px', background:'none', border:'none', cursor:'pointer', borderBottom:'1px solid #FFE4F3', fontFamily:'Poppins', fontSize:15, color:'#2D1220', fontWeight:chatTheme===t.key?700:400 }}>
+                {t.icon} {t.label}
+                {chatTheme===t.key && <HiCheck size={18} color={t.color} style={{ marginLeft:'auto' }}/>}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
       {/* Bottom Sheet — Facebook style */}
       {bottomSheet && (
         <div onClick={()=>setBottomSheet(null)} style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.5)', zIndex:500, display:'flex', alignItems:'flex-end', justifyContent:'center' }}>
