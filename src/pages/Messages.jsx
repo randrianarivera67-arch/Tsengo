@@ -546,6 +546,11 @@ export default function Messages() {
                         {msg.ts ? new Date(msg.ts).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) : ''}
                         {isMe && <span> · {msg.read ? '✓✓' : '✓'}</span>}
                       </p>
+                      {Object.keys(msgReactions[msg.id]||{}).length>0&&(
+                        <div style={{position:'absolute',bottom:-10,right:isMe?6:undefined,left:isMe?undefined:6,display:'flex',gap:1,background:'white',borderRadius:20,padding:'2px 6px',boxShadow:'0 1px 6px rgba(0,0,0,.2)',zIndex:2}}>
+                          {Object.entries(Object.entries(msgReactions[msg.id]||{}).reduce((a,[,e])=>{a[e]=(a[e]||0)+1;return a;},{})).map(([e,n])=><span key={e} style={{fontSize:14}}>{e}{n>1?<span style={{fontSize:9}}>{n}</span>:''}</span>)}
+                        </div>
+                      )}
                     </div>
                   </div>
 
