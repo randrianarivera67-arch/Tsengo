@@ -467,7 +467,7 @@ export default function Messages() {
 
       {/* ── Zone de discussion ──────────────────────────────────── */}
       {activeChatId && (
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: '#FDF4F8', width: '100%', overflow: 'hidden' }}>
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: '#FDF4F8', width: '100%' }}>
 
           {/* Header chat */}
           <div style={{ background: 'white', borderBottom: '1px solid #FFE4F3', padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 10, position: 'sticky', top: 0, zIndex: 10 }}>
