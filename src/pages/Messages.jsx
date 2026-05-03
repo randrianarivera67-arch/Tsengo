@@ -548,9 +548,9 @@ export default function Messages() {
                       </p>
                     </div>
                     {Object.keys(msgReactions[msg.id]||{}).length>0&&(
-                      <div style={{display:'flex',justifyContent:isMe?'flex-end':'flex-start',paddingLeft:isMe?0:40,marginTop:-4,marginBottom:6}}>
-                        <div style={{display:'flex',gap:1,background:'white',borderRadius:20,padding:'2px 6px',boxShadow:'0 1px 6px rgba(0,0,0,.2)',border:'1px solid #FFE4F3'}}>
-                          {Object.entries(Object.entries(msgReactions[msg.id]||{}).reduce((a,[,e])=>{a[e]=(a[e]||0)+1;return a;},{})).map(([e,n])=><span key={e} style={{fontSize:14}}>{e}{n>1?<span style={{fontSize:9,marginLeft:1}}>{n}</span>:''}</span>)}
+                      <div style={{position:'relative',display:'flex',justifyContent:isMe?'flex-end':'flex-start',paddingLeft:isMe?0:40,marginTop:-14,marginBottom:4,zIndex:3}}>
+                        <div style={{display:'flex',gap:1,background:'white',borderRadius:20,padding:'3px 7px',boxShadow:'0 2px 8px rgba(0,0,0,.2)',border:'1px solid #FFE4F3',fontSize:16}}>
+                          {Object.entries(Object.entries(msgReactions[msg.id]||{}).reduce((a,[,e])=>{a[e]=(a[e]||0)+1;return a;},{})).map(([e,n])=><span key={e}>{e}{n>1?<span style={{fontSize:10,marginLeft:1}}>{n}</span>:''}</span>)}
                         </div>
                       </div>
                     )}
