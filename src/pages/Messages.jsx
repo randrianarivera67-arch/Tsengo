@@ -8,6 +8,7 @@ import { useAuth } from '../context/AuthContext';
 import { useLang } from '../context/LanguageContext';
 import { uploadToTelegram } from '../utils/telegram';
 import { getChatId } from '../utils/chat';
+function getOtherUid(chatId, myUid) { const parts = chatId.split('_'); return parts[0] === myUid ? parts[1] : parts[0]; }
 import { sendPushNotification } from '../utils/onesignal';
 import { playMessageSound } from '../utils/sound';
 import {
@@ -135,9 +136,6 @@ export default function Messages() {
     }
     prevMsgLen.current = messages.length;
   }, [messages]);
-
-  undefined
-
   useEffect(() => { bottomRef.current?.scrollIntoView({ behavior:'smooth' }); }, [messages]);
 
   useEffect(() => {
@@ -163,6 +161,19 @@ export default function Messages() {
     return () => document.removeEventListener('click', fn);
   }, []);
 
+  function handleMediaSelect(e, type) {
+    const file = e.target.files[0];
+    if (!file) return;
+    setMediaFile(file); setMediaType(type);
+    setMediaPreview(URL.createObjectURL(file));
+  }
+
+  function handleMediaSelect(e, type) {
+    const file = e.target.files[0];
+    if (!file) return;
+    setMediaFile(file); setMediaType(type);
+    setMediaPreview(URL.createObjectURL(file));
+  }
   function searchFriends(val) {
     setSearch(val);
     if (!val.trim()) { setSearchResults([]); return; }
@@ -181,17 +192,7 @@ export default function Messages() {
     setSearch(''); setSearchResults([]);
   }
 
-  async function sendMessage() {
-    if (!text.trim() || !activeChatId) return;
-    const otherUid = getOtherUid(activeChatId, currentUser.uid);
-    await push(ref(rtdb, `conversations/${activeChatId}/messages`), {
-      fromUid: currentUser.uid, toUid: otherUid,
-      fromName: userProfile.fullName, fromPhoto: userProfile.photoURL || '',
-      text: text.trim(), type: 'text', ts: Date.now(), read: false,
-    });
-    sendPushNotification({ toExternalId: otherUid, title: `📩 ${userProfile.fullName}`, message: text.trim().substring(0, 60), data: { type: 'message', fromUid: currentUser.uid, chatId: activeChatId } });
-    setText('');
-  }
+
   function removeMedia() { setMediaFile(null); setMediaPreview(null); setMediaType(''); }
 
   async function startRecording() {
@@ -217,38 +218,10 @@ export default function Messages() {
   }
 
   function cancelRecording() {
-    mediaRecorderRef.current?.stop();
-    setRecording(false);
-    clearInterval(recordTimerRef.current);
-    setAudioBlob(null); setAudioURL(null); setRecordDuration(0);
-  }
-
-  async function sendVoiceMessage() {
-    if (!audioBlob || !activeChatId) return;
-    const otherUid = getOtherUid(activeChatId, currentUser.uid);
-    setUploadingAudio(true);
-    setAudioUploadProgress(0);
-    try {
-      // Upload audio any amin'ny Cloudinary (tsy base64 ao Firebase)
-      const { url: audioURL_cloud } = await uploadAudioToCloudinary(
-        audioBlob,
-        'tsengo/audio',
-        p => setAudioUploadProgress(p)
-      );
-      await push(ref(rtdb, `conversations/${activeChatId}/messages`), {
-        fromUid: currentUser.uid, toUid: otherUid,
-        fromName: userProfile.fullName, fromPhoto: userProfile.photoURL || '',
-        text: '🎤 Message vocal', type: 'audio', audioURL: audioURL_cloud,
-        duration: recordDuration, ts: Date.now(), read: false,
-      });
-      sendPushNotification({ toExternalId: otherUid, title: `🎤 ${userProfile.fullName}`, message: 'Message vocal', data: { type: 'message' } });
-    } catch (err) {
-      alert('Nisy olana tamin\'ny fandidiana hafatra feo: ' + err.message);
-    } finally {
-      setUploadingAudio(false);
-      setAudioUploadProgress(0);
-      setAudioBlob(null); setAudioURL(null); setRecordDuration(0);
-    }
+    if (mrRef.current && recording) { mrRef.current.stop(); }
+    clearInterval(timerRef.current);
+    setRecording(false); setRecordSec(0);
+    removeMedia();
   }
 
   async function sendMessage() {
@@ -346,6 +319,24 @@ export default function Messages() {
     setBottomSheet(null);
   }
 
+  async function deleteAllConversations() {
+    const snap = await import('firebase/database').then(({ref: r, get}) => get(r(rtdb, 'conversations')));
+    if (!snap.exists()) return;
+    const all = Object.keys(snap.val()).filter(id => id.includes(currentUser.uid));
+    await Promise.all(all.map(id => remove(ref(rtdb, `conversations/${id}`))));
+    setActiveChatId(null); setDeleteConfirm(null);
+    navigate('/messages', { replace: true });
+  }
+
+  async function deleteAllConversations() {
+    const { ref: r, get } = await import('firebase/database');
+    const snap = await get(r(rtdb, 'conversations'));
+    if (!snap.exists()) { setDeleteConfirm(null); return; }
+    const all = Object.keys(snap.val()).filter(id => id.includes(currentUser.uid));
+    await Promise.all(all.map(id => remove(ref(rtdb, 'conversations/' + id))));
+    setActiveChatId(null); setDeleteConfirm(null);
+    navigate('/messages', { replace: true });
+  }
   async function deleteConversation(chatId) {
     await remove(ref(rtdb, `conversations/${chatId}`));
     if (activeChatId === chatId) {
@@ -424,10 +415,10 @@ export default function Messages() {
             )}
           </div>
 
-          {sortedFriends.length > 0 && (
+          {friendsProfiles.length > 0 && (
             <div style={{ marginBottom: 10 }}>
               <div style={{ display: 'flex', gap: 12, overflowX: 'auto', paddingBottom: 6, scrollbarWidth: 'none' }}>
-                {sortedFriends.map(f => (
+                {friendsProfiles.map(f => (
                   <div key={f.uid} onClick={() => openChat(f.uid)} style={{ flexShrink: 0, textAlign: 'center', cursor: 'pointer' }}>
                     <div style={{ position: 'relative', display: 'inline-block' }}>
                       <img src={f.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(f.fullName)}&background=E91E8C&color=fff`}
@@ -642,7 +633,7 @@ export default function Messages() {
           {recording && (
             <div style={{ background: '#FFF0F8', borderTop: '1px solid #FFE4F3', padding: '8px 14px', display: 'flex', alignItems: 'center', gap: 10 }}>
               <div style={{ width: 10, height: 10, borderRadius: '50%', background: '#E91E8C', animation: 'pulse 1s infinite' }} />
-              <span style={{ fontSize: 13, color: '#E91E8C', fontWeight: 600 }}>Enregistrement... {fmt(recordSec)}</span>
+              <span style={{ fontSize: 13, color: '#E91E8C', fontWeight: 600 }}>Enregistrement... {fmtDuration(recordSec)}</span>
               <button onClick={cancelRecording} style={{ marginLeft: 'auto', background: 'none', border: 'none', cursor: 'pointer', color: '#C4829F', fontSize: 12 }}>Annuler</button>
             </div>
           )}
