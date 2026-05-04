@@ -90,10 +90,7 @@ export default function Messages() {
       const list = [];
       for (const [chatId, conv] of Object.entries(data)) {
         if (!chatId.includes(currentUser.uid)) continue;
-        const otherUid = chatId.split('_').find(p => p !== currentUser.uid);
-        if (!otherUid) continue;
-        const blocked = userProfile?.blocked || [];
-        if (blocked.includes(otherUid)) continue;
+        const otherUid = getOtherUid(chatId, currentUser.uid);
         try {
           const s = await getDoc(doc(db, 'users', otherUid));
           if (!s.exists()) continue;
@@ -145,9 +142,11 @@ export default function Messages() {
 
   useEffect(() => {
     if (!activeChatId) return;
-    // Load theme
-    const themeRef = ref(rtdb, `conversations/${activeChatId}/theme`);
-    onValue(themeRef, snap => { if(snap.exists()) setChatTheme(snap.val()); else setChatTheme('blue'); }, {onlyOnce:true});
+    const otherUid = getOtherUid(activeChatId, currentUser.uid);
+    getDoc(doc(db, 'users', otherUid)).then(snap => { if (snap.exists()) setActiveUser(snap.data()); });
+    const onlineRef = ref(rtdb, `online/${otherUid}`);
+    const unsub = onValue(onlineRef, snap => { setOnline(p => ({ ...p, [otherUid]: snap.exists() && snap.val() === true })); });
+    return () => unsub();
   }, [activeChatId]);
 
   useEffect(() => {
@@ -182,11 +181,16 @@ export default function Messages() {
     setSearch(''); setSearchResults([]);
   }
 
-  function handleMediaSelect(e, type) {
-    const file = e.target.files[0];
-    if (!file) return;
-    setMediaFile(file); setMediaType(type);
-    setMediaPreview(type !== 'raw' ? URL.createObjectURL(file) : null);
+  async function sendMessage() {
+    if (!text.trim() || !activeChatId) return;
+    const otherUid = getOtherUid(activeChatId, currentUser.uid);
+    await push(ref(rtdb, `conversations/${activeChatId}/messages`), {
+      fromUid: currentUser.uid, toUid: otherUid,
+      fromName: userProfile.fullName, fromPhoto: userProfile.photoURL || '',
+      text: text.trim(), type: 'text', ts: Date.now(), read: false,
+    });
+    sendPushNotification({ toExternalId: otherUid, title: `📩 ${userProfile.fullName}`, message: text.trim().substring(0, 60), data: { type: 'message', fromUid: currentUser.uid, chatId: activeChatId } });
+    setText('');
   }
   function removeMedia() { setMediaFile(null); setMediaPreview(null); setMediaType(''); }
 
@@ -213,9 +217,37 @@ export default function Messages() {
   }
 
   function cancelRecording() {
-    if (mrRef.current && recording) {
-      mrRef.current.stop(); clearInterval(timerRef.current); setRecording(false);
-      chunksRef.current = []; setMediaFile(null); setMediaPreview(null); setMediaType('');
+    mediaRecorderRef.current?.stop();
+    setRecording(false);
+    clearInterval(recordTimerRef.current);
+    setAudioBlob(null); setAudioURL(null); setRecordDuration(0);
+  }
+
+  async function sendVoiceMessage() {
+    if (!audioBlob || !activeChatId) return;
+    const otherUid = getOtherUid(activeChatId, currentUser.uid);
+    setUploadingAudio(true);
+    setAudioUploadProgress(0);
+    try {
+      // Upload audio any amin'ny Cloudinary (tsy base64 ao Firebase)
+      const { url: audioURL_cloud } = await uploadAudioToCloudinary(
+        audioBlob,
+        'tsengo/audio',
+        p => setAudioUploadProgress(p)
+      );
+      await push(ref(rtdb, `conversations/${activeChatId}/messages`), {
+        fromUid: currentUser.uid, toUid: otherUid,
+        fromName: userProfile.fullName, fromPhoto: userProfile.photoURL || '',
+        text: '🎤 Message vocal', type: 'audio', audioURL: audioURL_cloud,
+        duration: recordDuration, ts: Date.now(), read: false,
+      });
+      sendPushNotification({ toExternalId: otherUid, title: `🎤 ${userProfile.fullName}`, message: 'Message vocal', data: { type: 'message' } });
+    } catch (err) {
+      alert('Nisy olana tamin\'ny fandidiana hafatra feo: ' + err.message);
+    } finally {
+      setUploadingAudio(false);
+      setAudioUploadProgress(0);
+      setAudioBlob(null); setAudioURL(null); setRecordDuration(0);
     }
   }
 
@@ -324,19 +356,9 @@ export default function Messages() {
     setConvMenu(null);
   }
 
-  async function deleteAllConversations() {
-    for (const conv of conversations) {
-      await remove(ref(rtdb, `conversations/${conv.chatId}`));
-    }
-    setActiveChatId(null);
-    setActiveUser(null);
-    navigate('/messages', { replace: true });
-    setDeleteConfirm(null);
-  }
-
-  const otherUid     = activeChatId?.split('_').find(p => p !== currentUser?.uid);
-  const sortedFriends = [...friendsProfiles].sort((a, b) => (online[b.uid] ? 1 : 0) - (online[a.uid] ? 1 : 0));
-  const fmt = s => `${Math.floor(s / 60).toString().padStart(2, '0')}:${(s % 60).toString().padStart(2, '0')}`;
+  const otherUid = activeChatId ? getOtherUid(activeChatId, currentUser.uid) : null;
+  const av = (name, photo) => photo || `https://ui-avatars.com/api/?name=${encodeURIComponent(name || 'U')}&background=E91E8C&color=fff`;
+  const fmtDuration = s => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
 
   return (
     <div style={{ display: 'flex', height: 'calc(100vh - 70px)', background: '#FDF4F8', fontFamily: 'Poppins,sans-serif' }}>
