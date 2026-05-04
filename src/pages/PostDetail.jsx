@@ -19,7 +19,7 @@ import {
 
 const REACTIONS = ['❤️','😂','😮','😢','😡','👍'];
 function VIPBadge() {
-  return <svg style={{ marginLeft:4, verticalAlign:'middle', display:'inline-block', flexShrink:0 }} width='18' height='18' viewBox='0 0 24 24'><path d='M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 14.5l-4-4 1.41-1.41L10 13.67l6.59-6.59L18 8.5l-8 8z' fill='#E91E8C'/></svg>;
+  return <svg style={{ marginLeft:4, verticalAlign:'middle', display:'inline-block', flexShrink:0 }} width='20' height='20' viewBox='0 0 32 32'><circle cx='16' cy='16' r='10' fill='#E91E8C'/><path d='M11 16.5l3.5 3.5 6.5-7' stroke='white' strokeWidth='2.2' strokeLinecap='round' strokeLinejoin='round' fill='none'/><polygon points='16,2 16.8,4.5 19.5,4.5 17.3,6 18.1,8.5 16,7 13.9,8.5 14.7,6 12.5,4.5 15.2,4.5' fill='#FF6BB5' opacity='0.9'/><polygon points='28,10 28.5,11.5 30,11.5 28.8,12.4 29.3,14 28,13 26.7,14 27.2,12.4 26,11.5 27.5,11.5' fill='#FF6BB5' opacity='0.8'/><polygon points='28,22 28.5,23.5 30,23.5 28.8,24.4 29.3,26 28,25 26.7,26 27.2,24.4 26,23.5 27.5,23.5' fill='#FFB3D9' opacity='0.7'/><polygon points='4,10 4.5,11.5 6,11.5 4.8,12.4 5.3,14 4,13 2.7,14 3.2,12.4 2,11.5 3.5,11.5' fill='#FF6BB5' opacity='0.8'/><polygon points='4,22 4.5,23.5 6,23.5 4.8,24.4 5.3,26 4,25 2.7,26 3.2,24.4 2,23.5 3.5,23.5' fill='#FFB3D9' opacity='0.7'/></svg>;
 }
 
 export default function PostDetail() {
