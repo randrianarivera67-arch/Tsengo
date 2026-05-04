@@ -77,7 +77,7 @@ export function AuthProvider({ children }) {
 
   return (
     <AuthContext.Provider value={{ currentUser, userProfile, setUserProfile, register, login, logout, fetchUserProfile, loading }}>
-      {!loading && children}
+      {loading ? (<div style={{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",background:"white"}}><div style={{textAlign:"center"}}><div style={{width:72,height:72,borderRadius:"50%",background:"linear-gradient(135deg, #E91E8C, #FF6BB5)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:40,margin:"0 auto 16px",color:"white"}}>T</div><div style={{fontWeight:800,fontSize:28,color:"#E91E8C"}}>Tsengo</div></div></div>) : children}
     </AuthContext.Provider>
   );
 }
