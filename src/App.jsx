@@ -4,24 +4,33 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { LanguageProvider } from './context/LanguageContext';
 import { ThemeProvider } from './context/ThemeContext';
+import Layout from './components/Layout';
+
 import Login from './pages/Login';
 import Register from './pages/Register';
-const Home = lazy(() => import('./pages/Home'));
-const Profile = lazy(() => import('./pages/Profile'));
-const Friends = lazy(() => import('./pages/Friends'));
-const Messages = lazy(() => import('./pages/Messages'));
-const Notifications = lazy(() => import('./pages/Notifications'));
-const Settings = lazy(() => import('./pages/Settings'));
-import Reels from './pages/Reels';
-import LanguageSettings from './pages/LanguageSettings';
-import SecuritySettings from './pages/SecuritySettings';
-import AppearanceSettings from './pages/AppearanceSettings';
-import VIPInfo from './pages/VIPInfo';
-import AdminPanel from './pages/AdminPanel';
-import BoostInfo from './pages/BoostInfo';
-import PostDetail from './pages/PostDetail';
 import OAuthCallback from './pages/OAuthCallback';
-import Layout from './components/Layout';
+
+const Home               = lazy(() => import('./pages/Home'));
+const Profile            = lazy(() => import('./pages/Profile'));
+const Friends            = lazy(() => import('./pages/Friends'));
+const Messages           = lazy(() => import('./pages/Messages'));
+const Notifications      = lazy(() => import('./pages/Notifications'));
+const Settings           = lazy(() => import('./pages/Settings'));
+const Reels              = lazy(() => import('./pages/Reels'));
+const PostDetail         = lazy(() => import('./pages/PostDetail'));
+const LanguageSettings   = lazy(() => import('./pages/LanguageSettings'));
+const SecuritySettings   = lazy(() => import('./pages/SecuritySettings'));
+const AppearanceSettings = lazy(() => import('./pages/AppearanceSettings'));
+const VIPInfo            = lazy(() => import('./pages/VIPInfo'));
+const AdminPanel         = lazy(() => import('./pages/AdminPanel'));
+const BoostInfo          = lazy(() => import('./pages/BoostInfo'));
+
+const Loader = () => (
+  <div style={{ display:'flex', alignItems:'center', justifyContent:'center', height:'60vh' }}>
+    <div style={{ width:40, height:40, border:'4px solid #FFE4F3', borderTop:'4px solid #E91E8C', borderRadius:'50%', animation:'spin 0.8s linear infinite' }} />
+    <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
+  </div>
+);
 
 function PrivateRoute({ children }) {
   const { currentUser } = useAuth();
@@ -31,32 +40,34 @@ function PublicRoute({ children }) {
   const { currentUser } = useAuth();
   return !currentUser ? children : <Navigate to="/" />;
 }
+
 function AppRoutes() {
   return (
-    <Suspense fallback={<div style={{padding:40,textAlign:"center",color:"#E91E8C",fontSize:24}}>⏳</div>}>
+    <Suspense fallback={<Loader />}>
       <Routes>
-      <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
-      <Route path="/register" element={<PublicRoute><Register /></PublicRoute>} />
-      <Route path="/" element={<PrivateRoute><Layout><Home /></Layout></PrivateRoute>} />
-      <Route path="/profile/:uid?" element={<PrivateRoute><Layout><Profile /></Layout></PrivateRoute>} />
-      <Route path="/friends" element={<PrivateRoute><Layout><Friends /></Layout></PrivateRoute>} />
-      <Route path="/messages" element={<PrivateRoute><Layout><Messages /></Layout></PrivateRoute>} />
-      <Route path="/messages/:chatId" element={<PrivateRoute><Layout><Messages /></Layout></PrivateRoute>} />
-      <Route path="/notifications" element={<PrivateRoute><Layout><Notifications /></Layout></PrivateRoute>} />
-      <Route path="/settings" element={<PrivateRoute><Layout><Settings /></Layout></PrivateRoute>} />
-      <Route path="/settings/language" element={<PrivateRoute><Layout><LanguageSettings /></Layout></PrivateRoute>} />
-      <Route path="/settings/security" element={<PrivateRoute><Layout><SecuritySettings /></Layout></PrivateRoute>} />
-      <Route path="/settings/appearance" element={<PrivateRoute><Layout><AppearanceSettings /></Layout></PrivateRoute>} />
-      <Route path="/vip" element={<PrivateRoute><Layout><VIPInfo /></Layout></PrivateRoute>} />
-      <Route path="/admin" element={<PrivateRoute><AdminPanel /></PrivateRoute>} />
-      <Route path="/boost" element={<PrivateRoute><Layout><BoostInfo /></Layout></PrivateRoute>} />
-      <Route path="/reels" element={<PrivateRoute><Layout><Reels /></Layout></PrivateRoute>} />
-      <Route path="/post/:postId" element={<PrivateRoute><Layout><PostDetail /></Layout></PrivateRoute>} />
-      <Route path="/oauth/callback" element={<OAuthCallback />} />
-    </Routes>
+        <Route path="/login"          element={<PublicRoute><Login /></PublicRoute>} />
+        <Route path="/register"       element={<PublicRoute><Register /></PublicRoute>} />
+        <Route path="/oauth/callback" element={<OAuthCallback />} />
+        <Route path="/"               element={<PrivateRoute><Layout><Home /></Layout></PrivateRoute>} />
+        <Route path="/profile/:uid?"  element={<PrivateRoute><Layout><Profile /></Layout></PrivateRoute>} />
+        <Route path="/friends"        element={<PrivateRoute><Layout><Friends /></Layout></PrivateRoute>} />
+        <Route path="/messages"       element={<PrivateRoute><Layout><Messages /></Layout></PrivateRoute>} />
+        <Route path="/messages/:chatId" element={<PrivateRoute><Layout><Messages /></Layout></PrivateRoute>} />
+        <Route path="/notifications"  element={<PrivateRoute><Layout><Notifications /></Layout></PrivateRoute>} />
+        <Route path="/settings"       element={<PrivateRoute><Layout><Settings /></Layout></PrivateRoute>} />
+        <Route path="/settings/language"   element={<PrivateRoute><Layout><LanguageSettings /></Layout></PrivateRoute>} />
+        <Route path="/settings/security"   element={<PrivateRoute><Layout><SecuritySettings /></Layout></PrivateRoute>} />
+        <Route path="/settings/appearance" element={<PrivateRoute><Layout><AppearanceSettings /></Layout></PrivateRoute>} />
+        <Route path="/vip"    element={<PrivateRoute><Layout><VIPInfo /></Layout></PrivateRoute>} />
+        <Route path="/admin"  element={<PrivateRoute><AdminPanel /></PrivateRoute>} />
+        <Route path="/boost"  element={<PrivateRoute><Layout><BoostInfo /></Layout></PrivateRoute>} />
+        <Route path="/reels"  element={<PrivateRoute><Layout><Reels /></Layout></PrivateRoute>} />
+        <Route path="/post/:postId" element={<PrivateRoute><Layout><PostDetail /></Layout></PrivateRoute>} />
+      </Routes>
     </Suspense>
   );
 }
+
 export default function App() {
   return (
     <AuthProvider>
