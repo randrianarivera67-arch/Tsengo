@@ -22,7 +22,7 @@ import {
 const REACTIONS = ['❤️','😂','😮','😢','😡','👍'];
 
 function VIPBadge() {
-  return <svg style={{ marginLeft:4, verticalAlign:'middle', display:'inline-block', flexShrink:0 }} width='18' height='18' viewBox='0 0 24 24'><circle cx='12' cy='12' r='12' fill='#E91E8C'/><path d='M7 12.5l3.5 3.5 6.5-7' stroke='white' strokeWidth='2.2' strokeLinecap='round' strokeLinejoin='round' fill='none'/></svg>;
+  return <svg style={{ marginLeft:4, verticalAlign:'middle', display:'inline-block', flexShrink:0 }} width='18' height='18' viewBox='0 0 24 24'><path d='M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 14.5l-4-4 1.41-1.41L10 13.67l6.59-6.59L18 8.5l-8 8z' fill='#E91E8C'/></svg>;
 }
 
 const TABS = [
@@ -602,7 +602,7 @@ export default function Profile() {
                   style={{ padding:14, display:'flex', flexDirection:'column', alignItems:'center', gap:8, cursor:'pointer', textAlign:'center' }}>
                   <img src={f.photoURL||`https://ui-avatars.com/api/?name=${encodeURIComponent(f.fullName||'U')}&background=E91E8C&color=fff`} alt="" style={{ width:60, height:60, borderRadius:'50%', objectFit:'cover', border:'2px solid #FFE4F3' }}/>
                   <div>
-                    <p style={{ fontWeight:600, fontSize:13, color:'#2D1220' }}>{f.fullName}{f.isVip&&<svg style={{ marginLeft:4, verticalAlign:'middle', display:'inline-block', flexShrink:0 }} width='18' height='18' viewBox='0 0 24 24'><circle cx='12' cy='12' r='12' fill='#E91E8C'/><path d='M7 12.5l3.5 3.5 6.5-7' stroke='white' strokeWidth='2.2' strokeLinecap='round' strokeLinejoin='round' fill='none'/></svg>}</p>
+                    <p style={{ fontWeight:600, fontSize:13, color:'#2D1220' }}>{f.fullName}{f.isVip&&<svg style={{ marginLeft:4, verticalAlign:'middle', display:'inline-block', flexShrink:0 }} width='18' height='18' viewBox='0 0 24 24'><path d='M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 14.5l-4-4 1.41-1.41L10 13.67l6.59-6.59L18 8.5l-8 8z' fill='#E91E8C'/></svg>}</p>
                     <p style={{ fontSize:11, color:'#C4829F' }}>@{f.username}</p>
                   </div>
                   <button onClick={e=>{e.stopPropagation();navigate(`/messages/${getChatId(currentUser.uid,f.uid)}`);}} style={{ background:'#FFE4F3', border:'none', borderRadius:16, padding:'5px 12px', color:'#E91E8C', cursor:'pointer', fontSize:12, display:'flex', alignItems:'center', gap:4 }}><HiChat size={12}/>Message</button>
