@@ -602,7 +602,7 @@ export default function Profile() {
                   style={{ padding:14, display:'flex', flexDirection:'column', alignItems:'center', gap:8, cursor:'pointer', textAlign:'center' }}>
                   <img src={f.photoURL||`https://ui-avatars.com/api/?name=${encodeURIComponent(f.fullName||'U')}&background=E91E8C&color=fff`} alt="" style={{ width:60, height:60, borderRadius:'50%', objectFit:'cover', border:'2px solid #FFE4F3' }}/>
                   <div>
-                    <p style={{ fontWeight:600, fontSize:13, color:'#2D1220' }}>{f.fullName}{f.isVip&&<span style={{ marginLeft:4, background:'linear-gradient(135deg,#E91E8C,#FF6BB5)', color:'white', fontSize:8, fontWeight:700, padding:'1px 4px', borderRadius:5 }}>VIP</span>}</p>
+                    <p style={{ fontWeight:600, fontSize:13, color:'#2D1220' }}>{f.fullName}{f.isVip&&<svg style={{ marginLeft:4, verticalAlign:'middle', display:'inline-block' }} width='16' height='16' viewBox='0 0 24 24'><path d='M12 1l2.5 3.5L18 3l1 4 4 1-2 3.5 2 3.5-4 1-1 4-3.5-1.5L12 23l-2.5-3.5L6 21l-1-4-4-1 2-3.5L1 9l4-1 1-4 3.5 1.5z' fill='#E91E8C'/><path d='M8.5 12.5l2.5 2.5 5-5' stroke='white' strokeWidth='2' strokeLinecap='round' strokeLinejoin='round' fill='none'/></svg>}</p>
                     <p style={{ fontSize:11, color:'#C4829F' }}>@{f.username}</p>
                   </div>
                   <button onClick={e=>{e.stopPropagation();navigate(`/messages/${getChatId(currentUser.uid,f.uid)}`);}} style={{ background:'#FFE4F3', border:'none', borderRadius:16, padding:'5px 12px', color:'#E91E8C', cursor:'pointer', fontSize:12, display:'flex', alignItems:'center', gap:4 }}><HiChat size={12}/>Message</button>

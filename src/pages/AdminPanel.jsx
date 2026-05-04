@@ -257,7 +257,7 @@ export default function AdminPanel() {
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 5, flexWrap: 'wrap' }}>
                         <p style={{ fontWeight: 600, fontSize: 14, color: '#FFE4F3' }}>{user.fullName}</p>
-                        {user.isVip && <span style={{ background: 'linear-gradient(135deg,#E91E8C,#FF6BB5)', color: 'white', fontSize: 9, fontWeight: 700, padding: '1px 6px', borderRadius: 6 }}>VIP</span>}
+                        {user.isVip && <svg style={{ marginLeft:4, verticalAlign:'middle', display:'inline-block' }} width='16' height='16' viewBox='0 0 24 24'><path d='M12 1l2.5 3.5L18 3l1 4 4 1-2 3.5 2 3.5-4 1-1 4-3.5-1.5L12 23l-2.5-3.5L6 21l-1-4-4-1 2-3.5L1 9l4-1 1-4 3.5 1.5z' fill='#E91E8C'/><path d='M8.5 12.5l2.5 2.5 5-5' stroke='white' strokeWidth='2' strokeLinecap='round' strokeLinejoin='round' fill='none'/></svg>}
                         {user.isAdmin && <span style={{ background: '#1d4ed8', color: 'white', fontSize: 9, fontWeight: 700, padding: '1px 6px', borderRadius: 6 }}>ADMIN</span>}
                       </div>
                       <p style={{ fontSize: 12, color: '#C4829F' }}>@{user.username}</p>
