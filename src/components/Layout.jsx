@@ -6,7 +6,7 @@ import { useAuth }  from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { useNotifications } from '../hooks/useNotifications';
 import { useMessages }       from '../hooks/useMessages';
-import { collection, getDocs, query, orderBy, limit } from 'firebase/firestore';
+import { collection, getDocs, query, orderBy, limit, where, onSnapshot } from 'firebase/firestore';
 import { ref, set, onDisconnect } from 'firebase/database';
 import { db, rtdb } from '../firebase';
 import { playNotificationSound } from '../utils/sound';
