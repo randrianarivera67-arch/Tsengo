@@ -267,7 +267,7 @@ export default function Friends() {
                 <div style={{ display: 'flex', gap: 6 }}>
                   <button
                     onClick={() => navigate(`/messages/${getChatId(currentUser.uid, friend.uid)}`)}
-                    style={{ background: 'linear-gradient(135deg,#2563eb,#3b82f6)', border: 'none', borderRadius: '50%', width: 36, height: 36, cursor: 'pointer', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                    style={{ background: 'linear-gradient(135deg,#E91E8C,#FF6BB5)', border: 'none', borderRadius: '50%', width: 36, height: 36, cursor: 'pointer', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                   >
                     <HiChat size={17} />
                   </button>
