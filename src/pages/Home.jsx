@@ -2,7 +2,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  collection, addDoc, serverTimestamp, query, orderBy, onSnapshot, limit,
+  collection, addDoc, serverTimestamp, query, orderBy, onSnapshot, limit, limit,
   doc, updateDoc, arrayUnion, arrayRemove, deleteDoc, writeBatch, getDoc
 } from 'firebase/firestore';
 import { db } from '../firebase';

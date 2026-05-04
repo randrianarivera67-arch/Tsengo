@@ -1,16 +1,17 @@
 // src/App.jsx
+import { lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { LanguageProvider } from './context/LanguageContext';
 import { ThemeProvider } from './context/ThemeContext';
 import Login from './pages/Login';
 import Register from './pages/Register';
-import Home from './pages/Home';
-import Profile from './pages/Profile';
-import Friends from './pages/Friends';
-import Messages from './pages/Messages';
-import Notifications from './pages/Notifications';
-import Settings from './pages/Settings';
+const Home = lazy(() => import('./pages/Home'));
+const Profile = lazy(() => import('./pages/Profile'));
+const Friends = lazy(() => import('./pages/Friends'));
+const Messages = lazy(() => import('./pages/Messages'));
+const Notifications = lazy(() => import('./pages/Notifications'));
+const Settings = lazy(() => import('./pages/Settings'));
 import Reels from './pages/Reels';
 import LanguageSettings from './pages/LanguageSettings';
 import SecuritySettings from './pages/SecuritySettings';
@@ -32,7 +33,8 @@ function PublicRoute({ children }) {
 }
 function AppRoutes() {
   return (
-    <Routes>
+    <Suspense fallback={<div style={{padding:40,textAlign:"center",color:"#E91E8C",fontSize:24}}>⏳</div>}>
+      <Routes>
       <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
       <Route path="/register" element={<PublicRoute><Register /></PublicRoute>} />
       <Route path="/" element={<PrivateRoute><Layout><Home /></Layout></PrivateRoute>} />
@@ -52,6 +54,7 @@ function AppRoutes() {
       <Route path="/post/:postId" element={<PrivateRoute><Layout><PostDetail /></Layout></PrivateRoute>} />
       <Route path="/oauth/callback" element={<OAuthCallback />} />
     </Routes>
+    </Suspense>
   );
 }
 export default function App() {
