@@ -189,7 +189,7 @@ export default function Layout({ children }) {
             <div style={{ minWidth: 0 }}>
               <p style={{ fontWeight: 700, fontSize: 14, color: text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 {userProfile.fullName}
-                {userProfile.isVip && <svg style={{ marginLeft:4, verticalAlign:'middle', display:'inline-block' }} width='16' height='16' viewBox='0 0 24 24'><path d='M12 1l2.5 3.5L18 3l1 4 4 1-2 3.5 2 3.5-4 1-1 4-3.5-1.5L12 23l-2.5-3.5L6 21l-1-4-4-1 2-3.5L1 9l4-1 1-4 3.5 1.5z' fill='#E91E8C'/><path d='M8.5 12.5l2.5 2.5 5-5' stroke='white' strokeWidth='2' strokeLinecap='round' strokeLinejoin='round' fill='none'/></svg>}
+                {userProfile.isVip && <svg style={{ marginLeft:4, verticalAlign:'middle', display:'inline-block', flexShrink:0 }} width='18' height='18' viewBox='0 0 24 24'><circle cx='12' cy='12' r='12' fill='#E91E8C'/><path d='M7 12.5l3.5 3.5 6.5-7' stroke='white' strokeWidth='2.2' strokeLinecap='round' strokeLinejoin='round' fill='none'/></svg>}
               </p>
               <p style={{ fontSize: 12, color: '#C4829F' }}>@{userProfile.username}</p>
             </div>
@@ -296,7 +296,7 @@ export default function Layout({ children }) {
                       <div>
                         <p style={{ fontWeight: 600, fontSize: 13, color: text }}>
                           {u.fullName}
-                          {u.isVip && <svg style={{ marginLeft:4, verticalAlign:'middle', display:'inline-block' }} width='16' height='16' viewBox='0 0 24 24'><path d='M12 1l2.5 3.5L18 3l1 4 4 1-2 3.5 2 3.5-4 1-1 4-3.5-1.5L12 23l-2.5-3.5L6 21l-1-4-4-1 2-3.5L1 9l4-1 1-4 3.5 1.5z' fill='#E91E8C'/><path d='M8.5 12.5l2.5 2.5 5-5' stroke='white' strokeWidth='2' strokeLinecap='round' strokeLinejoin='round' fill='none'/></svg>}
+                          {u.isVip && <svg style={{ marginLeft:4, verticalAlign:'middle', display:'inline-block', flexShrink:0 }} width='18' height='18' viewBox='0 0 24 24'><circle cx='12' cy='12' r='12' fill='#E91E8C'/><path d='M7 12.5l3.5 3.5 6.5-7' stroke='white' strokeWidth='2.2' strokeLinecap='round' strokeLinejoin='round' fill='none'/></svg>}
                         </p>
                         <p style={{ fontSize: 11, color: '#C4829F' }}>@{u.username}</p>
                       </div>
