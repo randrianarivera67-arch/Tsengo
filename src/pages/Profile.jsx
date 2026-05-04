@@ -22,7 +22,7 @@ import {
 const REACTIONS = ['❤️','😂','😮','😢','😡','👍'];
 
 function VIPBadge() {
-  return <svg style={{ marginLeft:4, verticalAlign:'middle', display:'inline-block', flexShrink:0 }} width='20' height='20' viewBox='0 0 100 100'><path d='M50 5 C53 5 55 8 58 9 C61 10 64 8 67 10 C70 12 69 15 71 18 C73 21 77 21 78 24 C79 27 77 30 78 33 C79 36 82 38 82 41 C82 44 79 46 79 49 C79 52 82 55 81 58 C80 61 77 62 75 65 C73 68 74 71 71 73 C68 75 65 74 62 76 C59 78 58 81 55 82 C52 83 49 81 46 82 C43 83 41 86 38 85 C35 84 34 81 31 79 C28 77 25 78 23 76 C21 74 22 71 20 68 C18 65 15 64 14 61 C13 58 15 55 14 52 C13 49 10 47 10 44 C10 41 13 39 13 36 C13 33 11 30 12 27 C13 24 16 23 18 20 C20 17 19 14 22 12 C25 10 28 11 31 9 C34 7 35 5 38 4 C41 3 44 5 47 5 Z' fill='#E91E8C'/><path d='M33 50 L44 62 L67 38' stroke='white' strokeWidth='8' strokeLinecap='round' strokeLinejoin='round' fill='none'/></svg>;
+  return <img src='/vip-badge.png' style={{ width:20, height:20, marginLeft:4, verticalAlign:'middle', display:'inline-block', flexShrink:0 }} alt='VIP'/>;
 }
 
 const TABS = [
@@ -602,7 +602,7 @@ export default function Profile() {
                   style={{ padding:14, display:'flex', flexDirection:'column', alignItems:'center', gap:8, cursor:'pointer', textAlign:'center' }}>
                   <img src={f.photoURL||`https://ui-avatars.com/api/?name=${encodeURIComponent(f.fullName||'U')}&background=E91E8C&color=fff`} alt="" style={{ width:60, height:60, borderRadius:'50%', objectFit:'cover', border:'2px solid #FFE4F3' }}/>
                   <div>
-                    <p style={{ fontWeight:600, fontSize:13, color:'#2D1220' }}>{f.fullName}{f.isVip&&<svg style={{ marginLeft:4, verticalAlign:'middle', display:'inline-block', flexShrink:0 }} width='20' height='20' viewBox='0 0 100 100'><path d='M50 5 C53 5 55 8 58 9 C61 10 64 8 67 10 C70 12 69 15 71 18 C73 21 77 21 78 24 C79 27 77 30 78 33 C79 36 82 38 82 41 C82 44 79 46 79 49 C79 52 82 55 81 58 C80 61 77 62 75 65 C73 68 74 71 71 73 C68 75 65 74 62 76 C59 78 58 81 55 82 C52 83 49 81 46 82 C43 83 41 86 38 85 C35 84 34 81 31 79 C28 77 25 78 23 76 C21 74 22 71 20 68 C18 65 15 64 14 61 C13 58 15 55 14 52 C13 49 10 47 10 44 C10 41 13 39 13 36 C13 33 11 30 12 27 C13 24 16 23 18 20 C20 17 19 14 22 12 C25 10 28 11 31 9 C34 7 35 5 38 4 C41 3 44 5 47 5 Z' fill='#E91E8C'/><path d='M33 50 L44 62 L67 38' stroke='white' strokeWidth='8' strokeLinecap='round' strokeLinejoin='round' fill='none'/></svg>}</p>
+                    <p style={{ fontWeight:600, fontSize:13, color:'#2D1220' }}>{f.fullName}{f.isVip&&<img src='/vip-badge.png' style={{ width:20, height:20, marginLeft:4, verticalAlign:'middle', display:'inline-block', flexShrink:0 }} alt='VIP'/>}</p>
                     <p style={{ fontSize:11, color:'#C4829F' }}>@{f.username}</p>
                   </div>
                   <button onClick={e=>{e.stopPropagation();navigate(`/messages/${getChatId(currentUser.uid,f.uid)}`);}} style={{ background:'#FFE4F3', border:'none', borderRadius:16, padding:'5px 12px', color:'#E91E8C', cursor:'pointer', fontSize:12, display:'flex', alignItems:'center', gap:4 }}><HiChat size={12}/>Message</button>
