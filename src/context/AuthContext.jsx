@@ -77,7 +77,7 @@ export function AuthProvider({ children }) {
 
   return (
     <AuthContext.Provider value={{ currentUser, userProfile, setUserProfile, register, login, logout, fetchUserProfile, loading }}>
-      {loading ? (<div style={{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",background:"white"}}><div style={{textAlign:"center"}}><div style={{width:72,height:72,borderRadius:"50%",background:"linear-gradient(135deg, #E91E8C, #FF6BB5)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:40,margin:"0 auto 16px",color:"white"}}>T</div><div style={{fontWeight:800,fontSize:28,color:"#E91E8C"}}>Tsengo</div></div></div>) : children}
+      {loading ? (<div style={{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",background:"white"}}><style>{`@keyframes pulse{0%,100%{transform:scale(1);opacity:1}50%{transform:scale(1.08);opacity:0.85}}@keyframes spin{to{transform:rotate(360deg)}}`}</style><div style={{textAlign:"center"}}><img src="/logo.png" style={{width:110,height:110,animation:"pulse 1.5s ease-in-out infinite",marginBottom:16}} /><div style={{fontWeight:800,fontSize:28,color:"#E91E8C",letterSpacing:-1}}>Tsengo</div><div style={{width:32,height:32,border:"3px solid #FFE4F3",borderTop:"3px solid #E91E8C",borderRadius:"50%",animation:"spin 0.8s linear infinite",margin:"20px auto 0"}}></div></div></div>) : children}
     </AuthContext.Provider>
   );
 }
