@@ -77,7 +77,7 @@ export function AuthProvider({ children }) {
 
   return (
     <AuthContext.Provider value={{ currentUser, userProfile, setUserProfile, register, login, logout, fetchUserProfile, loading }}>
-      {loading ? (<div style={{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",background:"white"}}><style>{`@keyframes dot{0%,80%,100%{opacity:0}40%{opacity:1}}`}</style><div style={{textAlign:"center"}}><div style={{fontWeight:900,fontSize:38,color:"#E91E8C",letterSpacing:-1}}>Tsengo<span style={{animation:"dot 1.4s infinite",animationDelay:"0s"}}>.</span><span style={{animation:"dot 1.4s infinite",animationDelay:"0.2s"}}>.</span><span style={{animation:"dot 1.4s infinite",animationDelay:"0.4s"}}>.</span></div></div></div>) : children}
+      {loading ? (<div style={{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",background:"white"}}><style>{`@keyframes dot{0%,80%,100%{opacity:0}40%{opacity:1}}`}</style><div style={{textAlign:"center"}}><img src="/tsengo-logo.png" style={{width:180,height:180,borderRadius:"50%",objectFit:"cover",marginBottom:20}} /><div style={{fontWeight:900,fontSize:38,color:"#E91E8C",letterSpacing:-1}}>Tsengo<span style={{animation:"dot 1.4s infinite",animationDelay:"0s"}}>.</span><span style={{animation:"dot 1.4s infinite",animationDelay:"0.2s"}}>.</span><span style={{animation:"dot 1.4s infinite",animationDelay:"0.4s"}}>.</span></div></div></div>) : children}
     </AuthContext.Provider>
   );
 }
