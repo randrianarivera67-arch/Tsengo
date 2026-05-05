@@ -8,9 +8,15 @@
   "theme_color": "#E91E8C",
   "orientation": "portrait",
   "icons": [
-    { "src": "/tsengo-logo.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
-    { "src": "/tsengo-logo.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" },
-    { "src": "/icon-192.png",    "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
-    { "src": "/icon-512.png",    "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+    {
+      "src": "/tsengo-logo.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/tsengo-logo.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
   ]
 }
