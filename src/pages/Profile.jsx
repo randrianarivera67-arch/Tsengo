@@ -22,7 +22,7 @@ import {
 const REACTIONS = ['❤️','😂','😮','😢','😡','👍'];
 
 function VIPBadge() {
-  return <img src='/vip-badge.png' style={{ width:22, height:22, marginLeft:5, verticalAlign:'middle', display:'inline-block', flexShrink:0 }} alt='VIP'/>;
+  return <img src='/vip-badge.png' style={{ width:24, height:24, marginLeft:5, verticalAlign:'middle', display:'inline-block', flexShrink:0, objectFit:'contain' }} alt='VIP'/>;
 }
 
 const TABS = [
@@ -602,7 +602,7 @@ export default function Profile() {
                   style={{ padding:14, display:'flex', flexDirection:'column', alignItems:'center', gap:8, cursor:'pointer', textAlign:'center' }}>
                   <img src={f.photoURL||`https://ui-avatars.com/api/?name=${encodeURIComponent(f.fullName||'U')}&background=E91E8C&color=fff`} alt="" style={{ width:60, height:60, borderRadius:'50%', objectFit:'cover', border:'2px solid #FFE4F3' }}/>
                   <div>
-                    <p style={{ fontWeight:600, fontSize:13, color:'#2D1220' }}>{f.fullName}{f.isVip&&<img src='/vip-badge.png' style={{ width:22, height:22, marginLeft:5, verticalAlign:'middle', display:'inline-block', flexShrink:0 }} alt='VIP'/>}</p>
+                    <p style={{ fontWeight:600, fontSize:13, color:'#2D1220' }}>{f.fullName}{f.isVip&&<img src='/vip-badge.png' style={{ width:24, height:24, marginLeft:5, verticalAlign:'middle', display:'inline-block', flexShrink:0, objectFit:'contain' }} alt='VIP'/>}</p>
                     <p style={{ fontSize:11, color:'#C4829F' }}>@{f.username}</p>
                   </div>
                   <button onClick={e=>{e.stopPropagation();navigate(`/messages/${getChatId(currentUser.uid,f.uid)}`);}} style={{ background:'#FFE4F3', border:'none', borderRadius:16, padding:'5px 12px', color:'#E91E8C', cursor:'pointer', fontSize:12, display:'flex', alignItems:'center', gap:4 }}><HiChat size={12}/>Message</button>

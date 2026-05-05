@@ -189,7 +189,7 @@ export default function Layout({ children }) {
             <div style={{ minWidth: 0 }}>
               <p style={{ fontWeight: 700, fontSize: 14, color: text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 {userProfile.fullName}
-                {userProfile.isVip && <img src='/vip-badge.png' style={{ width:22, height:22, marginLeft:5, verticalAlign:'middle', display:'inline-block', flexShrink:0 }} alt='VIP'/>}
+                {userProfile.isVip && <img src='/vip-badge.png' style={{ width:24, height:24, marginLeft:5, verticalAlign:'middle', display:'inline-block', flexShrink:0, objectFit:'contain' }} alt='VIP'/>}
               </p>
               <p style={{ fontSize: 12, color: '#C4829F' }}>@{userProfile.username}</p>
             </div>
@@ -296,7 +296,7 @@ export default function Layout({ children }) {
                       <div>
                         <p style={{ fontWeight: 600, fontSize: 13, color: text }}>
                           {u.fullName}
-                          {u.isVip && <img src='/vip-badge.png' style={{ width:22, height:22, marginLeft:5, verticalAlign:'middle', display:'inline-block', flexShrink:0 }} alt='VIP'/>}
+                          {u.isVip && <img src='/vip-badge.png' style={{ width:24, height:24, marginLeft:5, verticalAlign:'middle', display:'inline-block', flexShrink:0, objectFit:'contain' }} alt='VIP'/>}
                         </p>
                         <p style={{ fontSize: 11, color: '#C4829F' }}>@{u.username}</p>
                       </div>
