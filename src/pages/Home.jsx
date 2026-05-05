@@ -25,7 +25,7 @@ const MAX_PRICE   = 999_999_999;
 const REACTIONS   = ['❤️','😂','😮','😢','😡','👍'];
 
 function VIPBadge() {
-  return <img src='/vip-badge.png' style={{ width:20, height:20, marginLeft:4, verticalAlign:'middle', display:'inline-block', flexShrink:0 }} alt='VIP'/>;
+  return <img src='/vip-badge.png' style={{ width:22, height:22, marginLeft:5, verticalAlign:'middle', display:'inline-block', flexShrink:0 }} alt='VIP'/>;
 }
 
 export default function Home() {
