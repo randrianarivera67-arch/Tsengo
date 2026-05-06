@@ -19,18 +19,7 @@ async function compressImage(file, maxWidth=1080, quality=0.8) {
   });
 }
 
-export async function uploadToTelegram(file, onProgress) {
-  if (!file.type.startsWith('video/')) {
-    if (file.type.startsWith('image/')) file = await compressImage(file);
-    const form = new FormData();
-    form.append('file', file, file.name || `file_${Date.now()}`);
-    const res = await fetch(`${BACKEND_URL}/telegram/upload`, { method: 'POST', body: form });
-    const data = await res.json();
-    if (data.error) throw new Error(data.error);
-    const proxyUrl = data.fileId ? `${BACKEND_URL}/media-id?file_id=${data.fileId}` : data.url;
-    return { url: proxyUrl, fileId: data.fileId, type: data.type };
-  }
-
+async function uploadChunked(file, onProgress) {
   const CHUNK_SIZE = 5 * 1024 * 1024;
   const totalChunks = Math.ceil(file.size / CHUNK_SIZE);
   const uploadId = Date.now() + '_' + Math.random().toString(36).slice(2);
@@ -46,7 +35,18 @@ export async function uploadToTelegram(file, onProgress) {
     form.append('totalChunks', String(totalChunks));
     form.append('filename', file.name);
     form.append('mimetype', file.type);
-    await fetch(`${RAILWAY_URL}/upload/chunk`, { method: 'POST', body: form });
+    // Retry 3 fois raha misy error
+    let ok = false;
+    for (let attempt = 0; attempt < 3; attempt++) {
+      try {
+        const r = await fetch(`${RAILWAY_URL}/upload/chunk`, { method: 'POST', body: form });
+        if (r.ok) { ok = true; break; }
+      } catch(e) {
+        if (attempt === 2) throw new Error('Chunk upload failed after 3 attempts');
+        await new Promise(r => setTimeout(r, 2000));
+      }
+    }
+    if (!ok) throw new Error('Chunk ' + i + ' failed');
     if (onProgress) onProgress(Math.round(((i + 1) / totalChunks) * 90));
   }
 
@@ -56,7 +56,22 @@ export async function uploadToTelegram(file, onProgress) {
     body: JSON.stringify({ uploadId })
   });
   const data = await res.json();
-  if (data.error) throw new Error(data.error);
+  if (data.error) throw new Error('Upload échoué: ' + data.error);
   if (onProgress) onProgress(100);
   return { url: data.url, fileId: data.fileId, type: data.type };
+}
+
+export async function uploadToTelegram(file, onProgress) {
+  if (!file.type.startsWith('video/')) {
+    if (file.type.startsWith('image/')) file = await compressImage(file);
+    const form = new FormData();
+    form.append('file', file, file.name || `file_${Date.now()}`);
+    const res = await fetch(`${BACKEND_URL}/telegram/upload`, { method: 'POST', body: form });
+    const data = await res.json();
+    if (data.error) throw new Error(data.error);
+    const proxyUrl = data.fileId ? `${BACKEND_URL}/media-id?file_id=${data.fileId}` : data.url;
+    return { url: proxyUrl, fileId: data.fileId, type: data.type };
+  }
+
+  return uploadChunked(file, onProgress);
 }
