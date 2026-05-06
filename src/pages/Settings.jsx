@@ -60,7 +60,7 @@ export default function Settings() {
             alt="" className="avatar" style={{ width: 54, height: 54 }}
           />
           {userProfile?.isVip && (
-            <img src='/vip-badge.png' style={{ width:24, height:24, marginLeft:5, verticalAlign:'middle', display:'inline-block', flexShrink:0, objectFit:'contain' }} alt='VIP'/>
+            <img src='/vip-badge.png' style={{ width:32, height:32, marginLeft:5, verticalAlign:'middle', display:'inline-block', flexShrink:0, objectFit:'contain' }} alt='VIP'/>
           )}
         </div>
         <div style={{ flex: 1 }}>

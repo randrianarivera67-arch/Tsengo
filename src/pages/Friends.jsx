@@ -14,7 +14,7 @@ import { sendPushNotification } from '../utils/onesignal';
 import { HiSearch, HiUserAdd, HiUserRemove, HiChat, HiCheck, HiX, HiUsers } from 'react-icons/hi';
 
 function VIPBadge() {
-  return <img src='/vip-badge.png' style={{ width:24, height:24, marginLeft:5, verticalAlign:'middle', display:'inline-block', flexShrink:0, objectFit:'contain' }} alt='VIP'/>;
+  return <img src='/vip-badge.png' style={{ width:32, height:32, marginLeft:5, verticalAlign:'middle', display:'inline-block', flexShrink:0, objectFit:'contain' }} alt='VIP'/>;
 }
 
 export default function Friends() {
