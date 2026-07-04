@@ -50,12 +50,14 @@ export default function Layout({ children }) {
     prevNotif.current = notifCount;
   }, [notifCount]);
 
+  // Dock flottant style Telegram — icônes remplies, couleur par couleur
   const bottomNav = [
-    { path: '/',                            Icon: HiOutlineHome,      AIcon: HiHome,      label: t('home') },
-    { path: '/friends',                     Icon: HiOutlineUserGroup, AIcon: HiUserGroup, label: t('friends') },
-    { path: '/messages',                    Icon: HiOutlineChat,      AIcon: HiChat,      label: t('messages'),      badge: msgCount },
-    { path: '/notifications',               Icon: HiOutlineBell,      AIcon: HiBell,      label: t('notifications'), badge: notifCount },
-    { path: `/profile/${currentUser?.uid}`, Icon: HiOutlineUser,      AIcon: HiUser,      label: t('profile') },
+    { path: '/',                            AIcon: HiHome,      label: t('home'),          color: '#1877F2' },
+    { path: '/reels',                       AIcon: HiFilm,      label: 'Vidéos',           color: '#FF7A00' },
+    { path: '/friends',                     AIcon: HiUserGroup, label: t('friends'),       color: '#F2B300' },
+    { path: '/messages',                    AIcon: HiChat,      label: t('messages'),      color: '#FF2D8D', badge: msgCount },
+    { path: '/notifications',               AIcon: HiBell,      label: t('notifications'), color: '#FFC107', badge: notifCount },
+    { path: `/profile/${currentUser?.uid}`, AIcon: HiUser,      label: t('profile'),       color: '#050505' },
   ];
 
   const isActive = p => {
@@ -104,12 +106,11 @@ export default function Layout({ children }) {
 
   async function handleLogout() {
     setDrawerOpen(false);
-    try {
-      const onlineRef = ref(rtdb, `online/${currentUser.uid}`);
-      await set(onlineRef, false);
-      await logout();
-      navigate('/login');
-    } catch {}
+    // Mettre hors-ligne sans bloquer la déconnexion si ça échoue
+    try { await set(ref(rtdb, `online/${currentUser.uid}`), false); } catch {}
+    try { await logout(); } catch {}
+    // Après signOut, PrivateRoute redirige automatiquement vers /login
+    navigate('/login', { replace: true });
   }
 
   // Drawer nav — icônes classiques (même style que bottom nav)
@@ -122,9 +123,9 @@ export default function Layout({ children }) {
     { path: '/settings',                    Icon: HiOutlineCog,       AIcon: HiCog,       label: t('settings') },
   ];
 
-  const bg   = isDark ? '#2D1220' : 'white';
-  const bdr  = isDark ? '#4A2535' : '#FFE4F3';
-  const text = isDark ? '#FFE4F3' : '#2D1220';
+  const bg   = isDark ? '#050505' : 'white';
+  const bdr  = isDark ? '#232733' : '#E4E6EB';
+  const text = isDark ? '#E4E6EB' : '#050505';
 
   // Categorize post results
   const ventes  = searchResults.posts.filter(p => p.isSale);
@@ -137,18 +138,18 @@ export default function Layout({ children }) {
     if (!items.length) return null;
     return (
       <>
-        <div style={{ padding: '7px 14px 3px', fontSize: 10, fontWeight: 700, color: '#C4829F', textTransform: 'uppercase', letterSpacing: 1, display: 'flex', alignItems: 'center', gap: 5 }}>
+        <div style={{ padding: '7px 14px 3px', fontSize: 10, fontWeight: 700, color: '#65676B', textTransform: 'uppercase', letterSpacing: 1, display: 'flex', alignItems: 'center', gap: 5 }}>
           {icon} {label}
         </div>
         {items.map(p => (
           <div key={p.id} onClick={() => onItem(p)}
             style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 14px', cursor: 'pointer', borderBottom: `1px solid ${bdr}` }}>
-            <div style={{ width: 36, height: 36, borderRadius: 8, background: isDark ? '#4A2535' : '#FFE4F3', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 17, flexShrink: 0 }}>
+            <div style={{ width: 36, height: 36, borderRadius: 8, background: isDark ? '#232733' : '#E4E6EB', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 17, flexShrink: 0 }}>
               {p.isSale ? '🏷️' : p.mediaType === 'video' ? '🎬' : p.mediaURL ? '📸' : '📝'}
             </div>
             <div style={{ minWidth: 0 }}>
               <p style={{ fontWeight: 600, fontSize: 12, color: text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.content || 'Publication'}</p>
-              <p style={{ fontSize: 11, color: '#C4829F' }}>{p.authorName}{p.isSale && p.price ? ` · ${p.price.toLocaleString()} Ar` : ''}</p>
+              <p style={{ fontSize: 11, color: '#65676B' }}>{p.authorName}{p.isSale && p.price ? ` · ${p.price.toLocaleString()} Ar` : ''}</p>
             </div>
           </div>
         ))}
@@ -157,7 +158,7 @@ export default function Layout({ children }) {
   }
 
   return (
-    <div style={{ minHeight: '100vh', background: isDark ? '#1A0A12' : 'var(--gray-50)', paddingBottom: 70, color: text }}>
+    <div style={{ minHeight: '100vh', background: isDark ? '#0B0D12' : '#FFFFFF', paddingBottom: 96, color: text }}>
 
       {/* Overlay */}
       {drawerOpen && <div onClick={() => setDrawerOpen(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', zIndex: 200 }} />}
@@ -168,30 +169,30 @@ export default function Layout({ children }) {
         transform: drawerOpen ? 'translateX(0)' : 'translateX(-100%)',
         transition: 'transform .25s cubic-bezier(.4,0,.2,1)',
         display: 'flex', flexDirection: 'column',
-        boxShadow: drawerOpen ? '4px 0 24px rgba(233,30,140,.18)' : 'none',
+        boxShadow: drawerOpen ? '4px 0 24px rgba(24,119,242,.18)' : 'none',
         borderRight: `1px solid ${bdr}`,
       }}>
         {/* Header */}
         <div style={{ padding: '18px 16px 14px', borderBottom: `1px solid ${bdr}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <img src='/tsengo-logo.png' alt="Tsengo" className="logo-shimmer" style={{ width:56, height:56, objectFit:"cover", borderRadius:"50%" }}/>
-            <span style={{ fontWeight: 800, fontSize: 18, color: '#E91E8C' }}>Tsengo</span>
+            <img src='/tsengo-logo.png' alt="Traingo" className="logo-shimmer" style={{ width:56, height:56, objectFit:"cover", borderRadius:"50%" }}/>
+            <span className="text-gold-shine" style={{ fontWeight: 900, fontSize: 18 }}>Traingo</span>
           </div>
-          <button onClick={() => setDrawerOpen(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#C4829F' }}><HiX size={22} /></button>
+          <button onClick={() => setDrawerOpen(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#65676B' }}><HiX size={22} /></button>
         </div>
 
         {/* User mini */}
         {userProfile && (
           <div onClick={() => { navigate(`/profile/${currentUser?.uid}`); setDrawerOpen(false); }}
             style={{ padding: '14px 16px', borderBottom: `1px solid ${bdr}`, display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer' }}>
-            <img src={userProfile.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(userProfile.fullName || 'U')}&background=E91E8C&color=fff`}
-              alt="" style={{ width: 44, height: 44, borderRadius: '50%', objectFit: 'cover', border: '2px solid #FFE4F3' }} />
+            <img src={userProfile.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(userProfile.fullName || 'U')}&background=1877F2&color=fff`}
+              alt="" style={{ width: 44, height: 44, borderRadius: '50%', objectFit: 'cover', border: '2px solid #E4E6EB' }} />
             <div style={{ minWidth: 0 }}>
               <p style={{ fontWeight: 700, fontSize: 14, color: text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 {userProfile.fullName}
                 {userProfile.isVip && <img src='/vip-badge.png' style={{ width:24, height:24, marginLeft:5, verticalAlign:'middle', display:'inline-block', flexShrink:0, objectFit:'contain' }} alt='VIP'/>}
               </p>
-              <p style={{ fontSize: 12, color: '#C4829F' }}>@{userProfile.username}</p>
+              <p style={{ fontSize: 12, color: '#65676B' }}>@{userProfile.username}</p>
             </div>
           </div>
         )}
@@ -205,14 +206,14 @@ export default function Layout({ children }) {
               <button key={item.path} onClick={() => { navigate(item.path); setDrawerOpen(false); }}
                 style={{
                   width: '100%', display: 'flex', alignItems: 'center', gap: 14, padding: '13px 20px',
-                  background: active ? (isDark ? '#4A2535' : '#FFF0F8') : 'none', border: 'none',
-                  borderLeft: `3px solid ${active ? '#E91E8C' : 'transparent'}`, cursor: 'pointer',
-                  color: active ? '#E91E8C' : isDark ? '#C4829F' : '#6B3A52',
+                  background: active ? (isDark ? '#232733' : '#F0F2F5') : 'none', border: 'none',
+                  borderLeft: `3px solid ${active ? '#1877F2' : 'transparent'}`, cursor: 'pointer',
+                  color: active ? '#1877F2' : isDark ? '#65676B' : '#65676B',
                   fontWeight: active ? 700 : 500, fontSize: 15, textAlign: 'left',
                 }}>
                 <IconComp size={21} />
                 <span style={{ flex: 1 }}>{item.label}</span>
-                {item.badge > 0 && <span style={{ background: '#E91E8C', color: 'white', borderRadius: 10, padding: '1px 7px', fontSize: 11, fontWeight: 700 }}>{item.badge > 9 ? '9+' : item.badge}</span>}
+                {item.badge > 0 && <span style={{ background: '#1877F2', color: 'white', borderRadius: 10, padding: '1px 7px', fontSize: 11, fontWeight: 700 }}>{item.badge > 9 ? '9+' : item.badge}</span>}
               </button>
             );
           })}
@@ -220,7 +221,7 @@ export default function Layout({ children }) {
 
         {/* Logout */}
         <div style={{ padding: '8px 0', borderTop: `1px solid ${bdr}` }}>
-          <button onClick={handleLogout} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 14, padding: '13px 20px', background: 'none', border: 'none', cursor: 'pointer', color: '#E91E8C', fontWeight: 600, fontSize: 15 }}>
+          <button onClick={handleLogout} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 14, padding: '13px 20px', background: 'none', border: 'none', cursor: 'pointer', color: '#1877F2', fontWeight: 600, fontSize: 15 }}>
             <HiLogout size={20} /> Se déconnecter
           </button>
         </div>
@@ -229,19 +230,19 @@ export default function Layout({ children }) {
       {/* ── Header ──────────────────────────────────────────────── */}
       <header className="navbar" style={{ position: 'sticky', top: 0, zIndex: 100, background: bg, borderBottom: `1px solid ${bdr}` }}>
 
-        {/* Rangée 1 : Menu | Logo Tsengo | Icône Messages (rose) */}
+        {/* Rangée 1 : Menu | Logo Traingo | Icône Messages (rose) */}
         <div style={{ padding: '9px 14px 6px', display: 'flex', alignItems: 'center', gap: 10 }}>
-          <button onClick={() => setDrawerOpen(true)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#E91E8C', flexShrink: 0, padding: 2 }}>
+          <button onClick={() => setDrawerOpen(true)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#1877F2', flexShrink: 0, padding: 2 }}>
             <HiMenu size={26} />
           </button>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', flex: 1 }} onClick={() => navigate('/')}>
-            <img src='/tsengo-logo.png' alt="Tsengo" className="logo-shimmer" style={{ width:56, height:56, objectFit:"cover", borderRadius:"50%" }}/>
-            <span style={{ fontWeight: 800, fontSize: 20, color: '#E91E8C', letterSpacing: -1 }}>Tsengo</span>
+            <img src='/tsengo-logo.png' alt="Traingo" className="logo-shimmer" style={{ width:56, height:56, objectFit:"cover", borderRadius:"50%" }}/>
+            <span style={{ fontWeight: 900, fontSize: 22, color: '#1877F2', letterSpacing: -1 }}>Traingo</span>
           </div>
 
           {/* Icône Messages — rose, cercle */}
-          <button onClick={() => navigate('/messages')} style={{ position: 'relative', background: 'linear-gradient(135deg,#E91E8C,#FF6BB5)', color: 'white', border: 'none', borderRadius: 20, padding: '8px 16px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0, boxShadow: '0 2px 10px rgba(233,30,140,.4)', fontWeight: 600, fontSize: 14, fontFamily: 'Poppins' }}>
+          <button onClick={() => navigate('/messages')} className="btn-primary" style={{ position: 'relative', borderRadius: 20, padding: '8px 16px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: 14 }}>
             Messages
             {msgCount > 0 && (
               <span style={{ position: 'absolute', top: -4, right: -4, background: '#FF1744', color: 'white', borderRadius: '50%', minWidth: 18, height: 18, fontSize: 10, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 2px', border: '2px solid white' }}>
@@ -254,7 +255,7 @@ export default function Layout({ children }) {
         {/* Rangée 2 : Barre de recherche multi-type */}
         <div ref={searchRef} style={{ padding: '0 14px 10px', position: 'relative' }}>
           <div style={{ position: 'relative' }}>
-            <HiSearch style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: '#C4829F', pointerEvents: 'none', zIndex: 1 }} size={15} />
+            <HiSearch style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: '#65676B', pointerEvents: 'none', zIndex: 1 }} size={15} />
             <input
               type="text"
               placeholder="Rechercher..."
@@ -263,14 +264,14 @@ export default function Layout({ children }) {
               onFocus={() => search.trim() && setSearchOpen(true)}
               style={{
                 width: '100%', padding: '8px 12px 8px 34px',
-                border: `1.5px solid ${isDark ? '#4A2535' : '#D1D5DB'}`, borderRadius: 22,
-                background: isDark ? '#3D1A2A' : 'white', color: text,
+                border: `1.5px solid ${isDark ? '#232733' : '#D1D5DB'}`, borderRadius: 22,
+                background: isDark ? '#1C2028' : 'white', color: text,
                 fontSize: 13, outline: 'none', boxSizing: 'border-box', fontFamily: 'Poppins',
               }}
             />
             {search && (
               <button onClick={() => { setSearch(''); setSearchResults({ users: [], posts: [] }); setSearchOpen(false); }}
-                style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#C4829F', padding: 0 }}>
+                style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#65676B', padding: 0 }}>
                 <HiX size={14} />
               </button>
             )}
@@ -281,24 +282,24 @@ export default function Layout({ children }) {
             <div style={{
               position: 'absolute', top: 'calc(100% - 2px)', left: 14, right: 14, zIndex: 300,
               background: bg, border: `1px solid ${bdr}`, borderRadius: 14,
-              boxShadow: '0 8px 30px rgba(233,30,140,.12)', overflow: 'hidden',
+              boxShadow: '0 8px 30px rgba(24,119,242,.12)', overflow: 'hidden',
               maxHeight: 380, overflowY: 'auto',
             }}>
               {/* Personnes */}
               {searchResults.users.length > 0 && (
                 <>
-                  <div style={{ padding: '8px 14px 3px', fontSize: 10, fontWeight: 700, color: '#C4829F', textTransform: 'uppercase', letterSpacing: 1 }}>👤 Personnes</div>
+                  <div style={{ padding: '8px 14px 3px', fontSize: 10, fontWeight: 700, color: '#65676B', textTransform: 'uppercase', letterSpacing: 1 }}>👤 Personnes</div>
                   {searchResults.users.map(u => (
                     <div key={u.id} onClick={() => { navigate(`/profile/${u.id}`); setSearch(''); setSearchOpen(false); }}
                       style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 14px', cursor: 'pointer', borderBottom: `1px solid ${bdr}` }}>
-                      <img src={u.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(u.fullName || 'U')}&background=E91E8C&color=fff`}
+                      <img src={u.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(u.fullName || 'U')}&background=1877F2&color=fff`}
                         alt="" style={{ width: 36, height: 36, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} />
                       <div>
                         <p style={{ fontWeight: 600, fontSize: 13, color: text }}>
                           {u.fullName}
                           {u.isVip && <img src='/vip-badge.png' style={{ width:24, height:24, marginLeft:5, verticalAlign:'middle', display:'inline-block', flexShrink:0, objectFit:'contain' }} alt='VIP'/>}
                         </p>
-                        <p style={{ fontSize: 11, color: '#C4829F' }}>@{u.username}</p>
+                        <p style={{ fontSize: 11, color: '#65676B' }}>@{u.username}</p>
                       </div>
                     </div>
                   ))}
@@ -308,14 +309,14 @@ export default function Layout({ children }) {
               {/* Ventes */}
               {ventes.length > 0 && (
                 <>
-                  <div style={{ padding: '8px 14px 3px', fontSize: 10, fontWeight: 700, color: '#C4829F', textTransform: 'uppercase', letterSpacing: 1 }}>🏷️ Ventes</div>
+                  <div style={{ padding: '8px 14px 3px', fontSize: 10, fontWeight: 700, color: '#65676B', textTransform: 'uppercase', letterSpacing: 1 }}>🏷️ Ventes</div>
                   {ventes.map(p => (
                     <div key={p.id} onClick={() => { navigate(`/post/${p.id}`); setSearch(''); setSearchOpen(false); }}
                       style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 14px', cursor: 'pointer', borderBottom: `1px solid ${bdr}` }}>
-                      <div style={{ width: 36, height: 36, borderRadius: 8, background: isDark ? '#4A2535' : '#FFE4F3', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, flexShrink: 0 }}>🏷️</div>
+                      <div style={{ width: 36, height: 36, borderRadius: 8, background: isDark ? '#232733' : '#E4E6EB', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, flexShrink: 0 }}>🏷️</div>
                       <div style={{ minWidth: 0 }}>
                         <p style={{ fontWeight: 600, fontSize: 12, color: text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.content || 'Vente'}</p>
-                        <p style={{ fontSize: 11, color: '#E91E8C', fontWeight: 700 }}>{p.price?.toLocaleString()} Ar</p>
+                        <p style={{ fontSize: 11, color: '#1877F2', fontWeight: 700 }}>{p.price?.toLocaleString()} Ar</p>
                       </div>
                     </div>
                   ))}
@@ -325,14 +326,14 @@ export default function Layout({ children }) {
               {/* Vidéos */}
               {videos.length > 0 && (
                 <>
-                  <div style={{ padding: '8px 14px 3px', fontSize: 10, fontWeight: 700, color: '#C4829F', textTransform: 'uppercase', letterSpacing: 1 }}>🎬 Vidéos</div>
+                  <div style={{ padding: '8px 14px 3px', fontSize: 10, fontWeight: 700, color: '#65676B', textTransform: 'uppercase', letterSpacing: 1 }}>🎬 Vidéos</div>
                   {videos.map(p => (
                     <div key={p.id} onClick={() => { navigate(`/post/${p.id}`); setSearch(''); setSearchOpen(false); }}
                       style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 14px', cursor: 'pointer', borderBottom: `1px solid ${bdr}` }}>
-                      <div style={{ width: 36, height: 36, borderRadius: 8, background: isDark ? '#4A2535' : '#FFE4F3', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, flexShrink: 0 }}>🎬</div>
+                      <div style={{ width: 36, height: 36, borderRadius: 8, background: isDark ? '#232733' : '#E4E6EB', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, flexShrink: 0 }}>🎬</div>
                       <div style={{ minWidth: 0 }}>
                         <p style={{ fontWeight: 600, fontSize: 12, color: text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.content || 'Vidéo'}</p>
-                        <p style={{ fontSize: 11, color: '#C4829F' }}>{p.authorName}</p>
+                        <p style={{ fontSize: 11, color: '#65676B' }}>{p.authorName}</p>
                       </div>
                     </div>
                   ))}
@@ -342,14 +343,14 @@ export default function Layout({ children }) {
               {/* Photos */}
               {photos.length > 0 && (
                 <>
-                  <div style={{ padding: '8px 14px 3px', fontSize: 10, fontWeight: 700, color: '#C4829F', textTransform: 'uppercase', letterSpacing: 1 }}>📸 Photos</div>
+                  <div style={{ padding: '8px 14px 3px', fontSize: 10, fontWeight: 700, color: '#65676B', textTransform: 'uppercase', letterSpacing: 1 }}>📸 Photos</div>
                   {photos.map(p => (
                     <div key={p.id} onClick={() => { navigate(`/post/${p.id}`); setSearch(''); setSearchOpen(false); }}
                       style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 14px', cursor: 'pointer', borderBottom: `1px solid ${bdr}` }}>
-                      <div style={{ width: 36, height: 36, borderRadius: 8, background: isDark ? '#4A2535' : '#FFE4F3', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, flexShrink: 0 }}>📸</div>
+                      <div style={{ width: 36, height: 36, borderRadius: 8, background: isDark ? '#232733' : '#E4E6EB', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, flexShrink: 0 }}>📸</div>
                       <div style={{ minWidth: 0 }}>
                         <p style={{ fontWeight: 600, fontSize: 12, color: text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.content || 'Photo'}</p>
-                        <p style={{ fontSize: 11, color: '#C4829F' }}>{p.authorName}</p>
+                        <p style={{ fontSize: 11, color: '#65676B' }}>{p.authorName}</p>
                       </div>
                     </div>
                   ))}
@@ -359,14 +360,14 @@ export default function Layout({ children }) {
               {/* Publications texte */}
               {textPosts.length > 0 && (
                 <>
-                  <div style={{ padding: '8px 14px 3px', fontSize: 10, fontWeight: 700, color: '#C4829F', textTransform: 'uppercase', letterSpacing: 1 }}>📝 Publications</div>
+                  <div style={{ padding: '8px 14px 3px', fontSize: 10, fontWeight: 700, color: '#65676B', textTransform: 'uppercase', letterSpacing: 1 }}>📝 Publications</div>
                   {textPosts.map(p => (
                     <div key={p.id} onClick={() => { navigate(`/post/${p.id}`); setSearch(''); setSearchOpen(false); }}
                       style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 14px', cursor: 'pointer', borderBottom: `1px solid ${bdr}` }}>
-                      <div style={{ width: 36, height: 36, borderRadius: 8, background: isDark ? '#4A2535' : '#FFE4F3', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, flexShrink: 0 }}>📝</div>
+                      <div style={{ width: 36, height: 36, borderRadius: 8, background: isDark ? '#232733' : '#E4E6EB', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, flexShrink: 0 }}>📝</div>
                       <div style={{ minWidth: 0 }}>
                         <p style={{ fontWeight: 600, fontSize: 12, color: text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.content}</p>
-                        <p style={{ fontSize: 11, color: '#C4829F' }}>{p.authorName}</p>
+                        <p style={{ fontSize: 11, color: '#65676B' }}>{p.authorName}</p>
                       </div>
                     </div>
                   ))}
@@ -377,25 +378,20 @@ export default function Layout({ children }) {
         </div>
       </header>
 
-      <main style={{ maxWidth: 680, margin: '0 auto', padding: '0 0 16px' }}>{children}</main>
+      <main style={{ maxWidth: 680, margin: '0 auto', padding: 0, width: '100%' }}>{children}</main>
 
-      {/* ── Bottom Nav ──────────────────────────────────────────── */}
-      <nav className="navbar" style={{
-        position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 100,
-        background: bg, borderTop: `1px solid ${bdr}`,
-        display: 'flex', padding: '6px 0',
-        boxShadow: '0 -4px 20px rgba(233,30,140,.08)',
-      }}>
-        {bottomNav.map(({ path, Icon, AIcon, label, badge }) => {
+      {/* ── Dock flottant (style Telegram) ─────────────────────── */}
+      <nav className="floating-dock">
+        {bottomNav.map(({ path, AIcon, label, badge, color }) => {
           const active = isActive(path);
           return (
-            <button key={path} className={`nav-item ${active ? 'active' : ''}`} onClick={() => navigate(path)}
-              style={{ flex: 1, border: 'none', background: 'none', color: isDark ? (active ? '#E91E8C' : '#C4829F') : undefined }}>
-              <span style={{ position: 'relative' }}>
-                {active ? <AIcon size={22} color="#E91E8C" /> : <Icon size={22} color={isDark ? '#C4829F' : undefined} />}
+            <button key={path} className={`dock-item ${active ? 'active' : ''}`} onClick={() => navigate(path)}
+              style={{ color: active ? color : (isDark ? '#8A93A6' : '#65676B'), '--dock-glow': color + '66' }}>
+              <span className="dock-icon" style={{ background: active ? color : (color + '22') }}>
+                <AIcon size={21} color={active ? 'white' : color} />
                 {badge > 0 && <span className="notif-badge">{badge > 9 ? '9+' : badge}</span>}
               </span>
-              <span style={{ fontSize: 10, fontWeight: active ? 600 : 400 }}>{label}</span>
+              <span>{label}</span>
             </button>
           );
         })}

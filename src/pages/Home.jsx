@@ -251,7 +251,7 @@ export default function Home() {
 
   async function sharePost(post) {
     const url = `${window.location.origin}/post/${post.id}`;
-    if (navigator.share) { try { await navigator.share({ title:'Tsengo', text:post.content, url }); } catch {} }
+    if (navigator.share) { try { await navigator.share({ title:'Traingo', text:post.content, url }); } catch {} }
     else { navigator.clipboard?.writeText(url); alert('Lien copié !'); }
   }
 
@@ -282,36 +282,31 @@ export default function Home() {
   }
 
   const rem = MAX_POST - content.length;
-  const charColor = rem < 50 ? '#ef4444' : rem < 200 ? '#f97316' : '#C4829F';
+  const charColor = rem < 50 ? '#ef4444' : rem < 200 ? '#f97316' : '#65676B';
 
   return (
-    <div style={{ padding:'16px 12px' }}>
+    <div style={{ padding:0 }}>
 
-      {/* Reels strip */}
+      {/* ── Stories (vidéos courtes, format Facebook) ─────────── */}
       {reelPosts.length > 0 && (
-        <div style={{ marginBottom:16 }}>
-          <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:8 }}>
-            <p style={{ fontWeight:700, fontSize:14, color:'#E91E8C', display:'flex', alignItems:'center', gap:6 }}><svg viewBox='0 0 24 24' width='18' height='18' fill='#E91E8C'><path d='M23.495 6.205a3.007 3.007 0 0 0-2.088-2.088c-1.87-.501-9.396-.501-9.396-.501s-7.507-.01-9.396.501A3.007 3.007 0 0 0 .527 6.205a31.247 31.247 0 0 0-.522 5.805 31.247 31.247 0 0 0 .522 5.783 3.007 3.007 0 0 0 2.088 2.088c1.868.502 9.396.502 9.396.502s7.506 0 9.396-.502a3.007 3.007 0 0 0 2.088-2.088 31.247 31.247 0 0 0 .5-5.783 31.247 31.247 0 0 0-.5-5.805zM9.609 15.601V8.408l6.264 3.602z'/></svg> Vidéos courtes</p>
-            <button onClick={() => navigate('/reels')} style={{ background:'none', border:'none', color:'#C4829F', fontSize:12, cursor:'pointer' }}>Voir tout</button>
-          </div>
-          <div style={{ display:'flex', gap:10, overflowX:'auto', paddingBottom:8, scrollbarWidth:'none' }}>
-            {reelPosts.slice(0,10).map(p => (
-              <div key={p.id} onClick={() => navigate('/reels',{state:{startId:p.id}})}
-                style={{ flexShrink:0, width:90, height:130, borderRadius:12, overflow:'hidden', position:'relative', cursor:'pointer', border:'2px solid #FFE4F3' }}>
-                <video src={p.mediaURL} style={{ width:'100%', height:'100%', objectFit:'cover' }} muted playsInline/>
-                <div style={{ position:'absolute', bottom:0, left:0, right:0, background:'linear-gradient(transparent,rgba(0,0,0,.6))', padding:'20px 6px 6px' }}>
-                  <img src={p.authorPhoto||`https://ui-avatars.com/api/?name=${encodeURIComponent(p.authorName||'U')}&background=E91E8C&color=fff`} alt="" style={{ width:22, height:22, borderRadius:'50%', border:'1.5px solid white' }}/>
-                </div>
-              </div>
-            ))}
-          </div>
+        <div className="stories-strip">
+          {reelPosts.slice(0, 12).map(p => (
+            <div key={p.id} className="story-card" onClick={() => navigate('/reels', { state: { startId: p.id } })}>
+              <video src={p.mediaURL} muted playsInline preload="metadata" />
+              <div className="story-gradient" />
+              <img className="story-avatar"
+                src={p.authorPhoto || `https://ui-avatars.com/api/?name=${encodeURIComponent(p.authorName || 'U')}&background=1877F2&color=fff`} alt="" />
+              <span className="story-name">{p.authorName?.split(' ')[0]}</span>
+              <span style={{ position:'absolute', top:'42%', left:'50%', transform:'translate(-50%,-50%)', width:34, height:34, borderRadius:'50%', background:'rgba(255,255,255,.25)', backdropFilter:'blur(4px)', display:'flex', alignItems:'center', justifyContent:'center', color:'white', fontSize:14, border:'1.5px solid rgba(255,255,255,.6)' }}>▶</span>
+            </div>
+          ))}
         </div>
       )}
 
       {/* Create post */}
-      <div className="card" style={{ padding:16, marginBottom:16 }}>
+      <div className="card post-card" style={{ padding:16, marginBottom:8 }}>
         <div style={{ display:'flex', gap:10, alignItems:'flex-start' }}>
-          <img src={userProfile?.photoURL||`https://ui-avatars.com/api/?name=${encodeURIComponent(userProfile?.fullName||'U')}&background=E91E8C&color=fff`} alt="" className="avatar" style={{ width:42, height:42, flexShrink:0 }}/>
+          <img src={userProfile?.photoURL||`https://ui-avatars.com/api/?name=${encodeURIComponent(userProfile?.fullName||'U')}&background=1877F2&color=fff`} alt="" className="avatar" style={{ width:42, height:42, flexShrink:0 }}/>
           <div style={{ flex:1 }}>
             <textarea className="input" placeholder={t('whatsOnMind')} value={content} onChange={e => setContent(e.target.value)} rows={2} style={{ resize:'none', width:'100%' }} maxLength={MAX_POST}/>
             {content.length > 0 && <p style={{ fontSize:11, color:charColor, textAlign:'right', marginTop:2 }}>{rem} restants</p>}
@@ -330,15 +325,15 @@ export default function Home() {
         {isSale && (
           <div style={{ marginTop:10, display:'flex', flexDirection:'column', gap:8 }}>
             <div style={{ display:'flex', alignItems:'center', gap:8 }}>
-              <HiTag color="#E91E8C" size={18}/>
+              <HiTag color="#1877F2" size={18}/>
               <input className="input" type="number" placeholder={`${t('price')} (Ar)`} value={price} onChange={e => setPrice(e.target.value)} style={{ flex:1 }} min="1" max={MAX_PRICE}/>
             </div>
             <div style={{ display:'flex', alignItems:'center', gap:8 }}>
-              <HiPhone color="#E91E8C" size={18}/>
+              <HiPhone color="#1877F2" size={18}/>
               <input className="input" type="tel" placeholder="Numéro de contact" value={contact} onChange={e => setContact(e.target.value)} style={{ flex:1 }} maxLength={20}/>
             </div>
             <div style={{ display:'flex', alignItems:'center', gap:8 }}>
-              <HiLocationMarker color="#E91E8C" size={18}/>
+              <HiLocationMarker color="#1877F2" size={18}/>
               <input className="input" type="text" placeholder="Lieu de vente" value={lieu} onChange={e => setLieu(e.target.value)} style={{ flex:1 }} maxLength={100}/>
             </div>
           </div>
@@ -346,19 +341,19 @@ export default function Home() {
 
         {posting && uploadPct > 0 && (
           <div style={{ marginTop:8 }}>
-            <div style={{ height:4, background:'#FFE4F3', borderRadius:2 }}>
-              <div style={{ height:'100%', width:`${uploadPct}%`, background:'linear-gradient(135deg,#E91E8C,#FF6BB5)', borderRadius:2, transition:'width .3s' }}/>
+            <div style={{ height:4, background:'#E4E6EB', borderRadius:2 }}>
+              <div style={{ height:'100%', width:`${uploadPct}%`, background:'linear-gradient(135deg,#FF2D8D,#FF7AB8)', borderRadius:2, transition:'width .3s' }}/>
             </div>
-            <p style={{ fontSize:11, color:'#C4829F', marginTop:3 }}>Upload en cours...</p>
+            <p style={{ fontSize:11, color:'#65676B', marginTop:3 }}>Upload en cours...</p>
           </div>
         )}
 
         <div style={{ display:'flex', alignItems:'center', gap:8, marginTop:12, flexWrap:'wrap' }}>
           <input ref={photoRef} type="file" accept="image/jpeg,image/png,image/gif,image/webp" onChange={e => handleMedia(e,'image')} style={{ display:'none' }}/>
           <input ref={videoRef} type="file" accept="video/mp4,video/webm,video/quicktime"       onChange={e => handleMedia(e,'video')} style={{ display:'none' }}/>
-          <button onClick={() => photoRef.current.click()} style={{ display:'flex', alignItems:'center', gap:5, background:"linear-gradient(135deg, #0a0a2e, #2d1b69)", border:"1px solid rgba(150,130,255,0.3)", borderRadius:20, padding:"6px 12px", cursor:"pointer", color:"rgba(180,160,255,0.95)", fontSize:13, boxShadow:"0 2px 12px rgba(45,27,105,0.4), inset 0 1px 0 rgba(255,255,255,0.1)" }}><HiPhotograph size={16}/>{t('addPhoto')}</button>
-          <button onClick={() => videoRef.current.click()} style={{ display:'flex', alignItems:'center', gap:5, background:"linear-gradient(135deg, #0a0a2e, #2d1b69)", border:"1px solid rgba(150,130,255,0.3)", borderRadius:20, padding:"6px 12px", cursor:"pointer", color:"rgba(180,160,255,0.95)", fontSize:13, boxShadow:"0 2px 12px rgba(45,27,105,0.4), inset 0 1px 0 rgba(255,255,255,0.1)" }}><HiVideoCamera size={16}/>{t('addVideo')}</button>
-          <button onClick={() => setIsSale(p=>!p)} style={{ display:'flex', alignItems:'center', gap:5, background:isSale?'linear-gradient(135deg,#2d1b69,#0a0a2e)':'linear-gradient(135deg,#0a0a2e,#2d1b69)', border:'1px solid rgba(150,130,255,0.3)', borderRadius:20, padding:'6px 12px', cursor:'pointer', color:'rgba(180,160,255,0.95)', fontSize:13, boxShadow:'0 2px 12px rgba(45,27,105,0.4), inset 0 1px 0 rgba(255,255,255,0.1)' }}><HiTag size={16}/>{t('sell')}</button>
+          <button onClick={() => photoRef.current.click()} className="btn-blue" style={{ display:'flex', alignItems:'center', gap:5, borderRadius:20, padding:'6px 12px', fontSize:13 }}><HiPhotograph size={16}/>{t('addPhoto')}</button>
+          <button onClick={() => videoRef.current.click()} className="btn-orange" style={{ display:'flex', alignItems:'center', gap:5, borderRadius:20, padding:'6px 12px', fontSize:13 }}><HiVideoCamera size={16}/>{t('addVideo')}</button>
+          <button onClick={() => setIsSale(p=>!p)} className="btn-gold" style={{ display:'flex', alignItems:'center', gap:5, borderRadius:20, padding:'6px 12px', fontSize:13, opacity:isSale?1:.85, outline:isSale?'2px solid #F2B300':'none' }}><HiTag size={16}/>{t('sell')}</button>
           <button className="btn-primary" onClick={createPost} disabled={posting||(!content.trim()&&!mediaFile)||content.length>MAX_POST} style={{ marginLeft:'auto', padding:'6px 20px', fontSize:13 }}>
             {posting?'...':t('publishPost')}
           </button>
@@ -398,15 +393,15 @@ export default function Home() {
         <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,.5)', zIndex:200, display:'flex', alignItems:'center', justifyContent:'center', padding:20 }}>
           <div className="card" style={{ width:'100%', maxWidth:360, padding:20, maxHeight:'70vh', overflowY:'auto' }}>
             <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:14 }}>
-              <h3 style={{ color:'#E91E8C', fontWeight:700 }}>Réactions</h3>
-              <button onClick={() => setRM(null)} style={{ background:'none', border:'none', cursor:'pointer', color:'#C4829F' }}><HiX size={20}/></button>
+              <h3 style={{ color:'#1877F2', fontWeight:700 }}>Réactions</h3>
+              <button onClick={() => setRM(null)} style={{ background:'none', border:'none', cursor:'pointer', color:'#65676B' }}><HiX size={20}/></button>
             </div>
             {Object.entries(reactionModal.reactions).map(([uid, emoji]) => {
               const info = reactionModal.userData?.[uid]||{};
               return (
                 <div key={uid} onClick={() => { setRM(null); navigate(`/profile/${uid}`); }}
-                  style={{ display:'flex', alignItems:'center', gap:10, padding:'8px 0', borderBottom:'1px solid #FFE4F3', cursor:'pointer' }}>
-                  <img src={info.photo||`https://ui-avatars.com/api/?name=${encodeURIComponent(info.name||'U')}&background=E91E8C&color=fff`} alt="" style={{ width:36, height:36, borderRadius:'50%', objectFit:'cover' }}/>
+                  style={{ display:'flex', alignItems:'center', gap:10, padding:'8px 0', borderBottom:'1px solid #E4E6EB', cursor:'pointer' }}>
+                  <img src={info.photo||`https://ui-avatars.com/api/?name=${encodeURIComponent(info.name||'U')}&background=1877F2&color=fff`} alt="" style={{ width:36, height:36, borderRadius:'50%', objectFit:'cover' }}/>
                   <p style={{ fontSize:14, fontWeight:600, flex:1 }}>{uid===currentUser.uid?'Vous':(info.name||uid)}</p>
                   <span style={{ fontSize:20 }}>{emoji}</span>
                 </div>
@@ -437,19 +432,19 @@ export default function Home() {
             {/* Header */}
             <div style={{ padding:'14px 16px 0', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
               <div style={{ display:'flex', alignItems:'center', gap:10, cursor:'pointer', flex:1, minWidth:0 }} onClick={() => navigate(`/profile/${post.uid}`)}>
-                <img src={post.authorPhoto||`https://ui-avatars.com/api/?name=${encodeURIComponent(post.authorName||'U')}&background=E91E8C&color=fff`} alt="" className="avatar" style={{ width:40, height:40, flexShrink:0 }}/>
+                <img src={post.authorPhoto||`https://ui-avatars.com/api/?name=${encodeURIComponent(post.authorName||'U')}&background=1877F2&color=fff`} alt="" className="avatar" style={{ width:40, height:40, flexShrink:0 }}/>
                 <div style={{ minWidth:0 }}>
                   <p style={{ fontWeight:600, fontSize:14, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{post.authorName}{post.authorIsVip&&<VIPBadge/>}</p>
-                  <p style={{ fontSize:12, color:'#C4829F' }}>@{post.authorUsername} · {post.createdAt?.toDate?new Date(post.createdAt.toDate()).toLocaleDateString('fr-FR'):'Maintenant'}</p>
+                  <p style={{ fontSize:12, color:'#65676B' }}>@{post.authorUsername} · {post.createdAt?.toDate?new Date(post.createdAt.toDate()).toLocaleDateString('fr-FR'):'Maintenant'}</p>
                 </div>
               </div>
 
               <div style={{ display:'flex', alignItems:'center', gap:6, flexShrink:0 }}>
                 {post.isSale && <div style={{ textAlign:'right' }}><span className="sale-badge">{t('sale')}</span><p className="price-tag" style={{ marginTop:2, fontSize:13 }}>{post.price} Ar</p></div>}
-                {!isOwn && <button onClick={() => navigate(`/messages/${getChatId(currentUser.uid,post.uid)}`)} style={{ background:'#FFE4F3', border:'none', borderRadius:20, padding:'5px 10px', cursor:'pointer', color:'#E91E8C', fontSize:12 }}><HiOutlineChat size={14}/></button>}
+                {!isOwn && <button onClick={() => navigate(`/messages/${getChatId(currentUser.uid,post.uid)}`)} style={{ background:'#E4E6EB', border:'none', borderRadius:20, padding:'5px 10px', cursor:'pointer', color:'#1877F2', fontSize:12 }}><HiOutlineChat size={14}/></button>}
                 {!isOwn && !isMyFriend && !sentReq && (
                   <button onClick={() => sendFriendReq(post.uid, post.authorName)}
-                    style={{ background:'none', border:'1px solid #FFE4F3', borderRadius:20, padding:'5px 10px', cursor:'pointer', color:'#C4829F', fontSize:12, display:'flex', alignItems:'center', gap:4 }}>
+                    style={{ background:'none', border:'1px solid #E4E6EB', borderRadius:20, padding:'5px 10px', cursor:'pointer', color:'#65676B', fontSize:12, display:'flex', alignItems:'center', gap:4 }}>
                     <HiUserAdd size={13}/> Ajouter
                   </button>
                 )}
@@ -457,16 +452,16 @@ export default function Home() {
                 {/* 3-dot menu */}
                 <div style={{ position:'relative' }} onClick={e => e.stopPropagation()}>
                   <button onClick={() => setPostMenu(postMenu===post.id?null:post.id)}
-                    style={{ background:'none', border:'none', cursor:'pointer', color:'#C4829F', padding:4, display:'flex', alignItems:'center' }}><HiDotsVertical size={18}/></button>
+                    style={{ background:'none', border:'none', cursor:'pointer', color:'#65676B', padding:4, display:'flex', alignItems:'center' }}><HiDotsVertical size={18}/></button>
                   {postMenu === post.id && (
-                    <div style={{ position:'absolute', top:'100%', right:0, background:'white', border:'1px solid #FFE4F3', borderRadius:12, boxShadow:'0 4px 20px rgba(0,0,0,.12)', minWidth:170, zIndex:50, overflow:'hidden' }}>
+                    <div style={{ position:'absolute', top:'100%', right:0, background:'white', border:'1px solid #E4E6EB', borderRadius:12, boxShadow:'0 4px 20px rgba(0,0,0,.12)', minWidth:170, zIndex:50, overflow:'hidden' }}>
                       {isOwn && <>
-                        <button onClick={() => { setEditPost(post); setEditContent(post.content); setPostMenu(null); }} style={{ width:'100%', display:'flex', alignItems:'center', gap:10, padding:'11px 16px', background:'none', border:'none', cursor:'pointer', color:'#2D1220', fontSize:14, borderBottom:'1px solid #FFF0F8', fontFamily:'Poppins' }}><HiPencil size={15} color="#E91E8C"/> Modifier</button>
-                        <button onClick={() => { navigate('/boost'); setPostMenu(null); }} style={{ width:'100%', display:'flex', alignItems:'center', gap:10, padding:'11px 16px', background:'none', border:'none', cursor:'pointer', color:'#2D1220', fontSize:14, borderBottom:'1px solid #FFF0F8', fontFamily:'Poppins' }}><HiLightningBolt size={15} color="#a855f7"/> Booster</button>
-                        <button onClick={() => { deletePost(post.id); setPostMenu(null); }} style={{ width:'100%', display:'flex', alignItems:'center', gap:10, padding:'11px 16px', background:'none', border:'none', cursor:'pointer', color:'#E91E8C', fontSize:14, borderBottom:'1px solid #FFF0F8', fontFamily:'Poppins' }}><HiTrash size={15}/> Supprimer</button>
+                        <button onClick={() => { setEditPost(post); setEditContent(post.content); setPostMenu(null); }} style={{ width:'100%', display:'flex', alignItems:'center', gap:10, padding:'11px 16px', background:'none', border:'none', cursor:'pointer', color:'#050505', fontSize:14, borderBottom:'1px solid #F0F2F5', fontFamily:'Poppins' }}><HiPencil size={15} color="#1877F2"/> Modifier</button>
+                        <button onClick={() => { navigate('/boost'); setPostMenu(null); }} style={{ width:'100%', display:'flex', alignItems:'center', gap:10, padding:'11px 16px', background:'none', border:'none', cursor:'pointer', color:'#050505', fontSize:14, borderBottom:'1px solid #F0F2F5', fontFamily:'Poppins' }}><HiLightningBolt size={15} color="#a855f7"/> Booster</button>
+                        <button onClick={() => { deletePost(post.id); setPostMenu(null); }} style={{ width:'100%', display:'flex', alignItems:'center', gap:10, padding:'11px 16px', background:'none', border:'none', cursor:'pointer', color:'#1877F2', fontSize:14, borderBottom:'1px solid #F0F2F5', fontFamily:'Poppins' }}><HiTrash size={15}/> Supprimer</button>
                       </>}
-                      {post.mediaURL && <button onClick={() => { window.open(post.mediaURL,'_blank'); setPostMenu(null); }} style={{ width:'100%', display:'flex', alignItems:'center', gap:10, padding:'11px 16px', background:'none', border:'none', cursor:'pointer', color:'#2D1220', fontSize:14, fontFamily:'Poppins' }}><HiDownload size={15} color="#3b82f6"/> Télécharger</button>}
-                      {!isOwn && !post.mediaURL && <div style={{ padding:'10px 16px', color:'#C4829F', fontSize:13 }}>Aucune action</div>}
+                      {post.mediaURL && <button onClick={() => { window.open(post.mediaURL,'_blank'); setPostMenu(null); }} style={{ width:'100%', display:'flex', alignItems:'center', gap:10, padding:'11px 16px', background:'none', border:'none', cursor:'pointer', color:'#050505', fontSize:14, fontFamily:'Poppins' }}><HiDownload size={15} color="#3b82f6"/> Télécharger</button>}
+                      {!isOwn && !post.mediaURL && <div style={{ padding:'10px 16px', color:'#65676B', fontSize:13 }}>Aucune action</div>}
                     </div>
                   )}
                 </div>
@@ -478,13 +473,13 @@ export default function Home() {
               {post.content && <p style={{ fontSize:15, lineHeight:1.6, wordBreak:'break-word' }}>{post.content}</p>}
               {post.isSale && (post.contact||post.lieu) && (
                 <div style={{ marginTop:8, display:'flex', flexWrap:'wrap', gap:8 }}>
-                  {post.contact && <a href={`tel:${post.contact}`} onClick={e=>e.stopPropagation()} style={{ display:'flex', alignItems:'center', gap:5, background:'#FFE4F3', borderRadius:20, padding:'5px 12px', color:'#E91E8C', fontSize:13, fontWeight:600, textDecoration:'none' }}><HiPhone size={13}/>{post.contact}</a>}
-                  {post.lieu   && <span style={{ display:'flex', alignItems:'center', gap:5, background:'#FFF0F8', borderRadius:20, padding:'5px 12px', color:'#8B5A6F', fontSize:13 }}><HiLocationMarker size={13} color="#E91E8C"/>{post.lieu}</span>}
+                  {post.contact && <a href={`tel:${post.contact}`} onClick={e=>e.stopPropagation()} style={{ display:'flex', alignItems:'center', gap:5, background:'#E4E6EB', borderRadius:20, padding:'5px 12px', color:'#1877F2', fontSize:13, fontWeight:600, textDecoration:'none' }}><HiPhone size={13}/>{post.contact}</a>}
+                  {post.lieu   && <span style={{ display:'flex', alignItems:'center', gap:5, background:'#F0F2F5', borderRadius:20, padding:'5px 12px', color:'#65676B', fontSize:13 }}><HiLocationMarker size={13} color="#1877F2"/>{post.lieu}</span>}
                 </div>
               )}
               {post.mediaURL && (
-                <div style={{ marginTop:8 }}>
-                  {post.mediaType==='image' ? <img src={post.mediaURL} alt="" style={{ width:'100%', borderRadius:10, maxHeight:350, objectFit:'cover' }}/> : <div onClick={()=>navigate('/reels',{state:{startId:post.id}})} style={{ position:'relative', cursor:'pointer' }}><video src={post.mediaURL} style={{ width:'100%', borderRadius:10, maxHeight:350, objectFit:'cover' }} muted playsInline/><div style={{ position:'absolute', inset:0, display:'flex', alignItems:'center', justifyContent:'center' }}><div style={{ width:50, height:50, background:'rgba(0,0,0,0.5)', borderRadius:' 50%', display:'flex', alignItems:'center', justifyContent:'center' }}><span style={{ color:'white', fontSize:20 }}>▶</span></div></div></div>}
+                <div style={{ marginTop:8, marginLeft:-16, marginRight:-16 }}>
+                  {post.mediaType==='image' ? <img src={post.mediaURL} alt="" style={{ width:'100%', borderRadius:0, maxHeight:520, objectFit:'cover', display:'block' }}/> : <div onClick={()=>navigate('/reels',{state:{startId:post.id}})} style={{ position:'relative', cursor:'pointer' }}><video src={post.mediaURL} style={{ width:'100%', borderRadius:0, maxHeight:520, objectFit:'cover', display:'block' }} muted playsInline/><div style={{ position:'absolute', inset:0, display:'flex', alignItems:'center', justifyContent:'center' }}><div style={{ width:50, height:50, background:'rgba(0,0,0,0.5)', borderRadius:' 50%', display:'flex', alignItems:'center', justifyContent:'center' }}><span style={{ color:'white', fontSize:20 }}>▶</span></div></div></div>}
                 </div>
               )}
             </div>
@@ -505,7 +500,7 @@ export default function Home() {
                   {total>0&&<span>{total}</span>}
                 </button>
                 {showReact[post.id] && (
-                  <div style={{ position:'absolute', bottom:'110%', left:0, background:'white', borderRadius:30, padding:'8px 12px', display:'flex', gap:6, boxShadow:'0 4px 20px rgba(0,0,0,.15)', zIndex:10, border:'1px solid #FFE4F3' }}>
+                  <div style={{ position:'absolute', bottom:'110%', left:0, background:'white', borderRadius:30, padding:'8px 12px', display:'flex', gap:6, boxShadow:'0 4px 20px rgba(0,0,0,.15)', zIndex:10, border:'1px solid #E4E6EB' }}>
                     {REACTIONS.map(e => <button key={e} onClick={() => reactToPost(post.id,e)} style={{ background:'none', border:'none', cursor:'pointer', fontSize:22 }}>{e}</button>)}
                   </div>
                 )}
@@ -520,21 +515,21 @@ export default function Home() {
 
             {/* Comments */}
             {openCmt[post.id] && (
-              <div style={{ padding:'0 16px 14px', borderTop:'1px solid #FFE4F3' }}>
+              <div style={{ padding:'0 16px 14px', borderTop:'1px solid #E4E6EB' }}>
                 {post.comments?.map(c => (
                   <div key={c.id} style={{ display:'flex', gap:8, marginTop:10 }}>
-                    <img src={c.authorPhoto||`https://ui-avatars.com/api/?name=${encodeURIComponent(c.authorName||'U')}&background=E91E8C&color=fff`} alt="" className="avatar" style={{ width:30, height:30, flexShrink:0, cursor:'pointer' }} onClick={() => navigate(`/profile/${c.uid}`)}/>
-                    <div style={{ flex:1, background:'#FFF8FC', borderRadius:12, padding:'8px 10px' }}>
+                    <img src={c.authorPhoto||`https://ui-avatars.com/api/?name=${encodeURIComponent(c.authorName||'U')}&background=1877F2&color=fff`} alt="" className="avatar" style={{ width:30, height:30, flexShrink:0, cursor:'pointer' }} onClick={() => navigate(`/profile/${c.uid}`)}/>
+                    <div style={{ flex:1, background:'#F0F2F5', borderRadius:12, padding:'8px 10px' }}>
                       <span style={{ fontWeight:600, fontSize:13 }}>{c.authorName}{c.authorIsVip&&<VIPBadge/>}{' '}</span>
                       {c.text&&<span style={{ fontSize:13 }}>{c.text}</span>}
                       {c.mediaURL&&<div style={{ marginTop:4 }}>{c.mediaType==='image'?<img src={c.mediaURL} alt="" style={{ maxWidth:200, borderRadius:8 }}/>:<video src={c.mediaURL} controls style={{ maxWidth:200, borderRadius:8 }}/>}</div>}
                       <div style={{ display:'flex', gap:10, marginTop:5 }}>
-                        <button onClick={() => setReplyTo(p=>({...p,[post.id]:c.authorName}))} style={{ background:"none", border:"none", cursor:"pointer", color:"#C4829F", fontSize:11, display:"flex", alignItems:"center", gap:3 }}><HiReply size={12}/> Répondre</button>
-                        <button onClick={() => setCmtReactionPicker(p => p===c.id?null:c.id)} style={{ background:"none", border:"none", cursor:"pointer", color:"#C4829F", fontSize:11 }}>{Object.values(c.reactions||{}).find(r=>r===c.reactions?.[currentUser.uid]) || "😊"} {Object.keys(c.reactions||{}).length||""}</button>
+                        <button onClick={() => setReplyTo(p=>({...p,[post.id]:c.authorName}))} style={{ background:"none", border:"none", cursor:"pointer", color:"#65676B", fontSize:11, display:"flex", alignItems:"center", gap:3 }}><HiReply size={12}/> Répondre</button>
+                        <button onClick={() => setCmtReactionPicker(p => p===c.id?null:c.id)} style={{ background:"none", border:"none", cursor:"pointer", color:"#65676B", fontSize:11 }}>{Object.values(c.reactions||{}).find(r=>r===c.reactions?.[currentUser.uid]) || "😊"} {Object.keys(c.reactions||{}).length||""}</button>
                         {cmtReactionPicker===c.id && <div style={{ display:"flex", gap:4, background:"white", borderRadius:20, padding:"4px 8px", boxShadow:"0 2px 12px rgba(0,0,0,.15)", position:"absolute", zIndex:10 }}>{["❤️","😂","😮","😢","👍","🔥"].map(em=><span key={em} onClick={()=>reactToCmt(post.id,c.id,em)} style={{ fontSize:18, cursor:"pointer" }}>{em}</span>)}</div>}
                         {(c.uid===currentUser.uid||post.uid===currentUser.uid)&&<>
-                          <button onClick={() => setEditCmt({ postId:post.id, cmt:c, text:c.text })} style={{ background:'none', border:'none', cursor:'pointer', color:'#C4829F', fontSize:11, display:'flex', alignItems:'center', gap:3 }}><HiPencil size={12}/> Modifier</button>
-                          <button onClick={() => deleteCmt(post.id,c)} style={{ background:'none', border:'none', cursor:'pointer', color:'#E91E8C', fontSize:11, display:'flex', alignItems:'center', gap:3 }}><HiTrash size={12}/> Supprimer</button>
+                          <button onClick={() => setEditCmt({ postId:post.id, cmt:c, text:c.text })} style={{ background:'none', border:'none', cursor:'pointer', color:'#65676B', fontSize:11, display:'flex', alignItems:'center', gap:3 }}><HiPencil size={12}/> Modifier</button>
+                          <button onClick={() => deleteCmt(post.id,c)} style={{ background:'none', border:'none', cursor:'pointer', color:'#1877F2', fontSize:11, display:'flex', alignItems:'center', gap:3 }}><HiTrash size={12}/> Supprimer</button>
                         </>}
                       </div>
                     </div>
@@ -542,10 +537,10 @@ export default function Home() {
                 ))}
 
                 {replyTo[post.id] && (
-                  <div style={{ display:'flex', alignItems:'center', gap:6, marginTop:8, background:'#FFF0F8', padding:'6px 10px', borderRadius:10 }}>
-                    <HiReply size={14} color="#E91E8C"/>
-                    <span style={{ fontSize:12, color:'#8B5A6F' }}>Répondre à <strong>{replyTo[post.id]}</strong></span>
-                    <button onClick={() => setReplyTo(p=>({...p,[post.id]:null}))} style={{ marginLeft:'auto', background:'none', border:'none', cursor:'pointer', color:'#C4829F' }}><HiX size={14}/></button>
+                  <div style={{ display:'flex', alignItems:'center', gap:6, marginTop:8, background:'#F0F2F5', padding:'6px 10px', borderRadius:10 }}>
+                    <HiReply size={14} color="#1877F2"/>
+                    <span style={{ fontSize:12, color:'#65676B' }}>Répondre à <strong>{replyTo[post.id]}</strong></span>
+                    <button onClick={() => setReplyTo(p=>({...p,[post.id]:null}))} style={{ marginLeft:'auto', background:'none', border:'none', cursor:'pointer', color:'#65676B' }}><HiX size={14}/></button>
                   </div>
                 )}
 
@@ -557,13 +552,13 @@ export default function Home() {
                 )}
 
                 <div style={{ display:'flex', gap:6, marginTop:10, alignItems:'center' }}>
-                  <img src={userProfile?.photoURL||`https://ui-avatars.com/api/?name=${encodeURIComponent(userProfile?.fullName||'U')}&background=E91E8C&color=fff`} alt="" className="avatar" style={{ width:30, height:30, flexShrink:0 }}/>
+                  <img src={userProfile?.photoURL||`https://ui-avatars.com/api/?name=${encodeURIComponent(userProfile?.fullName||'U')}&background=1877F2&color=fff`} alt="" className="avatar" style={{ width:30, height:30, flexShrink:0 }}/>
                   <input ref={el=>cPhotoRef.current[post.id]=el} type="file" accept="image/jpeg,image/png,image/gif,image/webp" style={{ display:'none' }} onChange={e=>{const f=e.target.files[0];if(f)setCmtMedia(p=>({...p,[post.id]:{file:f,type:'image',preview:URL.createObjectURL(f)}}));}}/>
                   <input ref={el=>cVideoRef.current[post.id]=el} type="file" accept="video/mp4,video/webm,video/quicktime" style={{ display:'none' }} onChange={e=>{const f=e.target.files[0];if(f)setCmtMedia(p=>({...p,[post.id]:{file:f,type:'video',preview:URL.createObjectURL(f)}}));}}/>
                   <input className="input" placeholder={replyTo[post.id]?`Répondre à ${replyTo[post.id]}...`:t('writeComment')} value={cmtText[post.id]||''} onChange={e=>setCmtText(p=>({...p,[post.id]:e.target.value}))} onKeyDown={e=>e.key==='Enter'&&addComment(post.id)} style={{ flex:1, padding:'7px 12px', fontSize:13 }} maxLength={MAX_COMMENT}/>
-                  <button onClick={() => cPhotoRef.current[post.id]?.click()} style={{ background:'none', border:'none', cursor:'pointer', color:'#C4829F', padding:4 }}><HiPhotograph size={18}/></button>
-                  <button onClick={() => cVideoRef.current[post.id]?.click()} style={{ background:'none', border:'none', cursor:'pointer', color:'#C4829F', padding:4 }}><HiVideoCamera size={18}/></button>
-                  <button onClick={() => addComment(post.id)} style={{ background:'linear-gradient(135deg,#E91E8C,#FF6BB5)', border:'none', borderRadius:'50%', width:32, height:32, cursor:'pointer', color:'white', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>➤</button>
+                  <button onClick={() => cPhotoRef.current[post.id]?.click()} style={{ background:'none', border:'none', cursor:'pointer', color:'#65676B', padding:4 }}><HiPhotograph size={18}/></button>
+                  <button onClick={() => cVideoRef.current[post.id]?.click()} style={{ background:'none', border:'none', cursor:'pointer', color:'#65676B', padding:4 }}><HiVideoCamera size={18}/></button>
+                  <button onClick={() => addComment(post.id)} style={{ background:'linear-gradient(135deg,#FF2D8D,#FF7AB8)', border:'none', borderRadius:'50%', width:32, height:32, cursor:'pointer', color:'white', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>➤</button>
                 </div>
               </div>
             )}

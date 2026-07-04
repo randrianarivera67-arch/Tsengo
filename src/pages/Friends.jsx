@@ -164,7 +164,7 @@ export default function Friends() {
 
   return (
     <div style={{ padding: '16px 12px' }}>
-      <h2 style={{ fontWeight: 700, fontSize: 20, color: '#E91E8C', marginBottom: 14 }}>{t('friends')}</h2>
+      <h2 style={{ fontWeight: 700, fontSize: 20, color: '#1877F2', marginBottom: 14 }}>{t('friends')}</h2>
 
       {/* Tabs */}
       <div style={{ display: 'flex', gap: 6, marginBottom: 16, overflowX: 'auto', paddingBottom: 4 }}>
@@ -175,8 +175,8 @@ export default function Friends() {
             style={{
               padding: '8px 16px', borderRadius: 20, border: 'none', cursor: 'pointer',
               fontFamily: 'Poppins', fontWeight: 600, fontSize: 13, whiteSpace: 'nowrap',
-              background: activeTab === tab.key ? '#E91E8C' : '#FFE4F3',
-              color: activeTab === tab.key ? 'white' : '#E91E8C',
+              background: activeTab === tab.key ? '#1877F2' : '#E4E6EB',
+              color: activeTab === tab.key ? 'white' : '#1877F2',
             }}
           >
             {tab.label} {tab.count > 0 && `(${tab.count})`}
@@ -188,43 +188,43 @@ export default function Friends() {
       {activeTab === 'search' && (
         <div>
           <div style={{ position: 'relative', marginBottom: 14 }}>
-            <HiSearch style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: '#C4829F' }} size={18} />
+            <HiSearch style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: '#65676B' }} size={18} />
             <input className="input" placeholder={t('search')} value={search} onChange={e => handleSearch(e.target.value)} style={{ paddingLeft: 38 }} />
           </div>
-          {loading && <p style={{ textAlign: 'center', color: '#C4829F' }}>{t('loading')}</p>}
+          {loading && <p style={{ textAlign: 'center', color: '#65676B' }}>{t('loading')}</p>}
           {searchResults.map(user => {
             const rel = getRelation(user.uid);
             return (
               <div key={user.uid} className="card" style={{ padding: '12px 14px', marginBottom: 10, display: 'flex', alignItems: 'center', gap: 12 }}>
                 <img
-                  src={user.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.fullName)}&background=E91E8C&color=fff`}
+                  src={user.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.fullName)}&background=1877F2&color=fff`}
                   alt=""
                   onClick={() => navigate(`/profile/${user.uid}`)}
                   style={{ cursor: 'pointer', width: 50, height: 50, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }}
                 />
                 <div style={{ flex: 1 }}>
                   <p style={{ fontWeight: 600, fontSize: 15 }}>{user.fullName}{user.isVip && <VIPBadge />}</p>
-                  <p style={{ fontSize: 13, color: '#C4829F' }}>@{user.username}</p>
-                  <p style={{ fontSize: 12, color: '#8B5A6F' }}>{user.friends?.length || 0} {t('myFriends').toLowerCase()}</p>
+                  <p style={{ fontSize: 13, color: '#65676B' }}>@{user.username}</p>
+                  <p style={{ fontSize: 12, color: '#65676B' }}>{user.friends?.length || 0} {t('myFriends').toLowerCase()}</p>
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                   {rel === 'friend' ? (
                     <>
                       <button
                         onClick={() => navigate(`/messages/${getChatId(currentUser.uid, user.uid)}`)}
-                        style={{ background: '#FFE4F3', border: 'none', borderRadius: 20, padding: '6px 12px', cursor: 'pointer', color: '#E91E8C', fontWeight: 600, fontSize: 12, display: 'flex', alignItems: 'center', gap: 4 }}
+                        style={{ background: '#E4E6EB', border: 'none', borderRadius: 20, padding: '6px 12px', cursor: 'pointer', color: '#1877F2', fontWeight: 600, fontSize: 12, display: 'flex', alignItems: 'center', gap: 4 }}
                       >
                         <HiChat size={14} /> {t('message')}
                       </button>
-                      <button onClick={() => removeFriend(user.uid)} style={{ background: 'none', border: '1px solid #E8C5D8', borderRadius: 20, padding: '5px 12px', cursor: 'pointer', color: '#C4829F', fontSize: 12 }}>
+                      <button onClick={() => removeFriend(user.uid)} style={{ background: 'none', border: '1px solid #E4E6EB', borderRadius: 20, padding: '5px 12px', cursor: 'pointer', color: '#65676B', fontSize: 12 }}>
                         {t('removeFriend')}
-                      <button onClick={() => blockFriend(user.uid)} style={{ background: "none", border: "1px solid #E91E8C", borderRadius: 20, padding: "5px 12px", cursor: "pointer", color: "#E91E8C", fontSize: 12 }}>
+                      <button onClick={() => blockFriend(user.uid)} style={{ background: "none", border: "1px solid #1877F2", borderRadius: 20, padding: "5px 12px", cursor: "pointer", color: "#1877F2", fontSize: 12 }}>
                         🚫 Bloquer
                       </button>
                       </button>
                     </>
                   ) : rel === 'sent' ? (
-                    <span style={{ color: '#C4829F', fontSize: 13, fontStyle: 'italic' }}>Voaravina...</span>
+                    <span style={{ color: '#65676B', fontSize: 13, fontStyle: 'italic' }}>Voaravina...</span>
                   ) : (
                     <button
                       onClick={() => sendRequest(user)}
@@ -247,33 +247,33 @@ export default function Friends() {
         <div>
           {friends.length === 0 ? (
             <div style={{ textAlign: 'center', padding: 40 }}>
-              <HiUsers size={48} color="#E8C5D8" style={{ margin: '0 auto 12px', display: 'block' }} />
-              <p style={{ color: '#C4829F' }}>{t('noFriends')}</p>
+              <HiUsers size={48} color="#E4E6EB" style={{ margin: '0 auto 12px', display: 'block' }} />
+              <p style={{ color: '#65676B' }}>{t('noFriends')}</p>
               <button onClick={() => setActiveTab('search')} className="btn-primary" style={{ marginTop: 14, fontSize: 13 }}>{t('search')}</button>
             </div>
           ) : (
             friends.map(friend => (
               <div key={friend.uid} className="card" style={{ padding: '12px 14px', marginBottom: 10, display: 'flex', alignItems: 'center', gap: 12 }}>
                 <img
-                  src={friend.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(friend.fullName)}&background=E91E8C&color=fff`}
+                  src={friend.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(friend.fullName)}&background=1877F2&color=fff`}
                   alt=""
                   style={{ width: 50, height: 50, borderRadius: '50%', objectFit: 'cover', cursor: 'pointer', flexShrink: 0 }}
                   onClick={() => navigate(`/profile/${friend.uid}`)}
                 />
                 <div style={{ flex: 1 }}>
                   <p style={{ fontWeight: 600, fontSize: 15 }}>{friend.fullName}{friend.isVip && <VIPBadge />}</p>
-                  <p style={{ fontSize: 13, color: '#C4829F' }}>@{friend.username}</p>
+                  <p style={{ fontSize: 13, color: '#65676B' }}>@{friend.username}</p>
                 </div>
                 <div style={{ display: 'flex', gap: 6 }}>
                   <button
                     onClick={() => navigate(`/messages/${getChatId(currentUser.uid, friend.uid)}`)}
-                    style={{ background: 'linear-gradient(135deg,#E91E8C,#FF6BB5)', border: 'none', borderRadius: '50%', width: 36, height: 36, cursor: 'pointer', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                    style={{ background: 'linear-gradient(135deg,#FF2D8D,#FF7AB8)', border: 'none', borderRadius: '50%', width: 36, height: 36, cursor: 'pointer', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                   >
                     <HiChat size={17} />
                   </button>
                   <button
                     onClick={() => navigate(`/profile/${friend.uid}`)}
-                    style={{ background: '#FFE4F3', border: 'none', borderRadius: '50%', width: 36, height: 36, cursor: 'pointer', color: '#E91E8C', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                    style={{ background: '#E4E6EB', border: 'none', borderRadius: '50%', width: 36, height: 36, cursor: 'pointer', color: '#1877F2', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                   >
                     <HiUserAdd size={17} />
                   </button>
@@ -288,31 +288,31 @@ export default function Friends() {
       {activeTab === 'requests' && (
         <div>
           {requests.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: 40, color: '#C4829F' }}>Tsy misy fangatahana</div>
+            <div style={{ textAlign: 'center', padding: 40, color: '#65676B' }}>Tsy misy fangatahana</div>
           ) : (
             requests.map(req => (
               <div key={req.reqId} className="card" style={{ padding: '12px 14px', marginBottom: 10, display: 'flex', alignItems: 'center', gap: 12 }}>
                 <img
-                  src={req.user.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(req.user.fullName)}&background=E91E8C&color=fff`}
+                  src={req.user.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(req.user.fullName)}&background=1877F2&color=fff`}
                   alt=""
                   style={{ width: 50, height: 50, borderRadius: '50%', objectFit: 'cover', cursor: 'pointer', flexShrink: 0 }}
                   onClick={() => navigate(`/profile/${req.fromUid}`)}
                 />
                 <div style={{ flex: 1 }}>
                   <p style={{ fontWeight: 600, fontSize: 15 }}>{req.user.fullName}{req.user.isVip && <VIPBadge />}</p>
-                  <p style={{ fontSize: 13, color: '#C4829F' }}>@{req.user.username}</p>
+                  <p style={{ fontSize: 13, color: '#65676B' }}>@{req.user.username}</p>
                 </div>
                 <div style={{ display: 'flex', gap: 8 }}>
                   <button
                     onClick={() => acceptRequest(req)}
                     disabled={actionLoading[req.reqId]}
-                    style={{ background: '#E91E8C', border: 'none', borderRadius: '50%', width: 36, height: 36, cursor: 'pointer', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                    style={{ background: '#1877F2', border: 'none', borderRadius: '50%', width: 36, height: 36, cursor: 'pointer', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                   >
                     <HiCheck size={18} />
                   </button>
                   <button
                     onClick={() => declineRequest(req)}
-                    style={{ background: '#FFE4F3', border: 'none', borderRadius: '50%', width: 36, height: 36, cursor: 'pointer', color: '#E91E8C', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                    style={{ background: '#E4E6EB', border: 'none', borderRadius: '50%', width: 36, height: 36, cursor: 'pointer', color: '#1877F2', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                   >
                     <HiX size={18} />
                   </button>

@@ -48,30 +48,30 @@ export default function Login() {
   return (
     <div style={{
       minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center',
-      background: 'linear-gradient(160deg, #FFE4F3 0%, #FDF4F8 50%, #FFE4F3 100%)',
+      background: 'linear-gradient(160deg, #E4E6EB 0%, #F0F2F5 50%, #E4E6EB 100%)',
       padding: 20
     }}>
       <div style={{ width: '100%', maxWidth: 400 }}>
         {/* Logo */}
         <div style={{ textAlign: 'center', marginBottom: 40 }}>
-          <img src="/tsengo-logo.png" alt="Tsengo" className="logo-shimmer" style={{ width:90, height:90, objectFit:"cover", borderRadius:"50%", margin:"0 auto 12px", display:"block" }}/>
-          <h1 style={{ fontSize: 32, fontWeight: 800, color: '#E91E8C', letterSpacing: -1 }}>Tsengo</h1>
-          <p style={{ color: '#C4829F', marginTop: 4, fontSize: 14 }}>{t('welcomeTo')} Tsengo</p>
+          <img src="/tsengo-logo.png" alt="Traingo" className="logo-shimmer" style={{ width:90, height:90, objectFit:"cover", borderRadius:"50%", margin:"0 auto 12px", display:"block" }}/>
+          <h1 style={{ fontSize: 32, fontWeight: 800, color: '#1877F2', letterSpacing: -1 }}>Traingo</h1>
+          <p style={{ color: '#65676B', marginTop: 4, fontSize: 14 }}>{t('welcomeTo')} Traingo</p>
         </div>
 
         {!showReset ? (
           <div className="card" style={{ padding: 32 }}>
-            <h2 style={{ fontSize: 20, fontWeight: 700, marginBottom: 24, color: '#2D1220' }}>{t('login')}</h2>
+            <h2 style={{ fontSize: 20, fontWeight: 700, marginBottom: 24, color: '#050505' }}>{t('login')}</h2>
 
             {error && (
-              <div style={{ background: '#FFE4F3', border: '1px solid #E91E8C', borderRadius: 10, padding: '10px 14px', marginBottom: 16, color: '#B5156E', fontSize: 13 }}>
+              <div style={{ background: '#E4E6EB', border: '1px solid #1877F2', borderRadius: 10, padding: '10px 14px', marginBottom: 16, color: '#0E5FCB', fontSize: 13 }}>
                 {error}
               </div>
             )}
 
             <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
               <div>
-                <label style={{ fontSize: 13, fontWeight: 500, color: '#8B5A6F', marginBottom: 6, display: 'block' }}>{t('email')}</label>
+                <label style={{ fontSize: 13, fontWeight: 500, color: '#65676B', marginBottom: 6, display: 'block' }}>{t('email')}</label>
                 <input
                   className="input"
                   type="email"
@@ -84,7 +84,7 @@ export default function Login() {
               </div>
 
               <div>
-                <label style={{ fontSize: 13, fontWeight: 500, color: '#8B5A6F', marginBottom: 6, display: 'block' }}>{t('password')}</label>
+                <label style={{ fontSize: 13, fontWeight: 500, color: '#65676B', marginBottom: 6, display: 'block' }}>{t('password')}</label>
                 <input
                   className="input"
                   type="password"
@@ -102,7 +102,7 @@ export default function Login() {
                 <button
                   type="button"
                   onClick={() => { setShowReset(true); setError(''); setResetEmail(email); }}
-                  style={{ background: 'none', border: 'none', color: '#E91E8C', fontSize: 12, cursor: 'pointer', fontWeight: 500 }}
+                  style={{ background: 'none', border: 'none', color: '#1877F2', fontSize: 12, cursor: 'pointer', fontWeight: 500 }}
                 >
                   Teny miafina hadinoina? / Mot de passe oublié?
                 </button>
@@ -113,9 +113,9 @@ export default function Login() {
               </button>
             </form>
 
-            <p style={{ textAlign: 'center', marginTop: 20, fontSize: 14, color: '#8B5A6F' }}>
+            <p style={{ textAlign: 'center', marginTop: 20, fontSize: 14, color: '#65676B' }}>
               {t('noAccount')}{' '}
-              <Link to="/register" style={{ color: '#E91E8C', fontWeight: 600, textDecoration: 'none' }}>
+              <Link to="/register" style={{ color: '#1877F2', fontWeight: 600, textDecoration: 'none' }}>
                 {t('register')}
               </Link>
             </p>
@@ -123,8 +123,8 @@ export default function Login() {
         ) : (
           /* ✅ NEW: Reset password form */
           <div className="card" style={{ padding: 32 }}>
-            <h2 style={{ fontSize: 20, fontWeight: 700, marginBottom: 8, color: '#2D1220' }}>Hamerina teny miafina</h2>
-            <p style={{ fontSize: 13, color: '#8B5A6F', marginBottom: 20 }}>
+            <h2 style={{ fontSize: 20, fontWeight: 700, marginBottom: 8, color: '#050505' }}>Hamerina teny miafina</h2>
+            <p style={{ fontSize: 13, color: '#65676B', marginBottom: 20 }}>
               Ampidiro ny email-nao ary handefa lien famerenana izahay.
             </p>
 
@@ -135,7 +135,7 @@ export default function Login() {
             ) : (
               <form onSubmit={handleForgotPassword} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
                 {error && (
-                  <div style={{ background: '#FFE4F3', border: '1px solid #E91E8C', borderRadius: 10, padding: '10px 14px', color: '#B5156E', fontSize: 13 }}>
+                  <div style={{ background: '#E4E6EB', border: '1px solid #1877F2', borderRadius: 10, padding: '10px 14px', color: '#0E5FCB', fontSize: 13 }}>
                     {error}
                   </div>
                 )}
@@ -156,7 +156,7 @@ export default function Login() {
 
             <button
               onClick={() => { setShowReset(false); setResetSent(false); setError(''); }}
-              style={{ marginTop: 16, background: 'none', border: 'none', color: '#C4829F', cursor: 'pointer', fontSize: 13, width: '100%', textAlign: 'center' }}
+              style={{ marginTop: 16, background: 'none', border: 'none', color: '#65676B', cursor: 'pointer', fontSize: 13, width: '100%', textAlign: 'center' }}
             >
               ← Hiverina amin'ny Login
             </button>

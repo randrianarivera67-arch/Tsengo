@@ -27,7 +27,7 @@ const BoostInfo          = lazy(() => import('./pages/BoostInfo'));
 
 const Loader = () => (
   <div style={{ display:'flex', alignItems:'center', justifyContent:'center', height:'60vh' }}>
-    <div style={{ width:40, height:40, border:'4px solid #FFE4F3', borderTop:'4px solid #E91E8C', borderRadius:'50%', animation:'spin 0.8s linear infinite' }} />
+    <div style={{ width:40, height:40, border:'4px solid #E4E6EB', borderTop:'4px solid #1877F2', borderRadius:'50%', animation:'spin 0.8s linear infinite' }} />
     <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
   </div>
 );

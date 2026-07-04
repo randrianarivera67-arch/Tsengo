@@ -1,11 +1,11 @@
 {
-  "name": "Tsengo",
-  "short_name": "Tsengo",
-  "description": "Réseau social Tsengo",
+  "name": "Traingo",
+  "short_name": "Traingo",
+  "description": "Réseau social Traingo",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#E91E8C",
-  "theme_color": "#E91E8C",
+  "background_color": "#FFFFFF",
+  "theme_color": "#1877F2",
   "orientation": "portrait",
   "icons": [
     {

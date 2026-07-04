@@ -191,7 +191,7 @@ export default function Reels() {
 
   async function sharePost(post) {
     const url = `${window.location.origin}/post/${post.id}`;
-    if (navigator.share) { try { await navigator.share({title:'Tsengo Reel',text:post.content,url}); } catch {} }
+    if (navigator.share) { try { await navigator.share({title:'Traingo Reel',text:post.content,url}); } catch {} }
     else { navigator.clipboard?.writeText(url); alert('Lien copié !'); }
   }
 
@@ -199,9 +199,9 @@ export default function Reels() {
     const c={}; Object.values(r).forEach(e=>{c[e]=(c[e]||0)+1;}); return c;
   }
 
-  if (posts.length===0) { return ( <div style={{ display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", height:"calc(100vh - 130px)", color:"#C4829F", gap:8 }}> <style>{`@keyframes dot { 0%,80%,100%{opacity:0} 40%{opacity:1} } .d1{animation:dot 1.4s infinite .0s} .d2{animation:dot 1.4s infinite .2s} .d3{animation:dot 1.4s infinite .4s}`}</style> <p style={{ fontSize:18, fontWeight:600 }}>Chargement<span className="d1">.</span><span className="d2">.</span><span className="d3">.</span></p> </div> ); } if (posts.length===-999) {
+  if (posts.length===0) { return ( <div style={{ display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", height:"calc(100vh - 130px)", color:"#65676B", gap:8 }}> <style>{`@keyframes dot { 0%,80%,100%{opacity:0} 40%{opacity:1} } .d1{animation:dot 1.4s infinite .0s} .d2{animation:dot 1.4s infinite .2s} .d3{animation:dot 1.4s infinite .4s}`}</style> <p style={{ fontSize:18, fontWeight:600 }}>Chargement<span className="d1">.</span><span className="d2">.</span><span className="d3">.</span></p> </div> ); } if (posts.length===-999) {
     return (
-      <div style={{ display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', height:'calc(100vh - 130px)', color:'#C4829F', gap:16 }}>
+      <div style={{ display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', height:'calc(100vh - 130px)', color:'#65676B', gap:16 }}>
         <span style={{ fontSize:48 }}>🎬</span>
         <p style={{ fontSize:15 }}>Tsy misy reels mbola</p>
         <button onClick={() => navigate('/')} className="btn-primary" style={{ fontSize:13 }}>Miverina</button>
@@ -237,7 +237,7 @@ export default function Reels() {
               {/* Author info */}
               <div style={{ position:'absolute', bottom:80, left:14, right:80 }}>
                 <div onClick={() => navigate(`/profile/${post.uid}`)} style={{ display:'flex', alignItems:'center', gap:8, cursor:'pointer', marginBottom:8 }}>
-                  <img src={post.authorPhoto||`https://ui-avatars.com/api/?name=${encodeURIComponent(post.authorName||'U')}&background=E91E8C&color=fff`} alt="" style={{ width:36, height:36, borderRadius:'50%', border:'2px solid white', flexShrink:0 }}/>
+                  <img src={post.authorPhoto||`https://ui-avatars.com/api/?name=${encodeURIComponent(post.authorName||'U')}&background=1877F2&color=fff`} alt="" style={{ width:36, height:36, borderRadius:'50%', border:'2px solid white', flexShrink:0 }}/>
                   <p style={{ color:'white', fontWeight:700, fontSize:14 }}>{post.authorName}{post.authorIsVip&&<VIPBadge/>}</p>
                 </div>
                 {post.content&&<p style={{ color:'rgba(255,255,255,0.9)', fontSize:13, lineHeight:1.5, display:'-webkit-box', WebkitLineClamp:2, WebkitBoxOrient:'vertical', overflow:'hidden' }}>{post.content}</p>}
@@ -253,8 +253,8 @@ export default function Reels() {
                     </div>
                   )}
                   <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:3 }}>
-                    <button onClick={()=>idx===activeIndex&&setShowReactions(p=>({...p,[idx]:!p[idx]}))} style={{ background:'none', border:'none', cursor:'pointer', color:myR?'#FF6BB5':'white' }}>
-                      {myR?<HiHeart size={28} color="#FF6BB5"/>:<HiOutlineHeart size={28}/>}
+                    <button onClick={()=>idx===activeIndex&&setShowReactions(p=>({...p,[idx]:!p[idx]}))} style={{ background:'none', border:'none', cursor:'pointer', color:myR?'#63A9FF':'white' }}>
+                      {myR?<HiHeart size={28} color="#63A9FF"/>:<HiOutlineHeart size={28}/>}
                     </button>
                     <span onClick={()=>idx===activeIndex&&openReactionModal(post)} style={{ color:'white', fontSize:12, cursor:'pointer' }}>{total}</span>
                   </div>
@@ -290,8 +290,8 @@ export default function Reels() {
                       <HiDotsVertical size={24}/>
                     </button>
                     {idx===activeIndex&&postMenu&&(
-                      <div style={{ position:'absolute', right:40, bottom:0, background:'rgba(0,0,0,0.85)', borderRadius:12, minWidth:150, overflow:'hidden', border:'1px solid #4A2535' }}>
-                        <button onClick={()=>{deletePost(post.id);setPostMenu(false);}} style={{ width:'100%', display:'flex', alignItems:'center', gap:10, padding:'11px 16px', background:'none', border:'none', cursor:'pointer', color:'#FF6BB5', fontSize:14, fontFamily:'Poppins' }}>
+                      <div style={{ position:'absolute', right:40, bottom:0, background:'rgba(0,0,0,0.85)', borderRadius:12, minWidth:150, overflow:'hidden', border:'1px solid #232733' }}>
+                        <button onClick={()=>{deletePost(post.id);setPostMenu(false);}} style={{ width:'100%', display:'flex', alignItems:'center', gap:10, padding:'11px 16px', background:'none', border:'none', cursor:'pointer', color:'#63A9FF', fontSize:14, fontFamily:'Poppins' }}>
                           <HiTrash size={15}/> Supprimer
                         </button>
                       </div>
@@ -309,25 +309,25 @@ export default function Reels() {
         <div style={{ position:'absolute', bottom:0, left:0, right:0, background:'rgba(0,0,0,0.92)', borderRadius:'20px 20px 0 0', padding:'16px 16px 20px', maxHeight:'65%', display:'flex', flexDirection:'column', zIndex:100 }}>
           <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:12 }}>
             <p style={{ color:'white', fontWeight:700 }}>Commentaires ({activePost.comments?.length||0})</p>
-            <button onClick={()=>setOpenComments(false)} style={{ background:'none', border:'none', color:'#C4829F', cursor:'pointer' }}><HiX size={20}/></button>
+            <button onClick={()=>setOpenComments(false)} style={{ background:'none', border:'none', color:'#65676B', cursor:'pointer' }}><HiX size={20}/></button>
           </div>
           <div style={{ flex:1, overflowY:'auto', marginBottom:10 }}>
             {activePost.comments?.map(c=>(
               <div key={c.id} style={{ display:'flex', gap:8, marginBottom:12 }}>
-                <img src={c.authorPhoto||`https://ui-avatars.com/api/?name=${encodeURIComponent(c.authorName||'U')}&background=E91E8C&color=fff`} alt="" style={{ width:32, height:32, borderRadius:'50%', flexShrink:0, cursor:'pointer' }} onClick={()=>navigate(`/profile/${c.uid}`)}/>
+                <img src={c.authorPhoto||`https://ui-avatars.com/api/?name=${encodeURIComponent(c.authorName||'U')}&background=1877F2&color=fff`} alt="" style={{ width:32, height:32, borderRadius:'50%', flexShrink:0, cursor:'pointer' }} onClick={()=>navigate(`/profile/${c.uid}`)}/>
                 <div style={{ flex:1 }}>
                   <div style={{ background:'rgba(255,255,255,0.1)', borderRadius:12, padding:'8px 10px' }}>
-                    <span style={{ color:'#FF6BB5', fontWeight:700, fontSize:13 }}>{c.authorName}{c.authorIsVip&&<VIPBadge/>}{' '}</span>
+                    <span style={{ color:'#63A9FF', fontWeight:700, fontSize:13 }}>{c.authorName}{c.authorIsVip&&<VIPBadge/>}{' '}</span>
                     {c.text&&<span style={{ color:'white', fontSize:13 }}>{c.text}</span>}
                     {c.mediaURL&&<div style={{ marginTop:4 }}>{c.mediaType==='image'?<img src={c.mediaURL} alt="" style={{ maxWidth:180, borderRadius:8 }}/>:<video src={c.mediaURL} controls style={{ maxWidth:180, borderRadius:8 }}/>}</div>}
                   </div>
                   <div style={{ display:'flex', gap:10, marginTop:4, flexWrap:'wrap' }}>
-                    <button onClick={()=>setReplyTo(c.authorName)} style={{ background:'none', border:'none', cursor:'pointer', color:'#C4829F', fontSize:11, display:'flex', alignItems:'center', gap:3 }}><HiReply size={12}/> Répondre</button>
-                    <button onClick={()=>setCmtReactPicker(p=>p===c.id?null:c.id)} style={{ background:'none', border:'none', cursor:'pointer', color:'#C4829F', fontSize:11 }}>{c.reactions?.[currentUser.uid]||'😊'} {Object.keys(c.reactions||{}).length||''}</button>
+                    <button onClick={()=>setReplyTo(c.authorName)} style={{ background:'none', border:'none', cursor:'pointer', color:'#65676B', fontSize:11, display:'flex', alignItems:'center', gap:3 }}><HiReply size={12}/> Répondre</button>
+                    <button onClick={()=>setCmtReactPicker(p=>p===c.id?null:c.id)} style={{ background:'none', border:'none', cursor:'pointer', color:'#65676B', fontSize:11 }}>{c.reactions?.[currentUser.uid]||'😊'} {Object.keys(c.reactions||{}).length||''}</button>
                     {cmtReactPicker===c.id&&<div style={{ display:'flex', gap:4, background:'rgba(0,0,0,0.8)', borderRadius:20, padding:'4px 8px' }}>{['❤️','😂','😮','😢','👍','🔥'].map(em=><span key={em} onClick={()=>reactToCmt(activePost.id,c.id,em)} style={{ fontSize:18, cursor:'pointer' }}>{em}</span>)}</div>}
                     {(c.uid===currentUser.uid||activePost.uid===currentUser.uid)&&<>
-                      <button onClick={()=>setEditCmt({cmt:c,text:c.text})} style={{ background:'none', border:'none', cursor:'pointer', color:'#C4829F', fontSize:11, display:'flex', alignItems:'center', gap:3 }}><HiPencil size={12}/> Modifier</button>
-                      <button onClick={()=>deleteCmt(activePost.id,c)} style={{ background:'none', border:'none', cursor:'pointer', color:'#FF6BB5', fontSize:11, display:'flex', alignItems:'center', gap:3 }}><HiTrash size={12}/> Supprimer</button>
+                      <button onClick={()=>setEditCmt({cmt:c,text:c.text})} style={{ background:'none', border:'none', cursor:'pointer', color:'#65676B', fontSize:11, display:'flex', alignItems:'center', gap:3 }}><HiPencil size={12}/> Modifier</button>
+                      <button onClick={()=>deleteCmt(activePost.id,c)} style={{ background:'none', border:'none', cursor:'pointer', color:'#63A9FF', fontSize:11, display:'flex', alignItems:'center', gap:3 }}><HiTrash size={12}/> Supprimer</button>
                     </>}
                   </div>
                 </div>
@@ -337,9 +337,9 @@ export default function Reels() {
 
           {replyTo&&(
             <div style={{ display:'flex', alignItems:'center', gap:6, marginBottom:8, background:'rgba(255,255,255,0.1)', padding:'6px 10px', borderRadius:10 }}>
-              <HiReply size={14} color="#FF6BB5"/>
-              <span style={{ fontSize:12, color:'#C4829F' }}>Répondre à <strong style={{ color:'white' }}>{replyTo}</strong></span>
-              <button onClick={()=>setReplyTo(null)} style={{ marginLeft:'auto', background:'none', border:'none', cursor:'pointer', color:'#C4829F' }}><HiX size={14}/></button>
+              <HiReply size={14} color="#63A9FF"/>
+              <span style={{ fontSize:12, color:'#65676B' }}>Répondre à <strong style={{ color:'white' }}>{replyTo}</strong></span>
+              <button onClick={()=>setReplyTo(null)} style={{ marginLeft:'auto', background:'none', border:'none', cursor:'pointer', color:'#65676B' }}><HiX size={14}/></button>
             </div>
           )}
 
@@ -354,15 +354,15 @@ export default function Reels() {
           <input ref={cVideoRef} type="file" accept="video/*" style={{ display:'none' }} onChange={e=>{const f=e.target.files[0];if(f)setCommentMedia({file:f,type:'video',preview:URL.createObjectURL(f)});}}/>
 
           <div style={{ display:'flex', gap:8, alignItems:'center' }}>
-            <button onClick={()=>cPhotoRef.current?.click()} style={{ background:'none', border:'none', cursor:'pointer', color:'#C4829F' }}><HiPhotograph size={20}/></button>
-            <button onClick={()=>cVideoRef.current?.click()} style={{ background:'none', border:'none', cursor:'pointer', color:'#C4829F' }}><HiVideoCamera size={20}/></button>
+            <button onClick={()=>cPhotoRef.current?.click()} style={{ background:'none', border:'none', cursor:'pointer', color:'#65676B' }}><HiPhotograph size={20}/></button>
+            <button onClick={()=>cVideoRef.current?.click()} style={{ background:'none', border:'none', cursor:'pointer', color:'#65676B' }}><HiVideoCamera size={20}/></button>
             <input
               placeholder={replyTo?`Répondre à ${replyTo}...`:"Écrire un commentaire..."}
               value={commentText} onChange={e=>setCommentText(e.target.value)}
               onKeyDown={e=>e.key==='Enter'&&addComment(activePost.id)}
-              style={{ flex:1, background:'#2D1220', border:'1px solid #4A2535', borderRadius:25, padding:'9px 14px', color:'white', fontFamily:'Poppins', fontSize:13 }}
+              style={{ flex:1, background:'#050505', border:'1px solid #232733', borderRadius:25, padding:'9px 14px', color:'white', fontFamily:'Poppins', fontSize:13 }}
             />
-            <button onClick={()=>addComment(activePost.id)} style={{ background:'#E91E8C', border:'none', borderRadius:'50%', width:38, height:38, display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', flexShrink:0 }}>
+            <button onClick={()=>addComment(activePost.id)} style={{ background:'#1877F2', border:'none', borderRadius:'50%', width:38, height:38, display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', flexShrink:0 }}>
               <span style={{ color:'white', fontSize:16 }}>➤</span>
             </button>
           </div>
@@ -372,12 +372,12 @@ export default function Reels() {
       {/* Edit comment modal */}
       {editCmt&&(
         <div style={{ position:'absolute', inset:0, background:'rgba(0,0,0,0.8)', zIndex:200, display:'flex', alignItems:'center', justifyContent:'center', padding:20 }}>
-          <div style={{ background:'#1A0A12', borderRadius:16, padding:20, width:'100%', maxWidth:360, border:'1px solid #4A2535' }}>
+          <div style={{ background:'#0B0D12', borderRadius:16, padding:20, width:'100%', maxWidth:360, border:'1px solid #232733' }}>
             <h3 style={{ color:'white', marginBottom:12 }}>Modifier le commentaire</h3>
-            <textarea value={editCmt.text} onChange={e=>setEditCmt(p=>({...p,text:e.target.value}))} rows={3} style={{ width:'100%', background:'#2D1220', border:'1px solid #4A2535', borderRadius:10, padding:'8px 12px', color:'white', fontFamily:'Poppins', fontSize:13, resize:'none' }} maxLength={500}/>
+            <textarea value={editCmt.text} onChange={e=>setEditCmt(p=>({...p,text:e.target.value}))} rows={3} style={{ width:'100%', background:'#050505', border:'1px solid #232733', borderRadius:10, padding:'8px 12px', color:'white', fontFamily:'Poppins', fontSize:13, resize:'none' }} maxLength={500}/>
             <div style={{ display:'flex', gap:10, marginTop:12 }}>
-              <button onClick={()=>setEditCmt(null)} style={{ flex:1, background:'#2D1220', border:'1px solid #4A2535', borderRadius:20, padding:'9px', color:'#C4829F', cursor:'pointer', fontFamily:'Poppins' }}>Annuler</button>
-              <button onClick={()=>saveEditCmt(activePost.id,editCmt.cmt,editCmt.text)} style={{ flex:1, background:'#E91E8C', border:'none', borderRadius:20, padding:'9px', color:'white', cursor:'pointer', fontFamily:'Poppins', fontWeight:600 }}>Enregistrer</button>
+              <button onClick={()=>setEditCmt(null)} style={{ flex:1, background:'#050505', border:'1px solid #232733', borderRadius:20, padding:'9px', color:'#65676B', cursor:'pointer', fontFamily:'Poppins' }}>Annuler</button>
+              <button onClick={()=>saveEditCmt(activePost.id,editCmt.cmt,editCmt.text)} style={{ flex:1, background:'#1877F2', border:'none', borderRadius:20, padding:'9px', color:'white', cursor:'pointer', fontFamily:'Poppins', fontWeight:600 }}>Enregistrer</button>
             </div>
           </div>
         </div>
@@ -386,16 +386,16 @@ export default function Reels() {
       {/* Reaction modal */}
       {reactionModal&&(
         <div style={{ position:'absolute', inset:0, background:'rgba(0,0,0,0.8)', zIndex:200, display:'flex', alignItems:'center', justifyContent:'center', padding:20 }}>
-          <div style={{ background:'#1A0A12', borderRadius:16, padding:20, width:'100%', maxWidth:360, maxHeight:'70vh', overflowY:'auto', border:'1px solid #4A2535' }}>
+          <div style={{ background:'#0B0D12', borderRadius:16, padding:20, width:'100%', maxWidth:360, maxHeight:'70vh', overflowY:'auto', border:'1px solid #232733' }}>
             <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:14 }}>
               <h3 style={{ color:'white', fontWeight:700 }}>Réactions</h3>
-              <button onClick={()=>setRM(null)} style={{ background:'none', border:'none', cursor:'pointer', color:'#C4829F' }}><HiX size={20}/></button>
+              <button onClick={()=>setRM(null)} style={{ background:'none', border:'none', cursor:'pointer', color:'#65676B' }}><HiX size={20}/></button>
             </div>
             {Object.entries(reactionModal.reactions).map(([uid,emoji])=>{
               const info = reactionModal.userData?.[uid]||{};
               return (
-                <div key={uid} onClick={()=>{setRM(null);navigate(`/profile/${uid}`);}} style={{ display:'flex', alignItems:'center', gap:10, padding:'8px 0', borderBottom:'1px solid #4A2535', cursor:'pointer' }}>
-                  <img src={info.photo||`https://ui-avatars.com/api/?name=${encodeURIComponent(info.name||'U')}&background=E91E8C&color=fff`} alt="" style={{ width:36, height:36, borderRadius:'50%', objectFit:'cover' }}/>
+                <div key={uid} onClick={()=>{setRM(null);navigate(`/profile/${uid}`);}} style={{ display:'flex', alignItems:'center', gap:10, padding:'8px 0', borderBottom:'1px solid #232733', cursor:'pointer' }}>
+                  <img src={info.photo||`https://ui-avatars.com/api/?name=${encodeURIComponent(info.name||'U')}&background=1877F2&color=fff`} alt="" style={{ width:36, height:36, borderRadius:'50%', objectFit:'cover' }}/>
                   <p style={{ fontSize:14, fontWeight:600, flex:1, color:'white' }}>{uid===currentUser.uid?'Vous':(info.name||uid)}</p>
                   <span style={{ fontSize:20 }}>{emoji}</span>
                 </div>

@@ -73,12 +73,15 @@ service cloud.firestore {
 {
   "rules": {
     "conversations": {
+      // ✅ FIX CRITIQUE : l'app lit la LISTE via ref('conversations') (la racine).
+      // Sans ".read" ici, Firebase refuse tout → aucune discussion visible,
+      // et l'envoi de messages échouait aussi selon la config.
+      ".read": "auth != null",
       "$chatId": {
-        ".read": "auth != null && ($chatId.contains(auth.uid))",
         ".write": "auth != null && ($chatId.contains(auth.uid))",
         "messages": {
           "$msgId": {
-            ".validate": "newData.hasChildren(['fromUid', 'toUid', 'text', 'ts'])
+            ".validate": "newData.hasChildren(['fromUid', 'text', 'ts'])
               && newData.child('fromUid').val() === auth.uid
               && newData.child('text').isString()
               && newData.child('text').val().length <= 2000"
@@ -87,8 +90,9 @@ service cloud.firestore {
       }
     },
     "online": {
+      // ✅ FIX : l'app lit aussi ref('online') à la racine (statut en ligne)
+      ".read": "auth != null",
       "$uid": {
-        ".read": "auth != null",
         ".write": "auth != null && $uid === auth.uid"
       }
     }

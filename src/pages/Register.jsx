@@ -68,20 +68,20 @@ export default function Register() {
   return (
     <div style={{
       minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center',
-      background: 'linear-gradient(160deg, #FFE4F3 0%, #FDF4F8 50%, #FFE4F3 100%)',
+      background: 'linear-gradient(160deg, #E4E6EB 0%, #F0F2F5 50%, #E4E6EB 100%)',
       padding: 20
     }}>
       <div style={{ width: '100%', maxWidth: 420 }}>
         <div style={{ textAlign: 'center', marginBottom: 32 }}>
-          <img src="/tsengo-logo.png" alt="Tsengo" className="logo-shimmer" style={{ width:64, height:64, objectFit:"contain", margin:"0 auto 10px", display:"block" }}/>
-          <h1 style={{ fontSize: 28, fontWeight: 800, color: '#E91E8C', letterSpacing: -1 }}>Tsengo</h1>
+          <img src="/tsengo-logo.png" alt="Traingo" className="logo-shimmer" style={{ width:64, height:64, objectFit:"contain", margin:"0 auto 10px", display:"block" }}/>
+          <h1 style={{ fontSize: 28, fontWeight: 800, color: '#1877F2', letterSpacing: -1 }}>Traingo</h1>
         </div>
 
         <div className="card" style={{ padding: 28 }}>
-          <h2 style={{ fontSize: 20, fontWeight: 700, marginBottom: 20, color: '#2D1220' }}>{t('createAccount')}</h2>
+          <h2 style={{ fontSize: 20, fontWeight: 700, marginBottom: 20, color: '#050505' }}>{t('createAccount')}</h2>
 
           {error && (
-            <div style={{ background: '#FFE4F3', border: '1px solid #E91E8C', borderRadius: 10, padding: '10px 14px', marginBottom: 16, color: '#B5156E', fontSize: 13 }}>
+            <div style={{ background: '#E4E6EB', border: '1px solid #1877F2', borderRadius: 10, padding: '10px 14px', marginBottom: 16, color: '#0E5FCB', fontSize: 13 }}>
               {error}
             </div>
           )}
@@ -89,32 +89,32 @@ export default function Register() {
           <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
             {/* Full name */}
             <div>
-              <label style={{ fontSize: 13, fontWeight: 500, color: '#8B5A6F', marginBottom: 5, display: 'block' }}>{t('fullName')}</label>
+              <label style={{ fontSize: 13, fontWeight: 500, color: '#65676B', marginBottom: 5, display: 'block' }}>{t('fullName')}</label>
               <input className="input" type="text" name="fullName" value={form.fullName} onChange={handleChange} required placeholder="Rakoto Andry" maxLength={60} autoComplete="name" />
             </div>
 
             {/* Username */}
             <div>
-              <label style={{ fontSize: 13, fontWeight: 500, color: '#8B5A6F', marginBottom: 5, display: 'block' }}>{t('username')}</label>
+              <label style={{ fontSize: 13, fontWeight: 500, color: '#65676B', marginBottom: 5, display: 'block' }}>{t('username')}</label>
               <input className="input" type="text" name="username" value={form.username} onChange={handleChange} required placeholder="rakoto_andry" maxLength={30} autoComplete="username" />
-              <p style={{ fontSize: 11, color: '#C4829F', marginTop: 3 }}>Litera kely, isa, underscore, dot ihany</p>
+              <p style={{ fontSize: 11, color: '#65676B', marginTop: 3 }}>Litera kely, isa, underscore, dot ihany</p>
             </div>
 
             {/* Email */}
             <div>
-              <label style={{ fontSize: 13, fontWeight: 500, color: '#8B5A6F', marginBottom: 5, display: 'block' }}>{t('email')}</label>
+              <label style={{ fontSize: 13, fontWeight: 500, color: '#65676B', marginBottom: 5, display: 'block' }}>{t('email')}</label>
               <input className="input" type="email" name="email" value={form.email} onChange={handleChange} required placeholder="exemple@mail.com" autoComplete="email" />
             </div>
 
             {/* Password + strength indicator */}
             <div>
-              <label style={{ fontSize: 13, fontWeight: 500, color: '#8B5A6F', marginBottom: 5, display: 'block' }}>{t('password')}</label>
+              <label style={{ fontSize: 13, fontWeight: 500, color: '#65676B', marginBottom: 5, display: 'block' }}>{t('password')}</label>
               <input className="input" type="password" name="password" value={form.password} onChange={handleChange} required placeholder="••••••••" minLength={PASSWORD_MIN} autoComplete="new-password" />
               {form.password.length > 0 && (
                 <div style={{ marginTop: 6 }}>
                   <div style={{ display: 'flex', gap: 3, marginBottom: 3 }}>
                     {[0,1,2,3].map(i => (
-                      <div key={i} style={{ flex: 1, height: 3, borderRadius: 3, background: i < pwStrength ? pwColors[pwStrength - 1] : '#FFE4F3', transition: 'background 0.3s' }} />
+                      <div key={i} style={{ flex: 1, height: 3, borderRadius: 3, background: i < pwStrength ? pwColors[pwStrength - 1] : '#E4E6EB', transition: 'background 0.3s' }} />
                     ))}
                   </div>
                   <p style={{ fontSize: 11, color: pwColors[Math.max(0, pwStrength - 1)] }}>{pwLabels[Math.max(0, pwStrength - 1)]}</p>
@@ -124,7 +124,7 @@ export default function Register() {
 
             {/* Confirm password */}
             <div>
-              <label style={{ fontSize: 13, fontWeight: 500, color: '#8B5A6F', marginBottom: 5, display: 'block' }}>{t('confirmPassword')}</label>
+              <label style={{ fontSize: 13, fontWeight: 500, color: '#65676B', marginBottom: 5, display: 'block' }}>{t('confirmPassword')}</label>
               <input className="input" type="password" name="confirm" value={form.confirm} onChange={handleChange} required placeholder="••••••••" minLength={PASSWORD_MIN} autoComplete="new-password" />
               {form.confirm.length > 0 && form.password !== form.confirm && (
                 <p style={{ fontSize: 11, color: '#ef4444', marginTop: 3 }}>Teny miafina tsy mitovy</p>
@@ -136,9 +136,9 @@ export default function Register() {
             </button>
           </form>
 
-          <p style={{ textAlign: 'center', marginTop: 18, fontSize: 14, color: '#8B5A6F' }}>
+          <p style={{ textAlign: 'center', marginTop: 18, fontSize: 14, color: '#65676B' }}>
             {t('alreadyAccount')}{' '}
-            <Link to="/login" style={{ color: '#E91E8C', fontWeight: 600, textDecoration: 'none' }}>
+            <Link to="/login" style={{ color: '#1877F2', fontWeight: 600, textDecoration: 'none' }}>
               {t('login')}
             </Link>
           </p>

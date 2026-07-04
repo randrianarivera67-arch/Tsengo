@@ -90,7 +90,7 @@ export default function AdminPanel() {
       await addDoc(collection(db, 'notifications'), {
         toUid: post.uid,
         fromUid: currentUser.uid,
-        fromName: 'Tsengo Admin',
+        fromName: 'Traingo Admin',
         fromPhoto: '',
         type: 'boost',
         postId: post.id,
@@ -153,20 +153,20 @@ export default function AdminPanel() {
 
   if (isAdmin === null) {
     return (
-      <div style={{ minHeight: '100vh', background: '#1A0A12', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <p style={{ color: '#C4829F', fontFamily: 'Poppins' }}>Vérification des droits...</p>
+      <div style={{ minHeight: '100vh', background: '#0B0D12', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <p style={{ color: '#65676B', fontFamily: 'Poppins' }}>Vérification des droits...</p>
       </div>
     );
   }
 
   if (isAdmin === false) {
     return (
-      <div style={{ minHeight: '100vh', background: '#1A0A12', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
-        <div style={{ background: '#2D1220', borderRadius: 20, padding: 32, maxWidth: 340, textAlign: 'center', border: '1px solid #4A2535', fontFamily: 'Poppins' }}>
+      <div style={{ minHeight: '100vh', background: '#0B0D12', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+        <div style={{ background: '#050505', borderRadius: 20, padding: 32, maxWidth: 340, textAlign: 'center', border: '1px solid #232733', fontFamily: 'Poppins' }}>
           <div style={{ fontSize: 48, marginBottom: 12 }}>🔒</div>
-          <h2 style={{ color: '#FFE4F3', fontWeight: 800, fontSize: 20, marginBottom: 8 }}>Accès refusé</h2>
-          <p style={{ color: '#C4829F', fontSize: 14, marginBottom: 24 }}>Vous n'avez pas les droits administrateur.</p>
-          <button onClick={() => navigate('/')} style={{ background: 'linear-gradient(135deg,#E91E8C,#FF6BB5)', color: 'white', border: 'none', borderRadius: 25, padding: '12px 28px', fontWeight: 700, fontSize: 14, cursor: 'pointer', fontFamily: 'Poppins' }}>
+          <h2 style={{ color: '#E4E6EB', fontWeight: 800, fontSize: 20, marginBottom: 8 }}>Accès refusé</h2>
+          <p style={{ color: '#65676B', fontSize: 14, marginBottom: 24 }}>Vous n'avez pas les droits administrateur.</p>
+          <button onClick={() => navigate('/')} style={{ background: 'linear-gradient(135deg,#FF2D8D,#FF7AB8)', color: 'white', border: 'none', borderRadius: 25, padding: '12px 28px', fontWeight: 700, fontSize: 14, cursor: 'pointer', fontFamily: 'Poppins' }}>
             Retour à l'accueil
           </button>
         </div>
@@ -175,19 +175,19 @@ export default function AdminPanel() {
   }
 
   return (
-    <div style={{ minHeight: '100vh', background: '#1A0A12', padding: '20px 16px', fontFamily: 'Poppins, sans-serif', color: '#FFE4F3' }}>
+    <div style={{ minHeight: '100vh', background: '#0B0D12', padding: '20px 16px', fontFamily: 'Poppins, sans-serif', color: '#E4E6EB' }}>
       <div style={{ maxWidth: 700, margin: '0 auto' }}>
 
         {/* Header */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
-          <div style={{ width: 44, height: 44, borderRadius: '50%', background: 'linear-gradient(135deg,#E91E8C,#FF6BB5)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+          <div style={{ width: 44, height: 44, borderRadius: '50%', background: 'linear-gradient(135deg,#FF2D8D,#FF7AB8)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
             <HiShieldCheck size={24} color="white" />
           </div>
           <div>
-            <h2 style={{ fontWeight: 800, fontSize: 20, color: '#FFE4F3' }}>Panel Admin</h2>
-            <p style={{ fontSize: 12, color: '#C4829F' }}>Connecté : {userProfile?.fullName}</p>
+            <h2 style={{ fontWeight: 800, fontSize: 20, color: '#E4E6EB' }}>Panel Admin</h2>
+            <p style={{ fontSize: 12, color: '#65676B' }}>Connecté : {userProfile?.fullName}</p>
           </div>
-          <button onClick={() => navigate('/')} style={{ marginLeft: 'auto', background: '#4A2535', border: 'none', borderRadius: 20, padding: '6px 14px', color: '#C4829F', cursor: 'pointer', fontSize: 13 }}>
+          <button onClick={() => navigate('/')} style={{ marginLeft: 'auto', background: '#232733', border: 'none', borderRadius: 20, padding: '6px 14px', color: '#65676B', cursor: 'pointer', fontSize: 13 }}>
             ← Retour
           </button>
         </div>
@@ -203,13 +203,13 @@ export default function AdminPanel() {
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: 8, marginBottom: 20 }}>
           {[
             { label: 'Utilisateurs', value: users.length, color: '#3b82f6' },
-            { label: 'VIP', value: users.filter(u => u.isVip).length, color: '#E91E8C' },
+            { label: 'VIP', value: users.filter(u => u.isVip).length, color: '#1877F2' },
             { label: 'Publications', value: posts.length, color: '#f59e0b' },
             { label: 'Boostés', value: posts.filter(p => p.isBoosted).length, color: '#a855f7' },
           ].map(s => (
-            <div key={s.label} style={{ background: '#2D1220', borderRadius: 14, padding: '12px 8px', textAlign: 'center', border: '1px solid #4A2535' }}>
+            <div key={s.label} style={{ background: '#050505', borderRadius: 14, padding: '12px 8px', textAlign: 'center', border: '1px solid #232733' }}>
               <p style={{ fontWeight: 800, fontSize: 20, color: s.color }}>{s.value}</p>
-              <p style={{ fontSize: 10, color: '#C4829F' }}>{s.label}</p>
+              <p style={{ fontSize: 10, color: '#65676B' }}>{s.label}</p>
             </div>
           ))}
         </div>
@@ -224,10 +224,10 @@ export default function AdminPanel() {
               key={tab.key}
               onClick={() => setActiveTab(tab.key)}
               style={{
-                flex: 1, padding: '10px', borderRadius: 14, border: activeTab === tab.key ? 'none' : '1px solid #4A2535',
+                flex: 1, padding: '10px', borderRadius: 14, border: activeTab === tab.key ? 'none' : '1px solid #232733',
                 cursor: 'pointer', fontFamily: 'Poppins', fontWeight: 600, fontSize: 13,
-                background: activeTab === tab.key ? 'linear-gradient(135deg,#E91E8C,#FF6BB5)' : '#2D1220',
-                color: activeTab === tab.key ? 'white' : '#C4829F',
+                background: activeTab === tab.key ? 'linear-gradient(135deg,#FF2D8D,#FF7AB8)' : '#050505',
+                color: activeTab === tab.key ? 'white' : '#65676B',
               }}
             >
               {tab.label}
@@ -239,33 +239,33 @@ export default function AdminPanel() {
         {activeTab === 'users' && (
           <>
             <div style={{ position: 'relative', marginBottom: 14 }}>
-              <HiSearch style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: '#C4829F' }} size={17} />
+              <HiSearch style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: '#65676B' }} size={17} />
               <input
                 placeholder="Rechercher un utilisateur..."
                 value={search}
                 onChange={e => setSearch(e.target.value)}
-                style={{ width: '100%', background: '#2D1220', border: '1px solid #4A2535', borderRadius: 12, padding: '10px 10px 10px 36px', color: '#FFE4F3', fontFamily: 'Poppins', fontSize: 14, boxSizing: 'border-box' }}
+                style={{ width: '100%', background: '#050505', border: '1px solid #232733', borderRadius: 12, padding: '10px 10px 10px 36px', color: '#E4E6EB', fontFamily: 'Poppins', fontSize: 14, boxSizing: 'border-box' }}
               />
             </div>
             {loading ? (
-              <p style={{ textAlign: 'center', color: '#C4829F', padding: 30 }}>Chargement...</p>
+              <p style={{ textAlign: 'center', color: '#65676B', padding: 30 }}>Chargement...</p>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                 {filteredUsers.map(user => (
-                  <div key={user.id} style={{ background: '#2D1220', borderRadius: 14, padding: '12px 14px', display: 'flex', alignItems: 'center', gap: 12, border: user.isVip ? '1px solid #E91E8C' : '1px solid #4A2535' }}>
-                    <img src={user.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.fullName || 'U')}&background=E91E8C&color=fff`} alt="" style={{ width: 44, height: 44, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} />
+                  <div key={user.id} style={{ background: '#050505', borderRadius: 14, padding: '12px 14px', display: 'flex', alignItems: 'center', gap: 12, border: user.isVip ? '1px solid #1877F2' : '1px solid #232733' }}>
+                    <img src={user.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.fullName || 'U')}&background=1877F2&color=fff`} alt="" style={{ width: 44, height: 44, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} />
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 5, flexWrap: 'wrap' }}>
-                        <p style={{ fontWeight: 600, fontSize: 14, color: '#FFE4F3' }}>{user.fullName}</p>
+                        <p style={{ fontWeight: 600, fontSize: 14, color: '#E4E6EB' }}>{user.fullName}</p>
                         {user.isVip && <img src='/vip-badge.png' style={{ width:24, height:24, marginLeft:5, verticalAlign:'middle', display:'inline-block', flexShrink:0, objectFit:'contain' }} alt='VIP'/>}
                         {user.isAdmin && <span style={{ background: '#1d4ed8', color: 'white', fontSize: 9, fontWeight: 700, padding: '1px 6px', borderRadius: 6 }}>ADMIN</span>}
                       </div>
-                      <p style={{ fontSize: 12, color: '#C4829F' }}>@{user.username}</p>
-                      <p style={{ fontSize: 11, color: '#8B5A6F' }}>{user.email}</p>
+                      <p style={{ fontSize: 12, color: '#65676B' }}>@{user.username}</p>
+                      <p style={{ fontSize: 11, color: '#65676B' }}>{user.email}</p>
                     </div>
                     <button
                       onClick={() => toggleVip(user)}
-                      style={{ background: user.isVip ? '#4A2535' : 'linear-gradient(135deg,#E91E8C,#FF6BB5)', border: user.isVip ? '1px solid #E91E8C' : 'none', borderRadius: 20, padding: '7px 12px', color: user.isVip ? '#E91E8C' : 'white', cursor: 'pointer', fontSize: 12, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0, fontFamily: 'Poppins' }}
+                      style={{ background: user.isVip ? '#232733' : 'linear-gradient(135deg,#FF2D8D,#FF7AB8)', border: user.isVip ? '1px solid #1877F2' : 'none', borderRadius: 20, padding: '7px 12px', color: user.isVip ? '#1877F2' : 'white', cursor: 'pointer', fontSize: 12, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0, fontFamily: 'Poppins' }}
                     >
                       <HiStar size={14} />
                       {user.isVip ? 'Retirer VIP' : 'VIP'}
@@ -281,24 +281,24 @@ export default function AdminPanel() {
         {activeTab === 'boost' && (
           <>
             {/* Info card */}
-            <div style={{ background: 'linear-gradient(135deg,#7c3aed22,#E91E8C11)', border: '1px solid #7c3aed44', borderRadius: 14, padding: '14px 16px', marginBottom: 16, display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+            <div style={{ background: 'linear-gradient(135deg,#7c3aed22,#1877F211)', border: '1px solid #7c3aed44', borderRadius: 14, padding: '14px 16px', marginBottom: 16, display: 'flex', gap: 12, alignItems: 'flex-start' }}>
               <HiLightningBolt size={22} color="#a855f7" style={{ flexShrink: 0, marginTop: 1 }} />
               <div>
                 <p style={{ fontWeight: 700, fontSize: 14, color: '#d8b4fe', marginBottom: 4 }}>Boost de publication</p>
-                <p style={{ fontSize: 12, color: '#C4829F', lineHeight: 1.7 }}>
-                  Saisissez le nombre de jours (ex: <strong style={{ color: '#FFE4F3' }}>7 j</strong>). Le post s'affichera en tête du fil avec le badge <strong style={{ color: '#a855f7' }}>Sponsorisé</strong>. L'auteur sera notifié automatiquement.
+                <p style={{ fontSize: 12, color: '#65676B', lineHeight: 1.7 }}>
+                  Saisissez le nombre de jours (ex: <strong style={{ color: '#E4E6EB' }}>7 j</strong>). Le post s'affichera en tête du fil avec le badge <strong style={{ color: '#a855f7' }}>Sponsorisé</strong>. L'auteur sera notifié automatiquement.
                 </p>
               </div>
             </div>
 
             {/* Search */}
             <div style={{ position: 'relative', marginBottom: 14 }}>
-              <HiSearch style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: '#C4829F' }} size={17} />
+              <HiSearch style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: '#65676B' }} size={17} />
               <input
                 placeholder="Rechercher une publication..."
                 value={boostSearch}
                 onChange={e => setBoostSearch(e.target.value)}
-                style={{ width: '100%', background: '#2D1220', border: '1px solid #4A2535', borderRadius: 12, padding: '10px 10px 10px 36px', color: '#FFE4F3', fontFamily: 'Poppins', fontSize: 14, boxSizing: 'border-box' }}
+                style={{ width: '100%', background: '#050505', border: '1px solid #232733', borderRadius: 12, padding: '10px 10px 10px 36px', color: '#E4E6EB', fontFamily: 'Poppins', fontSize: 14, boxSizing: 'border-box' }}
               />
             </div>
 
@@ -308,20 +308,20 @@ export default function AdminPanel() {
                 const timeLeft = boostTimeLeft(post);
                 const isExpanded = expandedPost === post.id;
                 return (
-                  <div key={post.id} style={{ background: '#2D1220', borderRadius: 16, border: post.isBoosted ? '1px solid #a855f7' : '1px solid #4A2535', overflow: 'hidden' }}>
+                  <div key={post.id} style={{ background: '#050505', borderRadius: 16, border: post.isBoosted ? '1px solid #a855f7' : '1px solid #232733', overflow: 'hidden' }}>
                     {/* Row */}
                     <div style={{ padding: '12px 14px', display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer' }} onClick={() => setExpandedPost(isExpanded ? null : post.id)}>
-                      <img src={post.authorPhoto || `https://ui-avatars.com/api/?name=${encodeURIComponent(post.authorName || 'U')}&background=E91E8C&color=fff`} alt="" style={{ width: 40, height: 40, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} />
+                      <img src={post.authorPhoto || `https://ui-avatars.com/api/?name=${encodeURIComponent(post.authorName || 'U')}&background=1877F2&color=fff`} alt="" style={{ width: 40, height: 40, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} />
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                          <p style={{ fontWeight: 600, fontSize: 13, color: '#FFE4F3' }}>{post.authorName}</p>
+                          <p style={{ fontWeight: 600, fontSize: 13, color: '#E4E6EB' }}>{post.authorName}</p>
                           {post.isBoosted && (
                             <span style={{ background: 'linear-gradient(135deg,#7c3aed,#a855f7)', color: 'white', fontSize: 9, fontWeight: 700, padding: '1px 6px', borderRadius: 6, display: 'flex', alignItems: 'center', gap: 2 }}>
                               <HiLightningBolt size={9} /> Boosté
                             </span>
                           )}
                         </div>
-                        <p style={{ fontSize: 11, color: '#C4829F', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 200 }}>
+                        <p style={{ fontSize: 11, color: '#65676B', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 200 }}>
                           {post.content || (post.mediaURL ? '📎 Media' : '—')}
                         </p>
                         {post.isBoosted && timeLeft && (
@@ -330,16 +330,16 @@ export default function AdminPanel() {
                           </p>
                         )}
                       </div>
-                      <span style={{ color: '#8B5A6F', flexShrink: 0 }}>
+                      <span style={{ color: '#65676B', flexShrink: 0 }}>
                         {isExpanded ? <HiChevronUp size={18} /> : <HiChevronDown size={18} />}
                       </span>
                     </div>
 
                     {/* Expanded controls */}
                     {isExpanded && (
-                      <div style={{ borderTop: '1px solid #4A2535', padding: '14px' }}>
+                      <div style={{ borderTop: '1px solid #232733', padding: '14px' }}>
                         {post.content && (
-                          <p style={{ fontSize: 13, color: '#FFE4F3', marginBottom: 10, lineHeight: 1.5, background: '#1A0A12', borderRadius: 10, padding: '10px 12px' }}>
+                          <p style={{ fontSize: 13, color: '#E4E6EB', marginBottom: 10, lineHeight: 1.5, background: '#0B0D12', borderRadius: 10, padding: '10px 12px' }}>
                             {post.content.slice(0, 150)}{post.content.length > 150 ? '...' : ''}
                           </p>
                         )}
@@ -357,7 +357,7 @@ export default function AdminPanel() {
                             <button
                               onClick={() => deactivateBoost(post)}
                               disabled={boostLoading[post.id]}
-                              style={{ background: '#4A2535', border: '1px solid #E91E8C', borderRadius: 20, padding: '6px 14px', color: '#E91E8C', cursor: 'pointer', fontSize: 12, fontWeight: 600, fontFamily: 'Poppins', display: 'flex', alignItems: 'center', gap: 4 }}
+                              style={{ background: '#232733', border: '1px solid #1877F2', borderRadius: 20, padding: '6px 14px', color: '#1877F2', cursor: 'pointer', fontSize: 12, fontWeight: 600, fontFamily: 'Poppins', display: 'flex', alignItems: 'center', gap: 4 }}
                             >
                               <HiX size={13} /> Retirer boost
                             </button>
@@ -367,7 +367,7 @@ export default function AdminPanel() {
                         {/* Input boost jours */}
                         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                           <div style={{ position: 'relative', flex: 1 }}>
-                            <HiClock style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: '#8B5A6F' }} size={16} />
+                            <HiClock style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: '#65676B' }} size={16} />
                             <input
                               type="number"
                               min="1"
@@ -375,15 +375,15 @@ export default function AdminPanel() {
                               placeholder="Nb. jours (ex: 7)"
                               value={boostDays[post.id] || ''}
                               onChange={e => setBoostDays(p => ({ ...p, [post.id]: e.target.value }))}
-                              style={{ width: '100%', background: '#1A0A12', border: '1px solid #4A2535', borderRadius: 12, padding: '10px 14px 10px 40px', color: '#FFE4F3', fontFamily: 'Poppins', fontSize: 14, boxSizing: 'border-box' }}
+                              style={{ width: '100%', background: '#0B0D12', border: '1px solid #232733', borderRadius: 12, padding: '10px 14px 10px 40px', color: '#E4E6EB', fontFamily: 'Poppins', fontSize: 14, boxSizing: 'border-box' }}
                             />
                           </div>
-                          <span style={{ color: '#8B5A6F', fontSize: 13, fontWeight: 600 }}>j</span>
+                          <span style={{ color: '#65676B', fontSize: 13, fontWeight: 600 }}>j</span>
                           <button
                             onClick={() => activateBoost(post)}
                             disabled={boostLoading[post.id] || !boostDays[post.id]}
                             style={{
-                              background: (!boostDays[post.id] || boostLoading[post.id]) ? '#4A2535' : 'linear-gradient(135deg,#7c3aed,#a855f7)',
+                              background: (!boostDays[post.id] || boostLoading[post.id]) ? '#232733' : 'linear-gradient(135deg,#7c3aed,#a855f7)',
                               border: 'none', borderRadius: 20, padding: '10px 18px',
                               color: 'white', cursor: boostDays[post.id] ? 'pointer' : 'not-allowed',
                               fontSize: 13, fontWeight: 700, fontFamily: 'Poppins',
@@ -395,7 +395,7 @@ export default function AdminPanel() {
                             {boostLoading[post.id] ? '...' : post.isBoosted ? 'Prolonger' : 'Booster'}
                           </button>
                         </div>
-                        <p style={{ fontSize: 11, color: '#8B5A6F', marginTop: 6 }}>
+                        <p style={{ fontSize: 11, color: '#65676B', marginTop: 6 }}>
                           Ex: 7 j = 7 jours · 30 j = 1 mois · Notif envoyée à l'auteur
                         </p>
                       </div>

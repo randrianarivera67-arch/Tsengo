@@ -275,7 +275,7 @@ export default function Profile() {
 
   async function sharePost(post) {
     const url = `${window.location.origin}/post/${post.id}`;
-    if (navigator.share) { try { await navigator.share({title:'Tsengo',text:post.content,url}); } catch {} }
+    if (navigator.share) { try { await navigator.share({title:'Traingo',text:post.content,url}); } catch {} }
     else { navigator.clipboard?.writeText(url); alert('Lien copié !'); }
   }
 
@@ -296,7 +296,7 @@ export default function Profile() {
     return [];
   }
 
-  if (!profile) return <div style={{ padding:40, textAlign:'center', color:'#C4829F' }}>{t('loading')}</div>;
+  if (!profile) return <div style={{ padding:40, textAlign:'center', color:'#65676B' }}>{t('loading')}</div>;
   const friendCount = profile.friends?.length||0;
   const profilePhoto = profile.photoURL ? [{ id:'profile-photo', mediaURL:profile.photoURL, isProfilePhoto:true }] : [];
   const coverPhotoArr = coverURL ? [{ id:'cover-photo', mediaURL:coverURL, isCoverPhoto:true }] : [];
@@ -319,10 +319,10 @@ export default function Profile() {
 
         <div style={{ padding:'14px 16px 0', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
           <div style={{ display:'flex', alignItems:'center', gap:10, flex:1, minWidth:0 }}>
-            <img src={profile.photoURL||`https://ui-avatars.com/api/?name=${encodeURIComponent(profile.fullName||'U')}&background=E91E8C&color=fff`} alt="" className="avatar" style={{ width:40, height:40, flexShrink:0 }}/>
+            <img src={profile.photoURL||`https://ui-avatars.com/api/?name=${encodeURIComponent(profile.fullName||'U')}&background=1877F2&color=fff`} alt="" className="avatar" style={{ width:40, height:40, flexShrink:0 }}/>
             <div style={{ minWidth:0 }}>
               <p style={{ fontWeight:600, fontSize:14, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{profile.fullName}{profile.isVip&&<VIPBadge/>}</p>
-              <p style={{ fontSize:12, color:'#C4829F' }}>@{profile.username} · {post.createdAt?.toDate?new Date(post.createdAt.toDate()).toLocaleDateString('fr-FR'):'Maintenant'}</p>
+              <p style={{ fontSize:12, color:'#65676B' }}>@{profile.username} · {post.createdAt?.toDate?new Date(post.createdAt.toDate()).toLocaleDateString('fr-FR'):'Maintenant'}</p>
             </div>
           </div>
 
@@ -330,16 +330,16 @@ export default function Profile() {
             {post.isSale && <div style={{ textAlign:'right' }}><span className="sale-badge">{t('sale')}</span><p className="price-tag" style={{ marginTop:2, fontSize:13 }}>{post.price} Ar</p></div>}
             <div style={{ position:'relative' }} onClick={e=>e.stopPropagation()}>
               <button onClick={() => setPostMenu(postMenu===post.id?null:post.id)}
-                style={{ background:'none', border:'none', cursor:'pointer', color:'#C4829F', padding:4, display:'flex', alignItems:'center' }}><HiDotsVertical size={18}/></button>
+                style={{ background:'none', border:'none', cursor:'pointer', color:'#65676B', padding:4, display:'flex', alignItems:'center' }}><HiDotsVertical size={18}/></button>
               {postMenu===post.id && (
-                <div style={{ position:'absolute', top:'100%', right:0, background:'white', border:'1px solid #FFE4F3', borderRadius:12, boxShadow:'0 4px 20px rgba(0,0,0,.12)', minWidth:170, zIndex:50, overflow:'hidden' }}>
+                <div style={{ position:'absolute', top:'100%', right:0, background:'white', border:'1px solid #E4E6EB', borderRadius:12, boxShadow:'0 4px 20px rgba(0,0,0,.12)', minWidth:170, zIndex:50, overflow:'hidden' }}>
                   {isOwnPost && <>
-                    <button onClick={() => { setEditPost(post); setEditContent(post.content); setPostMenu(null); }} style={{ width:'100%', display:'flex', alignItems:'center', gap:10, padding:'11px 16px', background:'none', border:'none', cursor:'pointer', color:'#2D1220', fontSize:14, borderBottom:'1px solid #FFF0F8', fontFamily:'Poppins' }}><HiPencil size={15} color="#E91E8C"/> Modifier</button>
-                    <button onClick={() => { navigate('/boost'); setPostMenu(null); }} style={{ width:'100%', display:'flex', alignItems:'center', gap:10, padding:'11px 16px', background:'none', border:'none', cursor:'pointer', color:'#2D1220', fontSize:14, borderBottom:'1px solid #FFF0F8', fontFamily:'Poppins' }}><HiLightningBolt size={15} color="#a855f7"/> Booster</button>
-                    <button onClick={() => { deletePost(post.id); setPostMenu(null); }} style={{ width:'100%', display:'flex', alignItems:'center', gap:10, padding:'11px 16px', background:'none', border:'none', cursor:'pointer', color:'#E91E8C', fontSize:14, borderBottom:'1px solid #FFF0F8', fontFamily:'Poppins' }}><HiTrash size={15}/> Supprimer</button>
+                    <button onClick={() => { setEditPost(post); setEditContent(post.content); setPostMenu(null); }} style={{ width:'100%', display:'flex', alignItems:'center', gap:10, padding:'11px 16px', background:'none', border:'none', cursor:'pointer', color:'#050505', fontSize:14, borderBottom:'1px solid #F0F2F5', fontFamily:'Poppins' }}><HiPencil size={15} color="#1877F2"/> Modifier</button>
+                    <button onClick={() => { navigate('/boost'); setPostMenu(null); }} style={{ width:'100%', display:'flex', alignItems:'center', gap:10, padding:'11px 16px', background:'none', border:'none', cursor:'pointer', color:'#050505', fontSize:14, borderBottom:'1px solid #F0F2F5', fontFamily:'Poppins' }}><HiLightningBolt size={15} color="#a855f7"/> Booster</button>
+                    <button onClick={() => { deletePost(post.id); setPostMenu(null); }} style={{ width:'100%', display:'flex', alignItems:'center', gap:10, padding:'11px 16px', background:'none', border:'none', cursor:'pointer', color:'#1877F2', fontSize:14, borderBottom:'1px solid #F0F2F5', fontFamily:'Poppins' }}><HiTrash size={15}/> Supprimer</button>
                   </>}
-                  {post.mediaURL && <button onClick={() => { window.open(post.mediaURL,'_blank'); setPostMenu(null); }} style={{ width:'100%', display:'flex', alignItems:'center', gap:10, padding:'11px 16px', background:'none', border:'none', cursor:'pointer', color:'#2D1220', fontSize:14, fontFamily:'Poppins' }}><HiDownload size={15} color="#3b82f6"/> Télécharger</button>}
-                  {!isOwnPost && !post.mediaURL && <div style={{ padding:'10px 16px', color:'#C4829F', fontSize:13 }}>Aucune action</div>}
+                  {post.mediaURL && <button onClick={() => { window.open(post.mediaURL,'_blank'); setPostMenu(null); }} style={{ width:'100%', display:'flex', alignItems:'center', gap:10, padding:'11px 16px', background:'none', border:'none', cursor:'pointer', color:'#050505', fontSize:14, fontFamily:'Poppins' }}><HiDownload size={15} color="#3b82f6"/> Télécharger</button>}
+                  {!isOwnPost && !post.mediaURL && <div style={{ padding:'10px 16px', color:'#65676B', fontSize:13 }}>Aucune action</div>}
                 </div>
               )}
             </div>
@@ -350,8 +350,8 @@ export default function Profile() {
           {post.content && <p style={{ fontSize:15, lineHeight:1.6, wordBreak:'break-word' }}>{post.content}</p>}
           {post.isSale && (post.contact||post.lieu) && (
             <div style={{ marginTop:8, display:'flex', flexWrap:'wrap', gap:8 }}>
-              {post.contact && <a href={`tel:${post.contact}`} onClick={e=>e.stopPropagation()} style={{ display:'flex', alignItems:'center', gap:5, background:'#FFE4F3', borderRadius:20, padding:'5px 12px', color:'#E91E8C', fontSize:13, fontWeight:600, textDecoration:'none' }}><HiPhone size={13}/>{post.contact}</a>}
-              {post.lieu && <span style={{ display:'flex', alignItems:'center', gap:5, background:'#FFF0F8', borderRadius:20, padding:'5px 12px', color:'#8B5A6F', fontSize:13 }}><HiLocationMarker size={13} color="#E91E8C"/>{post.lieu}</span>}
+              {post.contact && <a href={`tel:${post.contact}`} onClick={e=>e.stopPropagation()} style={{ display:'flex', alignItems:'center', gap:5, background:'#E4E6EB', borderRadius:20, padding:'5px 12px', color:'#1877F2', fontSize:13, fontWeight:600, textDecoration:'none' }}><HiPhone size={13}/>{post.contact}</a>}
+              {post.lieu && <span style={{ display:'flex', alignItems:'center', gap:5, background:'#F0F2F5', borderRadius:20, padding:'5px 12px', color:'#65676B', fontSize:13 }}><HiLocationMarker size={13} color="#1877F2"/>{post.lieu}</span>}
             </div>
           )}
           {post.mediaURL && (
@@ -363,47 +363,47 @@ export default function Profile() {
 
         {total > 0 && (
           <div style={{ padding:'0 16px 8px', display:'flex', gap:4, flexWrap:'wrap', cursor:'pointer' }} onClick={() => openReactionModal(post)}>
-            {Object.entries(rc).map(([e,c]) => <span key={e} style={{ background:'#FFE4F3', borderRadius:12, padding:'2px 8px', fontSize:12 }}>{e} {c}</span>)}
-            <span style={{ fontSize:11, color:'#C4829F', alignSelf:'center' }}>· {total} {t('reactions')}</span>
+            {Object.entries(rc).map(([e,c]) => <span key={e} style={{ background:'#E4E6EB', borderRadius:12, padding:'2px 8px', fontSize:12 }}>{e} {c}</span>)}
+            <span style={{ fontSize:11, color:'#65676B', alignSelf:'center' }}>· {total} {t('reactions')}</span>
           </div>
         )}
 
-        <div style={{ borderTop:'1px solid #FFE4F3', padding:'8px 16px', display:'flex', gap:6, alignItems:'center' }}>
+        <div style={{ borderTop:'1px solid #E4E6EB', padding:'8px 16px', display:'flex', gap:6, alignItems:'center' }}>
           <div style={{ position:'relative' }}>
-            <button onClick={() => setShowReact(p=>({...p,[post.id]:!p[post.id]}))} style={{ display:'flex', alignItems:'center', gap:4, background:'none', border:'none', cursor:'pointer', color:myR?'#E91E8C':'#C4829F', fontSize:13, padding:'6px 10px', borderRadius:20 }}>
+            <button onClick={() => setShowReact(p=>({...p,[post.id]:!p[post.id]}))} style={{ display:'flex', alignItems:'center', gap:4, background:'none', border:'none', cursor:'pointer', color:myR?'#1877F2':'#65676B', fontSize:13, padding:'6px 10px', borderRadius:20 }}>
               {myR?<span style={{ fontSize:16 }}>{myR}</span>:<HiOutlineHeart size={18}/>}
               {total>0&&<span>{total}</span>}
             </button>
             {showReact[post.id] && (
-              <div style={{ position:'absolute', bottom:'110%', left:0, background:'white', borderRadius:30, padding:'8px 12px', display:'flex', gap:6, boxShadow:'0 4px 20px rgba(0,0,0,.15)', zIndex:10, border:'1px solid #FFE4F3' }}>
+              <div style={{ position:'absolute', bottom:'110%', left:0, background:'white', borderRadius:30, padding:'8px 12px', display:'flex', gap:6, boxShadow:'0 4px 20px rgba(0,0,0,.15)', zIndex:10, border:'1px solid #E4E6EB' }}>
                 {REACTIONS.map(e => <button key={e} onClick={() => reactToPost(post.id,e)} style={{ background:'none', border:'none', cursor:'pointer', fontSize:22 }}>{e}</button>)}
               </div>
             )}
           </div>
-          <button onClick={() => setOpenCmt(p=>({...p,[post.id]:!p[post.id]}))} style={{ display:'flex', alignItems:'center', gap:4, background:'none', border:'none', cursor:'pointer', color:'#C4829F', fontSize:13, padding:'6px 10px', borderRadius:20 }}>
+          <button onClick={() => setOpenCmt(p=>({...p,[post.id]:!p[post.id]}))} style={{ display:'flex', alignItems:'center', gap:4, background:'none', border:'none', cursor:'pointer', color:'#65676B', fontSize:13, padding:'6px 10px', borderRadius:20 }}>
             <HiChat size={18}/>{post.comments?.length>0&&<span>{post.comments.length}</span>}
           </button>
-          <button onClick={() => sharePost(post)} style={{ display:'flex', alignItems:'center', gap:4, background:'none', border:'none', cursor:'pointer', color:'#C4829F', fontSize:13, padding:'6px 10px', borderRadius:20 }}>
+          <button onClick={() => sharePost(post)} style={{ display:'flex', alignItems:'center', gap:4, background:'none', border:'none', cursor:'pointer', color:'#65676B', fontSize:13, padding:'6px 10px', borderRadius:20 }}>
             <HiShare size={18}/>
           </button>
         </div>
 
         {openCmt[post.id] && (
-          <div style={{ padding:'0 16px 14px', borderTop:'1px solid #FFE4F3' }}>
+          <div style={{ padding:'0 16px 14px', borderTop:'1px solid #E4E6EB' }}>
             {post.comments?.map(c => (
               <div key={c.id} style={{ display:'flex', gap:8, marginTop:10 }}>
-                <img src={c.authorPhoto||`https://ui-avatars.com/api/?name=${encodeURIComponent(c.authorName||'U')}&background=E91E8C&color=fff`} alt="" className="avatar" style={{ width:30, height:30, flexShrink:0, cursor:'pointer' }} onClick={() => navigate(`/profile/${c.uid}`)}/>
-                <div style={{ flex:1, background:'#FFF8FC', borderRadius:12, padding:'8px 10px' }}>
+                <img src={c.authorPhoto||`https://ui-avatars.com/api/?name=${encodeURIComponent(c.authorName||'U')}&background=1877F2&color=fff`} alt="" className="avatar" style={{ width:30, height:30, flexShrink:0, cursor:'pointer' }} onClick={() => navigate(`/profile/${c.uid}`)}/>
+                <div style={{ flex:1, background:'#F0F2F5', borderRadius:12, padding:'8px 10px' }}>
                   <span style={{ fontWeight:600, fontSize:13 }}>{c.authorName}{c.authorIsVip&&<VIPBadge/>}{' '}</span>
                   {c.text&&<span style={{ fontSize:13 }}>{c.text}</span>}
                   {c.mediaURL&&<div style={{ marginTop:4 }}>{c.mediaType==='image'?<img src={c.mediaURL} alt="" style={{ maxWidth:200, borderRadius:8 }}/>:<video src={c.mediaURL} controls style={{ maxWidth:200, borderRadius:8 }}/>}</div>}
                   <div style={{ display:'flex', gap:10, marginTop:5, flexWrap:'wrap' }}>
-                    <button onClick={() => setReplyTo(p=>({...p,[post.id]:c.authorName}))} style={{ background:'none', border:'none', cursor:'pointer', color:'#C4829F', fontSize:11, display:'flex', alignItems:'center', gap:3 }}><HiReply size={12}/> Répondre</button>
-                    <button onClick={() => setCmtReactionPicker(p => p===c.id?null:c.id)} style={{ background:'none', border:'none', cursor:'pointer', color:'#C4829F', fontSize:11 }}>{c.reactions?.[currentUser.uid] || '😊'} {Object.keys(c.reactions||{}).length||''}</button>
+                    <button onClick={() => setReplyTo(p=>({...p,[post.id]:c.authorName}))} style={{ background:'none', border:'none', cursor:'pointer', color:'#65676B', fontSize:11, display:'flex', alignItems:'center', gap:3 }}><HiReply size={12}/> Répondre</button>
+                    <button onClick={() => setCmtReactionPicker(p => p===c.id?null:c.id)} style={{ background:'none', border:'none', cursor:'pointer', color:'#65676B', fontSize:11 }}>{c.reactions?.[currentUser.uid] || '😊'} {Object.keys(c.reactions||{}).length||''}</button>
                     {cmtReactionPicker===c.id && <div style={{ display:'flex', gap:4, background:'white', borderRadius:20, padding:'4px 8px', boxShadow:'0 2px 12px rgba(0,0,0,.15)', zIndex:10 }}>{['❤️','😂','😮','😢','👍','🔥'].map(em=><span key={em} onClick={()=>reactToCmt(post.id,c.id,em)} style={{ fontSize:18, cursor:'pointer' }}>{em}</span>)}</div>}
                     {(c.uid===currentUser.uid||post.uid===currentUser.uid)&&<>
-                      <button onClick={() => setEditCmt({ postId:post.id, cmt:c, text:c.text })} style={{ background:'none', border:'none', cursor:'pointer', color:'#C4829F', fontSize:11, display:'flex', alignItems:'center', gap:3 }}><HiPencil size={12}/> Modifier</button>
-                      <button onClick={() => deleteCmt(post.id,c)} style={{ background:'none', border:'none', cursor:'pointer', color:'#E91E8C', fontSize:11, display:'flex', alignItems:'center', gap:3 }}><HiTrash size={12}/> Supprimer</button>
+                      <button onClick={() => setEditCmt({ postId:post.id, cmt:c, text:c.text })} style={{ background:'none', border:'none', cursor:'pointer', color:'#65676B', fontSize:11, display:'flex', alignItems:'center', gap:3 }}><HiPencil size={12}/> Modifier</button>
+                      <button onClick={() => deleteCmt(post.id,c)} style={{ background:'none', border:'none', cursor:'pointer', color:'#1877F2', fontSize:11, display:'flex', alignItems:'center', gap:3 }}><HiTrash size={12}/> Supprimer</button>
                     </>}
                   </div>
                 </div>
@@ -411,10 +411,10 @@ export default function Profile() {
             ))}
 
             {replyTo[post.id] && (
-              <div style={{ display:'flex', alignItems:'center', gap:6, marginTop:8, background:'#FFF0F8', padding:'6px 10px', borderRadius:10 }}>
-                <HiReply size={14} color="#E91E8C"/>
-                <span style={{ fontSize:12, color:'#8B5A6F' }}>Répondre à <strong>{replyTo[post.id]}</strong></span>
-                <button onClick={() => setReplyTo(p=>({...p,[post.id]:null}))} style={{ marginLeft:'auto', background:'none', border:'none', cursor:'pointer', color:'#C4829F' }}><HiX size={14}/></button>
+              <div style={{ display:'flex', alignItems:'center', gap:6, marginTop:8, background:'#F0F2F5', padding:'6px 10px', borderRadius:10 }}>
+                <HiReply size={14} color="#1877F2"/>
+                <span style={{ fontSize:12, color:'#65676B' }}>Répondre à <strong>{replyTo[post.id]}</strong></span>
+                <button onClick={() => setReplyTo(p=>({...p,[post.id]:null}))} style={{ marginLeft:'auto', background:'none', border:'none', cursor:'pointer', color:'#65676B' }}><HiX size={14}/></button>
               </div>
             )}
 
@@ -426,13 +426,13 @@ export default function Profile() {
             )}
 
             <div style={{ display:'flex', gap:6, marginTop:10, alignItems:'center' }}>
-              <img src={userProfile?.photoURL||`https://ui-avatars.com/api/?name=${encodeURIComponent(userProfile?.fullName||'U')}&background=E91E8C&color=fff`} alt="" className="avatar" style={{ width:30, height:30, flexShrink:0 }}/>
+              <img src={userProfile?.photoURL||`https://ui-avatars.com/api/?name=${encodeURIComponent(userProfile?.fullName||'U')}&background=1877F2&color=fff`} alt="" className="avatar" style={{ width:30, height:30, flexShrink:0 }}/>
               <input ref={el=>cPhotoRef.current[post.id]=el} type="file" accept="image/jpeg,image/png,image/gif,image/webp" style={{ display:'none' }} onChange={e=>{const f=e.target.files[0];if(f)setCmtMedia(p=>({...p,[post.id]:{file:f,type:'image',preview:URL.createObjectURL(f)}}));}}/>
               <input ref={el=>cVideoRef.current[post.id]=el} type="file" accept="video/mp4,video/webm,video/quicktime" style={{ display:'none' }} onChange={e=>{const f=e.target.files[0];if(f)setCmtMedia(p=>({...p,[post.id]:{file:f,type:'video',preview:URL.createObjectURL(f)}}));}}/>
               <input className="input" placeholder={replyTo[post.id]?`Répondre à ${replyTo[post.id]}...`:t('writeComment')} value={cmtText[post.id]||''} onChange={e=>setCmtText(p=>({...p,[post.id]:e.target.value}))} onKeyDown={e=>e.key==='Enter'&&addComment(post.id)} style={{ flex:1, padding:'7px 12px', fontSize:13 }} maxLength={500}/>
-              <button onClick={() => cPhotoRef.current[post.id]?.click()} style={{ background:'none', border:'none', cursor:'pointer', color:'#C4829F', padding:4 }}><HiPhotograph size={18}/></button>
-              <button onClick={() => cVideoRef.current[post.id]?.click()} style={{ background:'none', border:'none', cursor:'pointer', color:'#C4829F', padding:4 }}><HiVideoCamera size={18}/></button>
-              <button onClick={() => addComment(post.id)} style={{ background:'linear-gradient(135deg,#E91E8C,#FF6BB5)', border:'none', borderRadius:'50%', width:32, height:32, cursor:'pointer', color:'white', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>➤</button>
+              <button onClick={() => cPhotoRef.current[post.id]?.click()} style={{ background:'none', border:'none', cursor:'pointer', color:'#65676B', padding:4 }}><HiPhotograph size={18}/></button>
+              <button onClick={() => cVideoRef.current[post.id]?.click()} style={{ background:'none', border:'none', cursor:'pointer', color:'#65676B', padding:4 }}><HiVideoCamera size={18}/></button>
+              <button onClick={() => addComment(post.id)} style={{ background:'linear-gradient(135deg,#FF2D8D,#FF7AB8)', border:'none', borderRadius:'50%', width:32, height:32, cursor:'pointer', color:'white', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>➤</button>
             </div>
           </div>
         )}
@@ -442,16 +442,16 @@ export default function Profile() {
 
   return (
     <div>
-      <div style={{ height:200, background:'linear-gradient(135deg,#E91E8C,#FF6BB5,#FFB3D9)', position:'relative' }}>
+      <div style={{ height:200, background:'linear-gradient(135deg,#1877F2,#63A9FF,#FFB3D9)', position:'relative' }}>
         {coverURL && <img src={coverURL} alt='cover' onClick={()=>setZoomPhoto(coverURL)} style={{ width:'100%', height:'100%', objectFit:'cover', position:'absolute', inset:0, cursor:'pointer' }}/>}
         {isOwn && <>
-          <button onClick={()=>coverRef.current.click()} disabled={uploadingCover} style={{ position:'absolute', bottom:10, right:10, background:'#E91E8C', border:'2px solid white', borderRadius:'50%', width:32, height:32, cursor:'pointer', color:'white', display:'flex', alignItems:'center', justifyContent:'center', zIndex:2 }}>{uploadingCover?'...':<HiCamera size={16}/>}</button>
+          <button onClick={()=>coverRef.current.click()} disabled={uploadingCover} style={{ position:'absolute', bottom:10, right:10, background:'#1877F2', border:'2px solid white', borderRadius:'50%', width:32, height:32, cursor:'pointer', color:'white', display:'flex', alignItems:'center', justifyContent:'center', zIndex:2 }}>{uploadingCover?'...':<HiCamera size={16}/>}</button>
           <input ref={coverRef} type='file' accept='image/*' onChange={uploadCoverPhoto} style={{ display:'none' }}/>
         </>}
         <div style={{ position:'absolute', bottom:-55, left:'50%', transform:'translateX(-50%)' }}>
           <div style={{ position:'relative' }}>
-            <img src={profile.photoURL||`https://ui-avatars.com/api/?name=${encodeURIComponent(profile.fullName)}&background=E91E8C&color=fff&size=100`} alt="" className="avatar avatar-ring" onClick={()=>setZoomPhoto(profile.photoURL)} style={{ width:100, height:100, border:'4px solid white', objectFit:'cover', cursor:'pointer' }}/>
-            {isOwn&&<><button onClick={() => photoRef.current.click()} disabled={uploadingPhoto} style={{ position:'absolute', bottom:2, right:2, background:'#E91E8C', border:'2px solid white', borderRadius:'50%', width:28, height:28, cursor:'pointer', color:'white', display:'flex', alignItems:'center', justifyContent:'center' }}>{uploadingPhoto?'...':<HiCamera size={14}/>}</button><input ref={photoRef} type="file" accept="image/*" onChange={uploadProfilePhoto} style={{ display:'none' }}/></>}
+            <img src={profile.photoURL||`https://ui-avatars.com/api/?name=${encodeURIComponent(profile.fullName)}&background=1877F2&color=fff&size=100`} alt="" className="avatar avatar-ring" onClick={()=>setZoomPhoto(profile.photoURL)} style={{ width:100, height:100, border:'4px solid white', objectFit:'cover', cursor:'pointer' }}/>
+            {isOwn&&<><button onClick={() => photoRef.current.click()} disabled={uploadingPhoto} style={{ position:'absolute', bottom:2, right:2, background:'#1877F2', border:'2px solid white', borderRadius:'50%', width:28, height:28, cursor:'pointer', color:'white', display:'flex', alignItems:'center', justifyContent:'center' }}>{uploadingPhoto?'...':<HiCamera size={14}/>}</button><input ref={photoRef} type="file" accept="image/*" onChange={uploadProfilePhoto} style={{ display:'none' }}/></>}
           </div>
         </div>
       </div>
@@ -468,14 +468,14 @@ export default function Profile() {
             <div onClick={() => navigate('/vip')} style={{ marginTop:12, padding:'10px 16px', background:'linear-gradient(135deg,#fef3c7,#fde68a)', borderRadius:12, cursor:'pointer', display:'flex', alignItems:'center', gap:8, border:'1px solid #fcd34d' }}>
               <HiStar size={18} color="#f59e0b"/>
               <div style={{ textAlign:'left' }}><p style={{ fontWeight:700, fontSize:13, color:'#92400e' }}>Compte VIP</p><p style={{ fontSize:11, color:'#a16207' }}>Cliquez pour en savoir plus</p></div>
-              {profile.isVip&&<span style={{ marginLeft:'auto', background:'#E91E8C', color:'white', fontSize:10, padding:'2px 6px', borderRadius:6, fontWeight:700 }}>ACTIF</span>}
+              {profile.isVip&&<span style={{ marginLeft:'auto', background:'#1877F2', color:'white', fontSize:10, padding:'2px 6px', borderRadius:6, fontWeight:700 }}>ACTIF</span>}
             </div>
           </div>
         ) : (
           <>
             <h2 style={{ fontWeight:700, fontSize:20 }}>{profile.fullName}{profile.isVip&&<VIPBadge/>}</h2>
-            <p style={{ color:'#C4829F', fontSize:14 }}>@{profile.username}</p>
-            {profile.bio&&<p style={{ marginTop:8, fontSize:14, color:'#8B5A6F', maxWidth:280, margin:'8px auto 0' }}>{profile.bio}</p>}
+            <p style={{ color:'#65676B', fontSize:14 }}>@{profile.username}</p>
+            {profile.bio&&<p style={{ marginTop:8, fontSize:14, color:'#65676B', maxWidth:280, margin:'8px auto 0' }}>{profile.bio}</p>}
             <div style={{ display:'flex', justifyContent:'center', gap:28, marginTop:16 }}>
               {[
                 { label:'Publications', value:regularPosts.length },
@@ -483,18 +483,18 @@ export default function Profile() {
                 { label:'Amis', value:friendCount, onClick:()=>setActiveTab('amis') },
               ].map(({label,value,onClick}) => (
                 <div key={label} style={{ textAlign:'center', cursor:onClick?'pointer':'default' }} onClick={onClick}>
-                  <p style={{ fontWeight:700, fontSize:20, color:'#E91E8C' }}>{value}</p>
-                  <p style={{ fontSize:11, color:'#C4829F' }}>{label}</p>
+                  <p style={{ fontWeight:700, fontSize:20, color:'#1877F2' }}>{value}</p>
+                  <p style={{ fontSize:11, color:'#65676B' }}>{label}</p>
                 </div>
               ))}
             </div>
             <div style={{ display:'flex', justifyContent:'center', gap:10, marginTop:14 }}>
               {isOwn ? (
-                <button onClick={() => setEditing(true)} style={{ display:'inline-flex', alignItems:'center', gap:6, background:'linear-gradient(135deg,#0a0a2e,#2d1b69)', border:'1px solid rgba(150,130,255,0.3)', borderRadius:20, padding:'8px 18px', color:'rgba(180,160,255,0.95)', fontWeight:600, cursor:'pointer', fontSize:13, boxShadow:'0 2px 12px rgba(45,27,105,0.4), inset 0 1px 0 rgba(255,255,255,0.1)' }}><HiPencil size={14}/>{t('editProfile')}</button>
+                <button onClick={() => setEditing(true)} style={{ display:'inline-flex', alignItems:'center', gap:6, background:"linear-gradient(180deg,#1B84FF,#1877F2)", border:"none", borderRadius:20, padding:'8px 18px', color:"white", fontWeight:600, cursor:'pointer', fontSize:13, boxShadow:"0 3px 12px rgba(24,119,242,.35)" }}><HiPencil size={14}/>{t('editProfile')}</button>
               ) : (
                 <>
                   <button onClick={() => navigate(`/messages/${getChatId(currentUser.uid,targetUid)}`)} className="btn-primary" style={{ fontSize:13, padding:'8px 18px' }}><HiChat size={14} style={{ display:'inline', marginRight:4 }}/>Message</button>
-                  {friendStatus==='none'&&<button onClick={sendFriendRequest} style={{ display:'inline-flex', alignItems:'center', gap:6, background:'linear-gradient(135deg,#0a0a2e,#2d1b69)', border:'1px solid rgba(150,130,255,0.3)', borderRadius:20, padding:'8px 16px', color:'rgba(180,160,255,0.95)', fontWeight:600, cursor:'pointer', fontSize:13, boxShadow:'0 2px 12px rgba(45,27,105,0.4), inset 0 1px 0 rgba(255,255,255,0.1)' }}><HiUserAdd size={14}/>Ajouter</button>}
+                  {friendStatus==='none'&&<button onClick={sendFriendRequest} style={{ display:'inline-flex', alignItems:'center', gap:6, background:"linear-gradient(180deg,#1B84FF,#1877F2)", border:"none", borderRadius:20, padding:'8px 16px', color:"white", fontWeight:600, cursor:'pointer', fontSize:13, boxShadow:"0 3px 12px rgba(24,119,242,.35)" }}><HiUserAdd size={14}/>Ajouter</button>}
                   {friendStatus==='requested'&&<span style={{ display:'inline-flex', alignItems:'center', background:'#F3F4F6', borderRadius:20, padding:'8px 16px', color:'#9CA3AF', fontSize:13 }}>Demande envoyée</span>}
                   {friendStatus==='friend'&&<span style={{ display:'inline-flex', alignItems:'center', background:'#D1FAE5', borderRadius:20, padding:'8px 16px', color:'#065F46', fontSize:13 }}>✓ Ami</span>}
                 </>
@@ -504,12 +504,12 @@ export default function Profile() {
         )}
       </div>
 
-      <div style={{ display:'flex', borderTop:'1px solid #FFE4F3', borderBottom:'1px solid #FFE4F3', background:'white', overflowX:'auto', scrollbarWidth:'none' }}>
+      <div style={{ display:'flex', borderTop:'1px solid #E4E6EB', borderBottom:'1px solid #E4E6EB', background:'white', overflowX:'auto', scrollbarWidth:'none' }}>
         {TABS.map(tab => (
           <button key={tab.key} onClick={() => setActiveTab(tab.key)}
             style={{ flexShrink:0, padding:'12px 16px', border:'none', background:'none', cursor:'pointer',
-              fontWeight:activeTab===tab.key?700:400, color:activeTab===tab.key?'#E91E8C':'#C4829F',
-              borderBottom:activeTab===tab.key?'2px solid #E91E8C':'2px solid transparent',
+              fontWeight:activeTab===tab.key?700:400, color:activeTab===tab.key?'#1877F2':'#65676B',
+              borderBottom:activeTab===tab.key?'2px solid #1877F2':'2px solid transparent',
               fontSize:13, fontFamily:'Poppins' }}>
             {tab.label}
           </button>
@@ -553,15 +553,15 @@ export default function Profile() {
         <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,.5)', zIndex:200, display:'flex', alignItems:'center', justifyContent:'center', padding:20 }}>
           <div className="card" style={{ width:'100%', maxWidth:360, padding:20, maxHeight:'70vh', overflowY:'auto' }}>
             <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:14 }}>
-              <h3 style={{ color:'#E91E8C', fontWeight:700 }}>Réactions</h3>
-              <button onClick={() => setRM(null)} style={{ background:'none', border:'none', cursor:'pointer', color:'#C4829F' }}><HiX size={20}/></button>
+              <h3 style={{ color:'#1877F2', fontWeight:700 }}>Réactions</h3>
+              <button onClick={() => setRM(null)} style={{ background:'none', border:'none', cursor:'pointer', color:'#65676B' }}><HiX size={20}/></button>
             </div>
             {Object.entries(reactionModal.reactions).map(([uid, emoji]) => {
               const info = reactionModal.userData?.[uid]||{};
               return (
                 <div key={uid} onClick={() => { setRM(null); navigate(`/profile/${uid}`); }}
-                  style={{ display:'flex', alignItems:'center', gap:10, padding:'8px 0', borderBottom:'1px solid #FFE4F3', cursor:'pointer' }}>
-                  <img src={info.photo||`https://ui-avatars.com/api/?name=${encodeURIComponent(info.name||'U')}&background=E91E8C&color=fff`} alt="" style={{ width:36, height:36, borderRadius:'50%', objectFit:'cover' }}/>
+                  style={{ display:'flex', alignItems:'center', gap:10, padding:'8px 0', borderBottom:'1px solid #E4E6EB', cursor:'pointer' }}>
+                  <img src={info.photo||`https://ui-avatars.com/api/?name=${encodeURIComponent(info.name||'U')}&background=1877F2&color=fff`} alt="" style={{ width:36, height:36, borderRadius:'50%', objectFit:'cover' }}/>
                   <p style={{ fontSize:14, fontWeight:600, flex:1 }}>{uid===currentUser.uid?'Vous':(info.name||uid)}</p>
                   <span style={{ fontSize:20 }}>{emoji}</span>
                 </div>
@@ -573,14 +573,14 @@ export default function Profile() {
 
       <div style={{ padding:12 }}>
         {activeTab==='photos'&&(photoPosts.length===0
-          ? <div style={{ textAlign:'center', padding:40, color:'#C4829F' }}>Aucune photo</div>
+          ? <div style={{ textAlign:'center', padding:40, color:'#65676B' }}>Aucune photo</div>
           : <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:4 }}>
               {allPhotos.map(p => <div key={p.id} onClick={() => p.isProfilePhoto||p.isCoverPhoto ? setZoomPhoto(p.mediaURL) : navigate(`/post/${p.id}`)} style={{ aspectRatio:'1', overflow:'hidden', borderRadius:8, cursor:'pointer' }}><img src={p.mediaURL} alt="" style={{ width:'100%', height:'100%', objectFit:'cover' }}/></div>)}
             </div>
         )}
 
         {activeTab==='videos'&&(videoPosts.length===0
-          ? <div style={{ textAlign:'center', padding:40, color:'#C4829F' }}>Aucune vidéo</div>
+          ? <div style={{ textAlign:'center', padding:40, color:'#65676B' }}>Aucune vidéo</div>
           : <div style={{ display:'grid', gridTemplateColumns:'repeat(2,1fr)', gap:8 }}>
               {videoPosts.map(p => (
                 <div key={p.id} onClick={() => navigate(`/post/${p.id}`)} style={{ aspectRatio:'9/16', overflow:'hidden', borderRadius:10, cursor:'pointer', position:'relative' }}>
@@ -594,18 +594,18 @@ export default function Profile() {
         )}
 
         {activeTab==='amis'&&(
-          loadingFriends ? <div style={{ textAlign:'center', padding:30, color:'#C4829F' }}>{t('loading')}</div>
-          : friendsData.length===0 ? <div style={{ textAlign:'center', padding:40, color:'#C4829F' }}>Aucun ami pour le moment</div>
+          loadingFriends ? <div style={{ textAlign:'center', padding:30, color:'#65676B' }}>{t('loading')}</div>
+          : friendsData.length===0 ? <div style={{ textAlign:'center', padding:40, color:'#65676B' }}>Aucun ami pour le moment</div>
           : <div style={{ display:'grid', gridTemplateColumns:'repeat(2,1fr)', gap:10 }}>
               {friendsData.map(f => (
                 <div key={f.uid} onClick={() => navigate(`/profile/${f.uid}`)} className="card"
                   style={{ padding:14, display:'flex', flexDirection:'column', alignItems:'center', gap:8, cursor:'pointer', textAlign:'center' }}>
-                  <img src={f.photoURL||`https://ui-avatars.com/api/?name=${encodeURIComponent(f.fullName||'U')}&background=E91E8C&color=fff`} alt="" style={{ width:60, height:60, borderRadius:'50%', objectFit:'cover', border:'2px solid #FFE4F3' }}/>
+                  <img src={f.photoURL||`https://ui-avatars.com/api/?name=${encodeURIComponent(f.fullName||'U')}&background=1877F2&color=fff`} alt="" style={{ width:60, height:60, borderRadius:'50%', objectFit:'cover', border:'2px solid #E4E6EB' }}/>
                   <div>
-                    <p style={{ fontWeight:600, fontSize:13, color:'#2D1220' }}>{f.fullName}{f.isVip&&<img src='/vip-badge.png' style={{ width:32, height:32, marginLeft:5, verticalAlign:'middle', display:'inline-block', flexShrink:0, objectFit:'contain' }} alt='VIP'/>}</p>
-                    <p style={{ fontSize:11, color:'#C4829F' }}>@{f.username}</p>
+                    <p style={{ fontWeight:600, fontSize:13, color:'#050505' }}>{f.fullName}{f.isVip&&<img src='/vip-badge.png' style={{ width:32, height:32, marginLeft:5, verticalAlign:'middle', display:'inline-block', flexShrink:0, objectFit:'contain' }} alt='VIP'/>}</p>
+                    <p style={{ fontSize:11, color:'#65676B' }}>@{f.username}</p>
                   </div>
-                  <button onClick={e=>{e.stopPropagation();navigate(`/messages/${getChatId(currentUser.uid,f.uid)}`);}} style={{ background:'#FFE4F3', border:'none', borderRadius:16, padding:'5px 12px', color:'#E91E8C', cursor:'pointer', fontSize:12, display:'flex', alignItems:'center', gap:4 }}><HiChat size={12}/>Message</button>
+                  <button onClick={e=>{e.stopPropagation();navigate(`/messages/${getChatId(currentUser.uid,f.uid)}`);}} style={{ background:'#E4E6EB', border:'none', borderRadius:16, padding:'5px 12px', color:'#1877F2', cursor:'pointer', fontSize:12, display:'flex', alignItems:'center', gap:4 }}><HiChat size={12}/>Message</button>
                 </div>
               ))}
             </div>
@@ -613,7 +613,7 @@ export default function Profile() {
 
         {(activeTab==='posts'||activeTab==='sales')&&(
           getTabContent().length===0
-            ? <div style={{ textAlign:'center', padding:40, color:'#C4829F' }}>Aucun contenu</div>
+            ? <div style={{ textAlign:'center', padding:40, color:'#65676B' }}>Aucun contenu</div>
             : getTabContent().map(post => renderPost(post))
         )}
       </div>

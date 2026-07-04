@@ -16,10 +16,10 @@ export default function BoostInfo() {
   return (
     <div style={{ padding: '16px 12px' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 24 }}>
-        <button onClick={() => navigate(-1)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#E91E8C' }}>
+        <button onClick={() => navigate(-1)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#1877F2' }}>
           <HiArrowLeft size={22} />
         </button>
-        <h2 style={{ fontWeight: 700, fontSize: 20, color: '#E91E8C' }}>Booster un post</h2>
+        <h2 style={{ fontWeight: 700, fontSize: 20, color: '#1877F2' }}>Booster un post</h2>
       </div>
 
       {/* Hero */}
@@ -35,7 +35,7 @@ export default function BoostInfo() {
 
       {/* Features */}
       <div className="card" style={{ padding: 20, marginBottom: 16 }}>
-        <h4 style={{ fontWeight: 700, fontSize: 16, marginBottom: 14, color: '#E91E8C' }}>🚀 Ce que vous obtenez</h4>
+        <h4 style={{ fontWeight: 700, fontSize: 16, marginBottom: 14, color: '#1877F2' }}>🚀 Ce que vous obtenez</h4>
         {BOOST_FEATURES.map((f, i) => (
           <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, marginBottom: 12 }}>
             <HiCheckCircle size={18} color="#10b981" style={{ flexShrink: 0, marginTop: 1 }} />
@@ -46,15 +46,15 @@ export default function BoostInfo() {
 
       {/* Contact */}
       <div className="card" style={{ padding: 20, marginBottom: 20 }}>
-        <h4 style={{ fontWeight: 700, fontSize: 16, marginBottom: 12, color: '#E91E8C' }}>📩 Comment booster ?</h4>
-        <p style={{ fontSize: 14, color: '#8B5A6F', lineHeight: 1.7, marginBottom: 14 }}>
-          Envoyez un email à l'administrateur Tsengo pour booster votre post. Précisez :<br/>
+        <h4 style={{ fontWeight: 700, fontSize: 16, marginBottom: 12, color: '#1877F2' }}>📩 Comment booster ?</h4>
+        <p style={{ fontSize: 14, color: '#65676B', lineHeight: 1.7, marginBottom: 14 }}>
+          Envoyez un email à l'administrateur Traingo pour booster votre post. Précisez :<br/>
           • Le lien ou l'identifiant de votre post<br/>
           • La durée souhaitée du boost<br/>
-          • Votre username Tsengo
+          • Votre username Traingo
         </p>
         <a
-          href="mailto:randrianarivera67@gmail.com?subject=Demande boost post Tsengo"
+          href="mailto:randrianarivera67@gmail.com?subject=Demande boost post Traingo"
           style={{
             display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
             background: 'linear-gradient(135deg,#7c3aed,#a855f7)',
@@ -64,7 +64,7 @@ export default function BoostInfo() {
         >
           <HiMail size={18} /> Contacter pour booster
         </a>
-        <p style={{ textAlign: 'center', fontSize: 12, color: '#C4829F', marginTop: 10 }}>
+        <p style={{ textAlign: 'center', fontSize: 12, color: '#65676B', marginTop: 10 }}>
           randrianarivera67@gmail.com
         </p>
       </div>

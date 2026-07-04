@@ -1,4 +1,7 @@
-const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'https://tsengo-backend.onrender.com';
+process.chdir(__dirname);
+const fs = require("fs");
+
+const newContent = `const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'https://tsengo-backend.onrender.com';
 
 async function compressImage(file, maxWidth=1080, quality=0.8) {
   if (!file.type.startsWith('image/')) return file;
@@ -24,7 +27,7 @@ export async function uploadToTelegram(file, onProgress) {
   }
 
   const form = new FormData();
-  form.append('file', file, file.name || `file_${Date.now()}`);
+  form.append('file', file, file.name || \`file_\${Date.now()}\`);
 
   // Video >= 19MB → /telegram/upload-large (GramJS 2GB)
   // Hafa → /telegram/upload (Bot API)
@@ -33,26 +36,19 @@ export async function uploadToTelegram(file, onProgress) {
 
   if (onProgress) onProgress(10);
 
-  let res;
-  try {
-    res = await fetch(`${BACKEND_URL}${endpoint}`, { method: 'POST', body: form });
-  } catch (e) {
-    throw new Error('Serveur injoignable (connexion ou CORS) : ' + e.message);
-  }
+  const res = await fetch(\`\${BACKEND_URL}\${endpoint}\`, { method: 'POST', body: form });
 
   if (onProgress) onProgress(90);
 
-  let data;
-  try {
-    data = await res.json();
-  } catch {
-    throw new Error(`Upload échoué (HTTP ${res.status}). Fichier trop volumineux ou serveur indisponible.`);
-  }
-  if (!res.ok || data.error) throw new Error(data.error || `Upload échoué (HTTP ${res.status})`);
-  if (!data.url && !data.fileId) throw new Error("Upload échoué : réponse du serveur sans URL");
+  const data = await res.json();
+  if (data.error) throw new Error(data.error);
 
   if (onProgress) onProgress(100);
 
-  const url = data.url || (data.fileId ? `${BACKEND_URL}/media-id?file_id=${data.fileId}` : null);
+  const url = data.url || (data.fileId ? \`\${BACKEND_URL}/media-id?file_id=\${data.fileId}\` : null);
   return { url, fileId: data.fileId, messageId: data.messageId, type: data.type };
 }
+`;
+
+fs.writeFileSync("src/utils/telegram.js", newContent);
+console.log("telegram.js updated!");

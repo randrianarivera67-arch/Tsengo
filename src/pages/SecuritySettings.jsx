@@ -64,10 +64,10 @@ export default function SecuritySettings() {
   return (
     <div style={{ padding: '16px 12px' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 24 }}>
-        <button onClick={() => { if (section) { setSection(null); setMessage(null); setError(null); } else navigate('/settings'); }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#E91E8C', display: 'flex', alignItems: 'center' }}>
+        <button onClick={() => { if (section) { setSection(null); setMessage(null); setError(null); } else navigate('/settings'); }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#1877F2', display: 'flex', alignItems: 'center' }}>
           <HiArrowLeft size={22} />
         </button>
-        <h2 style={{ fontWeight: 700, fontSize: 20, color: '#E91E8C' }}>Sécurité</h2>
+        <h2 style={{ fontWeight: 700, fontSize: 20, color: '#1877F2' }}>Sécurité</h2>
       </div>
 
       {message && (
@@ -92,10 +92,10 @@ export default function SecuritySettings() {
                 style={{
                   display: 'flex', alignItems: 'center', gap: 14,
                   padding: '14px 16px', cursor: 'pointer',
-                  borderBottom: i < items.length - 1 ? '1px solid #FFF0F8' : 'none',
+                  borderBottom: i < items.length - 1 ? '1px solid #F0F2F5' : 'none',
                   transition: 'background 0.15s'
                 }}
-                onMouseEnter={e => e.currentTarget.style.background = '#FFF8FC'}
+                onMouseEnter={e => e.currentTarget.style.background = '#F0F2F5'}
                 onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
               >
                 <div style={{ width: 38, height: 38, borderRadius: 12, background: item.color + '15', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -103,9 +103,9 @@ export default function SecuritySettings() {
                 </div>
                 <div style={{ flex: 1 }}>
                   <p style={{ fontWeight: 600, fontSize: 14 }}>{item.label}</p>
-                  <p style={{ fontSize: 12, color: '#C4829F' }}>{item.desc}</p>
+                  <p style={{ fontSize: 12, color: '#65676B' }}>{item.desc}</p>
                 </div>
-                <HiChevronRight size={18} color="#C4829F" />
+                <HiChevronRight size={18} color="#65676B" />
               </div>
             );
           })}
@@ -114,8 +114,8 @@ export default function SecuritySettings() {
 
       {section === 'email' && (
         <div className="card" style={{ padding: 20 }}>
-          <h3 style={{ fontWeight: 700, fontSize: 16, marginBottom: 16, color: '#E91E8C' }}>Modifier l'email</h3>
-          <p style={{ fontSize: 12, color: '#8B5A6F', marginBottom: 16 }}>Email actuel : <strong>{currentUser?.email}</strong></p>
+          <h3 style={{ fontWeight: 700, fontSize: 16, marginBottom: 16, color: '#1877F2' }}>Modifier l'email</h3>
+          <p style={{ fontSize: 12, color: '#65676B', marginBottom: 16 }}>Email actuel : <strong>{currentUser?.email}</strong></p>
           <input className="input" placeholder="Nouveau email" value={newEmail} onChange={e => setNewEmail(e.target.value)} style={{ marginBottom: 10 }} type="email" />
           <input className="input" placeholder="Mot de passe actuel" value={currentPassword} onChange={e => setCurrentPassword(e.target.value)} style={{ marginBottom: 16 }} type="password" />
           <button className="btn-primary" onClick={handleEmailUpdate} disabled={loading} style={{ width: '100%' }}>
@@ -126,7 +126,7 @@ export default function SecuritySettings() {
 
       {section === 'password' && (
         <div className="card" style={{ padding: 20 }}>
-          <h3 style={{ fontWeight: 700, fontSize: 16, marginBottom: 16, color: '#E91E8C' }}>Modifier le mot de passe</h3>
+          <h3 style={{ fontWeight: 700, fontSize: 16, marginBottom: 16, color: '#1877F2' }}>Modifier le mot de passe</h3>
           <input className="input" placeholder="Mot de passe actuel" value={currentPassword} onChange={e => setCurrentPassword(e.target.value)} style={{ marginBottom: 10 }} type="password" />
           <input className="input" placeholder="Nouveau mot de passe" value={newPassword} onChange={e => setNewPassword(e.target.value)} style={{ marginBottom: 10 }} type="password" />
           <input className="input" placeholder="Confirmer mot de passe" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} style={{ marginBottom: 16 }} type="password" />
@@ -138,24 +138,24 @@ export default function SecuritySettings() {
 
       {section === 'help' && (
         <div className="card" style={{ padding: 20 }}>
-          <h3 style={{ fontWeight: 700, fontSize: 16, marginBottom: 16, color: '#E91E8C' }}>Aide & Support</h3>
-          <p style={{ fontSize: 14, color: '#8B5A6F', lineHeight: 1.7, marginBottom: 20 }}>
-            Misy olana ve ianao na manana fanontaniana momba ny Tsengo?<br/>
+          <h3 style={{ fontWeight: 700, fontSize: 16, marginBottom: 16, color: '#1877F2' }}>Aide & Support</h3>
+          <p style={{ fontSize: 14, color: '#65676B', lineHeight: 1.7, marginBottom: 20 }}>
+            Misy olana ve ianao na manana fanontaniana momba ny Traingo?<br/>
             Mifandraisa aminay amin'ny alalan'ny e-mail eto ambany.
           </p>
           <a
             href="mailto:randrianarivera67@gmail.com"
             style={{
               display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-              background: 'linear-gradient(135deg,#E91E8C,#FF6BB5)',
+              background: 'linear-gradient(135deg,#FF2D8D,#FF7AB8)',
               color: 'white', borderRadius: 25, padding: '12px 20px',
               textDecoration: 'none', fontWeight: 700, fontSize: 14,
             }}
           >
             <HiMail size={18} /> randrianarivera67@gmail.com
           </a>
-          <div style={{ marginTop: 14, padding: 14, background: '#FFF0F8', borderRadius: 12 }}>
-            <p style={{ fontSize: 12, color: '#C4829F', lineHeight: 1.6 }}>
+          <div style={{ marginTop: 14, padding: 14, background: '#F0F2F5', borderRadius: 12 }}>
+            <p style={{ fontSize: 12, color: '#65676B', lineHeight: 1.6 }}>
               📋 Raha manana olana momba ny kaonty, ny password, na ny fonctionnalité rehetra dia mira e-mail dia valiana vetivety.
             </p>
           </div>

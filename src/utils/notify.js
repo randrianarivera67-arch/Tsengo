@@ -28,7 +28,7 @@ export async function sendNotification({
     message: '📩',
   };
 
-  const title = `Tsengo ${icons[type] || '🔔'}`;
+  const title = `Traingo ${icons[type] || '🔔'}`;
 
   try {
     // 1. Tehirizo ao Firestore
