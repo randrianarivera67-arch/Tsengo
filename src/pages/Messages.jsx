@@ -82,6 +82,7 @@ export default function Messages() {
   const groupPhotoRef = useRef();
   const [uploadingGroupPhoto, setUploadingGroupPhoto] = useState(false);
   const [editGroupOpen,  setEditGroupOpen]  = useState(false);
+  const [msgSearchOpen,  setMsgSearchOpen]  = useState(false);
   const [editGroupName,  setEditGroupName]  = useState('');
   const [savingGroup,    setSavingGroup]    = useState(false);
   const [groupMemberProfiles, setGroupMemberProfiles] = useState([]);
@@ -462,7 +463,7 @@ export default function Messages() {
 
       {/* ── Confirmation dialog ───────────────────────────────── */}
       {transferMsg && (
-        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", zIndex: 500, display: "flex", alignItems: "flex-end", justifyContent: "center" }} onClick={() => setTransferMsg(null)}>
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", zIndex: 430, display: "flex", alignItems: "flex-end", justifyContent: "center" }} onClick={() => setTransferMsg(null)}>
           <div style={{ background: "white", borderRadius: "20px 20px 0 0", padding: 24, width: "100%", maxHeight: "60vh", overflowY: "auto" }} onClick={e => e.stopPropagation()}>
             <p style={{ fontWeight: 700, fontSize: 16, color: "#050505", marginBottom: 16 }}>↪️ Transférer à...</p>
             {conversations.map(conv => (
@@ -503,12 +504,11 @@ export default function Messages() {
               style={{ padding: '5px 12px', fontSize: 12, display: 'flex', alignItems: 'center', gap: 5 }}>
               <HiUserGroup size={15} /> Groupe
             </button>
-            {conversations.length > 0 && (
-              <button onClick={() => setDeleteConfirm('all')}
-                style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#65676B', padding: 4, display: 'flex', alignItems: 'center', gap: 4, fontSize: 12 }}>
-                <HiTrash size={16} /> Tout supprimer
-              </button>
-            )}
+            <button onClick={() => setMsgSearchOpen(p => !p)}
+              style={{ marginLeft: 'auto', width: 36, height: 36, borderRadius: '50%', background: msgSearchOpen ? '#E7F0FE' : '#F0F2F5', border: 'none', cursor: 'pointer', color: '#050505', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <HiSearch size={17} />
+            </button>
+
           </div>
 
           {friendsProfiles.length > 0 && (
@@ -528,10 +528,12 @@ export default function Messages() {
             </div>
           )}
 
-          <div style={{ position: 'relative' }}>
-            <HiSearch style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: '#65676B' }} />
-            <input className="input" placeholder={t('search')} value={search} onChange={e => searchFriends(e.target.value)} style={{ paddingLeft: 32, fontSize: 13 }} />
-          </div>
+          {msgSearchOpen && (
+            <div style={{ position: 'relative' }}>
+              <HiSearch style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: '#65676B' }} />
+              <input className="input" autoFocus placeholder={t('search')} value={search} onChange={e => searchFriends(e.target.value)} style={{ paddingLeft: 34, fontSize: 13, borderRadius: 30 }} />
+            </div>
+          )}
 
           {searchResults.length > 0 && (
             <div className="card" style={{ marginTop: 6, overflow: 'hidden' }}>
@@ -614,10 +616,10 @@ export default function Messages() {
 
       {/* ── Zone de discussion ──────────────────────────────────── */}
       {activeChatId && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 250, display: 'flex', flexDirection: 'column', background: theme.bg, width: '100%', height: '100dvh' }}>
+        <div style={{ position: 'fixed', inset: 0, zIndex: 250, display: 'flex', flexDirection: 'column', background: theme.bg, width: '100%', height: '100dvh', overflow: 'hidden' }}>
 
           {/* Header chat */}
-          <div style={{ background: 'white', borderBottom: '1px solid #E4E6EB', padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 10, position: 'sticky', top: 0, zIndex: 10 }}>
+          <div style={{ background: 'white', borderBottom: '1px solid #E4E6EB', padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0, zIndex: 10 }}>
             <button onClick={() => { setActiveChatId(null); navigate('/messages', { replace: true }); }}
               style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#1877F2' }}>
               <HiArrowLeft size={22} />
@@ -819,7 +821,7 @@ export default function Messages() {
 
       {/* Zoom media modal */}
       {zoomMedia && (
-        <div onClick={()=>setZoomMedia(null)} style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.95)', zIndex:300, display:'flex', alignItems:'center', justifyContent:'center' }}>
+        <div onClick={()=>setZoomMedia(null)} style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.95)', zIndex:450, display:'flex', alignItems:'center', justifyContent:'center' }}>
           {zoomMedia.type==='image' ? <img src={zoomMedia.url} alt='' style={{ maxWidth:'100%', maxHeight:'100%', objectFit:'contain' }}/> : <video src={zoomMedia.url} controls style={{ maxWidth:'100%', maxHeight:'100%' }}/>}
           <button onClick={()=>setZoomMedia(null)} style={{ position:'absolute', top:16, right:16, background:'none', border:'none', color:'white', fontSize:28, cursor:'pointer' }}>✕</button>
         </div>
@@ -827,7 +829,7 @@ export default function Messages() {
 
       {/* Médias partagés modal */}
       {mediaModal && (
-        <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.5)', zIndex:200, display:'flex', alignItems:'flex-end', justifyContent:'center' }} onClick={()=>setMediaModal(false)}>
+        <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.5)', zIndex:420, display:'flex', alignItems:'flex-end', justifyContent:'center' }} onClick={()=>setMediaModal(false)}>
           <div onClick={e=>e.stopPropagation()} style={{ background:'white', borderRadius:'20px 20px 0 0', padding:20, width:'100%', maxHeight:'75vh', overflowY:'auto' }}>
             <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:16 }}>
               <h3 style={{ fontWeight:700, color:'#1877F2' }}>Médias partagés</h3>
@@ -871,7 +873,7 @@ export default function Messages() {
 
       {/* Thème modal */}
       {themeModal && (
-        <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.5)', zIndex:200, display:'flex', alignItems:'flex-end', justifyContent:'center' }} onClick={()=>setThemeModal(false)}>
+        <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.5)', zIndex:420, display:'flex', alignItems:'flex-end', justifyContent:'center' }} onClick={()=>setThemeModal(false)}>
           <div onClick={e=>e.stopPropagation()} style={{ background:'white', borderRadius:'20px 20px 0 0', padding:20, width:'100%' }}>
             <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:16 }}>
               <h3 style={{ fontWeight:700, color:'#1877F2' }}>Thème</h3>

@@ -222,14 +222,6 @@ export default function Layout({ children }) {
           })}
         </nav>
 
-        {/* Créer un groupe (format Facebook) */}
-        <div style={{ padding: '8px 12px', borderTop: `1px solid ${bdr}` }}>
-          <button onClick={() => { setDrawerOpen(false); navigate('/messages', { state: { createGroup: true } }); }}
-            className="btn-gold" style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '11px 4px', fontSize: 13, borderRadius: 14, whiteSpace: 'nowrap', overflow: 'hidden' }}>
-            <HiChat size={16} style={{ flexShrink: 0 }} /> Nouvelle discussion
-          </button>
-        </div>
-
         {/* Logout */}
         <div style={{ padding: '8px 0', borderTop: `1px solid ${bdr}` }}>
           <button onClick={handleLogout} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 14, padding: '13px 20px', background: 'none', border: 'none', cursor: 'pointer', color: '#1877F2', fontWeight: 600, fontSize: 15 }}>
@@ -255,8 +247,8 @@ export default function Layout({ children }) {
           </div>
 
           {/* Recherche — bouton rond (format Facebook), à gauche du bouton messages */}
-          <button onClick={() => setSearchBarOpen(p => !p)}
-            style={{ width: 40, height: 40, borderRadius: '50%', background: searchBarOpen ? '#E7F0FE' : '#F0F2F5', border: 'none', cursor: 'pointer', color: '#050505', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+          <button onClick={() => navigate('/search')}
+            style={{ width: 40, height: 40, borderRadius: '50%', background: '#F0F2F5', border: 'none', cursor: 'pointer', color: '#050505', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
             <HiSearch size={20} />
           </button>
 
@@ -272,133 +264,6 @@ export default function Layout({ children }) {
           </button>
         </div>
 
-        {/* Barre de recherche repliable (ronde, format Facebook) */}
-        {searchBarOpen && (
-        <div ref={searchRef} style={{ padding: '0 12px 10px', position: 'relative' }}>
-          <div style={{ position: 'relative' }}>
-            <HiSearch style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: '#65676B', pointerEvents: 'none', zIndex: 1 }} size={15} />
-            <input
-              type="text"
-              autoFocus
-              placeholder="Rechercher..."
-              value={search}
-              onChange={e => handleSearch(e.target.value)}
-              onFocus={() => search.trim() && setSearchOpen(true)}
-              style={{
-                width: '100%', padding: '8px 12px 8px 34px',
-                border: `1.5px solid ${isDark ? '#232733' : '#D1D5DB'}`, borderRadius: 22,
-                background: isDark ? '#1C2028' : 'white', color: text,
-                fontSize: 13, outline: 'none', boxSizing: 'border-box', fontFamily: 'Poppins',
-              }}
-            />
-            {search && (
-              <button onClick={() => { setSearch(''); setSearchResults({ users: [], posts: [] }); setSearchOpen(false); }}
-                style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#65676B', padding: 0 }}>
-                <HiX size={14} />
-              </button>
-            )}
-          </div>
-
-          {/* Résultats de recherche */}
-          {searchOpen && hasResults && (
-            <div style={{
-              position: 'absolute', top: 'calc(100% - 2px)', left: 14, right: 14, zIndex: 300,
-              background: bg, border: `1px solid ${bdr}`, borderRadius: 14,
-              boxShadow: '0 8px 30px rgba(24,119,242,.12)', overflow: 'hidden',
-              maxHeight: 380, overflowY: 'auto',
-            }}>
-              {/* Personnes */}
-              {searchResults.users.length > 0 && (
-                <>
-                  <div style={{ padding: '8px 14px 3px', fontSize: 10, fontWeight: 700, color: '#65676B', textTransform: 'uppercase', letterSpacing: 1 }}>👤 Personnes</div>
-                  {searchResults.users.map(u => (
-                    <div key={u.id} onClick={() => { navigate(`/profile/${u.id}`); setSearch(''); setSearchOpen(false); }}
-                      style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 14px', cursor: 'pointer', borderBottom: `1px solid ${bdr}` }}>
-                      <img src={u.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(u.fullName || 'U')}&background=1877F2&color=fff`}
-                        alt="" style={{ width: 36, height: 36, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} />
-                      <div>
-                        <p style={{ fontWeight: 600, fontSize: 13, color: text }}>
-                          {u.fullName}
-                          {u.isVip && <img src='/vip-badge.png' style={{ width:24, height:24, marginLeft:5, verticalAlign:'middle', display:'inline-block', flexShrink:0, objectFit:'contain' }} alt='VIP'/>}
-                        </p>
-                        <p style={{ fontSize: 11, color: '#65676B' }}>@{u.username}</p>
-                      </div>
-                    </div>
-                  ))}
-                </>
-              )}
-
-              {/* Ventes */}
-              {ventes.length > 0 && (
-                <>
-                  <div style={{ padding: '8px 14px 3px', fontSize: 10, fontWeight: 700, color: '#65676B', textTransform: 'uppercase', letterSpacing: 1 }}>🏷️ Ventes</div>
-                  {ventes.map(p => (
-                    <div key={p.id} onClick={() => { navigate(`/post/${p.id}`); setSearch(''); setSearchOpen(false); }}
-                      style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 14px', cursor: 'pointer', borderBottom: `1px solid ${bdr}` }}>
-                      <div style={{ width: 36, height: 36, borderRadius: 8, background: isDark ? '#232733' : '#E4E6EB', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, flexShrink: 0 }}>🏷️</div>
-                      <div style={{ minWidth: 0 }}>
-                        <p style={{ fontWeight: 600, fontSize: 12, color: text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.content || 'Vente'}</p>
-                        <p style={{ fontSize: 11, color: '#1877F2', fontWeight: 700 }}>{p.price?.toLocaleString()} Ar</p>
-                      </div>
-                    </div>
-                  ))}
-                </>
-              )}
-
-              {/* Vidéos */}
-              {videos.length > 0 && (
-                <>
-                  <div style={{ padding: '8px 14px 3px', fontSize: 10, fontWeight: 700, color: '#65676B', textTransform: 'uppercase', letterSpacing: 1 }}>🎬 Vidéos</div>
-                  {videos.map(p => (
-                    <div key={p.id} onClick={() => { navigate(`/post/${p.id}`); setSearch(''); setSearchOpen(false); }}
-                      style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 14px', cursor: 'pointer', borderBottom: `1px solid ${bdr}` }}>
-                      <div style={{ width: 36, height: 36, borderRadius: 8, background: isDark ? '#232733' : '#E4E6EB', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, flexShrink: 0 }}>🎬</div>
-                      <div style={{ minWidth: 0 }}>
-                        <p style={{ fontWeight: 600, fontSize: 12, color: text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.content || 'Vidéo'}</p>
-                        <p style={{ fontSize: 11, color: '#65676B' }}>{p.authorName}</p>
-                      </div>
-                    </div>
-                  ))}
-                </>
-              )}
-
-              {/* Photos */}
-              {photos.length > 0 && (
-                <>
-                  <div style={{ padding: '8px 14px 3px', fontSize: 10, fontWeight: 700, color: '#65676B', textTransform: 'uppercase', letterSpacing: 1 }}>📸 Photos</div>
-                  {photos.map(p => (
-                    <div key={p.id} onClick={() => { navigate(`/post/${p.id}`); setSearch(''); setSearchOpen(false); }}
-                      style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 14px', cursor: 'pointer', borderBottom: `1px solid ${bdr}` }}>
-                      <div style={{ width: 36, height: 36, borderRadius: 8, background: isDark ? '#232733' : '#E4E6EB', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, flexShrink: 0 }}>📸</div>
-                      <div style={{ minWidth: 0 }}>
-                        <p style={{ fontWeight: 600, fontSize: 12, color: text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.content || 'Photo'}</p>
-                        <p style={{ fontSize: 11, color: '#65676B' }}>{p.authorName}</p>
-                      </div>
-                    </div>
-                  ))}
-                </>
-              )}
-
-              {/* Publications texte */}
-              {textPosts.length > 0 && (
-                <>
-                  <div style={{ padding: '8px 14px 3px', fontSize: 10, fontWeight: 700, color: '#65676B', textTransform: 'uppercase', letterSpacing: 1 }}>📝 Publications</div>
-                  {textPosts.map(p => (
-                    <div key={p.id} onClick={() => { navigate(`/post/${p.id}`); setSearch(''); setSearchOpen(false); }}
-                      style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 14px', cursor: 'pointer', borderBottom: `1px solid ${bdr}` }}>
-                      <div style={{ width: 36, height: 36, borderRadius: 8, background: isDark ? '#232733' : '#E4E6EB', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, flexShrink: 0 }}>📝</div>
-                      <div style={{ minWidth: 0 }}>
-                        <p style={{ fontWeight: 600, fontSize: 12, color: text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.content}</p>
-                        <p style={{ fontSize: 11, color: '#65676B' }}>{p.authorName}</p>
-                      </div>
-                    </div>
-                  ))}
-                </>
-              )}
-            </div>
-          )}
-        </div>
-        )}
       </header>
 
       <main style={{ maxWidth: 680, margin: '0 auto', padding: 0, width: '100%' }}>{children}</main>

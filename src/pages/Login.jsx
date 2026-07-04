@@ -54,7 +54,7 @@ export default function Login() {
       <div style={{ width: '100%', maxWidth: 400 }}>
         {/* Logo */}
         <div style={{ textAlign: 'center', marginBottom: 40 }}>
-          <img src="/tsengo-logo.png" alt="Traingo" className="logo-shimmer" style={{ width:90, height:90, objectFit:"cover", borderRadius:"50%", margin:"0 auto 12px", display:"block" }}/>
+          <img src="/tsengo-logo.png" alt="Traingo" style={{ width:96, height:96, objectFit:"contain", margin:"0 auto 12px", display:"block" }}/>
           <h1 style={{ fontSize: 32, fontWeight: 800, color: '#1877F2', letterSpacing: -1 }}>Traingo</h1>
           <p style={{ color: '#65676B', marginTop: 4, fontSize: 14 }}>{t('welcomeTo')} Traingo</p>
         </div>

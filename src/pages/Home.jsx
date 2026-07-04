@@ -608,10 +608,16 @@ export default function Home() {
               {post.groupName ? (
                 /* Pub de groupe : photo + nom du groupe (→ groupe), auteur dessous (→ profil) */
                 <div style={{ display:'flex', alignItems:'center', gap:10, flex:1, minWidth:0 }}>
-                  <div onClick={() => navigate(`/groups/${post.groupId}`)} style={{ width:40, height:40, borderRadius:10, background:'linear-gradient(135deg,#1B84FF,#1877F2)', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0, cursor:'pointer', overflow:'hidden', boxShadow:'0 2px 8px rgba(24,119,242,.3)' }}>
-                    {post.groupPhoto
-                      ? <img src={post.groupPhoto} alt="" style={{ width:'100%', height:'100%', objectFit:'cover' }}/>
-                      : <HiUserGroup size={20} color="white"/>}
+                  <div style={{ position:'relative', flexShrink:0, width:44, height:44 }}>
+                    <div onClick={() => navigate(`/groups/${post.groupId}`)} style={{ width:44, height:44, borderRadius:10, background:'linear-gradient(135deg,#1B84FF,#1877F2)', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', overflow:'hidden', boxShadow:'0 2px 8px rgba(24,119,242,.3)' }}>
+                      {post.groupPhoto
+                        ? <img src={post.groupPhoto} alt="" style={{ width:'100%', height:'100%', objectFit:'cover' }}/>
+                        : <HiUserGroup size={22} color="white"/>}
+                    </div>
+                    {/* Avatar an'ilay olona superposé (format Facebook) */}
+                    <img onClick={() => navigate(`/profile/${post.uid}`)}
+                      src={post.authorPhoto||`https://ui-avatars.com/api/?name=${encodeURIComponent(post.authorName||'U')}&background=1877F2&color=fff`}
+                      alt="" style={{ position:'absolute', bottom:-4, right:-4, width:22, height:22, borderRadius:'50%', objectFit:'cover', border:'2.5px solid white', cursor:'pointer', boxShadow:'0 1px 4px rgba(0,0,0,.25)' }}/>
                   </div>
                   <div style={{ minWidth:0 }}>
                     <p onClick={() => navigate(`/groups/${post.groupId}`)} style={{ fontWeight:700, fontSize:14, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', cursor:'pointer' }}>{post.groupName}</p>

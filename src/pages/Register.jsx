@@ -73,7 +73,7 @@ export default function Register() {
     }}>
       <div style={{ width: '100%', maxWidth: 420 }}>
         <div style={{ textAlign: 'center', marginBottom: 32 }}>
-          <img src="/tsengo-logo.png" alt="Traingo" className="logo-shimmer" style={{ width:64, height:64, objectFit:"contain", margin:"0 auto 10px", display:"block" }}/>
+          <img src="/tsengo-logo.png" alt="Traingo" style={{ width:64, height:64, objectFit:"contain", margin:"0 auto 10px", display:"block" }}/>
           <h1 style={{ fontSize: 28, fontWeight: 800, color: '#1877F2', letterSpacing: -1 }}>Traingo</h1>
         </div>
 
