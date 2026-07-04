@@ -79,6 +79,8 @@ export default function Messages() {
   const bottomRef  = useRef();
   const prevMsgLen = useRef(0);
   const photoRef   = useRef(); const videoRef = useRef(); const fileRef = useRef();
+  const groupPhotoRef = useRef();
+  const [uploadingGroupPhoto, setUploadingGroupPhoto] = useState(false);
 
   useEffect(() => { if (paramChatId) setActiveChatId(paramChatId); }, [paramChatId]);
 
@@ -379,6 +381,17 @@ export default function Messages() {
     setCreatingGroup(false);
   }
 
+  async function changeGroupPhoto(e) {
+    const file = e.target.files[0]; if (!file || !activeGroup) return;
+    setUploadingGroupPhoto(true);
+    try {
+      const r = await uploadToTelegram(file);
+      await updateDoc(doc(db, 'groups', activeGroup.id), { photoURL: r.url });
+    } catch (err) { alert('Erreur photo : ' + (err?.message || err)); }
+    setUploadingGroupPhoto(false);
+    e.target.value = '';
+  }
+
   async function leaveGroup() {
     if (!activeGroup) return;
     if (!window.confirm(`Quitter le groupe "${activeGroup.name}" ?`)) return;
@@ -589,6 +602,9 @@ export default function Messages() {
                 {headerMenu && (
                   <div style={{ position: 'absolute', top: '100%', right: 0, background: 'white', border: '1px solid #E4E6EB', borderRadius: 12, boxShadow: '0 4px 20px rgba(0,0,0,.12)', minWidth: 200, zIndex: 50, overflow: 'hidden' }}>
                     <button onClick={() => { setMediaModal(true); setHeaderMenu(false); }} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px', background: 'none', border: 'none', cursor: 'pointer', borderBottom: '1px solid #E4E6EB', fontFamily: 'Poppins', fontSize: 14, color: '#050505' }}><HiArchive size={18} color='#1877F2' /> Médias partagés</button>
+                    {isGroupAdmin && (
+                      <button onClick={() => { setHeaderMenu(false); groupPhotoRef.current?.click(); }} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px', background: 'none', border: 'none', cursor: 'pointer', borderBottom: '1px solid #E4E6EB', fontFamily: 'Poppins', fontSize: 14, color: '#050505' }}><HiPhotograph size={18} color='#F2B300' /> {uploadingGroupPhoto ? 'Envoi de la photo...' : 'Photo du groupe'}</button>
+                    )}
                     <button onClick={() => { setHeaderMenu(false); leaveGroup(); }} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px', background: 'none', border: 'none', cursor: 'pointer', borderBottom: '1px solid #E4E6EB', fontFamily: 'Poppins', fontSize: 14, color: '#F2B300' }}><HiArrowLeft size={18} /> Quitter le groupe</button>
                     {isGroupAdmin && (
                       <button onClick={() => { setHeaderMenu(false); deleteGroup(); }} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'Poppins', fontSize: 14, color: '#ef4444' }}><HiTrash size={18} /> Supprimer le groupe</button>
@@ -735,6 +751,7 @@ export default function Messages() {
             <input ref={photoRef} type="file" accept="image/*"  style={{ display: 'none' }} onChange={e => handleMediaSelect(e, 'image')} />
             <input ref={videoRef} type="file" accept="video/*"  style={{ display: 'none' }} onChange={e => handleMediaSelect(e, 'video')} />
             <input ref={fileRef}  type="file"                   style={{ display: 'none' }} onChange={e => handleMediaSelect(e, 'raw')} />
+            <input ref={groupPhotoRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={changeGroupPhoto} />
             <button onClick={() => photoRef.current?.click()} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#65676B', padding: 4, flexShrink: 0 }}><HiPhotograph size={22} /></button>
             <button onClick={() => videoRef.current?.click()} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#65676B', padding: 4, flexShrink: 0 }}><HiVideoCamera size={22} /></button>
             <button onClick={() => fileRef.current?.click()}  style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#65676B', padding: 4, flexShrink: 0 }}><HiPaperClip size={22} /></button>

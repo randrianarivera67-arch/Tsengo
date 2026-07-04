@@ -225,8 +225,8 @@ export default function Layout({ children }) {
         {/* Créer un groupe (format Facebook) */}
         <div style={{ padding: '8px 12px', borderTop: `1px solid ${bdr}` }}>
           <button onClick={() => { setDrawerOpen(false); navigate('/messages', { state: { createGroup: true } }); }}
-            className="btn-gold" style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '11px 0', fontSize: 14, borderRadius: 14 }}>
-            <HiUserGroup size={18} /> Créer un groupe de discussion
+            className="btn-gold" style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '11px 4px', fontSize: 13, borderRadius: 14, whiteSpace: 'nowrap', overflow: 'hidden' }}>
+            <HiChat size={16} style={{ flexShrink: 0 }} /> Nouvelle discussion
           </button>
         </div>
 

@@ -104,7 +104,7 @@ export default function Groups() {
         const isAdmin  = g.admins?.includes(currentUser.uid);
         return (
           <div key={g.id} className="card" style={{ padding: 14, marginBottom: 10 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer' }} onClick={() => navigate(`/groups/${g.id}`)}>
               <div style={{ width: 52, height: 52, borderRadius: 14, background: 'linear-gradient(135deg,#1B84FF,#1877F2)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: '0 2px 10px rgba(24,119,242,.35)' }}>
                 {g.photoURL
                   ? <img src={g.photoURL} alt="" style={{ width: '100%', height: '100%', borderRadius: 14, objectFit: 'cover' }} />
@@ -130,8 +130,8 @@ export default function Groups() {
               )}
               {isMember && (
                 <>
-                  <button onClick={() => navigate('/')} className="btn-primary" style={{ flex: 1, padding: '9px 0', fontSize: 13, borderRadius: 10 }}>
-                    <HiPencil size={14} style={{ verticalAlign: '-2px', marginRight: 4 }} /> Publier
+                  <button onClick={() => navigate(`/groups/${g.id}`)} className="btn-primary" style={{ flex: 1, padding: '9px 0', fontSize: 13, borderRadius: 10 }}>
+                    <HiPencil size={14} style={{ verticalAlign: '-2px', marginRight: 4 }} /> Ouvrir
                   </button>
                   <button onClick={() => leaveGroup(g)} className="btn-secondary" style={{ flex: 1, padding: '9px 0', fontSize: 13, borderRadius: 10 }}>
                     <HiCheck size={14} style={{ verticalAlign: '-2px', marginRight: 4 }} /> Membre
@@ -149,7 +149,7 @@ export default function Groups() {
       })}
 
       <p style={{ fontSize: 12, color: '#65676B', textAlign: 'center', marginTop: 14, padding: '0 20px' }}>
-        Les publications d'un groupe se font depuis l'accueil avec le sélecteur « Publier dans », et apparaissent dans le fil d'actualités de tous.
+        Touchez un groupe pour ouvrir sa page : publiez-y directement, les publications apparaissent aussi dans le fil d'actualités de tous.
       </p>
 
       {/* Modal : Créer un groupe public */}

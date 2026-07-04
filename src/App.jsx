@@ -25,6 +25,7 @@ const VIPInfo            = lazy(() => import('./pages/VIPInfo'));
 const AdminPanel         = lazy(() => import('./pages/AdminPanel'));
 const BoostInfo          = lazy(() => import('./pages/BoostInfo'));
 const Groups             = lazy(() => import('./pages/Groups'));
+const GroupPage          = lazy(() => import('./pages/GroupPage'));
 
 const Loader = () => (
   <div style={{ display:'flex', alignItems:'center', justifyContent:'center', height:'60vh' }}>
@@ -53,6 +54,7 @@ function AppRoutes() {
         <Route path="/profile/:uid?"  element={<PrivateRoute><Layout><Profile /></Layout></PrivateRoute>} />
         <Route path="/friends"        element={<PrivateRoute><Layout><Friends /></Layout></PrivateRoute>} />
         <Route path="/groups"         element={<PrivateRoute><Layout><Groups /></Layout></PrivateRoute>} />
+        <Route path="/groups/:groupId" element={<PrivateRoute><Layout><GroupPage /></Layout></PrivateRoute>} />
         <Route path="/messages"       element={<PrivateRoute><Layout><Messages /></Layout></PrivateRoute>} />
         <Route path="/messages/:chatId" element={<PrivateRoute><Layout><Messages /></Layout></PrivateRoute>} />
         <Route path="/notifications"  element={<PrivateRoute><Layout><Notifications /></Layout></PrivateRoute>} />
