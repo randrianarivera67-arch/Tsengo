@@ -16,7 +16,7 @@ import {
   HiPhotograph, HiVideoCamera, HiTag, HiOutlineHeart, HiChat,
   HiTrash, HiPencil, HiX, HiShare, HiFilm, HiOutlineChat,
   HiDotsVertical, HiDownload, HiLightningBolt, HiPhone, HiLocationMarker,
-  HiReply, HiUserAdd, HiUserGroup
+  HiReply, HiUserAdd, HiUserGroup, HiBookmark
 } from 'react-icons/hi';
 
 const MAX_POST    = 2000;
@@ -335,6 +335,16 @@ export default function Home() {
       read: false, createdAt: serverTimestamp(),
     });
     sendPushNotification({ toExternalId: toUid, title: userProfile.fullName, message:"vous a envoyé une demande d'ami 👥", data:{ type:'friendRequest' } });
+  }
+
+  // ── Enregistrer / retirer publication ──
+  async function toggleSave(postId) {
+    const saved = userProfile?.saved || [];
+    const isSaved = saved.includes(postId);
+    try {
+      await updateDoc(doc(db, 'users', currentUser.uid), { saved: isSaved ? arrayRemove(postId) : arrayUnion(postId) });
+      setUserProfile(p => ({ ...p, saved: isSaved ? (p.saved||[]).filter(id => id !== postId) : [...(p.saved||[]), postId] }));
+    } catch (err) { alert('Erreur : ' + (err?.message || err)); }
   }
 
   // ── Stories ──
@@ -658,6 +668,9 @@ export default function Home() {
                         <button onClick={() => { navigate('/boost'); setPostMenu(null); }} style={{ width:'100%', display:'flex', alignItems:'center', gap:10, padding:'11px 16px', background:'none', border:'none', cursor:'pointer', color:'#050505', fontSize:14, borderBottom:'1px solid #F0F2F5', fontFamily:'Poppins' }}><HiLightningBolt size={15} color="#a855f7"/> Booster</button>
                         <button onClick={() => { deletePost(post.id); setPostMenu(null); }} style={{ width:'100%', display:'flex', alignItems:'center', gap:10, padding:'11px 16px', background:'none', border:'none', cursor:'pointer', color:'#1877F2', fontSize:14, borderBottom:'1px solid #F0F2F5', fontFamily:'Poppins' }}><HiTrash size={15}/> Supprimer</button>
                       </>}
+                      <button onClick={() => { toggleSave(post.id); setPostMenu(null); }} style={{ width:'100%', display:'flex', alignItems:'center', gap:10, padding:'11px 16px', background:'none', border:'none', cursor:'pointer', color:'#050505', fontSize:14, borderBottom:'1px solid #F0F2F5', fontFamily:'Poppins' }}>
+                        <HiBookmark size={15} color="#F2B300"/> {(userProfile?.saved||[]).includes(post.id) ? 'Retirer des enregistrements' : 'Enregistrer'}
+                      </button>
                       {post.mediaURL && <button onClick={() => { window.open(post.mediaURL,'_blank'); setPostMenu(null); }} style={{ width:'100%', display:'flex', alignItems:'center', gap:10, padding:'11px 16px', background:'none', border:'none', cursor:'pointer', color:'#050505', fontSize:14, fontFamily:'Poppins' }}><HiDownload size={15} color="#3b82f6"/> Télécharger</button>}
                       {!isOwn && !post.mediaURL && <div style={{ padding:'10px 16px', color:'#65676B', fontSize:13 }}>Aucune action</div>}
                     </div>

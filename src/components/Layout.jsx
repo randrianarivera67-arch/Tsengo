@@ -15,6 +15,7 @@ import {
   HiUserGroup, HiOutlineUserGroup, HiChat, HiOutlineChat,
   HiBell, HiOutlineBell, HiMenu, HiX, HiSearch, HiLogout, HiCog,
   HiOutlineCog, HiTag, HiFilm, HiPhotograph,
+, HiBookmark, HiOutlineBookmark
 } from 'react-icons/hi';
 
 export default function Layout({ children }) {
@@ -120,6 +121,7 @@ export default function Layout({ children }) {
     { path: '/',                            Icon: HiOutlineHome,      AIcon: HiHome,      label: t('home') },
     { path: '/friends',                     Icon: HiOutlineUserGroup, AIcon: HiUserGroup, label: t('friends') },
     { path: '/groups',                      Icon: HiOutlineUserGroup, AIcon: HiUserGroup, label: 'Groupes' },
+    { path: '/saved',                       Icon: HiOutlineBookmark,  AIcon: HiBookmark,  label: 'Enregistrements' },
     { path: '/messages',                    Icon: HiOutlineChat,      AIcon: HiChat,      label: t('messages'),      badge: msgCount },
     { path: '/notifications',               Icon: HiOutlineBell,      AIcon: HiBell,      label: t('notifications'), badge: notifCount },
     { path: `/profile/${currentUser?.uid}`, Icon: HiOutlineUser,      AIcon: HiUser,      label: t('profile') },

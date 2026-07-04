@@ -83,6 +83,7 @@ export default function Messages() {
   const [uploadingGroupPhoto, setUploadingGroupPhoto] = useState(false);
   const [editGroupOpen,  setEditGroupOpen]  = useState(false);
   const [msgSearchOpen,  setMsgSearchOpen]  = useState(false);
+  const [groupMetas,     setGroupMetas]     = useState({});
   const [editGroupName,  setEditGroupName]  = useState('');
   const [savingGroup,    setSavingGroup]    = useState(false);
   const [groupMemberProfiles, setGroupMemberProfiles] = useState([]);
@@ -121,7 +122,14 @@ export default function Messages() {
       if (!snap.exists()) { setConversations([]); return; }
       const data = snap.val();
       const list = [];
+      const gMetas = {};
       for (const [chatId, conv] of Object.entries(data)) {
+        if (chatId.startsWith('group_')) {
+          const msgs = conv.messages ? Object.values(conv.messages) : [];
+          const last = msgs[msgs.length - 1];
+          gMetas[chatId.slice(6)] = last ? { text: last.text || (last.mediaType === 'audio' ? '🎤 Vocal' : last.mediaURL ? '📎 Média' : ''), from: last.fromName, ts: last.ts } : null;
+          continue;
+        }
         if (!chatId.includes(currentUser.uid)) continue;
         const otherUid = getOtherUid(chatId, currentUser.uid);
         try {
@@ -135,6 +143,7 @@ export default function Messages() {
       }
       list.sort((a, b) => (b.lastMsg?.ts || 0) - (a.lastMsg?.ts || 0));
       setConversations(list);
+      setGroupMetas(gMetas);
     }, err => {
       console.error('Lecture conversations refusée:', err?.message || err);
     });
@@ -172,7 +181,20 @@ export default function Messages() {
     }
     prevMsgLen.current = messages.length;
   }, [messages]);
-  useEffect(() => { bottomRef.current?.scrollIntoView({ behavior:'smooth' }); }, [messages]);
+  const atBottomRef = useRef(true);
+  const prevChatRef = useRef(null);
+  useEffect(() => {
+    const isNewChat = prevChatRef.current !== activeChatId;
+    prevChatRef.current = activeChatId;
+    if (isNewChat) {
+      // Chat vao misokatra : midina any amin'ny farany
+      setTimeout(() => bottomRef.current?.scrollIntoView(), 60);
+      atBottomRef.current = true;
+      return;
+    }
+    // Raha mijery messages taloha (scroll ambony) dia TSY averina midina
+    if (atBottomRef.current) bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages, activeChatId]);
 
   useEffect(() => {
     if (!activeChatId || activeChatId.startsWith('group_')) { setActiveUser(null); return; }
@@ -253,6 +275,7 @@ export default function Messages() {
     setUploading(true);
     try {
       let mediaURL = '', finalMT = '';
+      atBottomRef.current = true;
       if (mediaFile) { const r = await uploadToTelegram(mediaFile); mediaURL = r.url; finalMT = r.type; }
       const otherUid = isGroupChat ? null : activeChatId.split('_').find(p => p !== currentUser.uid);
 
@@ -561,7 +584,11 @@ export default function Messages() {
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <p style={{ fontWeight: 700, fontSize: 14, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{g.name}</p>
-                    <p style={{ fontSize: 12, color: '#65676B' }}>{g.members?.length || 0} membres{g.admins?.includes(currentUser.uid) ? ' · Vous êtes admin' : ''}</p>
+                    <p style={{ fontSize: 12, color: '#65676B', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {groupMetas[g.id]?.text
+                        ? `${groupMetas[g.id].from ? groupMetas[g.id].from.split(' ')[0] + ' : ' : ''}${groupMetas[g.id].text}`
+                        : `${g.members?.length || 0} membres${g.admins?.includes(currentUser.uid) ? ' · Vous êtes admin' : ''}`}
+                    </p>
                   </div>
                 </div>
               ))}
@@ -677,7 +704,8 @@ export default function Messages() {
           </div>
 
           {/* Messages */}
-          <div style={{ flex: 1, overflowY: 'auto', padding: '16px 14px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <div onScroll={e => { const el = e.currentTarget; atBottomRef.current = el.scrollHeight - el.scrollTop - el.clientHeight < 150; }}
+            style={{ flex: 1, overflowY: 'auto', padding: '16px 14px', display: 'flex', flexDirection: 'column', gap: 8 }}>
             {messages.map(msg => {
               const isMe = msg.fromUid === currentUser.uid;
               const isActived = msgAction === msg.id;

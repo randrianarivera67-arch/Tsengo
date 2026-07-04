@@ -27,6 +27,7 @@ const BoostInfo          = lazy(() => import('./pages/BoostInfo'));
 const Groups             = lazy(() => import('./pages/Groups'));
 const GroupPage          = lazy(() => import('./pages/GroupPage'));
 const Search             = lazy(() => import('./pages/Search'));
+const Saved              = lazy(() => import('./pages/Saved'));
 
 const Loader = () => (
   <div style={{ display:'flex', alignItems:'center', justifyContent:'center', height:'60vh' }}>
@@ -57,6 +58,7 @@ function AppRoutes() {
         <Route path="/groups"         element={<PrivateRoute><Layout><Groups /></Layout></PrivateRoute>} />
         <Route path="/groups/:groupId" element={<PrivateRoute><Layout><GroupPage /></Layout></PrivateRoute>} />
         <Route path="/search"         element={<PrivateRoute><Layout><Search /></Layout></PrivateRoute>} />
+        <Route path="/saved"          element={<PrivateRoute><Layout><Saved /></Layout></PrivateRoute>} />
         <Route path="/messages"       element={<PrivateRoute><Layout><Messages /></Layout></PrivateRoute>} />
         <Route path="/messages/:chatId" element={<PrivateRoute><Layout><Messages /></Layout></PrivateRoute>} />
         <Route path="/notifications"  element={<PrivateRoute><Layout><Notifications /></Layout></PrivateRoute>} />

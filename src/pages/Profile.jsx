@@ -40,6 +40,9 @@ export default function Profile() {
   const navigate = useNavigate();
 
   const isOwn     = !uid || uid === currentUser?.uid;
+  const [profMenu,     setProfMenu]     = useState(false);
+  const [storyArchive, setStoryArchive] = useState(null);   // null | []
+  const [souvenirs,    setSouvenirs]    = useState(null);   // null | []
   const targetUid = uid  || currentUser?.uid;
 
   const [profile,        setProfile]     = useState(null);
@@ -74,7 +77,7 @@ export default function Profile() {
   useEffect(() => {
     const fn = () => setPostMenu(null);
     document.addEventListener('click', fn);
-    return () => document.removeEventListener('click', fn);
+  return () => document.removeEventListener('click', fn);
   }, []);
 
   useEffect(() => {
@@ -454,6 +457,39 @@ export default function Profile() {
     );
   }
 
+  // ── Archive de votre story (stories rehetra, na efa lany 24h aza) ──
+  async function openStoryArchive() {
+    setProfMenu(false); setStoryArchive([]);
+    try {
+      const { getDocs, collection, query, where } = await import('firebase/firestore');
+      const snap = await getDocs(query(collection(db, 'stories'), where('uid', '==', currentUser.uid)));
+      const list = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      list.sort((a, b) => (b.ts || 0) - (a.ts || 0));
+      setStoryArchive(list);
+    } catch (err) { alert('Erreur : ' + (err?.message || err)); setStoryArchive(null); }
+  }
+
+  async function deleteArchivedStory(st) {
+    if (!window.confirm('Supprimer cette story de l\'archive ?')) return;
+    try {
+      const { deleteDoc: dd, doc: dc } = await import('firebase/firestore');
+      await dd(dc(db, 'stories', st.id));
+      setStoryArchive(a => (a || []).filter(x => x.id !== st.id));
+    } catch (err) { alert('Erreur : ' + (err?.message || err)); }
+  }
+
+  // ── Souvenirs : publications tamin'ny andro sy volana mitovy, taona lasa ──
+  function openSouvenirs() {
+    setProfMenu(false);
+    const today = new Date();
+    const list = (posts || []).filter(p => {
+      if (!p.createdAt?.toDate) return false;
+      const d = p.createdAt.toDate();
+      return d.getDate() === today.getDate() && d.getMonth() === today.getMonth() && d.getFullYear() < today.getFullYear();
+    });
+    setSouvenirs(list);
+  }
+
   return (
     <div>
       <div style={{ height:200, background:'linear-gradient(135deg,#1877F2,#63A9FF,#FFB3D9)', position:'relative' }}>
@@ -504,7 +540,18 @@ export default function Profile() {
             </div>
             <div style={{ display:'flex', justifyContent:'center', gap:10, marginTop:14 }}>
               {isOwn ? (
+                <>
                 <button onClick={() => setEditing(true)} style={{ display:'inline-flex', alignItems:'center', gap:6, background:"linear-gradient(180deg,#1B84FF,#1877F2)", border:"none", borderRadius:20, padding:'8px 18px', color:"white", fontWeight:600, cursor:'pointer', fontSize:13, boxShadow:"0 3px 12px rgba(24,119,242,.35)" }}><HiPencil size={14}/>{t('editProfile')}</button>
+                <div style={{ position:'relative', display:'inline-block' }} onClick={e => e.stopPropagation()}>
+                  <button onClick={() => setProfMenu(p => !p)} style={{ width:36, height:36, borderRadius:'50%', background:'#F0F2F5', border:'none', cursor:'pointer', color:'#050505', display:'flex', alignItems:'center', justifyContent:'center' }}><HiDotsVertical size={17}/></button>
+                  {profMenu && (
+                    <div style={{ position:'absolute', top:'110%', right:0, background:'white', border:'1px solid #E4E6EB', borderRadius:12, boxShadow:'0 4px 20px rgba(0,0,0,.14)', minWidth:210, zIndex:60, overflow:'hidden' }}>
+                      <button onClick={openStoryArchive} style={{ width:'100%', display:'flex', alignItems:'center', gap:10, padding:'12px 16px', background:'none', border:'none', cursor:'pointer', fontFamily:'Poppins', fontSize:14, color:'#050505', borderBottom:'1px solid #F0F2F5' }}>🗂️ Archive de votre story</button>
+                      <button onClick={openSouvenirs} style={{ width:'100%', display:'flex', alignItems:'center', gap:10, padding:'12px 16px', background:'none', border:'none', cursor:'pointer', fontFamily:'Poppins', fontSize:14, color:'#050505' }}>🕰️ Souvenirs</button>
+                    </div>
+                  )}
+                </div>
+                </>
               ) : (
                 <>
                   <button onClick={() => navigate(`/messages/${getChatId(currentUser.uid,targetUid)}`)} className="btn-primary" style={{ fontSize:13, padding:'8px 18px' }}><HiChat size={14} style={{ display:'inline', marginRight:4 }}/>Message</button>
@@ -631,6 +678,71 @@ export default function Profile() {
             : getTabContent().map(post => renderPost(post))
         )}
       </div>
+
+      {/* ── Modal : Archive de votre story ─────────────────── */}
+      {storyArchive !== null && (
+        <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.55)', zIndex:400, display:'flex', alignItems:'flex-end', justifyContent:'center' }} onClick={() => setStoryArchive(null)}>
+          <div onClick={e => e.stopPropagation()} style={{ background:'white', borderRadius:'20px 20px 0 0', padding:18, width:'100%', maxWidth:520, maxHeight:'85vh', overflowY:'auto' }}>
+            <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:12 }}>
+              <h3 style={{ fontWeight:800, color:'#1877F2' }}>🗂️ Archive de votre story</h3>
+              <button onClick={() => setStoryArchive(null)} style={{ background:'none', border:'none', cursor:'pointer', color:'#65676B' }}><HiX size={20}/></button>
+            </div>
+            {storyArchive.length === 0 && <p style={{ fontSize:14, color:'#65676B', textAlign:'center', padding:'20px 0' }}>Aucune story dans l'archive.</p>}
+            <div style={{ display:'grid', gridTemplateColumns:'repeat(3, 1fr)', gap:8 }}>
+              {storyArchive.map(st => (
+                <div key={st.id} style={{ position:'relative', borderRadius:12, overflow:'hidden', aspectRatio:'9/16', background:'#000' }}>
+                  {st.mediaType === 'video'
+                    ? <video src={st.mediaURL} muted playsInline preload="metadata" style={{ width:'100%', height:'100%', objectFit:'cover' }}/>
+                    : <img src={st.mediaURL} alt="" style={{ width:'100%', height:'100%', objectFit:'cover' }}/>}
+                  <span style={{ position:'absolute', bottom:4, left:6, color:'white', fontSize:10, fontWeight:600, textShadow:'0 1px 4px rgba(0,0,0,.8)' }}>
+                    {st.ts ? new Date(st.ts).toLocaleDateString('fr-FR') : ''}
+                  </span>
+                  <button onClick={() => deleteArchivedStory(st)}
+                    style={{ position:'absolute', top:4, right:4, width:24, height:24, borderRadius:'50%', background:'rgba(0,0,0,.55)', border:'none', cursor:'pointer', color:'white', display:'flex', alignItems:'center', justifyContent:'center' }}>
+                    <HiTrash size={12}/>
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Modal : Souvenirs ──────────────────────────────── */}
+      {souvenirs !== null && (
+        <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.55)', zIndex:400, display:'flex', alignItems:'flex-end', justifyContent:'center' }} onClick={() => setSouvenirs(null)}>
+          <div onClick={e => e.stopPropagation()} style={{ background:'white', borderRadius:'20px 20px 0 0', padding:18, width:'100%', maxWidth:520, maxHeight:'85vh', overflowY:'auto' }}>
+            <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:12 }}>
+              <h3 style={{ fontWeight:800, color:'#1877F2' }}>🕰️ Souvenirs</h3>
+              <button onClick={() => setSouvenirs(null)} style={{ background:'none', border:'none', cursor:'pointer', color:'#65676B' }}><HiX size={20}/></button>
+            </div>
+            {souvenirs.length === 0 && (
+              <p style={{ fontSize:14, color:'#65676B', textAlign:'center', padding:'20px 0' }}>
+                Aucun souvenir aujourd'hui.<br/>
+                <span style={{ fontSize:12 }}>Les publications faites le même jour les années passées apparaîtront ici.</span>
+              </p>
+            )}
+            {souvenirs.map(sp => (
+              <div key={sp.id} onClick={() => { setSouvenirs(null); navigate(`/post/${sp.id}`); }}
+                style={{ display:'flex', alignItems:'center', gap:12, padding:'10px 4px', cursor:'pointer', borderBottom:'1px solid #F0F2F5' }}>
+                {sp.mediaURL
+                  ? (sp.mediaType === 'video'
+                      ? <video src={sp.mediaURL} muted playsInline preload="metadata" style={{ width:56, height:56, borderRadius:10, objectFit:'cover', flexShrink:0, background:'#000' }}/>
+                      : <img src={sp.mediaURL} alt="" style={{ width:56, height:56, borderRadius:10, objectFit:'cover', flexShrink:0 }}/>)
+                  : <div style={{ width:56, height:56, borderRadius:10, background:'#E7F0FE', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0, fontSize:22 }}>📝</div>}
+                <div style={{ flex:1, minWidth:0 }}>
+                  <p style={{ fontSize:13, color:'#050505', overflow:'hidden', textOverflow:'ellipsis', display:'-webkit-box', WebkitLineClamp:2, WebkitBoxOrient:'vertical' }}>
+                    {sp.content || (sp.mediaType === 'video' ? '🎬 Vidéo' : '📷 Photo')}
+                  </p>
+                  <p style={{ fontSize:11, color:'#1877F2', fontWeight:700, marginTop:2 }}>
+                    Il y a {new Date().getFullYear() - sp.createdAt.toDate().getFullYear()} an(s) — {sp.createdAt.toDate().toLocaleDateString('fr-FR')}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
