@@ -361,30 +361,41 @@ export default function Profile() {
           )}
         </div>
 
-        {total > 0 && (
-          <div style={{ padding:'0 16px 8px', display:'flex', gap:4, flexWrap:'wrap', cursor:'pointer' }} onClick={() => openReactionModal(post)}>
-            {Object.entries(rc).map(([e,c]) => <span key={e} style={{ background:'#E4E6EB', borderRadius:12, padding:'2px 8px', fontSize:12 }}>{e} {c}</span>)}
-            <span style={{ fontSize:11, color:'#65676B', alignSelf:'center' }}>· {total} {t('reactions')}</span>
+        {(total > 0 || post.comments?.length > 0) && (
+          <div style={{ padding:'0 16px 8px', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+            <div onClick={() => openReactionModal(post)} style={{ display:'flex', alignItems:'center', gap:4, cursor:'pointer', minHeight:18 }}>
+              {total > 0 && <>
+                <div style={{ display:'flex' }}>{Object.entries(rc).slice(0,3).map(([e], i) => <span key={e} style={{ fontSize:15, marginLeft: i ? -3 : 0 }}>{e}</span>)}</div>
+                <span style={{ fontSize:13, color:'#65676B' }}>{total}</span>
+              </>}
+            </div>
+            {post.comments?.length > 0 && (
+              <span onClick={() => setOpenCmt(p=>({...p,[post.id]:!p[post.id]}))} style={{ fontSize:13, color:'#65676B', cursor:'pointer' }}>
+                {post.comments.length} commentaire{post.comments.length>1?'s':''}
+              </span>
+            )}
           </div>
         )}
 
-        <div style={{ borderTop:'1px solid #E4E6EB', padding:'8px 16px', display:'flex', gap:6, alignItems:'center' }}>
-          <div style={{ position:'relative' }}>
-            <button onClick={() => setShowReact(p=>({...p,[post.id]:!p[post.id]}))} style={{ display:'flex', alignItems:'center', gap:4, background:'none', border:'none', cursor:'pointer', color:myR?'#1877F2':'#65676B', fontSize:13, padding:'6px 10px', borderRadius:20 }}>
-              {myR?<span style={{ fontSize:16 }}>{myR}</span>:<HiOutlineHeart size={18}/>}
-              {total>0&&<span>{total}</span>}
+        <div className='post-actions-row'>
+          <div style={{ position:'relative', flex:1, display:'flex' }}>
+            <button onClick={() => { const m = post.reactions?.[currentUser.uid]; reactToPost(post.id, m || '👍'); }}
+              onContextMenu={e => { e.preventDefault(); setShowReact(p=>({...p,[post.id]:!p[post.id]})); }}
+              className={'post-action-btn'+(myR?' active':'')}
+              style={myR ? { color: myR === '👍' ? '#1877F2' : '#FF2D8D', fontWeight:700 } : {}}>
+              <span style={{ fontSize:17 }}>{myR || '👍'}</span> J'aime
             </button>
             {showReact[post.id] && (
-              <div style={{ position:'absolute', bottom:'110%', left:0, background:'white', borderRadius:30, padding:'8px 12px', display:'flex', gap:6, boxShadow:'0 4px 20px rgba(0,0,0,.15)', zIndex:10, border:'1px solid #E4E6EB' }}>
-                {REACTIONS.map(e => <button key={e} onClick={() => reactToPost(post.id,e)} style={{ background:'none', border:'none', cursor:'pointer', fontSize:22 }}>{e}</button>)}
+              <div style={{ position:'absolute', bottom:'110%', left:8, background:'white', borderRadius:30, padding:'8px 12px', display:'flex', gap:6, boxShadow:'0 4px 20px rgba(0,0,0,.2)', zIndex:10, border:'1px solid #E4E6EB' }}>
+                {REACTIONS.map(e => <button key={e} onClick={() => reactToPost(post.id,e)} style={{ background:'none', border:'none', cursor:'pointer', fontSize:24 }}>{e}</button>)}
               </div>
             )}
           </div>
-          <button onClick={() => setOpenCmt(p=>({...p,[post.id]:!p[post.id]}))} style={{ display:'flex', alignItems:'center', gap:4, background:'none', border:'none', cursor:'pointer', color:'#65676B', fontSize:13, padding:'6px 10px', borderRadius:20 }}>
-            <HiChat size={18}/>{post.comments?.length>0&&<span>{post.comments.length}</span>}
+          <button onClick={() => setOpenCmt(p=>({...p,[post.id]:!p[post.id]}))} className='post-action-btn'>
+            <HiChat size={18}/> Commenter
           </button>
-          <button onClick={() => sharePost(post)} style={{ display:'flex', alignItems:'center', gap:4, background:'none', border:'none', cursor:'pointer', color:'#65676B', fontSize:13, padding:'6px 10px', borderRadius:20 }}>
-            <HiShare size={18}/>
+          <button onClick={() => sharePost(post)} className='post-action-btn'>
+            <HiShare size={18}/> Partager
           </button>
         </div>
 
@@ -397,13 +408,16 @@ export default function Profile() {
                   <span style={{ fontWeight:600, fontSize:13 }}>{c.authorName}{c.authorIsVip&&<VIPBadge/>}{' '}</span>
                   {c.text&&<span style={{ fontSize:13 }}>{c.text}</span>}
                   {c.mediaURL&&<div style={{ marginTop:4 }}>{c.mediaType==='image'?<img src={c.mediaURL} alt="" style={{ maxWidth:200, borderRadius:8 }}/>:<video src={c.mediaURL} controls style={{ maxWidth:200, borderRadius:8 }}/>}</div>}
-                  <div style={{ display:'flex', gap:10, marginTop:5, flexWrap:'wrap' }}>
-                    <button onClick={() => setReplyTo(p=>({...p,[post.id]:c.authorName}))} style={{ background:'none', border:'none', cursor:'pointer', color:'#65676B', fontSize:11, display:'flex', alignItems:'center', gap:3 }}><HiReply size={12}/> Répondre</button>
-                    <button onClick={() => setCmtReactionPicker(p => p===c.id?null:c.id)} style={{ background:'none', border:'none', cursor:'pointer', color:'#65676B', fontSize:11 }}>{c.reactions?.[currentUser.uid] || '😊'} {Object.keys(c.reactions||{}).length||''}</button>
-                    {cmtReactionPicker===c.id && <div style={{ display:'flex', gap:4, background:'white', borderRadius:20, padding:'4px 8px', boxShadow:'0 2px 12px rgba(0,0,0,.15)', zIndex:10 }}>{['❤️','😂','😮','😢','👍','🔥'].map(em=><span key={em} onClick={()=>reactToCmt(post.id,c.id,em)} style={{ fontSize:18, cursor:'pointer' }}>{em}</span>)}</div>}
+                  <div style={{ display:'flex', gap:14, marginTop:5, flexWrap:'wrap', fontSize:12, fontWeight:700, color:'#65676B', position:'relative', alignItems:'center' }}>
+                    <span onClick={() => reactToCmt(post.id, c.id, '👍')} style={{ cursor:'pointer', color: c.reactions?.[currentUser.uid] ? (c.reactions[currentUser.uid]==='👍'?'#1877F2':'#FF2D8D') : '#65676B' }}>
+                      {c.reactions?.[currentUser.uid] && c.reactions[currentUser.uid] !== '👍' ? c.reactions[currentUser.uid] + ' ' : ''}J'aime
+                    </span>
+                    <span onClick={() => setCmtReactionPicker(p => p===c.id?null:c.id)} style={{ cursor:'pointer' }}>😊</span>
+                    <span onClick={() => setReplyTo(p=>({...p,[post.id]:c.authorName}))} style={{ cursor:'pointer' }}>Répondre</span>
+                    {cmtReactionPicker===c.id && <div style={{ display:'flex', gap:6, background:'white', borderRadius:20, padding:'6px 10px', boxShadow:'0 2px 12px rgba(0,0,0,.2)', position:'absolute', bottom:'110%', left:0, zIndex:10, border:'1px solid #E4E6EB' }}>{REACTIONS.map(em=><span key={em} onClick={()=>reactToCmt(post.id,c.id,em)} style={{ fontSize:20, cursor:'pointer' }}>{em}</span>)}</div>}
                     {(c.uid===currentUser.uid||post.uid===currentUser.uid)&&<>
-                      <button onClick={() => setEditCmt({ postId:post.id, cmt:c, text:c.text })} style={{ background:'none', border:'none', cursor:'pointer', color:'#65676B', fontSize:11, display:'flex', alignItems:'center', gap:3 }}><HiPencil size={12}/> Modifier</button>
-                      <button onClick={() => deleteCmt(post.id,c)} style={{ background:'none', border:'none', cursor:'pointer', color:'#1877F2', fontSize:11, display:'flex', alignItems:'center', gap:3 }}><HiTrash size={12}/> Supprimer</button>
+                      <span onClick={() => setEditCmt({ postId:post.id, cmt:c, text:c.text })} style={{ cursor:'pointer' }}>Modifier</span>
+                      <span onClick={() => deleteCmt(post.id,c)} style={{ cursor:'pointer', color:'#FF2D8D' }}>Supprimer</span>
                     </>}
                   </div>
                 </div>

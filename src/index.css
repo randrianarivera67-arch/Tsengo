@@ -12,8 +12,8 @@
   --blue:        #1877F2;   /* Bleu Facebook */
   --blue-dark:   #0E5FCB;
   --blue-pale:   #E7F0FE;
-  --yellow:      #FFC107;   /* Jaune */
-  --orange:      #FF7A00;   /* Orange */
+  --yellow:      #F2B300;   /* Doré (logo) */
+  --orange:      #F2B300;   /* Doré (logo) */
   --black:       #050505;   /* Noir Facebook */
   --gray-txt:    #65676B;
   --pink:        #FF2D8D;   /* Rose cristal */
@@ -136,12 +136,13 @@ body {
 
 /* Bouton orange */
 .btn-orange {
-  background: linear-gradient(135deg, #FF9A3D, #FF7A00);
-  color: white; border: none;
+  background: linear-gradient(135deg, #FFD84D, #F2B300);
+  color: #4A3400;
+  border: none;
   padding: 8px 18px; border-radius: 25px;
   font-weight: 700; cursor: pointer;
   font-family: 'Poppins', sans-serif;
-  box-shadow: 0 3px 14px rgba(255,122,0,.4);
+  box-shadow: 0 3px 14px rgba(242,179,0,.4);
   transition: all .2s ease;
 }
 .btn-orange:hover { transform: translateY(-1px); }
@@ -255,7 +256,7 @@ input::placeholder, textarea::placeholder { color: #8A8D91 !important; font-size
   font-size: 12px; font-weight: 800;
   box-shadow: 0 2px 8px rgba(242,179,0,.4);
 }
-.price-tag { color: var(--orange); font-weight: 800; font-size: 18px; }
+.price-tag { color: var(--pink); font-weight: 800; font-size: 18px; }
 
 /* ══════════════════ MESSAGES (Messenger) ══════════════════ */
 .msg-bubble-me {

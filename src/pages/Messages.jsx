@@ -1,8 +1,8 @@
 // src/pages/Messages.jsx
 import { useState, useEffect, useRef } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { ref, push, onValue, update, set, remove } from 'firebase/database';
-import { doc, getDoc, addDoc, collection, serverTimestamp } from 'firebase/firestore';
+import { doc, getDoc, addDoc, collection, serverTimestamp, query, where, onSnapshot, updateDoc, deleteDoc, arrayRemove } from 'firebase/firestore';
 import { rtdb, db } from '../firebase';
 import { useAuth } from '../context/AuthContext';
 import { useLang } from '../context/LanguageContext';
@@ -23,6 +23,7 @@ export default function Messages() {
   const { currentUser, userProfile } = useAuth();
   const { t } = useLang();
   const navigate = useNavigate();
+  const location = useLocation();
 
   const [conversations,   setConversations]  = useState([]);
   const [activeChatId,    setActiveChatId]   = useState(paramChatId || null);
@@ -62,6 +63,16 @@ export default function Messages() {
   const [deleteConfirm, setDeleteConfirm] = useState(null);
   const [transferMsg, setTransferMsg] = useState(null);  // chatId | 'all'
 
+  // ── Groupes ───────────────────────────────────────────────
+  const [groups,          setGroups]          = useState([]);
+  const [createGroupOpen, setCreateGroupOpen] = useState(false);
+  const [groupName,       setGroupName]       = useState('');
+  const [groupSel,        setGroupSel]        = useState({});
+  const [creatingGroup,   setCreatingGroup]   = useState(false);
+  const isGroupChat = !!activeChatId?.startsWith('group_');
+  const activeGroup = isGroupChat ? groups.find(g => `group_${g.id}` === activeChatId) : null;
+  const isGroupAdmin = !!activeGroup?.admins?.includes(currentUser?.uid);
+
   const mrRef      = useRef(null);
   const chunksRef  = useRef([]);
   const timerRef   = useRef(null);
@@ -70,6 +81,20 @@ export default function Messages() {
   const photoRef   = useRef(); const videoRef = useRef(); const fileRef = useRef();
 
   useEffect(() => { if (paramChatId) setActiveChatId(paramChatId); }, [paramChatId]);
+
+  // Mes groupes (temps réel)
+  useEffect(() => {
+    if (!currentUser) return;
+    const q = query(collection(db, 'groups'), where('members', 'array-contains', currentUser.uid));
+    const unsub = onSnapshot(q, snap => setGroups(snap.docs.map(d => ({ id: d.id, ...d.data() }))),
+      err => console.error('Lecture groupes refusée:', err?.message || err));
+    return () => unsub();
+  }, [currentUser]);
+
+  // Ouvrir "Créer un groupe" depuis le menu latéral
+  useEffect(() => {
+    if (location.state?.createGroup) setCreateGroupOpen(true);
+  }, [location.state]);
 
   useEffect(() => {
     if (!userProfile?.friends?.length) { setFriendsProfiles([]); return; }
@@ -143,19 +168,12 @@ export default function Messages() {
   useEffect(() => { bottomRef.current?.scrollIntoView({ behavior:'smooth' }); }, [messages]);
 
   useEffect(() => {
-    if (!activeChatId) return;
+    if (!activeChatId || activeChatId.startsWith('group_')) { setActiveUser(null); return; }
     const otherUid = getOtherUid(activeChatId, currentUser.uid);
     getDoc(doc(db, 'users', otherUid)).then(snap => { if (snap.exists()) setActiveUser(snap.data()); });
     const onlineRef = ref(rtdb, `online/${otherUid}`);
     const unsub = onValue(onlineRef, snap => { setOnline(p => ({ ...p, [otherUid]: snap.exists() && snap.val() === true })); });
     return () => unsub();
-  }, [activeChatId]);
-
-  useEffect(() => {
-    if (!activeChatId) return;
-    const otherUid = activeChatId.split('_').find(p => p !== currentUser.uid);
-    if (!otherUid) return;
-    getDoc(doc(db, 'users', otherUid)).then(s => { if (s.exists()) setActiveUser(s.data()); });
   }, [activeChatId]);
 
   // Close menus on outside click
@@ -229,7 +247,7 @@ export default function Messages() {
     try {
       let mediaURL = '', finalMT = '';
       if (mediaFile) { const r = await uploadToTelegram(mediaFile); mediaURL = r.url; finalMT = r.type; }
-      const otherUid = activeChatId.split('_').find(p => p !== currentUser.uid);
+      const otherUid = isGroupChat ? null : activeChatId.split('_').find(p => p !== currentUser.uid);
 
       if (editingMsgId) {
         // ── Mode édition : modifier le message existant ─────
@@ -243,7 +261,7 @@ export default function Messages() {
         // ── Nouveau message ─────────────────────────────────
         const msgData = {
           fromUid: currentUser.uid,
-          toUid: otherUid,
+          ...(otherUid ? { toUid: otherUid } : {}),
           fromName: userProfile.fullName,
           fromPhoto: userProfile.photoURL || '',
           text: text.trim(),
@@ -257,12 +275,24 @@ export default function Messages() {
           lastMessage: text.trim() || (finalMT === 'audio' ? '🎤 Vocal' : '📎 Média'),
           lastTs: Date.now(),
         });
-        sendPushNotification({
-          toExternalId: otherUid,
-          title: userProfile.fullName,
-          message: text.trim() || (finalMT === 'audio' ? 'a envoyé un message vocal 🎤' : 'a envoyé un fichier'),
-          data: { type: 'message', conversationId: activeChatId },
-        });
+        const notifBody = text.trim() || (finalMT === 'audio' ? 'a envoyé un message vocal 🎤' : 'a envoyé un fichier');
+        if (isGroupChat && activeGroup) {
+          activeGroup.members.filter(m => m !== currentUser.uid).forEach(m =>
+            sendPushNotification({
+              toExternalId: m,
+              title: `${activeGroup.name} — ${userProfile.fullName}`,
+              message: notifBody,
+              data: { type: 'message', conversationId: activeChatId },
+            })
+          );
+        } else if (otherUid) {
+          sendPushNotification({
+            toExternalId: otherUid,
+            title: userProfile.fullName,
+            message: notifBody,
+            data: { type: 'message', conversationId: activeChatId },
+          });
+        }
       }
       setText(''); removeMedia(); setReplyTo(null);
     } catch (err) { console.error(err); alert('Erreur lors de l\'envoi : ' + (err?.message || err)); }
@@ -326,6 +356,46 @@ export default function Messages() {
     setActiveChatId(null); setDeleteConfirm(null);
     navigate('/messages', { replace: true });
   }
+  async function createGroup() {
+    const name = groupName.trim();
+    const members = Object.keys(groupSel).filter(k => groupSel[k]);
+    if (!name) { alert('Donnez un nom au groupe'); return; }
+    if (members.length === 0) { alert('Choisissez au moins un ami'); return; }
+    setCreatingGroup(true);
+    try {
+      const refDoc = await addDoc(collection(db, 'groups'), {
+        name,
+        photoURL: '',
+        admins: [currentUser.uid],
+        members: [currentUser.uid, ...members],
+        createdBy: currentUser.uid,
+        createdAt: serverTimestamp(),
+      });
+      setCreateGroupOpen(false); setGroupName(''); setGroupSel({});
+      setActiveChatId(`group_${refDoc.id}`);
+      navigate(`/messages/group_${refDoc.id}`, { replace: true });
+    } catch (err) { alert('Erreur création groupe : ' + (err?.message || err)); }
+    setCreatingGroup(false);
+  }
+
+  async function leaveGroup() {
+    if (!activeGroup) return;
+    if (!window.confirm(`Quitter le groupe "${activeGroup.name}" ?`)) return;
+    await updateDoc(doc(db, 'groups', activeGroup.id), {
+      members: arrayRemove(currentUser.uid),
+      admins: arrayRemove(currentUser.uid),
+    });
+    setActiveChatId(null); navigate('/messages', { replace: true });
+  }
+
+  async function deleteGroup() {
+    if (!activeGroup || !isGroupAdmin) return;
+    if (!window.confirm(`Supprimer définitivement le groupe "${activeGroup.name}" ?`)) return;
+    await remove(ref(rtdb, `conversations/group_${activeGroup.id}`)).catch(() => {});
+    await deleteDoc(doc(db, 'groups', activeGroup.id));
+    setActiveChatId(null); navigate('/messages', { replace: true });
+  }
+
   async function deleteConversation(chatId) {
     await remove(ref(rtdb, `conversations/${chatId}`));
     if (activeChatId === chatId) {
@@ -336,7 +406,7 @@ export default function Messages() {
     setConvMenu(null);
   }
 
-  const otherUid = activeChatId ? getOtherUid(activeChatId, currentUser.uid) : null;
+  const otherUid = (activeChatId && !isGroupChat) ? getOtherUid(activeChatId, currentUser.uid) : null;
   const av = (name, photo) => photo || `https://ui-avatars.com/api/?name=${encodeURIComponent(name || 'U')}&background=1877F2&color=fff`;
   const fmtDuration = s => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
 
@@ -382,6 +452,10 @@ export default function Messages() {
         <div style={{ padding: '14px 14px 10px', borderBottom: '1px solid #E4E6EB' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
             <h2 style={{ fontWeight: 700, fontSize: 18, color: '#1877F2' }}>{t('messages')}</h2>
+            <button onClick={() => setCreateGroupOpen(true)} className="btn-gold"
+              style={{ padding: '5px 12px', fontSize: 12, display: 'flex', alignItems: 'center', gap: 5 }}>
+              <HiUserGroup size={15} /> Groupe
+            </button>
             {conversations.length > 0 && (
               <button onClick={() => setDeleteConfirm('all')}
                 style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#65676B', padding: 4, display: 'flex', alignItems: 'center', gap: 4, fontSize: 12 }}>
@@ -426,6 +500,24 @@ export default function Messages() {
 
         {/* Liste */}
         <div style={{ flex: 1, overflowY: 'auto' }}>
+          {groups.length > 0 && (
+            <div style={{ borderBottom: '1px solid #E4E6EB' }}>
+              <p style={{ padding: '10px 14px 4px', fontSize: 11, fontWeight: 700, color: '#65676B', textTransform: 'uppercase', letterSpacing: 1 }}>👥 Groupes</p>
+              {groups.map(g => (
+                <div key={g.id}
+                  onClick={() => { setActiveChatId(`group_${g.id}`); navigate(`/messages/group_${g.id}`, { replace: true }); }}
+                  style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '11px 14px', cursor: 'pointer', background: activeChatId === `group_${g.id}` ? '#E7F0FE' : 'white', borderBottom: '1px solid #F0F2F5' }}>
+                  <div style={{ width: 46, height: 46, borderRadius: '50%', background: 'linear-gradient(135deg,#1B84FF,#1877F2)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: '0 2px 8px rgba(24,119,242,.35)' }}>
+                    {g.photoURL ? <img src={g.photoURL} alt="" style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }} /> : <HiUserGroup size={22} color="white" />}
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <p style={{ fontWeight: 700, fontSize: 14, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{g.name}</p>
+                    <p style={{ fontSize: 12, color: '#65676B' }}>{g.members?.length || 0} membres{g.admins?.includes(currentUser.uid) ? ' · Vous êtes admin' : ''}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
           {conversations.length === 0
             ? <div style={{ padding: 30, textAlign: 'center', color: '#65676B', fontSize: 14 }}>{t('noMessages')}</div>
             : conversations.map(conv => (
@@ -475,7 +567,7 @@ export default function Messages() {
 
       {/* ── Zone de discussion ──────────────────────────────────── */}
       {activeChatId && (
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: theme.bg, width: '100%' }}>
+        <div style={{ position: 'fixed', inset: 0, zIndex: 250, display: 'flex', flexDirection: 'column', background: theme.bg, width: '100%', height: '100dvh' }}>
 
           {/* Header chat */}
           <div style={{ background: 'white', borderBottom: '1px solid #E4E6EB', padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 10, position: 'sticky', top: 0, zIndex: 10 }}>
@@ -483,7 +575,28 @@ export default function Messages() {
               style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#1877F2' }}>
               <HiArrowLeft size={22} />
             </button>
-            {activeUser && <>
+            {isGroupChat && activeGroup && <>
+              <div style={{ width: 40, height: 40, borderRadius: '50%', background: 'linear-gradient(135deg,#1B84FF,#1877F2)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                {activeGroup.photoURL ? <img src={activeGroup.photoURL} alt="" style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }} /> : <HiUserGroup size={20} color="white" />}
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <p style={{ fontWeight: 700, fontSize: 15, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{activeGroup.name}</p>
+                <p style={{ fontSize: 11, color: '#65676B' }}>{activeGroup.members?.length || 0} membres{isGroupAdmin ? ' · Admin' : ''}</p>
+              </div>
+              <div style={{ position: 'relative' }} onClick={e => e.stopPropagation()}>
+                <button onClick={() => setHeaderMenu(p => !p)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#65676B', padding: 4 }}><HiDotsVertical size={20} /></button>
+                {headerMenu && (
+                  <div style={{ position: 'absolute', top: '100%', right: 0, background: 'white', border: '1px solid #E4E6EB', borderRadius: 12, boxShadow: '0 4px 20px rgba(0,0,0,.12)', minWidth: 200, zIndex: 50, overflow: 'hidden' }}>
+                    <button onClick={() => { setMediaModal(true); setHeaderMenu(false); }} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px', background: 'none', border: 'none', cursor: 'pointer', borderBottom: '1px solid #E4E6EB', fontFamily: 'Poppins', fontSize: 14, color: '#050505' }}><HiArchive size={18} color='#1877F2' /> Médias partagés</button>
+                    <button onClick={() => { setHeaderMenu(false); leaveGroup(); }} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px', background: 'none', border: 'none', cursor: 'pointer', borderBottom: '1px solid #E4E6EB', fontFamily: 'Poppins', fontSize: 14, color: '#F2B300' }}><HiArrowLeft size={18} /> Quitter le groupe</button>
+                    {isGroupAdmin && (
+                      <button onClick={() => { setHeaderMenu(false); deleteGroup(); }} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'Poppins', fontSize: 14, color: '#ef4444' }}><HiTrash size={18} /> Supprimer le groupe</button>
+                    )}
+                  </div>
+                )}
+              </div>
+            </>}
+            {!isGroupChat && activeUser && <>
               <div style={{ position: 'relative' }}>
                 <img src={activeUser.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(activeUser.fullName)}&background=1877F2&color=fff`}
                   alt="" className="avatar" style={{ width: 40, height: 40, cursor:'pointer' }} onClick={()=>navigate(`/profile/${otherUid}`)} />
@@ -528,6 +641,9 @@ export default function Messages() {
                         </div>
                       )}
 
+                      {!isMe && isGroupChat && msg.fromName && (
+                        <p style={{ fontSize: 10, fontWeight: 700, color: '#1877F2', marginBottom: 2, marginLeft: 4 }}>{msg.fromName}</p>
+                      )}
                       {/* Bulle du message */}
                       <div
                         style={{ position:'relative', wordBreak:'break-word', cursor:'pointer', borderRadius: msg.replyTo ? (isMe?'8px 8px 0 8px':'0 8px 8px 8px') : (isMe?'18px 18px 4px 18px':'18px 18px 18px 4px'), padding:'10px 14px', maxWidth:'100%', whiteSpace:'pre-wrap', lineHeight:1.55, fontSize:15, background: isMe ? theme.me : theme.other, color: isMe ? 'white' : '#050505' }}
@@ -721,6 +837,36 @@ export default function Messages() {
           </div>
         </div>
       )}
+      {/* ── Modal : Créer un groupe ─────────────────────────── */}
+      {createGroupOpen && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 400, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }} onClick={() => setCreateGroupOpen(false)}>
+          <div onClick={e => e.stopPropagation()} style={{ background: 'white', borderRadius: '20px 20px 0 0', padding: 20, width: '100%', maxWidth: 480, maxHeight: '85vh', overflowY: 'auto' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+              <h3 style={{ fontWeight: 800, color: '#1877F2', display: 'flex', alignItems: 'center', gap: 8 }}><HiUserGroup size={20} /> Créer un groupe</h3>
+              <button onClick={() => setCreateGroupOpen(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#65676B' }}><HiX size={20} /></button>
+            </div>
+            <input className="input" placeholder="Nom du groupe" value={groupName} onChange={e => setGroupName(e.target.value)} maxLength={60} style={{ marginBottom: 12 }} />
+            <p style={{ fontSize: 12, fontWeight: 700, color: '#65676B', marginBottom: 8, textTransform: 'uppercase', letterSpacing: 1 }}>Ajouter des amis</p>
+            {friendsProfiles.length === 0 && <p style={{ fontSize: 13, color: '#65676B', padding: '8px 0' }}>Ajoutez d'abord des amis pour créer un groupe.</p>}
+            {friendsProfiles.map(f => (
+              <label key={f.uid} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 4px', cursor: 'pointer', borderBottom: '1px solid #F0F2F5' }}>
+                <input type="checkbox" checked={!!groupSel[f.uid]} onChange={e => setGroupSel(p => ({ ...p, [f.uid]: e.target.checked }))}
+                  style={{ width: 18, height: 18, accentColor: '#1877F2' }} />
+                <img src={f.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(f.fullName)}&background=1877F2&color=fff`} alt="" style={{ width: 36, height: 36, borderRadius: '50%', objectFit: 'cover' }} />
+                <div>
+                  <p style={{ fontWeight: 600, fontSize: 14 }}>{f.fullName}</p>
+                  <p style={{ fontSize: 12, color: '#65676B' }}>@{f.username}</p>
+                </div>
+              </label>
+            ))}
+            <button onClick={createGroup} disabled={creatingGroup} className="btn-primary" style={{ width: '100%', marginTop: 16, padding: '12px 0', fontSize: 15 }}>
+              {creatingGroup ? 'Création...' : 'Créer le groupe ✨'}
+            </button>
+            <p style={{ fontSize: 11, color: '#65676B', marginTop: 8, textAlign: 'center' }}>Vous serez administrateur du groupe.</p>
+          </div>
+        </div>
+      )}
+
       {/* Bottom Sheet — Facebook style */}
       {bottomSheet && (
         <div onClick={()=>setBottomSheet(null)} style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.5)', zIndex:500, display:'flex', alignItems:'flex-end', justifyContent:'center' }}>

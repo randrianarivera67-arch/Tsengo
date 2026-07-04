@@ -19,6 +19,29 @@ service cloud.firestore {
             .hasAny(['isAdmin', 'isVip', 'uid', 'email']);
     }
 
+    // ✅ Groupes (chat + publications) — admins gérés
+    match /groups/{groupId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null
+        && request.resource.data.admins.hasAny([request.auth.uid])
+        && request.resource.data.members.hasAny([request.auth.uid]);
+      // Admin : tout modifier / supprimer. Membre : uniquement quitter (retirer soi-même)
+      allow update: if request.auth != null &&
+        (
+          resource.data.admins.hasAny([request.auth.uid])
+          ||
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['members','admins'])
+        );
+      allow delete: if request.auth != null && resource.data.admins.hasAny([request.auth.uid]);
+    }
+
+    // ✅ Stories (24h) — chacun crée/supprime les siennes
+    match /stories/{storyId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null && request.resource.data.uid == request.auth.uid;
+      allow delete: if request.auth != null && resource.data.uid == request.auth.uid;
+    }
+
     // Posts — afaka mamaky ny rehetra, afaka manoratra raha authenticated
     // ✅ FIX: isBoosted/boostUntil cannot be written by regular users
     match /posts/{postId} {
@@ -78,7 +101,7 @@ service cloud.firestore {
       // et l'envoi de messages échouait aussi selon la config.
       ".read": "auth != null",
       "$chatId": {
-        ".write": "auth != null && ($chatId.contains(auth.uid))",
+        ".write": "auth != null && ($chatId.contains(auth.uid) || $chatId.beginsWith('group_'))",
         "messages": {
           "$msgId": {
             ".validate": "newData.hasChildren(['fromUid', 'text', 'ts'])

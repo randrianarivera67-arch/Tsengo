@@ -3,7 +3,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   collection, addDoc, serverTimestamp, query, orderBy, onSnapshot, limit,
-  doc, updateDoc, arrayUnion, arrayRemove, deleteDoc, writeBatch, getDoc
+  doc, updateDoc, arrayUnion, arrayRemove, deleteDoc, writeBatch, getDoc, getDocs, where
 } from 'firebase/firestore';
 import { db } from '../firebase';
 import { useAuth } from '../context/AuthContext';
@@ -43,6 +43,20 @@ export default function Home() {
   const [lieu, setLieu]         = useState('');
   const [posting, setPosting]   = useState(false);
   const [uploadPct, setUploadPct] = useState(0);
+  const [myGroups, setMyGroups] = useState([]);
+  const [postGroup, setPostGroup] = useState('');   // '' = profil, sinon groupId
+
+  // ── Stories (format Facebook) ──
+  const [storyGroups, setStoryGroups] = useState([]);       // [{uid, name, photo, items:[...]}]
+  const [storyViewer, setStoryViewer] = useState(null);     // {group, index}
+  const [addingStory, setAddingStory] = useState(false);
+  const storyFileRef = useRef();
+
+  // ── Suggestions d'amis ──
+  const [suggestions, setSuggestions] = useState([]);
+
+  const lpTimer = useRef(null);
+  const lpFired = useRef(false);
 
   const [posts, setPosts]           = useState([]);
   const [reelPosts, setReelPosts]   = useState([]);
@@ -68,6 +82,49 @@ export default function Home() {
     document.addEventListener('click', fn);
     return () => document.removeEventListener('click', fn);
   }, []);
+
+  // Mes groupes (pour publier dans un groupe)
+  useEffect(() => {
+    if (!currentUser) return;
+    const q = query(collection(db, 'groups'), where('members', 'array-contains', currentUser.uid));
+    return onSnapshot(q, snap => setMyGroups(snap.docs.map(d => ({ id: d.id, ...d.data() }))), () => {});
+  }, [currentUser]);
+
+  // Stories des dernières 24h, groupées par utilisateur
+  useEffect(() => {
+    const q = query(collection(db, 'stories'), orderBy('ts', 'desc'), limit(150));
+    return onSnapshot(q, snap => {
+      const cutoff = Date.now() - 24 * 60 * 60 * 1000;
+      const fresh = snap.docs.map(d => ({ id: d.id, ...d.data() })).filter(st => (st.ts || 0) > cutoff);
+      const byUser = {};
+      fresh.forEach(st => {
+        if (!byUser[st.uid]) byUser[st.uid] = { uid: st.uid, name: st.authorName, photo: st.authorPhoto || '', items: [] };
+        byUser[st.uid].items.push(st);
+      });
+      Object.values(byUser).forEach(g => g.items.sort((a, b) => (a.ts || 0) - (b.ts || 0)));
+      // Ma story en premier
+      const list = Object.values(byUser).sort((a, b) => (a.uid === currentUser?.uid ? -1 : b.uid === currentUser?.uid ? 1 : 0));
+      setStoryGroups(list);
+    }, () => {});
+  }, [currentUser]);
+
+  // Suggestions d'amis (personnes non amies)
+  useEffect(() => {
+    if (!currentUser || !userProfile) return;
+    let alive = true;
+    getDocs(collection(db, 'users')).then(snap => {
+      if (!alive) return;
+      const friends = userProfile.friends || [];
+      const sent = userProfile.sentRequests || [];
+      const list = snap.docs
+        .map(d => ({ uid: d.id, ...d.data() }))
+        .filter(u => u.uid !== currentUser.uid && u.fullName && !friends.includes(u.uid) && !sent.includes(u.uid));
+      // Mélange léger
+      for (let i = list.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [list[i], list[j]] = [list[j], list[i]]; }
+      setSuggestions(list.slice(0, 20));
+    }).catch(() => {});
+    return () => { alive = false; };
+  }, [currentUser, userProfile?.friends?.length]);
 
   // Load posts
   useEffect(() => {
@@ -113,6 +170,7 @@ export default function Home() {
         mediaURL = r.url; finalMT = r.type === 'video' ? 'video' : 'image';
         setUploadPct(80);
       }
+      const selGroup = postGroup ? myGroups.find(g => g.id === postGroup) : null;
       const postRef = await addDoc(collection(db, 'posts'), {
         uid: currentUser.uid, authorName: userProfile.fullName,
         authorUsername: userProfile.username, authorPhoto: userProfile.photoURL || '',
@@ -120,21 +178,27 @@ export default function Home() {
         content: content.trim().slice(0, MAX_POST), mediaURL, mediaType: finalMT,
         isSale, price: isSale ? parseFloat(price) : '',
         contact: isSale ? contact.trim() : '', lieu: isSale ? lieu.trim() : '',
+        ...(selGroup ? { groupId: selGroup.id, groupName: selGroup.name, groupPhoto: selGroup.photoURL || '' } : {}),
         reactions: {}, comments: [], createdAt: serverTimestamp(),
       });
-      const friends = userProfile.friends || [];
-      if (friends.length > 0) {
+      // Notifier : membres du groupe si pub de groupe, sinon amis
+      const targets = selGroup
+        ? (selGroup.members || []).filter(m => m !== currentUser.uid)
+        : (userProfile.friends || []);
+      if (targets.length > 0) {
         const batch = writeBatch(db);
-        friends.forEach(fUid => batch.set(doc(collection(db,'notifications')), {
+        targets.forEach(fUid => batch.set(doc(collection(db,'notifications')), {
           toUid: fUid, fromUid: currentUser.uid,
           fromName: userProfile.fullName, fromPhoto: userProfile.photoURL || '',
           type: 'post', postId: postRef.id,
-          message: `${userProfile.fullName} a publié un nouveau post`,
+          message: selGroup
+            ? `${userProfile.fullName} a publié dans le groupe ${selGroup.name}`
+            : `${userProfile.fullName} a publié un nouveau post`,
           read: false, createdAt: serverTimestamp(),
         }));
         await batch.commit();
       }
-      setContent(''); removeMedia(); setIsSale(false); setPrice(''); setContact(''); setLieu('');
+      setContent(''); removeMedia(); setIsSale(false); setPrice(''); setContact(''); setLieu(''); setPostGroup('');
     } catch (err) { console.error(err); alert('Erreur lors de la publication'); }
     setPosting(false); setUploadPct(0);
   }
@@ -223,7 +287,8 @@ export default function Home() {
   }
 
   async function deleteCmt(postId, cmt) {
-    if (cmt.uid !== currentUser.uid && post.uid !== currentUser.uid) return;
+    const post = posts.find(p => p.id === postId);
+    if (cmt.uid !== currentUser.uid && post?.uid !== currentUser.uid) return;
     if (!window.confirm('Supprimer ce commentaire ?')) return;
     await updateDoc(doc(db,'posts',postId), { comments: arrayRemove(cmt) });
   }
@@ -281,33 +346,157 @@ export default function Home() {
     sendPushNotification({ toExternalId: toUid, title: userProfile.fullName, message:"vous a envoyé une demande d'ami 👥", data:{ type:'friendRequest' } });
   }
 
+  // ── Stories ──
+  async function addStory(e) {
+    const file = e.target.files[0]; if (!file) return;
+    const okTypes = ['image/jpeg','image/png','image/gif','image/webp','video/mp4','video/webm','video/quicktime'];
+    if (!okTypes.includes(file.type)) { alert('Type non accepté'); return; }
+    setAddingStory(true);
+    try {
+      const r = await uploadToTelegram(file);
+      await addDoc(collection(db, 'stories'), {
+        uid: currentUser.uid,
+        authorName: userProfile.fullName,
+        authorPhoto: userProfile.photoURL || '',
+        mediaURL: r.url,
+        mediaType: r.type === 'video' ? 'video' : 'image',
+        ts: Date.now(),
+        createdAt: serverTimestamp(),
+      });
+    } catch (err) { alert('Erreur story : ' + (err?.message || err)); }
+    setAddingStory(false);
+    e.target.value = '';
+  }
+
+  async function deleteStory(st) {
+    if (st.uid !== currentUser.uid) return;
+    if (!window.confirm('Supprimer cette story ?')) return;
+    await deleteDoc(doc(db, 'stories', st.id));
+    setStoryViewer(null);
+  }
+
+  function openStories(group) { setStoryViewer({ group, index: 0 }); }
+  function nextStory() {
+    setStoryViewer(v => {
+      if (!v) return null;
+      if (v.index + 1 < v.group.items.length) return { ...v, index: v.index + 1 };
+      const gi = storyGroups.findIndex(g => g.uid === v.group.uid);
+      if (gi >= 0 && gi + 1 < storyGroups.length) return { group: storyGroups[gi + 1], index: 0 };
+      return null;
+    });
+  }
+  function prevStory() {
+    setStoryViewer(v => {
+      if (!v) return null;
+      if (v.index > 0) return { ...v, index: v.index - 1 };
+      return v;
+    });
+  }
+
+  // Avance automatique des images (5s)
+  useEffect(() => {
+    if (!storyViewer) return;
+    const cur = storyViewer.group.items[storyViewer.index];
+    if (!cur || cur.mediaType === 'video') return;
+    const tm = setTimeout(nextStory, 5000);
+    return () => clearTimeout(tm);
+  }, [storyViewer]);
+
+  // ── J'aime rapide (clic) + appui long = choix de réaction (format Facebook) ──
+  function quickLike(post) {
+    if (lpFired.current) { lpFired.current = false; return; }
+    const myR = post.reactions?.[currentUser.uid];
+    reactToPost(post.id, myR || '👍');
+  }
+  function startLongPress(postId) {
+    lpFired.current = false;
+    lpTimer.current = setTimeout(() => { lpFired.current = true; setShowReact(p => ({ ...p, [postId]: true })); }, 450);
+  }
+  function endLongPress() { clearTimeout(lpTimer.current); }
+
   const rem = MAX_POST - content.length;
   const charColor = rem < 50 ? '#ef4444' : rem < 200 ? '#f97316' : '#65676B';
 
   return (
     <div style={{ padding:0 }}>
 
-      {/* ── Stories (vidéos courtes, format Facebook) ─────────── */}
-      {reelPosts.length > 0 && (
-        <div className="stories-strip">
-          {reelPosts.slice(0, 12).map(p => (
-            <div key={p.id} className="story-card" onClick={() => navigate('/reels', { state: { startId: p.id } })}>
-              <video src={p.mediaURL} muted playsInline preload="metadata" />
+      {/* ── Stories (format Facebook) ─────────────────────────── */}
+      <div className="stories-strip">
+        {/* Carte : Créer une story */}
+        <input ref={storyFileRef} type="file" accept="image/*,video/mp4,video/webm,video/quicktime" style={{ display:'none' }} onChange={addStory} />
+        <div className="story-card" onClick={() => !addingStory && storyFileRef.current?.click()} style={{ background:'white', border:'1px solid #E4E6EB' }}>
+          <div style={{ height:'62%', overflow:'hidden' }}>
+            <img src={userProfile?.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(userProfile?.fullName||'U')}&background=1877F2&color=fff`}
+              alt="" style={{ width:'100%', height:'100%', objectFit:'cover' }} />
+          </div>
+          <div style={{ position:'absolute', top:'62%', left:'50%', transform:'translate(-50%,-50%)', width:34, height:34, borderRadius:'50%', background:'#1877F2', border:'3.5px solid white', display:'flex', alignItems:'center', justifyContent:'center', color:'white', fontSize:20, fontWeight:700 }}>+</div>
+          <p style={{ position:'absolute', bottom:8, left:0, right:0, textAlign:'center', fontSize:11, fontWeight:600, color:'#050505' }}>
+            {addingStory ? 'Envoi...' : 'Créer une story'}
+          </p>
+        </div>
+
+        {/* Stories des utilisateurs */}
+        {storyGroups.map(g => {
+          const last = g.items[g.items.length - 1];
+          return (
+            <div key={g.uid} className="story-card" onClick={() => openStories(g)}>
+              {last.mediaType === 'video'
+                ? <video src={last.mediaURL} muted playsInline preload="metadata" />
+                : <img src={last.mediaURL} alt="" />}
               <div className="story-gradient" />
               <img className="story-avatar"
-                src={p.authorPhoto || `https://ui-avatars.com/api/?name=${encodeURIComponent(p.authorName || 'U')}&background=1877F2&color=fff`} alt="" />
-              <span className="story-name">{p.authorName?.split(' ')[0]}</span>
-              <span style={{ position:'absolute', top:'42%', left:'50%', transform:'translate(-50%,-50%)', width:34, height:34, borderRadius:'50%', background:'rgba(255,255,255,.25)', backdropFilter:'blur(4px)', display:'flex', alignItems:'center', justifyContent:'center', color:'white', fontSize:14, border:'1.5px solid rgba(255,255,255,.6)' }}>▶</span>
+                src={g.photo || `https://ui-avatars.com/api/?name=${encodeURIComponent(g.name||'U')}&background=1877F2&color=fff`} alt="" />
+              <span className="story-name">{g.uid === currentUser.uid ? 'Votre story' : g.name?.split(' ')[0]}</span>
             </div>
-          ))}
-        </div>
-      )}
+          );
+        })}
+      </div>
+
+      {/* ── Visionneuse de story (plein écran) ─────────────────── */}
+      {storyViewer && (() => {
+        const cur = storyViewer.group.items[storyViewer.index];
+        return (
+          <div style={{ position:'fixed', inset:0, background:'#000', zIndex:300, display:'flex', flexDirection:'column' }}>
+            {/* Barres de progression */}
+            <div style={{ display:'flex', gap:4, padding:'10px 10px 6px' }}>
+              {storyViewer.group.items.map((it, i) => (
+                <div key={it.id} style={{ flex:1, height:3, borderRadius:2, background: i <= storyViewer.index ? 'white' : 'rgba(255,255,255,.35)' }} />
+              ))}
+            </div>
+            {/* En-tête */}
+            <div style={{ display:'flex', alignItems:'center', gap:10, padding:'6px 12px' }}>
+              <img src={storyViewer.group.photo || `https://ui-avatars.com/api/?name=${encodeURIComponent(storyViewer.group.name||'U')}&background=1877F2&color=fff`}
+                alt="" style={{ width:36, height:36, borderRadius:'50%', objectFit:'cover', border:'2px solid #1877F2' }} />
+              <p style={{ color:'white', fontWeight:700, fontSize:14, flex:1 }}>{storyViewer.group.name}</p>
+              {cur.uid === currentUser.uid && (
+                <button onClick={() => deleteStory(cur)} style={{ background:'none', border:'none', cursor:'pointer', color:'white', padding:6 }}><HiTrash size={20} /></button>
+              )}
+              <button onClick={() => setStoryViewer(null)} style={{ background:'none', border:'none', cursor:'pointer', color:'white', fontSize:24, padding:'0 6px' }}>✕</button>
+            </div>
+            {/* Média + zones tactiles gauche/droite */}
+            <div style={{ flex:1, position:'relative', display:'flex', alignItems:'center', justifyContent:'center', overflow:'hidden' }}>
+              {cur.mediaType === 'video'
+                ? <video key={cur.id} src={cur.mediaURL} autoPlay playsInline onEnded={nextStory} style={{ maxWidth:'100%', maxHeight:'100%' }} />
+                : <img key={cur.id} src={cur.mediaURL} alt="" style={{ maxWidth:'100%', maxHeight:'100%', objectFit:'contain' }} />}
+              <div onClick={prevStory} style={{ position:'absolute', left:0, top:0, bottom:0, width:'35%' }} />
+              <div onClick={nextStory} style={{ position:'absolute', right:0, top:0, bottom:0, width:'65%' }} />
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Create post */}
       <div className="card post-card" style={{ padding:16, marginBottom:8 }}>
         <div style={{ display:'flex', gap:10, alignItems:'flex-start' }}>
           <img src={userProfile?.photoURL||`https://ui-avatars.com/api/?name=${encodeURIComponent(userProfile?.fullName||'U')}&background=1877F2&color=fff`} alt="" className="avatar" style={{ width:42, height:42, flexShrink:0 }}/>
           <div style={{ flex:1 }}>
+            {myGroups.length > 0 && (
+              <select value={postGroup} onChange={e => setPostGroup(e.target.value)}
+                style={{ marginBottom:8, padding:'6px 12px', borderRadius:16, border:'1.5px solid #E4E6EB', background:'#F0F2F5', fontFamily:'Poppins', fontSize:12, fontWeight:600, color: postGroup ? '#1877F2' : '#65676B', maxWidth:'100%' }}>
+                <option value="">📍 Publier sur mon profil</option>
+                {myGroups.map(g => <option key={g.id} value={g.id}>👥 Publier dans : {g.name}</option>)}
+              </select>
+            )}
             <textarea className="input" placeholder={t('whatsOnMind')} value={content} onChange={e => setContent(e.target.value)} rows={2} style={{ resize:'none', width:'100%' }} maxLength={MAX_POST}/>
             {content.length > 0 && <p style={{ fontSize:11, color:charColor, textAlign:'right', marginTop:2 }}>{rem} restants</p>}
           </div>
@@ -352,7 +541,7 @@ export default function Home() {
           <input ref={photoRef} type="file" accept="image/jpeg,image/png,image/gif,image/webp" onChange={e => handleMedia(e,'image')} style={{ display:'none' }}/>
           <input ref={videoRef} type="file" accept="video/mp4,video/webm,video/quicktime"       onChange={e => handleMedia(e,'video')} style={{ display:'none' }}/>
           <button onClick={() => photoRef.current.click()} className="btn-blue" style={{ display:'flex', alignItems:'center', gap:5, borderRadius:20, padding:'6px 12px', fontSize:13 }}><HiPhotograph size={16}/>{t('addPhoto')}</button>
-          <button onClick={() => videoRef.current.click()} className="btn-orange" style={{ display:'flex', alignItems:'center', gap:5, borderRadius:20, padding:'6px 12px', fontSize:13 }}><HiVideoCamera size={16}/>{t('addVideo')}</button>
+          <button onClick={() => videoRef.current.click()} className="btn-primary" style={{ display:'flex', alignItems:'center', gap:5, borderRadius:20, padding:'6px 12px', fontSize:13 }}><HiVideoCamera size={16}/>{t('addVideo')}</button>
           <button onClick={() => setIsSale(p=>!p)} className="btn-gold" style={{ display:'flex', alignItems:'center', gap:5, borderRadius:20, padding:'6px 12px', fontSize:13, opacity:isSale?1:.85, outline:isSale?'2px solid #F2B300':'none' }}><HiTag size={16}/>{t('sell')}</button>
           <button className="btn-primary" onClick={createPost} disabled={posting||(!content.trim()&&!mediaFile)||content.length>MAX_POST} style={{ marginLeft:'auto', padding:'6px 20px', fontSize:13 }}>
             {posting?'...':t('publishPost')}
@@ -412,7 +601,7 @@ export default function Home() {
       )}
 
       {/* Feed */}
-      {posts.map(post => {
+      {posts.map((post, pIdx) => {
         const rc     = countReactions(post.reactions);
         const myR    = post.reactions?.[currentUser.uid];
         const total  = Object.keys(post.reactions||{}).length;
@@ -422,7 +611,8 @@ export default function Home() {
         const sentReq    = hasSentReq(post.uid);
 
         return (
-          <div key={post.id} className="card post-card animate-fade" style={{ marginBottom:14, border:boosted?'1px solid #a855f755':undefined }}>
+          <div key={post.id}>
+          <div className="card post-card animate-fade" style={{ marginBottom:14, border:boosted?'1px solid #a855f755':undefined }}>
             {boosted && (
               <div style={{ background:'linear-gradient(135deg,#7c3aed18,#a855f718)', borderBottom:'1px solid #a855f733', padding:'5px 14px' }}>
                 <span style={{ fontSize:10, color:'#a855f7', fontWeight:600 }}>⚡ Sponsorisé</span>
@@ -434,8 +624,17 @@ export default function Home() {
               <div style={{ display:'flex', alignItems:'center', gap:10, cursor:'pointer', flex:1, minWidth:0 }} onClick={() => navigate(`/profile/${post.uid}`)}>
                 <img src={post.authorPhoto||`https://ui-avatars.com/api/?name=${encodeURIComponent(post.authorName||'U')}&background=1877F2&color=fff`} alt="" className="avatar" style={{ width:40, height:40, flexShrink:0 }}/>
                 <div style={{ minWidth:0 }}>
-                  <p style={{ fontWeight:600, fontSize:14, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{post.authorName}{post.authorIsVip&&<VIPBadge/>}</p>
-                  <p style={{ fontSize:12, color:'#65676B' }}>@{post.authorUsername} · {post.createdAt?.toDate?new Date(post.createdAt.toDate()).toLocaleDateString('fr-FR'):'Maintenant'}</p>
+                  {post.groupName ? (
+                    <>
+                      <p style={{ fontWeight:700, fontSize:14, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', color:'#1877F2' }}>👥 {post.groupName}</p>
+                      <p style={{ fontSize:12, color:'#65676B' }}>{post.authorName}{post.authorIsVip&&<VIPBadge/>} · {post.createdAt?.toDate?new Date(post.createdAt.toDate()).toLocaleDateString('fr-FR'):'Maintenant'}</p>
+                    </>
+                  ) : (
+                    <>
+                      <p style={{ fontWeight:600, fontSize:14, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{post.authorName}{post.authorIsVip&&<VIPBadge/>}</p>
+                      <p style={{ fontSize:12, color:'#65676B' }}>@{post.authorUsername} · {post.createdAt?.toDate?new Date(post.createdAt.toDate()).toLocaleDateString('fr-FR'):'Maintenant'}</p>
+                    </>
+                  )}
                 </div>
               </div>
 
@@ -484,57 +683,96 @@ export default function Home() {
               )}
             </div>
 
-            {/* Reaction count */}
-            {total > 0 && (
-              <div style={{ padding:'6px 16px 8px', display:'flex', alignItems:'center', gap:6, cursor:'pointer' }} onClick={() => openReactionModal(post)}>
-                <div style={{ display:'flex', gap:1 }}>{Object.entries(rc).slice(0,3).map(([e])=><span key={e} style={{ fontSize:16 }}>{e}</span>)}</div>
-                <span style={{ fontSize:13, color:'#65676B' }}>{total} personne{total>1?'s':''} ont réagi</span>
+            {/* Résumé réactions · commentaires (format Facebook) */}
+            {(total > 0 || post.comments?.length > 0) && (
+              <div style={{ padding:'8px 16px 6px', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+                <div onClick={() => openReactionModal(post)} style={{ display:'flex', alignItems:'center', gap:4, cursor:'pointer', minHeight:18 }}>
+                  {total > 0 && <>
+                    <div style={{ display:'flex' }}>
+                      {Object.entries(rc).slice(0,3).map(([e], i) =>
+                        <span key={e} style={{ fontSize:15, marginLeft: i ? -3 : 0 }}>{e}</span>)}
+                    </div>
+                    <span style={{ fontSize:13, color:'#65676B' }}>{total}</span>
+                  </>}
+                </div>
+                {post.comments?.length > 0 && (
+                  <span onClick={() => setOpenCmt(p=>({...p,[post.id]:!p[post.id]}))} style={{ fontSize:13, color:'#65676B', cursor:'pointer' }}>
+                    {post.comments.length} commentaire{post.comments.length>1?'s':''}
+                  </span>
+                )}
               </div>
             )}
 
-            {/* Actions */}
+            {/* Actions : J'aime · Commenter · Partager (format Facebook) */}
             <div className='post-actions-row'>
-              <div style={{ position:'relative', flex:1 }}>
-                <button onClick={() => setShowReact(p=>({...p,[post.id]:!p[post.id]}))} className={'post-action-btn'+(myR?' active':'')}>
-                  {myR?<span style={{ fontSize:16 }}>{myR}</span>:<HiOutlineHeart size={18}/>}
-                  {total>0&&<span>{total}</span>}
+              <div style={{ position:'relative', flex:1, display:'flex' }}>
+                <button
+                  onClick={() => quickLike(post)}
+                  onTouchStart={() => startLongPress(post.id)} onTouchEnd={endLongPress}
+                  onMouseDown={() => startLongPress(post.id)} onMouseUp={endLongPress} onMouseLeave={endLongPress}
+                  className={'post-action-btn'+(myR?' active':'')}
+                  style={myR ? { color: myR === '👍' ? '#1877F2' : '#FF2D8D', fontWeight:700 } : {}}>
+                  <span style={{ fontSize:17 }}>{myR || '👍'}</span> J'aime
                 </button>
                 {showReact[post.id] && (
-                  <div style={{ position:'absolute', bottom:'110%', left:0, background:'white', borderRadius:30, padding:'8px 12px', display:'flex', gap:6, boxShadow:'0 4px 20px rgba(0,0,0,.15)', zIndex:10, border:'1px solid #E4E6EB' }}>
-                    {REACTIONS.map(e => <button key={e} onClick={() => reactToPost(post.id,e)} style={{ background:'none', border:'none', cursor:'pointer', fontSize:22 }}>{e}</button>)}
+                  <div style={{ position:'absolute', bottom:'110%', left:8, background:'white', borderRadius:30, padding:'8px 12px', display:'flex', gap:6, boxShadow:'0 4px 20px rgba(0,0,0,.2)', zIndex:10, border:'1px solid #E4E6EB' }}>
+                    {REACTIONS.map(e => <button key={e} onClick={() => reactToPost(post.id,e)} style={{ background:'none', border:'none', cursor:'pointer', fontSize:24, transition:'transform .15s' }}
+                      onMouseEnter={ev => ev.currentTarget.style.transform='scale(1.3)'} onMouseLeave={ev => ev.currentTarget.style.transform='scale(1)'}>{e}</button>)}
                   </div>
                 )}
               </div>
               <button onClick={() => setOpenCmt(p=>({...p,[post.id]:!p[post.id]}))} className='post-action-btn'>
-                <HiChat size={18}/>{post.comments?.length>0&&<span>{post.comments.length}</span>}
+                <HiChat size={18}/> Commenter
               </button>
               <button onClick={() => sharePost(post)} className='post-action-btn'>
-                <HiShare size={18}/>
+                <HiShare size={18}/> Partager
               </button>
             </div>
 
             {/* Comments */}
             {openCmt[post.id] && (
               <div style={{ padding:'0 16px 14px', borderTop:'1px solid #E4E6EB' }}>
-                {post.comments?.map(c => (
+                {post.comments?.map(c => {
+                  const myCR = c.reactions?.[currentUser.uid];
+                  const crCount = Object.keys(c.reactions||{}).length;
+                  return (
                   <div key={c.id} style={{ display:'flex', gap:8, marginTop:10 }}>
-                    <img src={c.authorPhoto||`https://ui-avatars.com/api/?name=${encodeURIComponent(c.authorName||'U')}&background=1877F2&color=fff`} alt="" className="avatar" style={{ width:30, height:30, flexShrink:0, cursor:'pointer' }} onClick={() => navigate(`/profile/${c.uid}`)}/>
-                    <div style={{ flex:1, background:'#F0F2F5', borderRadius:12, padding:'8px 10px' }}>
-                      <span style={{ fontWeight:600, fontSize:13 }}>{c.authorName}{c.authorIsVip&&<VIPBadge/>}{' '}</span>
-                      {c.text&&<span style={{ fontSize:13 }}>{c.text}</span>}
-                      {c.mediaURL&&<div style={{ marginTop:4 }}>{c.mediaType==='image'?<img src={c.mediaURL} alt="" style={{ maxWidth:200, borderRadius:8 }}/>:<video src={c.mediaURL} controls style={{ maxWidth:200, borderRadius:8 }}/>}</div>}
-                      <div style={{ display:'flex', gap:10, marginTop:5 }}>
-                        <button onClick={() => setReplyTo(p=>({...p,[post.id]:c.authorName}))} style={{ background:"none", border:"none", cursor:"pointer", color:"#65676B", fontSize:11, display:"flex", alignItems:"center", gap:3 }}><HiReply size={12}/> Répondre</button>
-                        <button onClick={() => setCmtReactionPicker(p => p===c.id?null:c.id)} style={{ background:"none", border:"none", cursor:"pointer", color:"#65676B", fontSize:11 }}>{Object.values(c.reactions||{}).find(r=>r===c.reactions?.[currentUser.uid]) || "😊"} {Object.keys(c.reactions||{}).length||""}</button>
-                        {cmtReactionPicker===c.id && <div style={{ display:"flex", gap:4, background:"white", borderRadius:20, padding:"4px 8px", boxShadow:"0 2px 12px rgba(0,0,0,.15)", position:"absolute", zIndex:10 }}>{["❤️","😂","😮","😢","👍","🔥"].map(em=><span key={em} onClick={()=>reactToCmt(post.id,c.id,em)} style={{ fontSize:18, cursor:"pointer" }}>{em}</span>)}</div>}
+                    <img src={c.authorPhoto||`https://ui-avatars.com/api/?name=${encodeURIComponent(c.authorName||'U')}&background=1877F2&color=fff`} alt="" className="avatar" style={{ width:32, height:32, flexShrink:0, cursor:'pointer' }} onClick={() => navigate(`/profile/${c.uid}`)}/>
+                    <div style={{ flex:1, minWidth:0 }}>
+                      {/* Bulle (format Facebook) */}
+                      <div style={{ position:'relative', display:'inline-block', maxWidth:'100%', background:'#F0F2F5', borderRadius:16, padding:'8px 12px' }}>
+                        <p style={{ fontWeight:700, fontSize:13 }}>{c.authorName}{c.authorIsVip&&<VIPBadge/>}</p>
+                        {c.text&&<p style={{ fontSize:14, wordBreak:'break-word' }}>{c.text}</p>}
+                        {c.mediaURL&&<div style={{ marginTop:4 }}>{c.mediaType==='image'?<img src={c.mediaURL} alt="" style={{ maxWidth:200, borderRadius:8 }}/>:<video src={c.mediaURL} controls style={{ maxWidth:200, borderRadius:8 }}/>}</div>}
+                        {crCount > 0 && (
+                          <span style={{ position:'absolute', bottom:-10, right:4, background:'white', borderRadius:12, padding:'1px 6px', fontSize:12, boxShadow:'0 1px 4px rgba(0,0,0,.25)', display:'flex', alignItems:'center', gap:2 }}>
+                            {[...new Set(Object.values(c.reactions))].slice(0,3).join('')}
+                            {crCount > 1 && <span style={{ fontSize:10, color:'#65676B' }}>{crCount}</span>}
+                          </span>
+                        )}
+                      </div>
+                      {/* Liens sous la bulle (format Facebook) */}
+                      <div style={{ display:'flex', gap:14, padding:'4px 12px 0', fontSize:12, fontWeight:700, color:'#65676B', position:'relative', alignItems:'center' }}>
+                        <span onClick={() => reactToCmt(post.id, c.id, '👍')}
+                          style={{ cursor:'pointer', color: myCR ? (myCR === '👍' ? '#1877F2' : '#FF2D8D') : '#65676B' }}>
+                          {myCR && myCR !== '👍' ? myCR + ' ' : ''}J'aime
+                        </span>
+                        <span onClick={() => setCmtReactionPicker(p => p===c.id?null:c.id)} style={{ cursor:'pointer' }}>😊</span>
+                        <span onClick={() => setReplyTo(p=>({...p,[post.id]:c.authorName}))} style={{ cursor:'pointer' }}>Répondre</span>
                         {(c.uid===currentUser.uid||post.uid===currentUser.uid)&&<>
-                          <button onClick={() => setEditCmt({ postId:post.id, cmt:c, text:c.text })} style={{ background:'none', border:'none', cursor:'pointer', color:'#65676B', fontSize:11, display:'flex', alignItems:'center', gap:3 }}><HiPencil size={12}/> Modifier</button>
-                          <button onClick={() => deleteCmt(post.id,c)} style={{ background:'none', border:'none', cursor:'pointer', color:'#1877F2', fontSize:11, display:'flex', alignItems:'center', gap:3 }}><HiTrash size={12}/> Supprimer</button>
+                          <span onClick={() => setEditCmt({ postId:post.id, cmt:c, text:c.text })} style={{ cursor:'pointer' }}>Modifier</span>
+                          <span onClick={() => deleteCmt(post.id,c)} style={{ cursor:'pointer', color:'#FF2D8D' }}>Supprimer</span>
                         </>}
+                        {cmtReactionPicker===c.id && (
+                          <div style={{ display:'flex', gap:6, background:'white', borderRadius:20, padding:'6px 10px', boxShadow:'0 2px 12px rgba(0,0,0,.2)', position:'absolute', bottom:'110%', left:0, zIndex:10, border:'1px solid #E4E6EB' }}>
+                            {REACTIONS.map(em=><span key={em} onClick={()=>reactToCmt(post.id,c.id,em)} style={{ fontSize:20, cursor:'pointer' }}>{em}</span>)}
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>
-                ))}
+                  );
+                })}
 
                 {replyTo[post.id] && (
                   <div style={{ display:'flex', alignItems:'center', gap:6, marginTop:8, background:'#F0F2F5', padding:'6px 10px', borderRadius:10 }}>
@@ -562,6 +800,35 @@ export default function Home() {
                 </div>
               </div>
             )}
+          </div>
+
+          {/* Suggestions d'amis toutes les 10 publications (format Facebook) */}
+          {(pIdx + 1) % 10 === 0 && suggestions.length > 0 && (() => {
+            const off = ((Math.floor((pIdx + 1) / 10) - 1) * 6) % suggestions.length;
+            const chunk = [...suggestions.slice(off), ...suggestions.slice(0, off)].slice(0, 8);
+            return (
+              <div className="card post-card" style={{ marginBottom:14, padding:'12px 0' }}>
+                <p style={{ padding:'0 16px 10px', fontWeight:700, fontSize:15 }}>Personnes que vous connaissez peut-être</p>
+                <div style={{ display:'flex', gap:10, overflowX:'auto', padding:'0 16px 4px', scrollbarWidth:'none' }}>
+                  {chunk.map(u => (
+                    <div key={u.uid} style={{ flexShrink:0, width:136, border:'1px solid #E4E6EB', borderRadius:12, overflow:'hidden', background:'white' }}>
+                      <img src={u.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(u.fullName)}&background=1877F2&color=fff`}
+                        alt="" onClick={() => navigate(`/profile/${u.uid}`)}
+                        style={{ width:'100%', height:110, objectFit:'cover', cursor:'pointer', display:'block' }} />
+                      <div style={{ padding:'8px 8px 10px' }}>
+                        <p onClick={() => navigate(`/profile/${u.uid}`)} style={{ fontWeight:700, fontSize:13, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', cursor:'pointer' }}>{u.fullName}</p>
+                        {hasSentReq(u.uid)
+                          ? <button disabled className="btn-secondary" style={{ width:'100%', marginTop:6, padding:'7px 0', fontSize:12, borderRadius:8 }}>Demande envoyée</button>
+                          : <button onClick={() => sendFriendReq(u.uid, u.fullName)} className="btn-blue" style={{ width:'100%', marginTop:6, padding:'7px 0', fontSize:12, borderRadius:8 }}>
+                              <HiUserAdd size={13} style={{ verticalAlign:'-2px' }}/> Ajouter
+                            </button>}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            );
+          })()}
           </div>
         );
       })}

@@ -30,6 +30,7 @@ export default function Layout({ children }) {
   const [search,        setSearch]        = useState('');
   const [searchResults, setSearchResults] = useState({ users: [], posts: [] });
   const [searchOpen,    setSearchOpen]    = useState(false);
+  const [searchBarOpen, setSearchBarOpen] = useState(false);
   const searchRef   = useRef();
   const searchTimer = useRef();
   const prevNotif   = useRef(notifCount);
@@ -51,13 +52,14 @@ export default function Layout({ children }) {
   }, [notifCount]);
 
   // Dock flottant style Telegram — icônes remplies, couleur par couleur
+  // Dock flottant — 3 couleurs du logo uniquement : bleu / rose / doré
   const bottomNav = [
     { path: '/',                            AIcon: HiHome,      label: t('home'),          color: '#1877F2' },
-    { path: '/reels',                       AIcon: HiFilm,      label: 'Vidéos',           color: '#FF7A00' },
+    { path: '/reels',                       AIcon: HiFilm,      label: 'Vidéos',           color: '#FF2D8D' },
     { path: '/friends',                     AIcon: HiUserGroup, label: t('friends'),       color: '#F2B300' },
-    { path: '/messages',                    AIcon: HiChat,      label: t('messages'),      color: '#FF2D8D', badge: msgCount },
-    { path: '/notifications',               AIcon: HiBell,      label: t('notifications'), color: '#FFC107', badge: notifCount },
-    { path: `/profile/${currentUser?.uid}`, AIcon: HiUser,      label: t('profile'),       color: '#050505' },
+    { path: '/messages',                    AIcon: HiChat,      label: t('messages'),      color: '#1877F2', badge: msgCount },
+    { path: '/notifications',               AIcon: HiBell,      label: t('notifications'), color: '#FF2D8D', badge: notifCount },
+    { path: `/profile/${currentUser?.uid}`, AIcon: HiUser,      label: t('profile'),       color: '#F2B300' },
   ];
 
   const isActive = p => {
@@ -175,8 +177,8 @@ export default function Layout({ children }) {
         {/* Header */}
         <div style={{ padding: '18px 16px 14px', borderBottom: `1px solid ${bdr}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <img src='/tsengo-logo.png' alt="Traingo" className="logo-shimmer" style={{ width:56, height:56, objectFit:"cover", borderRadius:"50%" }}/>
-            <span className="text-gold-shine" style={{ fontWeight: 900, fontSize: 18 }}>Traingo</span>
+            <img src='/tsengo-logo.png' alt="Traingo" style={{ width:48, height:48, objectFit:"contain" }}/>
+            <span style={{ fontWeight: 900, fontSize: 18 }}><span style={{ color:'#1877F2' }}>trai</span><span style={{ color:'#FF2D8D' }}>ngo</span></span>
           </div>
           <button onClick={() => setDrawerOpen(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#65676B' }}><HiX size={22} /></button>
         </div>
@@ -219,6 +221,14 @@ export default function Layout({ children }) {
           })}
         </nav>
 
+        {/* Créer un groupe (format Facebook) */}
+        <div style={{ padding: '8px 12px', borderTop: `1px solid ${bdr}` }}>
+          <button onClick={() => { setDrawerOpen(false); navigate('/messages', { state: { createGroup: true } }); }}
+            className="btn-gold" style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '11px 0', fontSize: 14, borderRadius: 14 }}>
+            <HiUserGroup size={18} /> Créer un groupe
+          </button>
+        </div>
+
         {/* Logout */}
         <div style={{ padding: '8px 0', borderTop: `1px solid ${bdr}` }}>
           <button onClick={handleLogout} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 14, padding: '13px 20px', background: 'none', border: 'none', cursor: 'pointer', color: '#1877F2', fontWeight: 600, fontSize: 15 }}>
@@ -230,34 +240,45 @@ export default function Layout({ children }) {
       {/* ── Header ──────────────────────────────────────────────── */}
       <header className="navbar" style={{ position: 'sticky', top: 0, zIndex: 100, background: bg, borderBottom: `1px solid ${bdr}` }}>
 
-        {/* Rangée 1 : Menu | Logo Traingo | Icône Messages (rose) */}
-        <div style={{ padding: '9px 14px 6px', display: 'flex', alignItems: 'center', gap: 10 }}>
-          <button onClick={() => setDrawerOpen(true)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#1877F2', flexShrink: 0, padding: 2 }}>
+        {/* Rangée unique (format Facebook) : Menu | Logo | Recherche ronde | Messages rond */}
+        <div style={{ padding: '8px 12px', display: 'flex', alignItems: 'center', gap: 8 }}>
+          <button onClick={() => setDrawerOpen(true)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#050505', flexShrink: 0, padding: 2 }}>
             <HiMenu size={26} />
           </button>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', flex: 1 }} onClick={() => navigate('/')}>
-            <img src='/tsengo-logo.png' alt="Traingo" className="logo-shimmer" style={{ width:56, height:56, objectFit:"cover", borderRadius:"50%" }}/>
-            <span style={{ fontWeight: 900, fontSize: 22, color: '#1877F2', letterSpacing: -1 }}>Traingo</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', flex: 1, minWidth: 0 }} onClick={() => navigate('/')}>
+            <img src='/tsengo-logo.png' alt="Traingo" style={{ width: 44, height: 44, objectFit: 'contain', flexShrink: 0 }} />
+            <span style={{ fontWeight: 900, fontSize: 21, letterSpacing: -1, whiteSpace: 'nowrap' }}>
+              <span style={{ color: '#1877F2' }}>trai</span><span style={{ color: '#FF2D8D' }}>ngo</span>
+            </span>
           </div>
 
-          {/* Icône Messages — rose, cercle */}
-          <button onClick={() => navigate('/messages')} className="btn-primary" style={{ position: 'relative', borderRadius: 20, padding: '8px 16px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: 14 }}>
-            Messages
+          {/* Recherche — bouton rond (format Facebook), à gauche du bouton messages */}
+          <button onClick={() => setSearchBarOpen(p => !p)}
+            style={{ width: 40, height: 40, borderRadius: '50%', background: searchBarOpen ? '#E7F0FE' : '#F0F2F5', border: 'none', cursor: 'pointer', color: '#050505', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <HiSearch size={20} />
+          </button>
+
+          {/* Messages — bouton rond */}
+          <button onClick={() => navigate('/messages')}
+            style={{ position: 'relative', width: 40, height: 40, borderRadius: '50%', background: '#F0F2F5', border: 'none', cursor: 'pointer', color: '#050505', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <HiChat size={20} />
             {msgCount > 0 && (
-              <span style={{ position: 'absolute', top: -4, right: -4, background: '#FF1744', color: 'white', borderRadius: '50%', minWidth: 18, height: 18, fontSize: 10, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 2px', border: '2px solid white' }}>
+              <span style={{ position: 'absolute', top: -2, right: -2, background: '#FF1744', color: 'white', borderRadius: '50%', minWidth: 17, height: 17, fontSize: 10, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 2px', border: '2px solid white' }}>
                 {msgCount > 9 ? '9+' : msgCount}
               </span>
             )}
           </button>
         </div>
 
-        {/* Rangée 2 : Barre de recherche multi-type */}
-        <div ref={searchRef} style={{ padding: '0 14px 10px', position: 'relative' }}>
+        {/* Barre de recherche repliable (ronde, format Facebook) */}
+        {searchBarOpen && (
+        <div ref={searchRef} style={{ padding: '0 12px 10px', position: 'relative' }}>
           <div style={{ position: 'relative' }}>
             <HiSearch style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: '#65676B', pointerEvents: 'none', zIndex: 1 }} size={15} />
             <input
               type="text"
+              autoFocus
               placeholder="Rechercher..."
               value={search}
               onChange={e => handleSearch(e.target.value)}
@@ -376,6 +397,7 @@ export default function Layout({ children }) {
             </div>
           )}
         </div>
+        )}
       </header>
 
       <main style={{ maxWidth: 680, margin: '0 auto', padding: 0, width: '100%' }}>{children}</main>
