@@ -15,7 +15,7 @@ import {
   HiUserGroup, HiOutlineUserGroup, HiChat, HiOutlineChat,
   HiBell, HiOutlineBell, HiMenu, HiX, HiSearch, HiLogout, HiCog,
   HiOutlineCog, HiTag, HiFilm, HiPhotograph,
-, HiBookmark, HiOutlineBookmark
+  HiBookmark, HiOutlineBookmark
 } from 'react-icons/hi';
 
 export default function Layout({ children }) {
