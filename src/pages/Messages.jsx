@@ -2,7 +2,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { ref, push, onValue, update, set, remove } from 'firebase/database';
-import { doc, getDoc, addDoc, collection, serverTimestamp, query, where, onSnapshot, updateDoc, deleteDoc, arrayRemove } from 'firebase/firestore';
+import { doc, getDoc, addDoc, collection, serverTimestamp, query, where, onSnapshot, updateDoc, deleteDoc, arrayRemove, arrayUnion } from 'firebase/firestore';
 import { rtdb, db } from '../firebase';
 import { useAuth } from '../context/AuthContext';
 import { useLang } from '../context/LanguageContext';
@@ -81,6 +81,10 @@ export default function Messages() {
   const photoRef   = useRef(); const videoRef = useRef(); const fileRef = useRef();
   const groupPhotoRef = useRef();
   const [uploadingGroupPhoto, setUploadingGroupPhoto] = useState(false);
+  const [editGroupOpen,  setEditGroupOpen]  = useState(false);
+  const [editGroupName,  setEditGroupName]  = useState('');
+  const [savingGroup,    setSavingGroup]    = useState(false);
+  const [groupMemberProfiles, setGroupMemberProfiles] = useState([]);
 
   useEffect(() => { if (paramChatId) setActiveChatId(paramChatId); }, [paramChatId]);
 
@@ -381,6 +385,35 @@ export default function Messages() {
     setCreatingGroup(false);
   }
 
+  async function openGroupEdit() {
+    if (!activeGroup) return;
+    setEditGroupName(activeGroup.name || '');
+    setEditGroupOpen(true);
+    const list = await Promise.all((activeGroup.members || []).slice(0, 60).map(uid =>
+      getDoc(doc(db, 'users', uid)).then(sn => sn.exists() ? { uid, ...sn.data() } : null).catch(() => null)
+    ));
+    setGroupMemberProfiles(list.filter(Boolean));
+  }
+
+  async function saveGroupEdit() {
+    const n = editGroupName.trim();
+    if (!n) { alert('Le nom ne peut pas être vide'); return; }
+    setSavingGroup(true);
+    try {
+      await updateDoc(doc(db, 'groups', activeGroup.id), { name: n });
+      setEditGroupOpen(false);
+    } catch (err) { alert('Erreur : ' + (err?.message || err)); }
+    setSavingGroup(false);
+  }
+
+  async function toggleGroupAdmin(uid) {
+    const isA = activeGroup.admins?.includes(uid);
+    if (isA && activeGroup.admins.length === 1) { alert('Le groupe doit garder au moins un admin.'); return; }
+    try {
+      await updateDoc(doc(db, 'groups', activeGroup.id), { admins: isA ? arrayRemove(uid) : arrayUnion(uid) });
+    } catch (err) { alert('Erreur : ' + (err?.message || err)); }
+  }
+
   async function changeGroupPhoto(e) {
     const file = e.target.files[0]; if (!file || !activeGroup) return;
     setUploadingGroupPhoto(true);
@@ -602,6 +635,9 @@ export default function Messages() {
                 {headerMenu && (
                   <div style={{ position: 'absolute', top: '100%', right: 0, background: 'white', border: '1px solid #E4E6EB', borderRadius: 12, boxShadow: '0 4px 20px rgba(0,0,0,.12)', minWidth: 200, zIndex: 50, overflow: 'hidden' }}>
                     <button onClick={() => { setMediaModal(true); setHeaderMenu(false); }} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px', background: 'none', border: 'none', cursor: 'pointer', borderBottom: '1px solid #E4E6EB', fontFamily: 'Poppins', fontSize: 14, color: '#050505' }}><HiArchive size={18} color='#1877F2' /> Médias partagés</button>
+                    {isGroupAdmin && (
+                      <button onClick={() => { setHeaderMenu(false); openGroupEdit(); }} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px', background: 'none', border: 'none', cursor: 'pointer', borderBottom: '1px solid #E4E6EB', fontFamily: 'Poppins', fontSize: 14, color: '#1877F2' }}><HiPencil size={18} /> Modifier le groupe</button>
+                    )}
                     {isGroupAdmin && (
                       <button onClick={() => { setHeaderMenu(false); groupPhotoRef.current?.click(); }} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px', background: 'none', border: 'none', cursor: 'pointer', borderBottom: '1px solid #E4E6EB', fontFamily: 'Poppins', fontSize: 14, color: '#050505' }}><HiPhotograph size={18} color='#F2B300' /> {uploadingGroupPhoto ? 'Envoi de la photo...' : 'Photo du groupe'}</button>
                     )}
@@ -855,6 +891,46 @@ export default function Messages() {
           </div>
         </div>
       )}
+      {/* ── Modal : Modifier le groupe de discussion (admin) ── */}
+      {editGroupOpen && activeGroup && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 400, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }} onClick={() => setEditGroupOpen(false)}>
+          <div onClick={e => e.stopPropagation()} style={{ background: 'white', borderRadius: '20px 20px 0 0', padding: 20, width: '100%', maxWidth: 480, maxHeight: '85vh', overflowY: 'auto' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+              <h3 style={{ fontWeight: 800, color: '#1877F2' }}>Modifier le groupe</h3>
+              <button onClick={() => setEditGroupOpen(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#65676B' }}><HiX size={20} /></button>
+            </div>
+            <p style={{ fontSize: 12, fontWeight: 700, color: '#65676B', marginBottom: 6 }}>NOM DU GROUPE</p>
+            <input className="input" value={editGroupName} onChange={e => setEditGroupName(e.target.value)} maxLength={60} style={{ marginBottom: 10 }} />
+            <button onClick={saveGroupEdit} disabled={savingGroup} className="btn-blue" style={{ width: '100%', padding: '11px 0', fontSize: 14, borderRadius: 10 }}>
+              {savingGroup ? 'Enregistrement...' : 'Enregistrer'}
+            </button>
+            <p style={{ fontSize: 11, color: '#65676B', marginTop: 6, textAlign: 'center' }}>La photo du groupe se change via le menu ⋮ → Photo du groupe.</p>
+
+            <p style={{ fontSize: 12, fontWeight: 700, color: '#65676B', margin: '16px 0 6px' }}>MEMBRES & ADMINS</p>
+            {groupMemberProfiles.length === 0 && <p style={{ fontSize: 13, color: '#65676B' }}>Chargement des membres...</p>}
+            {groupMemberProfiles.map(m => {
+              const mAdmin = activeGroup.admins?.includes(m.uid);
+              return (
+                <div key={m.uid} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 0', borderBottom: '1px solid #F0F2F5' }}>
+                  <img src={m.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(m.fullName || 'U')}&background=1877F2&color=fff`} alt="" style={{ width: 36, height: 36, borderRadius: '50%', objectFit: 'cover' }} />
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <p style={{ fontWeight: 600, fontSize: 14, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {m.fullName}{m.uid === currentUser.uid ? ' (vous)' : ''}
+                    </p>
+                    {mAdmin && <span style={{ fontSize: 10, fontWeight: 700, color: '#F2B300' }}>ADMIN</span>}
+                  </div>
+                  <button onClick={() => toggleGroupAdmin(m.uid)}
+                    className={mAdmin ? 'btn-secondary' : 'btn-gold'}
+                    style={{ padding: '6px 12px', fontSize: 11, borderRadius: 10, flexShrink: 0 }}>
+                    {mAdmin ? 'Retirer admin' : 'Nommer admin'}
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       {/* ── Modal : Créer un groupe ─────────────────────────── */}
       {createGroupOpen && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 400, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }} onClick={() => setCreateGroupOpen(false)}>

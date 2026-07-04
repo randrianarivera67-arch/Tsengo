@@ -16,7 +16,7 @@ import {
   HiPhotograph, HiVideoCamera, HiTag, HiOutlineHeart, HiChat,
   HiTrash, HiPencil, HiX, HiShare, HiFilm, HiOutlineChat,
   HiDotsVertical, HiDownload, HiLightningBolt, HiPhone, HiLocationMarker,
-  HiReply, HiUserAdd
+  HiReply, HiUserAdd, HiUserGroup
 } from 'react-icons/hi';
 
 const MAX_POST    = 2000;
@@ -43,8 +43,7 @@ export default function Home() {
   const [lieu, setLieu]         = useState('');
   const [posting, setPosting]   = useState(false);
   const [uploadPct, setUploadPct] = useState(0);
-  const [myGroups, setMyGroups] = useState([]);
-  const [postGroup, setPostGroup] = useState('');   // '' = profil, sinon groupId
+  const [pageGroups, setPageGroups] = useState([]);   // groupes publics (suggestions)
 
   // ── Stories (format Facebook) ──
   const [storyGroups, setStoryGroups] = useState([]);       // [{uid, name, photo, items:[...]}]
@@ -83,12 +82,11 @@ export default function Home() {
     return () => document.removeEventListener('click', fn);
   }, []);
 
-  // Mes groupes (pour publier dans un groupe)
+  // Groupes publics (pour les suggestions du fil)
   useEffect(() => {
-    if (!currentUser) return;
-    const q = query(collection(db, 'groups'), where('members', 'array-contains', currentUser.uid));
-    return onSnapshot(q, snap => setMyGroups(snap.docs.map(d => ({ id: d.id, ...d.data() }))), () => {});
-  }, [currentUser]);
+    const q = query(collection(db, 'groups'), where('type', '==', 'page'));
+    return onSnapshot(q, snap => setPageGroups(snap.docs.map(d => ({ id: d.id, ...d.data() }))), () => {});
+  }, []);
 
   // Stories des dernières 24h, groupées par utilisateur
   useEffect(() => {
@@ -170,7 +168,6 @@ export default function Home() {
         mediaURL = r.url; finalMT = r.type === 'video' ? 'video' : 'image';
         setUploadPct(80);
       }
-      const selGroup = postGroup ? myGroups.find(g => g.id === postGroup) : null;
       const postRef = await addDoc(collection(db, 'posts'), {
         uid: currentUser.uid, authorName: userProfile.fullName,
         authorUsername: userProfile.username, authorPhoto: userProfile.photoURL || '',
@@ -178,27 +175,21 @@ export default function Home() {
         content: content.trim().slice(0, MAX_POST), mediaURL, mediaType: finalMT,
         isSale, price: isSale ? parseFloat(price) : '',
         contact: isSale ? contact.trim() : '', lieu: isSale ? lieu.trim() : '',
-        ...(selGroup ? { groupId: selGroup.id, groupName: selGroup.name, groupPhoto: selGroup.photoURL || '' } : {}),
         reactions: {}, comments: [], createdAt: serverTimestamp(),
       });
-      // Notifier : membres du groupe si pub de groupe, sinon amis
-      const targets = selGroup
-        ? (selGroup.members || []).filter(m => m !== currentUser.uid)
-        : (userProfile.friends || []);
+      const targets = userProfile.friends || [];
       if (targets.length > 0) {
         const batch = writeBatch(db);
         targets.forEach(fUid => batch.set(doc(collection(db,'notifications')), {
           toUid: fUid, fromUid: currentUser.uid,
           fromName: userProfile.fullName, fromPhoto: userProfile.photoURL || '',
           type: 'post', postId: postRef.id,
-          message: selGroup
-            ? `${userProfile.fullName} a publié dans le groupe ${selGroup.name}`
-            : `${userProfile.fullName} a publié un nouveau post`,
+          message: `${userProfile.fullName} a publié un nouveau post`,
           read: false, createdAt: serverTimestamp(),
         }));
         await batch.commit();
       }
-      setContent(''); removeMedia(); setIsSale(false); setPrice(''); setContact(''); setLieu(''); setPostGroup('');
+      setContent(''); removeMedia(); setIsSale(false); setPrice(''); setContact(''); setLieu('');
     } catch (err) { console.error(err); alert('Erreur lors de la publication'); }
     setPosting(false); setUploadPct(0);
   }
@@ -490,13 +481,6 @@ export default function Home() {
         <div style={{ display:'flex', gap:10, alignItems:'flex-start' }}>
           <img src={userProfile?.photoURL||`https://ui-avatars.com/api/?name=${encodeURIComponent(userProfile?.fullName||'U')}&background=1877F2&color=fff`} alt="" className="avatar" style={{ width:42, height:42, flexShrink:0 }}/>
           <div style={{ flex:1 }}>
-            {myGroups.filter(g => g.type === 'page').length > 0 && (
-              <select value={postGroup} onChange={e => setPostGroup(e.target.value)}
-                style={{ marginBottom:8, padding:'6px 12px', borderRadius:16, border:'1.5px solid #E4E6EB', background:'#F0F2F5', fontFamily:'Poppins', fontSize:12, fontWeight:600, color: postGroup ? '#1877F2' : '#65676B', maxWidth:'100%' }}>
-                <option value="">📍 Publier sur mon profil</option>
-                {myGroups.filter(g => g.type === 'page').map(g => <option key={g.id} value={g.id}>👥 Publier dans : {g.name}</option>)}
-              </select>
-            )}
             <textarea className="input" placeholder={t('whatsOnMind')} value={content} onChange={e => setContent(e.target.value)} rows={2} style={{ resize:'none', width:'100%' }} maxLength={MAX_POST}/>
             {content.length > 0 && <p style={{ fontSize:11, color:charColor, textAlign:'right', marginTop:2 }}>{rem} restants</p>}
           </div>
@@ -621,22 +605,31 @@ export default function Home() {
 
             {/* Header */}
             <div style={{ padding:'14px 16px 0', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
-              <div style={{ display:'flex', alignItems:'center', gap:10, cursor:'pointer', flex:1, minWidth:0 }} onClick={() => navigate(`/profile/${post.uid}`)}>
-                <img src={post.authorPhoto||`https://ui-avatars.com/api/?name=${encodeURIComponent(post.authorName||'U')}&background=1877F2&color=fff`} alt="" className="avatar" style={{ width:40, height:40, flexShrink:0 }}/>
-                <div style={{ minWidth:0 }}>
-                  {post.groupName ? (
-                    <>
-                      <p style={{ fontWeight:700, fontSize:14, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', color:'#1877F2' }}>👥 {post.groupName}</p>
-                      <p style={{ fontSize:12, color:'#65676B' }}>{post.authorName}{post.authorIsVip&&<VIPBadge/>} · {post.createdAt?.toDate?new Date(post.createdAt.toDate()).toLocaleDateString('fr-FR'):'Maintenant'}</p>
-                    </>
-                  ) : (
-                    <>
-                      <p style={{ fontWeight:600, fontSize:14, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{post.authorName}{post.authorIsVip&&<VIPBadge/>}</p>
-                      <p style={{ fontSize:12, color:'#65676B' }}>@{post.authorUsername} · {post.createdAt?.toDate?new Date(post.createdAt.toDate()).toLocaleDateString('fr-FR'):'Maintenant'}</p>
-                    </>
-                  )}
+              {post.groupName ? (
+                /* Pub de groupe : photo + nom du groupe (→ groupe), auteur dessous (→ profil) */
+                <div style={{ display:'flex', alignItems:'center', gap:10, flex:1, minWidth:0 }}>
+                  <div onClick={() => navigate(`/groups/${post.groupId}`)} style={{ width:40, height:40, borderRadius:10, background:'linear-gradient(135deg,#1B84FF,#1877F2)', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0, cursor:'pointer', overflow:'hidden', boxShadow:'0 2px 8px rgba(24,119,242,.3)' }}>
+                    {post.groupPhoto
+                      ? <img src={post.groupPhoto} alt="" style={{ width:'100%', height:'100%', objectFit:'cover' }}/>
+                      : <HiUserGroup size={20} color="white"/>}
+                  </div>
+                  <div style={{ minWidth:0 }}>
+                    <p onClick={() => navigate(`/groups/${post.groupId}`)} style={{ fontWeight:700, fontSize:14, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', cursor:'pointer' }}>{post.groupName}</p>
+                    <p style={{ fontSize:12, color:'#65676B' }}>
+                      <span onClick={() => navigate(`/profile/${post.uid}`)} style={{ cursor:'pointer', fontWeight:600, color:'#050505' }}>{post.authorName}</span>
+                      {post.authorIsVip&&<VIPBadge/>} · {post.createdAt?.toDate?new Date(post.createdAt.toDate()).toLocaleDateString('fr-FR'):'Maintenant'}
+                    </p>
+                  </div>
                 </div>
-              </div>
+              ) : (
+                <div style={{ display:'flex', alignItems:'center', gap:10, cursor:'pointer', flex:1, minWidth:0 }} onClick={() => navigate(`/profile/${post.uid}`)}>
+                  <img src={post.authorPhoto||`https://ui-avatars.com/api/?name=${encodeURIComponent(post.authorName||'U')}&background=1877F2&color=fff`} alt="" className="avatar" style={{ width:40, height:40, flexShrink:0 }}/>
+                  <div style={{ minWidth:0 }}>
+                    <p style={{ fontWeight:600, fontSize:14, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{post.authorName}{post.authorIsVip&&<VIPBadge/>}</p>
+                    <p style={{ fontSize:12, color:'#65676B' }}>@{post.authorUsername} · {post.createdAt?.toDate?new Date(post.createdAt.toDate()).toLocaleDateString('fr-FR'):'Maintenant'}</p>
+                  </div>
+                </div>
+              )}
 
               <div style={{ display:'flex', alignItems:'center', gap:6, flexShrink:0 }}>
                 {post.isSale && <div style={{ textAlign:'right' }}><span className="sale-badge">{t('sale')}</span><p className="price-tag" style={{ marginTop:2, fontSize:13 }}>{post.price} Ar</p></div>}
@@ -802,9 +795,63 @@ export default function Home() {
             )}
           </div>
 
-          {/* Suggestions d'amis toutes les 10 publications (format Facebook) */}
-          {(pIdx + 1) % 10 === 0 && suggestions.length > 0 && (() => {
-            const off = ((Math.floor((pIdx + 1) / 10) - 1) * 6) % suggestions.length;
+          {/* Suggestions en rotation toutes les 10 publications : amis → groupes → stories */}
+          {(pIdx + 1) % 10 === 0 && (() => {
+            const slot = Math.floor((pIdx + 1) / 10) - 1;
+            const grpSugg = pageGroups.filter(g => !g.members?.includes(currentUser.uid));
+            let kind = ['amis', 'groupes', 'stories'][slot % 3];
+            if (kind === 'groupes' && grpSugg.length === 0) kind = 'amis';
+            if (kind === 'stories' && storyGroups.length === 0) kind = 'amis';
+            if (kind === 'amis' && suggestions.length === 0) return null;
+
+            if (kind === 'groupes') {
+              return (
+                <div className="card post-card" style={{ marginBottom:14, padding:'12px 0' }}>
+                  <p style={{ padding:'0 16px 10px', fontWeight:700, fontSize:15 }}>Groupes que vous pourriez rejoindre</p>
+                  <div style={{ display:'flex', gap:10, overflowX:'auto', padding:'0 16px 4px', scrollbarWidth:'none' }}>
+                    {grpSugg.slice(0, 8).map(g => (
+                      <div key={g.id} onClick={() => navigate(`/groups/${g.id}`)} style={{ flexShrink:0, width:150, border:'1px solid #E4E6EB', borderRadius:12, overflow:'hidden', background:'white', cursor:'pointer' }}>
+                        <div style={{ width:'100%', height:82, background:'linear-gradient(135deg,#1B84FF,#1877F2)', display:'flex', alignItems:'center', justifyContent:'center', overflow:'hidden' }}>
+                          {g.photoURL
+                            ? <img src={g.photoURL} alt="" style={{ width:'100%', height:'100%', objectFit:'cover' }}/>
+                            : <HiUserGroup size={30} color="white"/>}
+                        </div>
+                        <div style={{ padding:'8px 8px 10px' }}>
+                          <p style={{ fontWeight:700, fontSize:13, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{g.name}</p>
+                          <p style={{ fontSize:11, color:'#65676B' }}>{g.members?.length || 0} membre{(g.members?.length||0)>1?'s':''}</p>
+                          <button className="btn-blue" style={{ width:'100%', marginTop:6, padding:'7px 0', fontSize:12, borderRadius:8 }}>Voir le groupe</button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              );
+            }
+
+            if (kind === 'stories') {
+              return (
+                <div className="card post-card" style={{ marginBottom:14, padding:'12px 0' }}>
+                  <p style={{ padding:'0 16px 10px', fontWeight:700, fontSize:15 }}>Stories</p>
+                  <div style={{ display:'flex', gap:8, overflowX:'auto', padding:'0 16px 4px', scrollbarWidth:'none' }}>
+                    {storyGroups.slice(0, 10).map(g => {
+                      const last = g.items[g.items.length - 1];
+                      return (
+                        <div key={g.uid} className="story-card" onClick={() => openStories(g)} style={{ width:92, height:150 }}>
+                          {last.mediaType === 'video'
+                            ? <video src={last.mediaURL} muted playsInline preload="metadata" />
+                            : <img src={last.mediaURL} alt="" />}
+                          <div className="story-gradient" />
+                          <img className="story-avatar" src={g.photo || `https://ui-avatars.com/api/?name=${encodeURIComponent(g.name||'U')}&background=1877F2&color=fff`} alt="" />
+                          <span className="story-name">{g.uid === currentUser.uid ? 'Votre story' : g.name?.split(' ')[0]}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            }
+
+            const off = (slot * 6) % suggestions.length;
             const chunk = [...suggestions.slice(off), ...suggestions.slice(0, off)].slice(0, 8);
             return (
               <div className="card post-card" style={{ marginBottom:14, padding:'12px 0' }}>

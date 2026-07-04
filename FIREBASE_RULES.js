@@ -30,7 +30,8 @@ service cloud.firestore {
         (
           resource.data.admins.hasAny([request.auth.uid])
           ||
-          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['members','admins'])
+          // Non-admin : peut uniquement rejoindre/quitter (champ members)
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['members'])
         );
       allow delete: if request.auth != null && resource.data.admins.hasAny([request.auth.uid]);
     }

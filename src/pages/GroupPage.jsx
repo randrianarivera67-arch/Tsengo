@@ -34,6 +34,13 @@ export default function GroupPage() {
   const [showReact,  setShowReact]  = useState({});
   const [menuOpen,   setMenuOpen]   = useState(false);
 
+  // Modifier le groupe (admin uniquement)
+  const [editOpen,   setEditOpen]   = useState(false);
+  const [editName,   setEditName]   = useState('');
+  const [editDesc,   setEditDesc]   = useState('');
+  const [savingEdit, setSavingEdit] = useState(false);
+  const [allMembers, setAllMembers] = useState([]);
+
   const coverRef = useRef(); const photoRef = useRef();
   const postPhotoRef = useRef(); const postVideoRef = useRef();
 
@@ -105,6 +112,35 @@ export default function GroupPage() {
     if (!window.confirm(`Supprimer définitivement "${group.name}" ?`)) return;
     await deleteDoc(doc(db, 'groups', groupId));
     navigate('/groups');
+  }
+
+  async function openEdit() {
+    setEditName(group.name || '');
+    setEditDesc(group.description || '');
+    setEditOpen(true);
+    const list = await Promise.all((group.members || []).slice(0, 60).map(uid =>
+      getDoc(doc(db, 'users', uid)).then(sn => sn.exists() ? { uid, ...sn.data() } : null).catch(() => null)
+    ));
+    setAllMembers(list.filter(Boolean));
+  }
+
+  async function saveEdit() {
+    const n = editName.trim();
+    if (!n) { alert('Le nom ne peut pas être vide'); return; }
+    setSavingEdit(true);
+    try {
+      await updateDoc(doc(db, 'groups', groupId), { name: n, description: editDesc.trim().slice(0, 300) });
+      setEditOpen(false);
+    } catch (err) { alert('Erreur : ' + (err?.message || err)); }
+    setSavingEdit(false);
+  }
+
+  async function toggleAdmin(uid) {
+    const isA = group.admins?.includes(uid);
+    if (isA && group.admins.length === 1) { alert('Le groupe doit garder au moins un admin.'); return; }
+    try {
+      await updateDoc(doc(db, 'groups', groupId), { admins: isA ? arrayRemove(uid) : arrayUnion(uid) });
+    } catch (err) { alert('Erreur : ' + (err?.message || err)); }
   }
 
   function inviteToGroup() {
@@ -241,6 +277,7 @@ export default function GroupPage() {
             </button>
             {menuOpen && (
               <div style={{ position: 'absolute', top: '100%', right: 0, background: 'white', border: '1px solid #E4E6EB', borderRadius: 12, boxShadow: '0 4px 20px rgba(0,0,0,.14)', minWidth: 190, zIndex: 50, overflow: 'hidden' }}>
+                {isAdmin && <button onClick={() => { setMenuOpen(false); openEdit(); }} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: '12px 16px', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'Poppins', fontSize: 14, color: '#1877F2', borderBottom: '1px solid #F0F2F5' }}><HiCamera size={16} /> Modifier le groupe</button>}
                 {isMember && <button onClick={() => { setMenuOpen(false); leaveGroup(); }} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: '12px 16px', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'Poppins', fontSize: 14, color: '#F2B300', borderBottom: '1px solid #F0F2F5' }}><HiArrowLeft size={16} /> Quitter le groupe</button>}
                 {isAdmin && <button onClick={() => { setMenuOpen(false); deleteGroup(); }} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: '12px 16px', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'Poppins', fontSize: 14, color: '#FF2D8D' }}><HiTrash size={16} /> Supprimer le groupe</button>}
               </div>
@@ -294,6 +331,48 @@ export default function GroupPage() {
             <button onClick={publishInGroup} disabled={posting || (!content.trim() && !mediaFile)} className="btn-gold" style={{ marginLeft: 'auto', padding: '7px 18px', fontSize: 13 }}>
               {posting ? '...' : 'Publier'}
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* ── Modal : Modifier le groupe (admin) ─────────────── */}
+      {editOpen && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 400, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }} onClick={() => setEditOpen(false)}>
+          <div onClick={e => e.stopPropagation()} style={{ background: 'white', borderRadius: '20px 20px 0 0', padding: 20, width: '100%', maxWidth: 480, maxHeight: '85vh', overflowY: 'auto' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+              <h3 style={{ fontWeight: 800, color: '#1877F2' }}>Modifier le groupe</h3>
+              <button onClick={() => setEditOpen(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#65676B' }}><HiX size={20} /></button>
+            </div>
+            <p style={{ fontSize: 12, fontWeight: 700, color: '#65676B', marginBottom: 6 }}>NOM DU GROUPE</p>
+            <input className="input" value={editName} onChange={e => setEditName(e.target.value)} maxLength={60} style={{ marginBottom: 10 }} />
+            <p style={{ fontSize: 12, fontWeight: 700, color: '#65676B', marginBottom: 6 }}>DESCRIPTION</p>
+            <textarea className="input" value={editDesc} onChange={e => setEditDesc(e.target.value)} rows={3} maxLength={300} style={{ resize: 'none', borderRadius: 14 }} />
+            <button onClick={saveEdit} disabled={savingEdit} className="btn-blue" style={{ width: '100%', marginTop: 12, padding: '11px 0', fontSize: 14, borderRadius: 10 }}>
+              {savingEdit ? 'Enregistrement...' : 'Enregistrer'}
+            </button>
+            <p style={{ fontSize: 11, color: '#65676B', marginTop: 6, textAlign: 'center' }}>La photo et la couverture se changent avec les boutons 📷 sur la page.</p>
+
+            <p style={{ fontSize: 12, fontWeight: 700, color: '#65676B', margin: '16px 0 6px' }}>MEMBRES & ADMINS</p>
+            {allMembers.length === 0 && <p style={{ fontSize: 13, color: '#65676B' }}>Chargement des membres...</p>}
+            {allMembers.map(m => {
+              const mAdmin = group.admins?.includes(m.uid);
+              return (
+                <div key={m.uid} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 0', borderBottom: '1px solid #F0F2F5' }}>
+                  <img src={m.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(m.fullName || 'U')}&background=1877F2&color=fff`} alt="" style={{ width: 36, height: 36, borderRadius: '50%', objectFit: 'cover' }} />
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <p style={{ fontWeight: 600, fontSize: 14, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {m.fullName}{m.uid === currentUser.uid ? ' (vous)' : ''}
+                    </p>
+                    {mAdmin && <span style={{ fontSize: 10, fontWeight: 700, color: '#F2B300' }}>ADMIN</span>}
+                  </div>
+                  <button onClick={() => toggleAdmin(m.uid)}
+                    className={mAdmin ? 'btn-secondary' : 'btn-gold'}
+                    style={{ padding: '6px 12px', fontSize: 11, borderRadius: 10, flexShrink: 0 }}>
+                    {mAdmin ? 'Retirer admin' : 'Nommer admin'}
+                  </button>
+                </div>
+              );
+            })}
           </div>
         </div>
       )}
