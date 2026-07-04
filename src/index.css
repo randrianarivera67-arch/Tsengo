@@ -342,11 +342,14 @@ input::placeholder, textarea::placeholder { color: #8A8D91 !important; font-size
 }
 .story-card:active { transform: scale(.96); }
 .story-card video, .story-card img { width: 100%; height: 100%; object-fit: cover; }
-.story-avatar {
+/* L'avatar garde sa petite taille (prioritaire sur .story-card img) */
+.story-card img.story-avatar, .story-avatar {
   position: absolute; top: 8px; left: 8px;
-  width: 36px; height: 36px; border-radius: 50%; object-fit: cover;
+  width: 34px !important; height: 34px !important;
+  border-radius: 50%; object-fit: cover;
   border: 3px solid var(--blue);
-  box-shadow: 0 0 0 2px white, 0 0 12px rgba(24,119,242,.6);
+  box-shadow: 0 0 0 2px white;
+  z-index: 2;
 }
 .story-name {
   position: absolute; bottom: 6px; left: 8px; right: 8px;

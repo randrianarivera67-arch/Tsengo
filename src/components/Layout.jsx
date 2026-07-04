@@ -119,6 +119,7 @@ export default function Layout({ children }) {
   const drawerNav = [
     { path: '/',                            Icon: HiOutlineHome,      AIcon: HiHome,      label: t('home') },
     { path: '/friends',                     Icon: HiOutlineUserGroup, AIcon: HiUserGroup, label: t('friends') },
+    { path: '/groups',                      Icon: HiOutlineUserGroup, AIcon: HiUserGroup, label: 'Groupes' },
     { path: '/messages',                    Icon: HiOutlineChat,      AIcon: HiChat,      label: t('messages'),      badge: msgCount },
     { path: '/notifications',               Icon: HiOutlineBell,      AIcon: HiBell,      label: t('notifications'), badge: notifCount },
     { path: `/profile/${currentUser?.uid}`, Icon: HiOutlineUser,      AIcon: HiUser,      label: t('profile') },
@@ -225,7 +226,7 @@ export default function Layout({ children }) {
         <div style={{ padding: '8px 12px', borderTop: `1px solid ${bdr}` }}>
           <button onClick={() => { setDrawerOpen(false); navigate('/messages', { state: { createGroup: true } }); }}
             className="btn-gold" style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '11px 0', fontSize: 14, borderRadius: 14 }}>
-            <HiUserGroup size={18} /> Créer un groupe
+            <HiUserGroup size={18} /> Créer un groupe de discussion
           </button>
         </div>
 

@@ -86,7 +86,7 @@ export default function Messages() {
   useEffect(() => {
     if (!currentUser) return;
     const q = query(collection(db, 'groups'), where('members', 'array-contains', currentUser.uid));
-    const unsub = onSnapshot(q, snap => setGroups(snap.docs.map(d => ({ id: d.id, ...d.data() }))),
+    const unsub = onSnapshot(q, snap => setGroups(snap.docs.map(d => ({ id: d.id, ...d.data() })).filter(g => g.type !== 'page')),
       err => console.error('Lecture groupes refusée:', err?.message || err));
     return () => unsub();
   }, [currentUser]);
@@ -365,6 +365,7 @@ export default function Messages() {
     try {
       const refDoc = await addDoc(collection(db, 'groups'), {
         name,
+        type: 'chat',
         photoURL: '',
         admins: [currentUser.uid],
         members: [currentUser.uid, ...members],
@@ -842,7 +843,7 @@ export default function Messages() {
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 400, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }} onClick={() => setCreateGroupOpen(false)}>
           <div onClick={e => e.stopPropagation()} style={{ background: 'white', borderRadius: '20px 20px 0 0', padding: 20, width: '100%', maxWidth: 480, maxHeight: '85vh', overflowY: 'auto' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
-              <h3 style={{ fontWeight: 800, color: '#1877F2', display: 'flex', alignItems: 'center', gap: 8 }}><HiUserGroup size={20} /> Créer un groupe</h3>
+              <h3 style={{ fontWeight: 800, color: '#1877F2', display: 'flex', alignItems: 'center', gap: 8 }}><HiUserGroup size={20} /> Créer un groupe de discussion</h3>
               <button onClick={() => setCreateGroupOpen(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#65676B' }}><HiX size={20} /></button>
             </div>
             <input className="input" placeholder="Nom du groupe" value={groupName} onChange={e => setGroupName(e.target.value)} maxLength={60} style={{ marginBottom: 12 }} />

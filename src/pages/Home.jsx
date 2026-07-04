@@ -490,11 +490,11 @@ export default function Home() {
         <div style={{ display:'flex', gap:10, alignItems:'flex-start' }}>
           <img src={userProfile?.photoURL||`https://ui-avatars.com/api/?name=${encodeURIComponent(userProfile?.fullName||'U')}&background=1877F2&color=fff`} alt="" className="avatar" style={{ width:42, height:42, flexShrink:0 }}/>
           <div style={{ flex:1 }}>
-            {myGroups.length > 0 && (
+            {myGroups.filter(g => g.type === 'page').length > 0 && (
               <select value={postGroup} onChange={e => setPostGroup(e.target.value)}
                 style={{ marginBottom:8, padding:'6px 12px', borderRadius:16, border:'1.5px solid #E4E6EB', background:'#F0F2F5', fontFamily:'Poppins', fontSize:12, fontWeight:600, color: postGroup ? '#1877F2' : '#65676B', maxWidth:'100%' }}>
                 <option value="">📍 Publier sur mon profil</option>
-                {myGroups.map(g => <option key={g.id} value={g.id}>👥 Publier dans : {g.name}</option>)}
+                {myGroups.filter(g => g.type === 'page').map(g => <option key={g.id} value={g.id}>👥 Publier dans : {g.name}</option>)}
               </select>
             )}
             <textarea className="input" placeholder={t('whatsOnMind')} value={content} onChange={e => setContent(e.target.value)} rows={2} style={{ resize:'none', width:'100%' }} maxLength={MAX_POST}/>
@@ -819,8 +819,8 @@ export default function Home() {
                         <p onClick={() => navigate(`/profile/${u.uid}`)} style={{ fontWeight:700, fontSize:13, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', cursor:'pointer' }}>{u.fullName}</p>
                         {hasSentReq(u.uid)
                           ? <button disabled className="btn-secondary" style={{ width:'100%', marginTop:6, padding:'7px 0', fontSize:12, borderRadius:8 }}>Demande envoyée</button>
-                          : <button onClick={() => sendFriendReq(u.uid, u.fullName)} className="btn-blue" style={{ width:'100%', marginTop:6, padding:'7px 0', fontSize:12, borderRadius:8 }}>
-                              <HiUserAdd size={13} style={{ verticalAlign:'-2px' }}/> Ajouter
+                          : <button onClick={() => sendFriendReq(u.uid, u.fullName)} className="btn-blue" style={{ width:'100%', marginTop:6, padding:'7px 0', fontSize:12, borderRadius:8, display:'flex', alignItems:'center', justifyContent:'center', gap:5 }}>
+                              <HiUserAdd size={14}/> Ajouter
                             </button>}
                       </div>
                     </div>
