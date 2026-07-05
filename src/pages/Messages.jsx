@@ -10,7 +10,6 @@ import { uploadToTelegram } from '../utils/telegram';
 import { getChatId } from '../utils/chat';
 function getOtherUid(chatId, myUid) { const parts = chatId.split('_'); return parts[0] === myUid ? parts[1] : parts[0]; }
 import { sendPushNotification } from '../utils/onesignal';
-import { playMessageSound } from '../utils/sound';
 import {
   HiArrowLeft, HiPaperAirplane, HiSearch, HiPhotograph,
   HiVideoCamera, HiPaperClip, HiX, HiDownload, HiMicrophone, HiStop,
@@ -190,7 +189,6 @@ export default function Messages() {
     if (messages.length > prevMsgLen.current) {
       const last = messages[messages.length - 1];
       if (last && last.fromUid !== currentUser?.uid) {
-        playMessageSound();
       }
     }
     prevMsgLen.current = messages.length;

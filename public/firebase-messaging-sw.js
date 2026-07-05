@@ -1,48 +1,23 @@
-importScripts('https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js');
-importScripts('https://www.gstatic.com/firebasejs/10.12.0/firebase-messaging-compat.js');
+// Traingo — Service Worker FCM
+// Ny "notification" payload dia asehon'ny SDK ho azy (na mikatona tanteraka aza
+// ny app) — ka TSY mampiseho intsony ity SW ity (tsy misy doublon).
+// Ny listener notificationclick dia soratana ALOHAN'ny firebase mba ho izy no
+// voalohany mandray (stopImmediatePropagation = tsy mandray intsony ny an'ny SDK).
 
-firebase.initializeApp({
-  apiKey: "AIzaSyBAWMCviG_3t5zsZaffmyGVmfVys9jLjno",
-  authDomain: "tsengo.firebaseapp.com",
-  projectId: "tsengo",
-  storageBucket: "tsengo.firebasestorage.app",
-  messagingSenderId: "346673250242",
-  appId: "1:346673250242:web:b1b826f630c443f144e05b",
-});
-
-const messaging = firebase.messaging();
 const BACKEND_URL = 'https://tsengo-backend.onrender.com';
 
-// Data-only : ny SW irery no mampiseho — sarin'ilay olona + bouton Répondre
-messaging.onBackgroundMessage(function (payload) {
-  const d = payload.data || {};
-  const actions = [];
-  if (d.canReply === '1') {
-    actions.push({ action: 'reply', type: 'text', title: 'Répondre', placeholder: 'Votre message...' });
-  }
-  actions.push({ action: 'open', title: 'Ouvrir' });
-
-  self.registration.showNotification(d.title || 'Traingo', {
-    body: d.body || '',
-    icon: d.icon || '/icon-192.png',        // ← sarin'ilay olona mandefa
-    badge: '/icon-96.png',
-    vibrate: [250, 120, 250],
-    tag: d.type === 'message' ? 'msg_' + (d.conversationId || '') : undefined,
-    renotify: d.type === 'message',
-    actions,
-    data: {
-      link: d.url || '/',
-      conversationId: d.conversationId || '',
-      meUid: d.meUid || '',
-      otherUid: d.otherUid || '',
-    },
-  });
-});
+function extractData(notification) {
+  const raw = notification.data || {};
+  // Auto-affiché par le SDK : ny payload dia ao amin'ny data.FCM_MSG
+  if (raw.FCM_MSG) return raw.FCM_MSG.data || {};
+  return raw;
+}
 
 self.addEventListener('notificationclick', function (event) {
-  const data = event.notification.data || {};
+  event.stopImmediatePropagation();   // sakanana ny handler an'ny SDK (doublon d'ouverture)
+  const d = extractData(event.notification);
 
-  // ✍️ Réponse mivantana eo amin'ny notification (tsy miditra app)
+  // ✍️ Répondre mivantana (inline reply) — tsy mila manokatra ny app
   if (event.action === 'reply') {
     const text = (event.reply || '').trim();
     event.notification.close();
@@ -52,32 +27,36 @@ self.addEventListener('notificationclick', function (event) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          conversationId: data.conversationId,
-          meUid: data.meUid,
-          otherUid: data.otherUid,
+          conversationId: d.conversationId || '',
+          meUid: d.meUid || '',
+          otherUid: d.otherUid || '',
           text,
         }),
-      }).then(() =>
-        self.registration.showNotification('Traingo ✓', {
+      }).then(r => {
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+        return self.registration.showNotification('Traingo ✓', {
           body: 'Réponse envoyée : ' + text.slice(0, 60),
-          icon: '/icon-192.png',
-          badge: '/icon-96.png',
-          tag: 'reply_ok',
-        })
-      ).catch(() =>
+          icon: '/icon-192.png', badge: '/icon-96.png', tag: 'reply_ok',
+        });
+      }).catch(() =>
         self.registration.showNotification('Traingo ⚠️', {
           body: "Échec de l'envoi — ouvrez l'app pour répondre",
-          icon: '/icon-192.png',
-          tag: 'reply_fail',
+          icon: '/icon-192.png', tag: 'reply_fail',
         })
       )
     );
     return;
   }
 
-  // Clic tsotra / Ouvrir : sokafy (na avereno afovoany) ny app amin'ilay discussion
+  // ✖️ Fermer : akatona fotsiny
+  if (event.action === 'close') {
+    event.notification.close();
+    return;
+  }
+
+  // Clic tsotra / Voir : sokafy ny app amin'ilay pejy
   event.notification.close();
-  const link = data.link || '/';
+  const link = d.url || d.link || '/';
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true }).then(list => {
       for (const c of list) {
@@ -90,3 +69,19 @@ self.addEventListener('notificationclick', function (event) {
     })
   );
 });
+
+self.addEventListener('notificationclose', function () {});
+
+// ── Firebase (aorian'ny listeners) : mampiseho ho azy ny notifications background ──
+importScripts('https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js');
+importScripts('https://www.gstatic.com/firebasejs/10.12.0/firebase-messaging-compat.js');
+
+firebase.initializeApp({
+  apiKey: "AIzaSyBAWMCviG_3t5zsZaffmyGVmfVys9jLjno",
+  authDomain: "tsengo.firebaseapp.com",
+  projectId: "tsengo",
+  storageBucket: "tsengo.firebasestorage.app",
+  messagingSenderId: "346673250242",
+  appId: "1:346673250242:web:b1b826f630c443f144e05b",
+});
+firebase.messaging();   // mandray ny push sy mampiseho ho azy — tsy misy onBackgroundMessage

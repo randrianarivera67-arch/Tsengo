@@ -3,6 +3,9 @@
 // mifindra page hafa ao anaty Traingo aza ianao (module singleton,
 // tsy miankina amin'ny composant React). Misy indicateur global ao amin'ny Layout.
 import { uploadToTelegram } from './telegram';
+import { compressVideo } from './videoCompress';
+
+const COMPRESS_THRESHOLD = 60 * 1024 * 1024; // vidéo > 60 Mo → compressée aloha
 
 let current = null; // { label, pct, status: 'uploading'|'saving'|'done'|'error', error? }
 const listeners = new Set();
@@ -16,7 +19,7 @@ export function subscribeUpload(cb) {
 }
 
 export function isUploading() {
-  return !!current && (current.status === 'uploading' || current.status === 'saving');
+  return !!current && (current.status === 'uploading' || current.status === 'saving' || current.status === 'compressing');
 }
 
 /**
@@ -40,6 +43,21 @@ export function startBackgroundUpload(file, label, afterUpload) {
 
   (async () => {
     try {
+      // 🎞️ Compression aloha raha vidéo lehibe (720p ~2,5 Mbps → lecture fluide)
+      if (file.type?.startsWith('video/') && file.size > COMPRESS_THRESHOLD) {
+        current = { ...current, status: 'compressing', pct: 0 };
+        emit();
+        const compressed = await compressVideo(file, pct => {
+          if (current) { current = { ...current, pct }; emit(); }
+        });
+        if (compressed && compressed.size > 0 && compressed.size < file.size) {
+          console.log(`Compression : ${Math.round(file.size/1048576)} Mo → ${Math.round(compressed.size/1048576)} Mo`);
+          file = compressed;
+        }
+        current = { ...current, status: 'uploading', pct: 0 };
+        emit();
+      }
+
       const r = await uploadToTelegram(file, pct => {
         if (current) { current = { ...current, pct }; emit(); }
       });

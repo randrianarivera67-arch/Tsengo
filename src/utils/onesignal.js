@@ -46,13 +46,17 @@ async function initFCM(uid) {
       onMessage(messaging, payload => {
         try {
           const d = payload.data || {};
+          const actions = d.canReply === '1'
+            ? [{ action: 'reply', type: 'text', title: 'Répondre', placeholder: 'Votre message...' }, { action: 'close', title: 'Fermer' }]
+            : [{ action: 'open', title: 'Voir' }, { action: 'close', title: 'Fermer' }];
           reg.showNotification(d.title || 'Traingo', {
             body: d.body || '',
             icon: d.icon || '/icon-192.png',
             badge: '/icon-96.png',
             vibrate: [250, 120, 250],
             tag: d.type === 'message' ? 'msg_' + (d.conversationId || '') : undefined,
-            data: { link: d.url || '/' },
+            actions,
+            data: { ...d, link: d.url || '/' },
           });
         } catch (e) { console.warn('onMessage display:', e); }
       });
