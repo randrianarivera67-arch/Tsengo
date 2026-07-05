@@ -90,24 +90,6 @@ export default function Messages() {
 
   useEffect(() => { if (paramChatId) setActiveChatId(paramChatId); }, [paramChatId]);
 
-  // Rehefa misokatra ny page Messages : marquer "lu" ny hafatra rehetra ho ahy (miala ny badge)
-  useEffect(() => {
-    if (!currentUser) return;
-    import('firebase/database').then(({ ref: r, get, update: upd }) => {
-      get(r(rtdb, 'conversations')).then(snap => {
-        if (!snap.exists()) return;
-        const updates = {};
-        Object.entries(snap.val()).forEach(([chatId, conv]) => {
-          if (!chatId.includes(currentUser.uid)) return;
-          Object.entries(conv.messages || {}).forEach(([mid, m]) => {
-            if (m.toUid === currentUser.uid && !m.read) updates[`${chatId}/messages/${mid}/read`] = true;
-          });
-        });
-        if (Object.keys(updates).length) upd(r(rtdb, 'conversations'), updates).catch(() => {});
-      }).catch(() => {});
-    });
-  }, [currentUser]);
-
   // Mes groupes (temps réel)
   useEffect(() => {
     if (!currentUser) return;
@@ -153,9 +135,19 @@ export default function Messages() {
         try {
           const s = await getDoc(doc(db, 'users', otherUid));
           if (!s.exists()) continue;
-          const msgs  = conv.messages ? Object.values(conv.messages) : [];
+          const msgEntries = Object.entries(conv.messages || {});
+          const msgs  = msgEntries.map(([, m]) => m);
           const last  = msgs[msgs.length - 1];
           const unread = msgs.filter(m => m.toUid === currentUser.uid && !m.read).length;
+          // ✅ Marquer "lu" avy hatrany (miala ny badge) — isaky ny conversation, misy log raha refusé
+          if (unread > 0) {
+            const upd = {};
+            msgEntries.forEach(([mid, m]) => {
+              if (m.toUid === currentUser.uid && !m.read) upd[`${mid}/read`] = true;
+            });
+            update(ref(rtdb, `conversations/${chatId}/messages`), upd)
+              .catch(e => console.error('Marquage lu refusé pour', chatId, ':', e?.message || e));
+          }
           list.push({ chatId, otherUid, user: s.data(), lastMsg: last, unread });
         } catch {}
       }

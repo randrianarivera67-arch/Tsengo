@@ -193,7 +193,7 @@ export default function PostDetail() {
             </div>
           )}
           {post.content&&<p style={{ fontSize:15, lineHeight:1.7, wordBreak:'break-word', marginBottom:10 }}>{post.content}</p>}
-          {post.mediaURL&&<div className="post-media">{post.mediaType==='image'?<img src={post.mediaURL} alt=""/>:<video src={post.mediaURL} controls/>}</div>}
+          {post.mediaURL&&<div className="post-media">{post.mediaType==='image'?<img src={post.mediaURL} alt=""/>:<video src={post.mediaURL} poster={post.thumbURL || undefined} controls/>}</div>}
         </div>
 
         {/* Reaction count */}

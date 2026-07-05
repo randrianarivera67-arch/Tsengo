@@ -10,6 +10,7 @@ import { useAuth } from '../context/AuthContext';
 import { useLang } from '../context/LanguageContext';
 import { uploadToTelegram } from '../utils/telegram';
 import { startBackgroundUpload } from '../utils/uploadManager';
+import { captureVideoThumb } from '../utils/videoThumb';
 import { getChatId } from '../utils/chat';
 import { sendPushNotification } from '../utils/onesignal';
 import { v4 as uuidv4 } from 'uuid';
@@ -171,14 +172,23 @@ export default function Home() {
       isSale, price: isSale ? parseFloat(price) : '',
       contact: isSale ? contact.trim() : '', lieu: isSale ? lieu.trim() : '',
     };
+    // Miniature an'ny vidéo (poster) — alaina eto an-toerana, haingana
+    let thumbFile = null;
+    if (mediaFile && mediaFile.type.startsWith('video/')) {
+      try { thumbFile = await captureVideoThumb(mediaFile); } catch {}
+    }
     const friendTargets = userProfile.friends || [];
     const authorName = userProfile.fullName;
     const authorPhoto = userProfile.photoURL || '';
     const myUid = currentUser.uid;
 
     async function publishPost(mediaURL, finalMT) {
+      let thumbURL = '';
+      if (thumbFile && finalMT === 'video') {
+        try { const tr = await uploadToTelegram(thumbFile); thumbURL = tr.url || ''; } catch {}
+      }
       const postRef = await addDoc(collection(db, 'posts'), {
-        ...fields, mediaURL, mediaType: finalMT,
+        ...fields, mediaURL, mediaType: finalMT, thumbURL,
         reactions: {}, comments: [], createdAt: serverTimestamp(),
       });
       if (friendTargets.length > 0) {
@@ -714,7 +724,7 @@ export default function Home() {
               )}
               {post.mediaURL && (
                 <div style={{ marginTop:8, marginLeft:-16, marginRight:-16 }}>
-                  {post.mediaType==='image' ? <img src={post.mediaURL} alt="" style={{ width:'100%', borderRadius:0, maxHeight:520, objectFit:'cover', display:'block' }}/> : <div onClick={()=>navigate('/reels',{state:{startId:post.id}})} style={{ position:'relative', cursor:'pointer' }}><video src={post.mediaURL} style={{ width:'100%', borderRadius:0, maxHeight:520, objectFit:'cover', display:'block' }} muted playsInline/><div style={{ position:'absolute', inset:0, display:'flex', alignItems:'center', justifyContent:'center' }}><div style={{ width:50, height:50, background:'rgba(0,0,0,0.5)', borderRadius:' 50%', display:'flex', alignItems:'center', justifyContent:'center' }}><span style={{ color:'white', fontSize:20 }}>▶</span></div></div></div>}
+                  {post.mediaType==='image' ? <img src={post.mediaURL} alt="" style={{ width:'100%', borderRadius:0, maxHeight:520, objectFit:'cover', display:'block' }}/> : <div onClick={()=>navigate('/reels',{state:{startId:post.id}})} style={{ position:'relative', cursor:'pointer' }}><video src={post.mediaURL} poster={post.thumbURL || undefined} preload={post.thumbURL ? 'none' : 'metadata'} style={{ width:'100%', borderRadius:0, maxHeight:520, objectFit:'cover', display:'block', background:'#000' }} muted playsInline/><div style={{ position:'absolute', inset:0, display:'flex', alignItems:'center', justifyContent:'center' }}><div style={{ width:50, height:50, background:'rgba(0,0,0,0.5)', borderRadius:' 50%', display:'flex', alignItems:'center', justifyContent:'center' }}><span style={{ color:'white', fontSize:20 }}>▶</span></div></div></div>}
                 </div>
               )}
             </div>
