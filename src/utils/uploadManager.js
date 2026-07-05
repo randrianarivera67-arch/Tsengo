@@ -5,7 +5,7 @@
 import { uploadToTelegram } from './telegram';
 import { compressVideo } from './videoCompress';
 
-const COMPRESS_THRESHOLD = 60 * 1024 * 1024; // vidéo > 60 Mo → compressée aloha
+const COMPRESS_THRESHOLD = 25 * 1024 * 1024; // vidéo > 25 Mo → compressée aloha
 
 let current = null; // { label, pct, status: 'uploading'|'saving'|'done'|'error', error? }
 const listeners = new Set();

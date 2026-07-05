@@ -25,7 +25,7 @@ self.addEventListener('notificationclick', function (event) {
     event.waitUntil(
       fetch(BACKEND_URL + '/reply', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'x-notify-secret': d.ns || '' },
         body: JSON.stringify({
           conversationId: d.conversationId || '',
           meUid: d.meUid || '',

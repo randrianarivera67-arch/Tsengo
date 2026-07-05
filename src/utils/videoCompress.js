@@ -3,9 +3,11 @@
 // Vidéo lehibe (bitrate avo) → 720p ~2,5 Mbps → maivana sy FLUIDE amin'ny mpijery rehetra.
 // Faharetany ≈ ny halavan'ilay vidéo (mandeha amin'ny arrière-plan miaraka amin'ny %).
 
-const TARGET_HEIGHT = 720;
-const VIDEO_BPS = 2_500_000;
-const AUDIO_BPS = 96_000;
+const TARGET_HEIGHT = 480;              // 480p (toy ny apps compression matanjaka)
+const TARGET_TOTAL_MB = 40;             // tanjona : ≤ ~40 Mo na video 500 Mo aza
+const MIN_VIDEO_BPS = 350_000;
+const MAX_VIDEO_BPS = 1_400_000;
+const AUDIO_BPS = 64_000;
 
 function pickMime() {
   const candidates = [
@@ -69,9 +71,13 @@ export function compressVideo(file, onPct) {
           if (elStream) elStream.getAudioTracks().forEach(t => tracks.push(t));
           const stream = new MediaStream(tracks);
 
+          // Bitrate adaptatif : kajiana mba ho ≤ ~40 Mo ny totale
+          const dur = Math.max(1, video.duration || 60);
+          const budgetBits = TARGET_TOTAL_MB * 8 * 1024 * 1024;
+          const videoBps = Math.max(MIN_VIDEO_BPS, Math.min(MAX_VIDEO_BPS, Math.floor(budgetBits / dur) - AUDIO_BPS));
           const rec = new MediaRecorder(stream, {
             mimeType: mime,
-            videoBitsPerSecond: VIDEO_BPS,
+            videoBitsPerSecond: videoBps,
             audioBitsPerSecond: AUDIO_BPS,
           });
           const chunks = [];

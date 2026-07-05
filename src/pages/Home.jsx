@@ -3,7 +3,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   collection, addDoc, serverTimestamp, query, orderBy, onSnapshot, limit,
-  doc, updateDoc, arrayUnion, arrayRemove, deleteDoc, writeBatch, getDoc, getDocs, where
+  doc, updateDoc, arrayUnion, arrayRemove, deleteDoc, writeBatch, getDoc, getDocs, where, deleteField
 } from 'firebase/firestore';
 import { db } from '../firebase';
 import { useAuth } from '../context/AuthContext';
@@ -51,6 +51,7 @@ export default function Home() {
   const [storyGroups, setStoryGroups] = useState([]);       // [{uid, name, photo, items:[...]}]
   const [storyViewer, setStoryViewer] = useState(null);     // {group, index}
   const [addingStory, setAddingStory] = useState(false);
+  const [storyReactors, setStoryReactors] = useState(null);   // null | [{uid,name,photo,emoji}]
   const storyFileRef = useRef();
 
   // ── Suggestions d'amis ──
@@ -411,6 +412,25 @@ export default function Home() {
   }
 
   function openStories(group) { setStoryViewer({ group, index: 0 }); }
+
+  // ── Réactions amin'ny story ──
+  async function reactToStory(st, emoji) {
+    const mine = st.reactions?.[currentUser.uid];
+    try {
+      await updateDoc(doc(db, 'stories', st.id), {
+        [`reactions.${currentUser.uid}`]: mine === emoji ? deleteField() : emoji,
+      });
+    } catch (err) { console.error('story react:', err?.message || err); }
+  }
+
+  async function openStoryReactors(st) {
+    const entries = Object.entries(st.reactions || {});
+    setStoryReactors([]);
+    const list = await Promise.all(entries.slice(0, 50).map(([uid, emoji]) =>
+      getDoc(doc(db, 'users', uid)).then(sn => sn.exists() ? { uid, emoji, name: sn.data().fullName, photo: sn.data().photoURL || '' } : null).catch(() => null)
+    ));
+    setStoryReactors(list.filter(Boolean));
+  }
   function nextStory() {
     setStoryViewer(v => {
       if (!v) return null;
@@ -489,7 +509,12 @@ export default function Home() {
 
       {/* ── Visionneuse de story (plein écran) ─────────────────── */}
       {storyViewer && (() => {
-        const cur = storyViewer.group.items[storyViewer.index];
+        const raw = storyViewer.group.items[storyViewer.index];
+        // Version "fraîche" (mivantana avy amin'ny snapshot) mba hita avy hatrany ny réactions
+        const cur = storyGroups.find(g => g.uid === storyViewer.group.uid)?.items.find(i => i.id === raw.id) || raw;
+        const isMyStory = cur.uid === currentUser.uid;
+        const myStoryR = cur.reactions?.[currentUser.uid];
+        const rCount = Object.keys(cur.reactions || {}).length;
         return (
           <div style={{ position:'fixed', inset:0, background:'#000', zIndex:300, display:'flex', flexDirection:'column' }}>
             {/* Barres de progression */}
@@ -516,6 +541,46 @@ export default function Home() {
               <div onClick={prevStory} style={{ position:'absolute', left:0, top:0, bottom:0, width:'35%' }} />
               <div onClick={nextStory} style={{ position:'absolute', right:0, top:0, bottom:0, width:'65%' }} />
             </div>
+
+            {/* ── Réactions (format Facebook) ─────────────────── */}
+            <div style={{ padding:'10px 14px 18px', display:'flex', alignItems:'center', justifyContent:'center', gap:10 }} onClick={e => e.stopPropagation()}>
+              {isMyStory ? (
+                <button onClick={() => openStoryReactors(cur)}
+                  style={{ background:'rgba(255,255,255,.14)', border:'1px solid rgba(255,255,255,.3)', borderRadius:22, padding:'9px 18px', cursor:'pointer', color:'white', fontFamily:'Poppins', fontSize:13, fontWeight:700, display:'flex', alignItems:'center', gap:8 }}>
+                  {rCount > 0
+                    ? <>{[...new Set(Object.values(cur.reactions))].slice(0,3).join('')} {rCount} réaction{rCount>1?'s':''} — voir</>
+                    : <>👀 Aucune réaction pour le moment</>}
+                </button>
+              ) : (
+                REACTIONS.map(em => (
+                  <button key={em} onClick={() => reactToStory(cur, em)}
+                    style={{ background: myStoryR === em ? 'rgba(255,255,255,.32)' : 'rgba(255,255,255,.12)', border: myStoryR === em ? '1.5px solid white' : '1px solid rgba(255,255,255,.25)', borderRadius:'50%', width:44, height:44, cursor:'pointer', fontSize:22, display:'flex', alignItems:'center', justifyContent:'center', transform: myStoryR === em ? 'scale(1.15)' : 'none', transition:'all .15s' }}>
+                    {em}
+                  </button>
+                ))
+              )}
+            </div>
+
+            {/* Lisitry ny nanao réaction (tompony ihany) */}
+            {storyReactors !== null && (
+              <div style={{ position:'absolute', inset:0, background:'rgba(0,0,0,.6)', display:'flex', alignItems:'flex-end', justifyContent:'center', zIndex:10 }} onClick={() => setStoryReactors(null)}>
+                <div onClick={e => e.stopPropagation()} style={{ background:'white', borderRadius:'20px 20px 0 0', padding:18, width:'100%', maxWidth:480, maxHeight:'60vh', overflowY:'auto' }}>
+                  <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:12 }}>
+                    <h3 style={{ fontWeight:800, color:'#1877F2', fontSize:16 }}>Réactions à votre story</h3>
+                    <button onClick={() => setStoryReactors(null)} style={{ background:'none', border:'none', cursor:'pointer', color:'#65676B', fontSize:20 }}>✕</button>
+                  </div>
+                  {storyReactors.length === 0 && <p style={{ fontSize:13, color:'#65676B', textAlign:'center', padding:'14px 0' }}>Chargement...</p>}
+                  {storyReactors.map(r => (
+                    <div key={r.uid} onClick={() => { setStoryReactors(null); setStoryViewer(null); navigate(`/profile/${r.uid}`); }}
+                      style={{ display:'flex', alignItems:'center', gap:10, padding:'9px 2px', cursor:'pointer', borderBottom:'1px solid #F0F2F5' }}>
+                      <img src={r.photo || `https://ui-avatars.com/api/?name=${encodeURIComponent(r.name||'U')}&background=1877F2&color=fff`} alt="" style={{ width:38, height:38, borderRadius:'50%', objectFit:'cover' }} />
+                      <p style={{ flex:1, fontWeight:600, fontSize:14 }}>{r.name}</p>
+                      <span style={{ fontSize:20 }}>{r.emoji}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         );
       })()}
