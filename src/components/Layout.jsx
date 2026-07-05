@@ -36,30 +36,6 @@ export default function Layout({ children }) {
   const [uploadState,   setUploadState]   = useState(null);
   useEffect(() => subscribeUpload(setUploadState), []);
 
-  // 🔔 Maneno + mihovitra isaky ny misy MESSAGE tonga — na aiza na aiza ao anaty app
-  const lastIncomingTs = useRef(0);
-  useEffect(() => {
-    if (!currentUser) return;
-    const unsub = onValue(ref(rtdb, 'conversations'), snap => {
-      if (!snap.exists()) return;
-      let maxTs = 0;
-      Object.entries(snap.val()).forEach(([chatId, conv]) => {
-        if (!chatId.includes(currentUser.uid) && !chatId.startsWith('group_')) return;
-        Object.values(conv.messages || {}).forEach(m => {
-          const mine = m.fromUid === currentUser.uid;
-          const forMe = m.toUid === currentUser.uid || (chatId.startsWith('group_') && !mine);
-          if (forMe && (m.ts || 0) > maxTs) maxTs = m.ts || 0;
-        });
-      });
-      if (lastIncomingTs.current === 0) { lastIncomingTs.current = maxTs || 1; return; } // premier chargement : tsy maneno
-      if (maxTs > lastIncomingTs.current) {
-        lastIncomingTs.current = maxTs;
-        playNotificationSound();
-        try { navigator.vibrate?.([250, 120, 250]); } catch {}
-      }
-    }, () => {});
-    return () => unsub();
-  }, [currentUser]);
   const searchRef   = useRef();
   const searchTimer = useRef();
   const prevNotif   = useRef(notifCount);
