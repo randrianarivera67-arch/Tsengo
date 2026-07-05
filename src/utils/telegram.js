@@ -18,7 +18,7 @@ async function compressImage(file, maxWidth=1080, quality=0.8) {
   });
 }
 
-const MAX_SIZE        = 100 * 1024 * 1024;  // 100 Mo maximum
+const MAX_SIZE        = 500 * 1024 * 1024;  // 500 Mo maximum
 const CHUNK_SIZE      = 18 * 1024 * 1024;   // morceaux 18 Mo (limite Bot API 20 Mo)
 const CHUNK_THRESHOLD = 12 * 1024 * 1024;   // vidéo > 12 Mo → envoi en morceaux
 
@@ -94,7 +94,7 @@ export async function uploadToTelegram(file, onProgress) {
   }
 
   if (file.size > MAX_SIZE) {
-    throw new Error(`Fichier trop volumineux (${Math.round(file.size / 1024 / 1024)} Mo). Maximum : 100 Mo.`);
+    throw new Error(`Fichier trop volumineux (${Math.round(file.size / 1024 / 1024)} Mo). Maximum : 500 Mo.`);
   }
 
   // Vidéo > 12 Mo → envoi en morceaux (fiable sur Render, pas de timeout)

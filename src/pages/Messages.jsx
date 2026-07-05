@@ -132,22 +132,26 @@ export default function Messages() {
         }
         if (!chatId.includes(currentUser.uid)) continue;
         const otherUid = getOtherUid(chatId, currentUser.uid);
+
+        const msgEntries = Object.entries(conv.messages || {});
+        const msgs  = msgEntries.map(([, m]) => m);
+        const last  = msgs[msgs.length - 1];
+        const unread = msgs.filter(m => m.toUid === currentUser.uid && !m.read).length;
+
+        // ✅ Marquer "lu" avy hatrany — ALOHAN'ny fakana ny profil, ka na conversation
+        // misy compte voafafa/tsy hita aza dia voamarika (io no namela ny badge nijanona)
+        if (unread > 0) {
+          const upd = {};
+          msgEntries.forEach(([mid, m]) => {
+            if (m.toUid === currentUser.uid && !m.read) upd[`${mid}/read`] = true;
+          });
+          update(ref(rtdb, `conversations/${chatId}/messages`), upd)
+            .catch(e => console.error('Marquage lu refusé pour', chatId, ':', e?.message || e));
+        }
+
         try {
           const s = await getDoc(doc(db, 'users', otherUid));
           if (!s.exists()) continue;
-          const msgEntries = Object.entries(conv.messages || {});
-          const msgs  = msgEntries.map(([, m]) => m);
-          const last  = msgs[msgs.length - 1];
-          const unread = msgs.filter(m => m.toUid === currentUser.uid && !m.read).length;
-          // ✅ Marquer "lu" avy hatrany (miala ny badge) — isaky ny conversation, misy log raha refusé
-          if (unread > 0) {
-            const upd = {};
-            msgEntries.forEach(([mid, m]) => {
-              if (m.toUid === currentUser.uid && !m.read) upd[`${mid}/read`] = true;
-            });
-            update(ref(rtdb, `conversations/${chatId}/messages`), upd)
-              .catch(e => console.error('Marquage lu refusé pour', chatId, ':', e?.message || e));
-          }
           list.push({ chatId, otherUid, user: s.data(), lastMsg: last, unread });
         } catch {}
       }
@@ -625,7 +629,14 @@ export default function Messages() {
                     <p style={{ fontSize: 12, color: '#65676B', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                       {online[conv.otherUid]
                         ? <span style={{ color: '#22c55e', fontWeight: 600, fontSize: 11 }}>● En ligne</span>
-                        : (conv.lastMsg?.fromUid === currentUser.uid ? 'Vous: ' : '') + (conv.lastMsg?.mediaType === 'audio' ? '🎤 Vocal' : conv.lastMsg?.text || (conv.lastMsg?.mediaURL ? '📎 Média' : ''))}
+                        : <>
+                            {(conv.lastMsg?.fromUid === currentUser.uid ? 'Vous: ' : '') + (conv.lastMsg?.mediaType === 'audio' ? '🎤 Vocal' : conv.lastMsg?.text || (conv.lastMsg?.mediaURL ? '📎 Média' : ''))}
+                            {conv.lastMsg?.fromUid === currentUser.uid && (
+                              <span style={{ marginLeft: 5, fontWeight: 700, color: conv.lastMsg?.read ? '#1877F2' : '#8A8D91', fontSize: 11 }}>
+                                {conv.lastMsg?.read ? '✓✓ Vu' : '✓ Envoyé'}
+                              </span>
+                            )}
+                          </>}
                     </p>
                   </div>
                   {/* Menu ⋮ pour supprimer */}
@@ -766,7 +777,7 @@ export default function Messages() {
 
                       <p style={{ fontSize: 10, color: '#65676B', marginTop: 2, textAlign: isMe ? 'right' : 'left' }}>
                         {msg.ts ? new Date(msg.ts).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) : ''}
-                        {isMe && <span> · {msg.read ? '✓✓' : '✓'}</span>}
+                        {isMe && <span style={{ color: msg.read ? '#1877F2' : undefined, fontWeight: msg.read ? 700 : 400 }}> · {msg.read ? '✓✓ Vu' : '✓'}</span>}
                       </p>
                     </div>
                     {Object.keys(msgReactions[msg.id]||{}).length>0&&(
