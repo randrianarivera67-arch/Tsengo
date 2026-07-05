@@ -105,10 +105,18 @@ service cloud.firestore {
         ".write": "auth != null && ($chatId.contains(auth.uid) || $chatId.beginsWith('group_'))",
         "messages": {
           "$msgId": {
-            ".validate": "newData.hasChildren(['fromUid', 'text', 'ts'])
-              && newData.child('fromUid').val() === auth.uid
-              && newData.child('text').isString()
-              && newData.child('text').val().length <= 2000"
+            // ✅ FIX "Vu" : ny validate taloha nitaky fromUid === auth.uid isaky ny
+            // écriture, ka ny mpandray tsy afaka nanamarika "read: true" mihitsy
+            // (ny fromUid dia an'ilay mpandefa). Izao : ny fromUid dia voaaro
+            // (tsy azo soloina, ary ny mpandefa ihany no mametraka azy am-boalohany),
+            // fa ny read/reactions/edited dia azo soratana.
+            ".validate": "newData.hasChildren(['fromUid', 'text', 'ts'])",
+            "fromUid": {
+              ".validate": "(!data.exists() && newData.val() === auth.uid) || newData.val() === data.val()"
+            },
+            "text": {
+              ".validate": "newData.isString() && newData.val().length <= 2000"
+            }
           }
         }
       }
