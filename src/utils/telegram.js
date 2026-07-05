@@ -31,26 +31,33 @@ export async function uploadToTelegram(file, onProgress) {
   const isLargeVideo = file.type.startsWith('video/') && file.size >= 19 * 1024 * 1024;
   const endpoint = isLargeVideo ? '/telegram/upload-large' : '/telegram/upload';
 
-  if (onProgress) onProgress(10);
-
-  let res;
-  try {
-    res = await fetch(`${BACKEND_URL}${endpoint}`, { method: 'POST', body: form });
-  } catch (e) {
-    throw new Error('Serveur injoignable (connexion ou CORS) : ' + e.message);
+  // Garde : 300 Mo maximum
+  const MAX_SIZE = 300 * 1024 * 1024;
+  if (file.size > MAX_SIZE) {
+    throw new Error(`Fichier trop volumineux (${Math.round(file.size / 1024 / 1024)} Mo). Maximum : 300 Mo.`);
   }
 
-  if (onProgress) onProgress(90);
+  // XHR : progression d'envoi tena izy (0 → 95%), ny sisa = traitement serveur
+  const data = await new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', `${BACKEND_URL}${endpoint}`);
+    xhr.timeout = 30 * 60 * 1000; // 30 minitra ho an'ny vidéo lehibe amin'ny connexion miadana
+    xhr.upload.onprogress = e => {
+      if (onProgress && e.lengthComputable) onProgress(Math.min(95, Math.round((e.loaded / e.total) * 95)));
+    };
+    xhr.onload = () => {
+      let json;
+      try { json = JSON.parse(xhr.responseText); }
+      catch { return reject(new Error(`Upload échoué (HTTP ${xhr.status}). Serveur indisponible ou fichier trop volumineux.`)); }
+      if (xhr.status >= 200 && xhr.status < 300 && !json.error) resolve(json);
+      else reject(new Error(json.error || `Upload échoué (HTTP ${xhr.status})`));
+    };
+    xhr.onerror   = () => reject(new Error('Serveur injoignable (connexion ou CORS)'));
+    xhr.ontimeout = () => reject(new Error("Upload trop long : vérifiez votre connexion ou réduisez la taille de la vidéo"));
+    xhr.send(form);
+  });
 
-  let data;
-  try {
-    data = await res.json();
-  } catch {
-    throw new Error(`Upload échoué (HTTP ${res.status}). Fichier trop volumineux ou serveur indisponible.`);
-  }
-  if (!res.ok || data.error) throw new Error(data.error || `Upload échoué (HTTP ${res.status})`);
   if (!data.url && !data.fileId) throw new Error("Upload échoué : réponse du serveur sans URL");
-
   if (onProgress) onProgress(100);
 
   const url = data.url || (data.fileId ? `${BACKEND_URL}/media-id?file_id=${data.fileId}` : null);
