@@ -627,16 +627,15 @@ export default function Messages() {
                       {conv.unread > 0 && <span style={{ background: '#1877F2', color: 'white', borderRadius: 10, padding: '1px 7px', fontSize: 11, fontWeight: 700 }}>{conv.unread}</span>}
                     </div>
                     <p style={{ fontSize: 12, color: '#65676B', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                      {online[conv.otherUid]
-                        ? <span style={{ color: '#22c55e', fontWeight: 600, fontSize: 11 }}>● En ligne</span>
-                        : <>
-                            {(conv.lastMsg?.fromUid === currentUser.uid ? 'Vous: ' : '') + (conv.lastMsg?.mediaType === 'audio' ? '🎤 Vocal' : conv.lastMsg?.text || (conv.lastMsg?.mediaURL ? '📎 Média' : ''))}
-                            {conv.lastMsg?.fromUid === currentUser.uid && (
-                              <span style={{ marginLeft: 5, fontWeight: 700, color: conv.lastMsg?.read ? '#1877F2' : '#8A8D91', fontSize: 11 }}>
-                                {conv.lastMsg?.read ? '✓✓ Vu' : '✓ Envoyé'}
-                              </span>
-                            )}
-                          </>}
+                      {/* Ny point maitso amin'ny avatar no milaza "en ligne" — ny message farany no hita foana eto (format Facebook) */}
+                      <span style={{ fontWeight: conv.unread > 0 ? 700 : 400, color: conv.unread > 0 ? '#050505' : '#65676B' }}>
+                        {(conv.lastMsg?.fromUid === currentUser.uid ? 'Vous: ' : '') + (conv.lastMsg?.mediaType === 'audio' ? '🎤 Vocal' : conv.lastMsg?.text || (conv.lastMsg?.mediaURL ? '📎 Média' : ''))}
+                      </span>
+                      {conv.lastMsg?.fromUid === currentUser.uid && (
+                        <span style={{ marginLeft: 5, fontWeight: 700, color: conv.lastMsg?.read ? '#1877F2' : '#8A8D91', fontSize: 11 }}>
+                          {conv.lastMsg?.read ? '✓✓ Vu' : '✓ Envoyé'}
+                        </span>
+                      )}
                     </p>
                   </div>
                   {/* Menu ⋮ pour supprimer */}
