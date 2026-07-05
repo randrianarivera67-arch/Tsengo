@@ -368,7 +368,7 @@ export default function Profile() {
           <div style={{ padding:'0 16px 8px', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
             <div onClick={() => openReactionModal(post)} style={{ display:'flex', alignItems:'center', gap:4, cursor:'pointer', minHeight:18 }}>
               {total > 0 && <>
-                <div style={{ display:'flex' }}>{Object.entries(rc).slice(0,3).map(([e], i) => <span key={e} style={{ fontSize:15, marginLeft: i ? -3 : 0 }}>{e}</span>)}</div>
+                <div style={{ display:'flex', gap:3 }}>{Object.entries(rc).slice(0,3).map(([e]) => <span key={e} style={{ fontSize:14, background:'white', borderRadius:'50%', boxShadow:'0 0 0 1.5px white', lineHeight:1 }}>{e}</span>)}</div>
                 <span style={{ fontSize:13, color:'#65676B' }}>{total}</span>
               </>}
             </div>
@@ -418,10 +418,12 @@ export default function Profile() {
                     <span onClick={() => setCmtReactionPicker(p => p===c.id?null:c.id)} style={{ cursor:'pointer' }}>😊</span>
                     <span onClick={() => setReplyTo(p=>({...p,[post.id]:c.authorName}))} style={{ cursor:'pointer' }}>Répondre</span>
                     {cmtReactionPicker===c.id && <div style={{ display:'flex', gap:6, background:'white', borderRadius:20, padding:'6px 10px', boxShadow:'0 2px 12px rgba(0,0,0,.2)', position:'absolute', bottom:'110%', left:0, zIndex:10, border:'1px solid #E4E6EB' }}>{REACTIONS.map(em=><span key={em} onClick={()=>reactToCmt(post.id,c.id,em)} style={{ fontSize:20, cursor:'pointer' }}>{em}</span>)}</div>}
-                    {(c.uid===currentUser.uid||post.uid===currentUser.uid)&&<>
+                    {c.uid===currentUser.uid && (
                       <span onClick={() => setEditCmt({ postId:post.id, cmt:c, text:c.text })} style={{ cursor:'pointer' }}>Modifier</span>
+                    )}
+                    {(c.uid===currentUser.uid||post.uid===currentUser.uid) && (
                       <span onClick={() => deleteCmt(post.id,c)} style={{ cursor:'pointer', color:'#FF2D8D' }}>Supprimer</span>
-                    </>}
+                    )}
                   </div>
                 </div>
               </div>

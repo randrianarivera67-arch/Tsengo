@@ -36,7 +36,7 @@ export default function Notifications() {
   const prevCount       = useRef(0);
 
   useEffect(() => { if (unreadCount>prevCount.current) playNotifSound(); prevCount.current=unreadCount; }, [unreadCount]);
-  useEffect(() => { const timer=setTimeout(()=>markAllRead(),1500); return()=>clearTimeout(timer); }, []);
+  useEffect(() => { if (unreadCount === 0) return; const timer=setTimeout(()=>markAllRead(),800); return()=>clearTimeout(timer); }, [unreadCount]);
 
   function handleClick(notif) {
     switch (notif.type) {

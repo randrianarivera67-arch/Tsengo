@@ -12,7 +12,7 @@ import { uploadToTelegram } from '../utils/telegram';
 import { sendPushNotification } from '../utils/onesignal';
 import { v4 as uuidv4 } from 'uuid';
 import {
-  HiHeart, HiOutlineHeart, HiChat, HiShare, HiArrowLeft,
+  HiHeart, HiOutlineHeart, HiChat, HiShare, HiArrowLeft, HiBookmark,
   HiDownload, HiSpeakerphone, HiDotsVertical, HiTrash,
   HiPencil, HiReply, HiPhotograph, HiVideoCamera, HiX
 } from 'react-icons/hi';
@@ -24,7 +24,7 @@ function VIPBadge() {
 }
 
 export default function Reels() {
-  const { currentUser, userProfile } = useAuth();
+  const { currentUser, userProfile, setUserProfile } = useAuth();
   const { t } = useLang();
   const navigate = useNavigate();
   const location = useLocation();
@@ -91,6 +91,16 @@ export default function Reels() {
       setPostMenu(false);
     }
   }, [activeIndex]);
+
+  async function toggleSave(postId) {
+    const saved = userProfile?.saved || [];
+    const isSaved = saved.includes(postId);
+    try {
+      const { arrayUnion, arrayRemove } = await import('firebase/firestore');
+      await updateDoc(doc(db, 'users', currentUser.uid), { saved: isSaved ? arrayRemove(postId) : arrayUnion(postId) });
+      setUserProfile(p => ({ ...p, saved: isSaved ? (p.saved||[]).filter(id => id !== postId) : [...(p.saved||[]), postId] }));
+    } catch (err) { console.error(err); }
+  }
 
   async function reactToPost(postId, emoji) {
     const post = posts.find(p=>p.id===postId); if (!post) return;
@@ -277,6 +287,14 @@ export default function Reels() {
                 <button onClick={()=>window.open(post.mediaURL,'_blank')} style={{ background:'none', border:'none', cursor:'pointer', color:'white' }}>
                   <HiDownload size={26}/>
                 </button>
+
+                {/* Enregistrer */}
+                <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:3 }}>
+                  <button onClick={()=>toggleSave(post.id)} style={{ background:'none', border:'none', cursor:'pointer', color:(userProfile?.saved||[]).includes(post.id)?'#F2B300':'white' }}>
+                    <HiBookmark size={26}/>
+                  </button>
+                  <span style={{ color:'white', fontSize:11 }}>{(userProfile?.saved||[]).includes(post.id)?'Enregistré':'Enregistrer'}</span>
+                </div>
 
                 {/* Boost */}
                 <button onClick={()=>navigate('/boost')} style={{ background:'none', border:'none', cursor:'pointer', color:'white' }}>

@@ -18,43 +18,95 @@ async function compressImage(file, maxWidth=1080, quality=0.8) {
   });
 }
 
+const MAX_SIZE        = 100 * 1024 * 1024;  // 100 Mo maximum
+const CHUNK_SIZE      = 18 * 1024 * 1024;   // morceaux 18 Mo (limite Bot API 20 Mo)
+const CHUNK_THRESHOLD = 12 * 1024 * 1024;   // vidéo > 12 Mo → envoi en morceaux
+
+// Envoi d'un FormData avec progression réelle (XHR)
+function sendForm(endpoint, form, onPct, timeout = 10 * 60 * 1000) {
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', `${BACKEND_URL}${endpoint}`);
+    xhr.timeout = timeout;
+    xhr.upload.onprogress = e => {
+      if (onPct && e.lengthComputable) onPct(Math.round((e.loaded / e.total) * 100));
+    };
+    xhr.onload = () => {
+      let json;
+      try { json = JSON.parse(xhr.responseText); }
+      catch { return reject(new Error(`HTTP ${xhr.status} — serveur indisponible`)); }
+      if (xhr.status >= 200 && xhr.status < 300 && !json.error) resolve(json);
+      else reject(new Error(json.error || `HTTP ${xhr.status}`));
+    };
+    xhr.onerror   = () => reject(new Error('Connexion interrompue'));
+    xhr.ontimeout = () => reject(new Error('Délai dépassé — connexion trop lente'));
+    xhr.send(form);
+  });
+}
+
+async function jsonPost(endpoint, body) {
+  const res = await fetch(`${BACKEND_URL}${endpoint}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  const data = await res.json().catch(() => ({ error: `HTTP ${res.status}` }));
+  if (!res.ok || data.error) throw new Error(data.error || `HTTP ${res.status}`);
+  return data;
+}
+
+// Vidéo lehibe : tapatapahana morceaux ≤18 Mo, alefa tsirairay misy retry,
+// dia atambatry ny serveur ho vidéo TOKANA amin'ny lecture
+async function uploadVideoInChunks(file, onProgress) {
+  const total = Math.ceil(file.size / CHUNK_SIZE);
+  const { uploadId } = await jsonPost('/chunk/init', { total, mime: file.type || 'video/mp4', name: file.name || 'video.mp4' });
+
+  for (let i = 0; i < total; i++) {
+    const blob = file.slice(i * CHUNK_SIZE, Math.min((i + 1) * CHUNK_SIZE, file.size));
+    let attempt = 0;
+    for (;;) {
+      try {
+        const form = new FormData();
+        form.append('uploadId', uploadId);
+        form.append('index', String(i));
+        form.append('file', blob, `chunk_${i}.part`);
+        await sendForm('/chunk/upload', form, pct => {
+          if (onProgress) onProgress(Math.min(95, Math.round(((i + pct / 100) / total) * 95)));
+        });
+        break; // morceau tafita
+      } catch (e) {
+        attempt++;
+        if (attempt >= 4) throw new Error(`Morceau ${i + 1}/${total} : ${e.message}`);
+        // Retry automatique (tsy miverina any am-piandohana)
+        await new Promise(r => setTimeout(r, 1500 * attempt));
+      }
+    }
+  }
+
+  const done = await jsonPost('/chunk/complete', { uploadId });
+  if (onProgress) onProgress(100);
+  return { url: done.url, type: 'video' };
+}
+
 export async function uploadToTelegram(file, onProgress) {
   if (file.type.startsWith('image/')) {
     file = await compressImage(file);
   }
 
-  const form = new FormData();
-  form.append('file', file, file.name || `file_${Date.now()}`);
-
-  // Video >= 19MB → /telegram/upload-large (GramJS 2GB)
-  // Hafa → /telegram/upload (Bot API)
-  const isLargeVideo = file.type.startsWith('video/') && file.size >= 19 * 1024 * 1024;
-  const endpoint = isLargeVideo ? '/telegram/upload-large' : '/telegram/upload';
-
-  // Garde : 300 Mo maximum
-  const MAX_SIZE = 300 * 1024 * 1024;
   if (file.size > MAX_SIZE) {
-    throw new Error(`Fichier trop volumineux (${Math.round(file.size / 1024 / 1024)} Mo). Maximum : 300 Mo.`);
+    throw new Error(`Fichier trop volumineux (${Math.round(file.size / 1024 / 1024)} Mo). Maximum : 100 Mo.`);
   }
 
-  // XHR : progression d'envoi tena izy (0 → 95%), ny sisa = traitement serveur
-  const data = await new Promise((resolve, reject) => {
-    const xhr = new XMLHttpRequest();
-    xhr.open('POST', `${BACKEND_URL}${endpoint}`);
-    xhr.timeout = 30 * 60 * 1000; // 30 minitra ho an'ny vidéo lehibe amin'ny connexion miadana
-    xhr.upload.onprogress = e => {
-      if (onProgress && e.lengthComputable) onProgress(Math.min(95, Math.round((e.loaded / e.total) * 95)));
-    };
-    xhr.onload = () => {
-      let json;
-      try { json = JSON.parse(xhr.responseText); }
-      catch { return reject(new Error(`Upload échoué (HTTP ${xhr.status}). Serveur indisponible ou fichier trop volumineux.`)); }
-      if (xhr.status >= 200 && xhr.status < 300 && !json.error) resolve(json);
-      else reject(new Error(json.error || `Upload échoué (HTTP ${xhr.status})`));
-    };
-    xhr.onerror   = () => reject(new Error('Serveur injoignable (connexion ou CORS)'));
-    xhr.ontimeout = () => reject(new Error("Upload trop long : vérifiez votre connexion ou réduisez la taille de la vidéo"));
-    xhr.send(form);
+  // Vidéo > 12 Mo → envoi en morceaux (fiable sur Render, pas de timeout)
+  if (file.type.startsWith('video/') && file.size > CHUNK_THRESHOLD) {
+    return uploadVideoInChunks(file, onProgress);
+  }
+
+  // Fichiers kely : envoi tokana amin'ny Bot API
+  const form = new FormData();
+  form.append('file', file, file.name || `file_${Date.now()}`);
+  const data = await sendForm('/telegram/upload', form, pct => {
+    if (onProgress) onProgress(Math.min(95, Math.round(pct * 0.95)));
   });
 
   if (!data.url && !data.fileId) throw new Error("Upload échoué : réponse du serveur sans URL");

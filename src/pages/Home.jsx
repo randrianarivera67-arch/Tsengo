@@ -9,6 +9,7 @@ import { db } from '../firebase';
 import { useAuth } from '../context/AuthContext';
 import { useLang } from '../context/LanguageContext';
 import { uploadToTelegram } from '../utils/telegram';
+import { startBackgroundUpload } from '../utils/uploadManager';
 import { getChatId } from '../utils/chat';
 import { sendPushNotification } from '../utils/onesignal';
 import { v4 as uuidv4 } from 'uuid';
@@ -160,35 +161,58 @@ export default function Home() {
       if (isNaN(p) || p <= 0 || p > MAX_PRICE) { alert('Prix invalide'); return; }
     }
     setPosting(true); setUploadPct(0);
-    try {
-      let mediaURL = '', finalMT = mediaType;
-      if (mediaFile) {
-        setUploadPct(20);
-        const r = await uploadToTelegram(mediaFile);
-        mediaURL = r.url; finalMT = r.type === 'video' ? 'video' : 'image';
-        setUploadPct(80);
-      }
+
+    // Sary raikitra ny votoaty (snapshot) — ilaina amin'ny arrière-plan
+    const fields = {
+      uid: currentUser.uid, authorName: userProfile.fullName,
+      authorUsername: userProfile.username, authorPhoto: userProfile.photoURL || '',
+      authorIsVip: userProfile.isVip || false,
+      content: content.trim().slice(0, MAX_POST),
+      isSale, price: isSale ? parseFloat(price) : '',
+      contact: isSale ? contact.trim() : '', lieu: isSale ? lieu.trim() : '',
+    };
+    const friendTargets = userProfile.friends || [];
+    const authorName = userProfile.fullName;
+    const authorPhoto = userProfile.photoURL || '';
+    const myUid = currentUser.uid;
+
+    async function publishPost(mediaURL, finalMT) {
       const postRef = await addDoc(collection(db, 'posts'), {
-        uid: currentUser.uid, authorName: userProfile.fullName,
-        authorUsername: userProfile.username, authorPhoto: userProfile.photoURL || '',
-        authorIsVip: userProfile.isVip || false,
-        content: content.trim().slice(0, MAX_POST), mediaURL, mediaType: finalMT,
-        isSale, price: isSale ? parseFloat(price) : '',
-        contact: isSale ? contact.trim() : '', lieu: isSale ? lieu.trim() : '',
+        ...fields, mediaURL, mediaType: finalMT,
         reactions: {}, comments: [], createdAt: serverTimestamp(),
       });
-      const targets = userProfile.friends || [];
-      if (targets.length > 0) {
+      if (friendTargets.length > 0) {
         const batch = writeBatch(db);
-        targets.forEach(fUid => batch.set(doc(collection(db,'notifications')), {
-          toUid: fUid, fromUid: currentUser.uid,
-          fromName: userProfile.fullName, fromPhoto: userProfile.photoURL || '',
+        friendTargets.forEach(fUid => batch.set(doc(collection(db,'notifications')), {
+          toUid: fUid, fromUid: myUid,
+          fromName: authorName, fromPhoto: authorPhoto,
           type: 'post', postId: postRef.id,
-          message: `${userProfile.fullName} a publié un nouveau post`,
+          message: `${authorName} a publié un nouveau post`,
           read: false, createdAt: serverTimestamp(),
         }));
         await batch.commit();
       }
+    }
+
+    // ── Vidéo > 12 Mo : upload ARRIÈRE-PLAN (afaka mifindra page) ──
+    if (mediaFile && mediaFile.type.startsWith('video/') && mediaFile.size > 12 * 1024 * 1024) {
+      const started = startBackgroundUpload(mediaFile, 'Vidéo', async r => {
+        await publishPost(r.url, 'video');
+      });
+      setPosting(false); setUploadPct(0);
+      if (started) {
+        setContent(''); removeMedia(); setIsSale(false); setPrice(''); setContact(''); setLieu('');
+      }
+      return;
+    }
+
+    try {
+      let mediaURL = '', finalMT = mediaType;
+      if (mediaFile) {
+        const r = await uploadToTelegram(mediaFile, pct => setUploadPct(pct));
+        mediaURL = r.url; finalMT = r.type === 'video' ? 'video' : 'image';
+      }
+      await publishPost(mediaURL, finalMT);
       setContent(''); removeMedia(); setIsSale(false); setPrice(''); setContact(''); setLieu('');
     } catch (err) { console.error(err); alert('Erreur lors de la publication'); }
     setPosting(false); setUploadPct(0);
@@ -700,9 +724,9 @@ export default function Home() {
               <div style={{ padding:'8px 16px 6px', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
                 <div onClick={() => openReactionModal(post)} style={{ display:'flex', alignItems:'center', gap:4, cursor:'pointer', minHeight:18 }}>
                   {total > 0 && <>
-                    <div style={{ display:'flex' }}>
-                      {Object.entries(rc).slice(0,3).map(([e], i) =>
-                        <span key={e} style={{ fontSize:15, marginLeft: i ? -3 : 0 }}>{e}</span>)}
+                    <div style={{ display:'flex', gap:3 }}>
+                      {Object.entries(rc).slice(0,3).map(([e]) =>
+                        <span key={e} style={{ fontSize:14, background:'white', borderRadius:'50%', boxShadow:'0 0 0 1.5px white', lineHeight:1 }}>{e}</span>)}
                     </div>
                     <span style={{ fontSize:13, color:'#65676B' }}>{total}</span>
                   </>}
@@ -771,10 +795,12 @@ export default function Home() {
                         </span>
                         <span onClick={() => setCmtReactionPicker(p => p===c.id?null:c.id)} style={{ cursor:'pointer' }}>😊</span>
                         <span onClick={() => setReplyTo(p=>({...p,[post.id]:c.authorName}))} style={{ cursor:'pointer' }}>Répondre</span>
-                        {(c.uid===currentUser.uid||post.uid===currentUser.uid)&&<>
+                        {c.uid===currentUser.uid && (
                           <span onClick={() => setEditCmt({ postId:post.id, cmt:c, text:c.text })} style={{ cursor:'pointer' }}>Modifier</span>
+                        )}
+                        {(c.uid===currentUser.uid||post.uid===currentUser.uid) && (
                           <span onClick={() => deleteCmt(post.id,c)} style={{ cursor:'pointer', color:'#FF2D8D' }}>Supprimer</span>
-                        </>}
+                        )}
                         {cmtReactionPicker===c.id && (
                           <div style={{ display:'flex', gap:6, background:'white', borderRadius:20, padding:'6px 10px', boxShadow:'0 2px 12px rgba(0,0,0,.2)', position:'absolute', bottom:'110%', left:0, zIndex:10, border:'1px solid #E4E6EB' }}>
                             {REACTIONS.map(em=><span key={em} onClick={()=>reactToCmt(post.id,c.id,em)} style={{ fontSize:20, cursor:'pointer' }}>{em}</span>)}

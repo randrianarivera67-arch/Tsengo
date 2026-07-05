@@ -10,6 +10,7 @@ import { collection, getDocs, query, orderBy, limit, where, onSnapshot } from 'f
 import { ref, set, onDisconnect } from 'firebase/database';
 import { db, rtdb } from '../firebase';
 import { playNotificationSound } from '../utils/sound';
+import { subscribeUpload } from '../utils/uploadManager';
 import {
   HiHome, HiOutlineHome, HiUser, HiOutlineUser,
   HiUserGroup, HiOutlineUserGroup, HiChat, HiOutlineChat,
@@ -32,6 +33,8 @@ export default function Layout({ children }) {
   const [searchResults, setSearchResults] = useState({ users: [], posts: [] });
   const [searchOpen,    setSearchOpen]    = useState(false);
   const [searchBarOpen, setSearchBarOpen] = useState(false);
+  const [uploadState,   setUploadState]   = useState(null);
+  useEffect(() => subscribeUpload(setUploadState), []);
   const searchRef   = useRef();
   const searchTimer = useRef();
   const prevNotif   = useRef(notifCount);
@@ -269,6 +272,29 @@ export default function Layout({ children }) {
       </header>
 
       <main style={{ maxWidth: 680, margin: '0 auto', padding: 0, width: '100%' }}>{children}</main>
+
+      {/* ── Indicateur d'upload en arrière-plan ────────────────── */}
+      {uploadState && (
+        <div style={{ position: 'fixed', left: 16, right: 16, bottom: 92, zIndex: 220, maxWidth: 480, margin: '0 auto',
+          background: uploadState.status === 'error' ? '#FDE8EF' : 'white',
+          border: `1.5px solid ${uploadState.status === 'error' ? '#FF2D8D' : '#E4E6EB'}`,
+          borderRadius: 16, padding: '10px 14px', boxShadow: '0 6px 24px rgba(5,5,5,.18)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, fontWeight: 700, fontFamily: 'Poppins' }}>
+            {uploadState.status === 'uploading' && <>📤 <span>{uploadState.label} — {uploadState.pct}%</span></>}
+            {uploadState.status === 'saving'    && <>⏳ <span>Publication en cours...</span></>}
+            {uploadState.status === 'done'      && <>✅ <span style={{ color: '#1877F2' }}>Publié !</span></>}
+            {uploadState.status === 'error'     && <>⚠️ <span style={{ color: '#FF2D8D' }}>Échec : {uploadState.error}</span></>}
+          </div>
+          {uploadState.status === 'uploading' && (
+            <div style={{ height: 5, background: '#F0F2F5', borderRadius: 4, marginTop: 7, overflow: 'hidden' }}>
+              <div style={{ height: '100%', width: `${uploadState.pct}%`, background: 'linear-gradient(90deg,#1877F2,#FF2D8D,#F2B300)', borderRadius: 4, transition: 'width .3s' }} />
+            </div>
+          )}
+          {(uploadState.status === 'uploading' || uploadState.status === 'saving') && (
+            <p style={{ fontSize: 10, color: '#65676B', marginTop: 5, fontFamily: 'Poppins' }}>Vous pouvez continuer à naviguer — l'envoi continue en arrière-plan.</p>
+          )}
+        </div>
+      )}
 
       {/* ── Dock flottant (style Telegram) ─────────────────────── */}
       <nav className="floating-dock">

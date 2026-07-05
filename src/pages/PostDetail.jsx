@@ -86,6 +86,7 @@ export default function PostDetail() {
   }
 
   async function saveEditCmt(oldCmt, newText) {
+    if (oldCmt.uid !== currentUser.uid) return;
     if (!newText.trim()) return;
     const updated = post.comments.map(c => c.id===oldCmt.id?{...c,text:newText.trim()}:c);
     await updateDoc(doc(db,'posts',postId), { comments:updated });
@@ -231,10 +232,12 @@ export default function PostDetail() {
                 <p style={{ fontSize:10, color:'#65676B', marginTop:4 }}>{c.createdAt?new Date(c.createdAt).toLocaleString('fr-FR'):''}</p>
                 <div style={{ display:'flex', gap:10, marginTop:4 }}>
                   <button onClick={() => setReplyTo(c.authorName)} style={{ background:'none', border:'none', cursor:'pointer', color:'#65676B', fontSize:11, display:'flex', alignItems:'center', gap:3 }}><HiReply size={11}/> Répondre</button><button onClick={() => setCmtReactPicker(p=>p===c.id?null:c.id)} style={{ background:'none', border:'none', cursor:'pointer', color:'#65676B', fontSize:11 }}>{c.reactions?.[currentUser.uid]||'😊'} {Object.keys(c.reactions||{}).length||''}</button>{cmtReactPicker===c.id&&<div style={{ display:'flex', gap:4, background:'white', borderRadius:20, padding:'4px 8px', boxShadow:'0 2px 12px rgba(0,0,0,.15)' }}>{['❤️','😂','😮','😢','👍','🔥'].map(em=><span key={em} onClick={()=>reactToCmt(c.id,em)} style={{ fontSize:18, cursor:'pointer' }}>{em}</span>)}</div>}
-                  {(c.uid===currentUser.uid||post.uid===currentUser.uid)&&<>
+                  {c.uid===currentUser.uid && (
                     <button onClick={() => setEditCmt({cmt:c,text:c.text})} style={{ background:'none', border:'none', cursor:'pointer', color:'#65676B', fontSize:11, display:'flex', alignItems:'center', gap:3 }}><HiPencil size={11}/> Modifier</button>
-                    <button onClick={() => deleteCmt(c)} style={{ background:'none', border:'none', cursor:'pointer', color:'#1877F2', fontSize:11, display:'flex', alignItems:'center', gap:3 }}><HiTrash size={11}/> Supprimer</button>
-                  </>}
+                  )}
+                  {(c.uid===currentUser.uid||post.uid===currentUser.uid) && (
+                    <button onClick={() => deleteCmt(c)} style={{ background:'none', border:'none', cursor:'pointer', color:'#FF2D8D', fontSize:11, display:'flex', alignItems:'center', gap:3 }}><HiTrash size={11}/> Supprimer</button>
+                  )}
                 </div>
               </div>
             </div>

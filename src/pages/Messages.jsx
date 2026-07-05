@@ -90,6 +90,24 @@ export default function Messages() {
 
   useEffect(() => { if (paramChatId) setActiveChatId(paramChatId); }, [paramChatId]);
 
+  // Rehefa misokatra ny page Messages : marquer "lu" ny hafatra rehetra ho ahy (miala ny badge)
+  useEffect(() => {
+    if (!currentUser) return;
+    import('firebase/database').then(({ ref: r, get, update: upd }) => {
+      get(r(rtdb, 'conversations')).then(snap => {
+        if (!snap.exists()) return;
+        const updates = {};
+        Object.entries(snap.val()).forEach(([chatId, conv]) => {
+          if (!chatId.includes(currentUser.uid)) return;
+          Object.entries(conv.messages || {}).forEach(([mid, m]) => {
+            if (m.toUid === currentUser.uid && !m.read) updates[`${chatId}/messages/${mid}/read`] = true;
+          });
+        });
+        if (Object.keys(updates).length) upd(r(rtdb, 'conversations'), updates).catch(() => {});
+      }).catch(() => {});
+    });
+  }, [currentUser]);
+
   // Mes groupes (temps réel)
   useEffect(() => {
     if (!currentUser) return;
@@ -521,7 +539,7 @@ export default function Messages() {
       {/* ── Liste des conversations ─────────────────────────────── */}
       <div style={{ width: activeChatId ? 0 : '100%', minWidth: activeChatId ? 0 : '100%', overflow: 'hidden', display: 'flex', flexDirection: 'column', background: 'white', transition: 'all .2s' }}>
         <div style={{ padding: '14px 14px 10px', borderBottom: '1px solid #E4E6EB' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 10 }}>
             <h2 style={{ fontWeight: 700, fontSize: 18, color: '#1877F2' }}>{t('messages')}</h2>
             <button onClick={() => setCreateGroupOpen(true)} className="btn-gold"
               style={{ padding: '5px 12px', fontSize: 12, display: 'flex', alignItems: 'center', gap: 5 }}>
