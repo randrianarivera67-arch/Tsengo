@@ -326,6 +326,7 @@ export default function Messages() {
               toExternalId: m,
               title: `${activeGroup.name} — ${userProfile.fullName}`,
               message: notifBody,
+              fromPhoto: userProfile.photoURL || '',
               data: { type: 'message', conversationId: activeChatId },
             })
           );
@@ -334,6 +335,7 @@ export default function Messages() {
             toExternalId: otherUid,
             title: userProfile.fullName,
             message: notifBody,
+            fromPhoto: userProfile.photoURL || '',
             data: { type: 'message', conversationId: activeChatId },
           });
         }

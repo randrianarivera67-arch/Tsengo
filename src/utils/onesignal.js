@@ -45,15 +45,14 @@ async function initFCM(uid) {
       // Premier plan : aseho ho notification système ihany (feo/vibration = an'ny système)
       onMessage(messaging, payload => {
         try {
-          const title = payload.notification?.title || payload.data?.title || 'Traingo';
-          const body = payload.notification?.body || payload.data?.body || '';
-          const link = payload.data?.url || payload.fcmOptions?.link || '/';
-          reg.showNotification(title, {
-            body,
-            icon: '/icon-192.png',
+          const d = payload.data || {};
+          reg.showNotification(d.title || 'Traingo', {
+            body: d.body || '',
+            icon: d.icon || '/icon-192.png',
             badge: '/icon-96.png',
             vibrate: [250, 120, 250],
-            data: { link },
+            tag: d.type === 'message' ? 'msg_' + (d.conversationId || '') : undefined,
+            data: { link: d.url || '/' },
           });
         } catch (e) { console.warn('onMessage display:', e); }
       });

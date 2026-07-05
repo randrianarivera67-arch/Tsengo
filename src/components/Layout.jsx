@@ -9,7 +9,6 @@ import { useMessages }       from '../hooks/useMessages';
 import { collection, getDocs, query, orderBy, limit, where, onSnapshot } from 'firebase/firestore';
 import { ref, set, onDisconnect, onValue } from 'firebase/database';
 import { db, rtdb } from '../firebase';
-import { playNotificationSound } from '../utils/sound';
 import { subscribeUpload } from '../utils/uploadManager';
 import {
   HiHome, HiOutlineHome, HiUser, HiOutlineUser,
@@ -52,7 +51,7 @@ export default function Layout({ children }) {
 
   // ── Play sound on new notification ────────────────────────
   useEffect(() => {
-    if (notifCount > prevNotif.current) { playNotificationSound(); try { navigator.vibrate?.([200, 100, 200]); } catch {} }
+    // Feo : ny notification système (FCM) irery no maneno — tsy misy feo in-app intsony
     prevNotif.current = notifCount;
   }, [notifCount]);
 
