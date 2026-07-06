@@ -8,6 +8,7 @@ import {
 import { db } from '../firebase';
 import { useAuth } from '../context/AuthContext';
 import { uploadToTelegram } from '../utils/telegram';
+import { timeAgo } from '../utils/timeAgo';
 import {
   HiUserGroup, HiCamera, HiArrowLeft, HiPlus, HiCheck, HiTrash,
   HiPhotograph, HiVideoCamera, HiChat, HiShare, HiX, HiUserAdd, HiDotsVertical
@@ -394,7 +395,7 @@ export default function GroupPage() {
                 alt="" className="avatar" style={{ width: 40, height: 40, cursor: 'pointer' }} onClick={() => navigate(`/profile/${post.uid}`)} />
               <div>
                 <p style={{ fontWeight: 700, fontSize: 14 }}>{post.authorName}</p>
-                <p style={{ fontSize: 12, color: '#65676B' }}>{post.createdAt?.toDate ? new Date(post.createdAt.toDate()).toLocaleDateString('fr-FR') : 'Maintenant'}</p>
+                <p style={{ fontSize: 12, color: '#65676B' }}>{post.createdAt ? timeAgo(post.createdAt) : "À l'instant"}</p>
               </div>
             </div>
             <div style={{ padding: '8px 16px', cursor: 'pointer' }} onClick={() => navigate(`/post/${post.id}`)}>

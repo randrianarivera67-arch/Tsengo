@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { useNotifications } from '../hooks/useNotifications';
 import { useLang } from '../context/LanguageContext';
 import { getChatId } from '../utils/chat';
+import { timeAgo } from '../utils/timeAgo';
 import { useAuth } from '../context/AuthContext';
 import { HiHeart, HiChat, HiUserAdd, HiCheck, HiBell, HiNewspaper, HiLightningBolt, HiX } from 'react-icons/hi';
 
@@ -54,13 +55,7 @@ export default function Notifications() {
   }
 
   function timeSince(ts) {
-    if (!ts) return '';
-    const d = ts.toDate?ts.toDate():new Date(ts);
-    const s = (Date.now()-d.getTime())/1000;
-    if (s<60) return 'À l\'instant';
-    if (s<3600) return `${Math.floor(s/60)} min`;
-    if (s<86400) return `${Math.floor(s/3600)}h`;
-    return `${Math.floor(s/86400)}j`;
+    return timeAgo(ts);
   }
 
   return (

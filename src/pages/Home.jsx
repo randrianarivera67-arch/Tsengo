@@ -13,6 +13,7 @@ import { startBackgroundUpload } from '../utils/uploadManager';
 import { captureVideoThumb } from '../utils/videoThumb';
 import { getChatId } from '../utils/chat';
 import { sendPushNotification } from '../utils/onesignal';
+import { timeAgo } from '../utils/timeAgo';
 import { v4 as uuidv4 } from 'uuid';
 import {
   HiPhotograph, HiVideoCamera, HiTag, HiOutlineHeart, HiChat,
@@ -732,7 +733,7 @@ export default function Home() {
                     <p onClick={() => navigate(`/groups/${post.groupId}`)} style={{ fontWeight:700, fontSize:14, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', cursor:'pointer' }}>{post.groupName}</p>
                     <p style={{ fontSize:12, color:'#65676B' }}>
                       <span onClick={() => navigate(`/profile/${post.uid}`)} style={{ cursor:'pointer', fontWeight:600, color:'#050505' }}>{post.authorName}</span>
-                      {post.authorIsVip&&<VIPBadge/>} · {post.createdAt?.toDate?new Date(post.createdAt.toDate()).toLocaleDateString('fr-FR'):'Maintenant'}
+                      {post.authorIsVip&&<VIPBadge/>} · {post.createdAt?timeAgo(post.createdAt):'À l\'instant'}
                     </p>
                   </div>
                 </div>
@@ -741,7 +742,7 @@ export default function Home() {
                   <img src={post.authorPhoto||`https://ui-avatars.com/api/?name=${encodeURIComponent(post.authorName||'U')}&background=1877F2&color=fff`} alt="" className="avatar" style={{ width:40, height:40, flexShrink:0 }}/>
                   <div style={{ minWidth:0 }}>
                     <p style={{ fontWeight:600, fontSize:14, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{post.authorName}{post.authorIsVip&&<VIPBadge/>}</p>
-                    <p style={{ fontSize:12, color:'#65676B' }}>@{post.authorUsername} · {post.createdAt?.toDate?new Date(post.createdAt.toDate()).toLocaleDateString('fr-FR'):'Maintenant'}</p>
+                    <p style={{ fontSize:12, color:'#65676B' }}>@{post.authorUsername} · {post.createdAt?timeAgo(post.createdAt):'À l\'instant'}</p>
                   </div>
                 </div>
               )}

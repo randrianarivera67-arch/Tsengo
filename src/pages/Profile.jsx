@@ -11,6 +11,7 @@ import { useLang } from '../context/LanguageContext';
 import { uploadToTelegram } from '../utils/telegram';
 import { getChatId } from '../utils/chat';
 import { sendPushNotification } from '../utils/onesignal';
+import { timeAgo } from '../utils/timeAgo';
 import { v4 as uuidv4 } from 'uuid';
 import {
   HiCamera, HiPencil, HiTag, HiChat, HiOutlineHeart,
@@ -325,7 +326,7 @@ export default function Profile() {
             <img src={profile.photoURL||`https://ui-avatars.com/api/?name=${encodeURIComponent(profile.fullName||'U')}&background=1877F2&color=fff`} alt="" className="avatar" style={{ width:40, height:40, flexShrink:0 }}/>
             <div style={{ minWidth:0 }}>
               <p style={{ fontWeight:600, fontSize:14, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{profile.fullName}{profile.isVip&&<VIPBadge/>}</p>
-              <p style={{ fontSize:12, color:'#65676B' }}>@{profile.username} · {post.createdAt?.toDate?new Date(post.createdAt.toDate()).toLocaleDateString('fr-FR'):'Maintenant'}</p>
+              <p style={{ fontSize:12, color:'#65676B' }}>@{profile.username} · {post.createdAt?timeAgo(post.createdAt):"À l'instant"}</p>
             </div>
           </div>
 

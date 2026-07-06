@@ -238,6 +238,15 @@ input::placeholder, textarea::placeholder { color: #8A8D91 !important; font-size
   animation: goldFlow 3.5s linear infinite;
 }
 @keyframes goldFlow { to { background-position: 250% center; } }
+@keyframes bellShake {
+  0%, 100% { transform: rotate(0deg); }
+  10%, 30% { transform: rotate(-14deg); }
+  20%, 40% { transform: rotate(14deg); }
+  50% { transform: rotate(-8deg); }
+  60% { transform: rotate(8deg); }
+  70% { transform: rotate(0deg); }
+}
+.bell-shake { animation: bellShake 0.7s ease-in-out; animation-iteration-count: 3; }
 
 /* ══════════════════ BADGES ══════════════════ */
 .notif-badge {

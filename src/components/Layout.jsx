@@ -57,12 +57,12 @@ export default function Layout({ children }) {
 
   // Dock flottant style Telegram — icônes remplies, couleur par couleur
   // Dock flottant — 3 couleurs du logo uniquement : bleu / rose / doré
+  // Notification andao afindra any amin'ny top bar — ny "Revy" (reels) no centré eto
   const bottomNav = [
     { path: '/',                            AIcon: HiHome,      label: t('home'),          color: '#1877F2' },
-    { path: '/reels',                       AIcon: HiFilm,      label: 'Vidéos',           color: '#FF2D8D' },
     { path: '/friends',                     AIcon: HiUserGroup, label: t('friends'),       color: '#F2B300' },
+    { path: '/reels',                       AIcon: HiFilm,      label: 'Revy',             color: '#FF2D8D', center: true },
     { path: '/messages',                    AIcon: HiChat,      label: t('messages'),      color: '#1877F2', badge: msgCount },
-    { path: '/notifications',               AIcon: HiBell,      label: t('notifications'), color: '#FF2D8D', badge: notifCount },
     { path: `/profile/${currentUser?.uid}`, AIcon: HiUser,      label: t('profile'),       color: '#F2B300' },
   ];
 
@@ -267,6 +267,18 @@ export default function Layout({ children }) {
               </span>
             )}
           </button>
+
+          {/* Notifications — bouton rond, afindra avy amin'ny dock ambany, mihetsika raha misy notif vaovao */}
+          <button onClick={() => navigate('/notifications')}
+            className={notifCount > 0 ? 'bell-shake' : ''}
+            style={{ position: 'relative', width: 40, height: 40, borderRadius: '50%', background: '#F0F2F5', border: 'none', cursor: 'pointer', color: '#050505', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <HiBell size={20} />
+            {notifCount > 0 && (
+              <span style={{ position: 'absolute', top: -2, right: -2, background: '#FF1744', color: 'white', borderRadius: '50%', minWidth: 17, height: 17, fontSize: 10, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 2px', border: '2px solid white' }}>
+                {notifCount > 9 ? '9+' : notifCount}
+              </span>
+            )}
+          </button>
         </div>
 
       </header>
@@ -299,16 +311,16 @@ export default function Layout({ children }) {
 
       {/* ── Dock flottant (style Telegram) ─────────────────────── */}
       <nav className="floating-dock">
-        {bottomNav.map(({ path, AIcon, label, badge, color }) => {
+        {bottomNav.map(({ path, AIcon, label, badge, color, center }) => {
           const active = isActive(path);
           return (
-            <button key={path} className={`dock-item ${active ? 'active' : ''}`} onClick={() => navigate(path)}
+            <button key={path} className={`dock-item ${active ? 'active' : ''} ${center ? 'dock-item-center' : ''}`} onClick={() => navigate(path)}
               style={{ color: active ? color : (isDark ? '#8A93A6' : '#65676B'), '--dock-glow': color + '66' }}>
-              <span className="dock-icon" style={{ background: active ? color : (color + '22') }}>
-                <AIcon size={21} color={active ? 'white' : color} />
+              <span className="dock-icon" style={{ background: active ? color : (color + '22'), width: center ? 50 : 38, height: center ? 50 : 38, marginTop: center ? -14 : 0, boxShadow: center ? `0 4px 14px ${color}77` : 'none' }}>
+                <AIcon size={center ? 26 : 21} color={active ? 'white' : color} />
                 {badge > 0 && <span className="notif-badge">{badge > 9 ? '9+' : badge}</span>}
               </span>
-              <span>{label}</span>
+              <span style={{ fontWeight: center ? 800 : 600 }}>{label}</span>
             </button>
           );
         })}

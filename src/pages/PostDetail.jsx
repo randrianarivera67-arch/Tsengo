@@ -10,6 +10,7 @@ import { useAuth } from '../context/AuthContext';
 import { useLang } from '../context/LanguageContext';
 import { uploadToTelegram } from '../utils/telegram';
 import { getChatId } from '../utils/chat';
+import { timeAgo } from '../utils/timeAgo';
 import { v4 as uuidv4 } from 'uuid';
 import {
   HiArrowLeft, HiOutlineHeart, HiChat, HiShare,
@@ -169,7 +170,7 @@ export default function PostDetail() {
             <img src={post.authorPhoto||`https://ui-avatars.com/api/?name=${encodeURIComponent(post.authorName||'U')}&background=1877F2&color=fff`} alt="" className="avatar" style={{ width:42, height:42, flexShrink:0 }}/>
             <div>
               <p style={{ fontWeight:700, fontSize:15 }}>{post.authorName}{post.authorIsVip&&<VIPBadge/>}</p>
-              <p style={{ fontSize:12, color:'#65676B' }}>@{post.authorUsername} · {post.createdAt?.toDate?new Date(post.createdAt.toDate()).toLocaleString('fr-FR'):''}</p>
+              <p style={{ fontSize:12, color:'#65676B' }}>@{post.authorUsername} · {post.createdAt?timeAgo(post.createdAt):''}</p>
             </div>
           </div>
           <div style={{ display:'flex', gap:6, flexShrink:0 }}>
