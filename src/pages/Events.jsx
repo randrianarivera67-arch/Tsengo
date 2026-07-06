@@ -180,7 +180,7 @@ export default function Events() {
             <textarea className="input" placeholder="Description" value={desc} onChange={e => setDesc(e.target.value)} rows={3} maxLength={1000} style={{ resize: 'none', marginBottom: 14 }} />
 
             <button onClick={createEvent} disabled={posting} className="btn-blue" style={{ width: '100%', padding: '12px 0', fontSize: 15, background: 'linear-gradient(145deg,#3DD9C4,#12A48D)' }}>
-              {posting ? 'Création...' : 'Créer l\\'événement'}
+              {posting ? 'Création...' : "Créer l'événement"}
             </button>
             <p style={{ fontSize: 11, color: '#65676B', marginTop: 8, textAlign: 'center' }}>Il apparaîtra aussi dans le fil d'actualités de vos amis.</p>
           </div>

@@ -115,7 +115,7 @@ export default function Announcements() {
             <input className="input" placeholder="Contact (téléphone)" value={contact} onChange={e => setContact(e.target.value)} style={{ marginBottom: 10 }} />
             <input className="input" placeholder="Lieu" value={lieu} onChange={e => setLieu(e.target.value)} style={{ marginBottom: 14 }} />
             <button onClick={publish} disabled={posting} className="btn-orange" style={{ width: '100%', padding: '12px 0', fontSize: 15 }}>
-              {posting ? 'Publication...' : 'Publier l\\'annonce'}
+              {posting ? 'Publication...' : "Publier l'annonce"}
             </button>
           </div>
         </div>
