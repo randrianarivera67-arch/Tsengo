@@ -10,6 +10,9 @@ import { useAuth } from '../context/AuthContext';
 import { useLang } from '../context/LanguageContext';
 import { uploadToTelegram } from '../utils/telegram';
 import { sendPushNotification } from '../utils/onesignal';
+import { isDataSaverOn, subscribeDataSaver } from '../utils/dataSaver';
+import { downloadMedia } from '../utils/download';
+import ShareModal from '../components/ShareModal';
 import { v4 as uuidv4 } from 'uuid';
 import {
   HiHeart, HiOutlineHeart, HiChat, HiShare, HiArrowLeft, HiBookmark,
@@ -40,6 +43,11 @@ export default function Reels() {
   const [cmtReactPicker,    setCmtReactPicker]  = useState(null);
   const [postMenu,          setPostMenu]        = useState(false);
   const [reactionModal,     setRM]              = useState(null);
+  const [videoFit,          setVideoFit]        = useState({});   // idx -> 'cover' | 'contain'
+  const [pausedIdx,         setPausedIdx]        = useState(null);
+  const [dataSaver,         setDataSaverState]   = useState(isDataSaverOn());
+  useEffect(() => subscribeDataSaver(setDataSaverState), []);
+  const [shareModal,        setShareModal]       = useState(null);
 
   const videoRefs  = useRef({});
   const containerRef = useRef();
@@ -69,10 +77,18 @@ export default function Reels() {
   useEffect(() => {
     Object.entries(videoRefs.current).forEach(([idx,video]) => {
       if (!video) return;
-      if (parseInt(idx)===activeIndex) { video.play().catch(()=>{}); }
+      if (parseInt(idx)===activeIndex) {
+        if (dataSaver) {
+          // Économiser des données : pas de lecture automatique — le mpampiasa doit tap
+          video.pause();
+          setPausedIdx(activeIndex);
+        } else {
+          video.play().then(() => setPausedIdx(p => p===activeIndex?null:p)).catch(()=>{});
+        }
+      }
       else { video.pause(); video.currentTime=0; }
     });
-  }, [activeIndex, posts.length]);
+  }, [activeIndex, posts.length, dataSaver]);
 
   useEffect(() => {
     const fn = () => setPostMenu(false);
@@ -199,19 +215,17 @@ export default function Reels() {
     await deleteDoc(doc(db,'posts',postId));
   }
 
-  async function sharePost(post) {
-    const url = `${window.location.origin}/post/${post.id}`;
-    if (navigator.share) { try { await navigator.share({title:'Traingo Reel',text:post.content,url}); } catch {} }
-    else { navigator.clipboard?.writeText(url); alert('Lien copié !'); }
+  function sharePost(post) {
+    setShareModal(post);
   }
 
   function countReactions(r={}) {
     const c={}; Object.values(r).forEach(e=>{c[e]=(c[e]||0)+1;}); return c;
   }
 
-  if (posts.length===0) { return ( <div style={{ display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", height:"calc(100vh - 130px)", color:"#65676B", gap:8 }}> <style>{`@keyframes dot { 0%,80%,100%{opacity:0} 40%{opacity:1} } .d1{animation:dot 1.4s infinite .0s} .d2{animation:dot 1.4s infinite .2s} .d3{animation:dot 1.4s infinite .4s}`}</style> <p style={{ fontSize:18, fontWeight:600 }}>Chargement<span className="d1">.</span><span className="d2">.</span><span className="d3">.</span></p> </div> ); } if (posts.length===-999) {
+  if (posts.length===0) { return ( <div style={{ display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", height:"100dvh", color:"#65676B", gap:8 }}> <style>{`@keyframes dot { 0%,80%,100%{opacity:0} 40%{opacity:1} } .d1{animation:dot 1.4s infinite .0s} .d2{animation:dot 1.4s infinite .2s} .d3{animation:dot 1.4s infinite .4s}`}</style> <p style={{ fontSize:18, fontWeight:600 }}>Chargement<span className="d1">.</span><span className="d2">.</span><span className="d3">.</span></p> </div> ); } if (posts.length===-999) {
     return (
-      <div style={{ display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', height:'calc(100vh - 130px)', color:'#65676B', gap:16 }}>
+      <div style={{ display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', height:'100dvh', color:'#65676B', gap:16 }}>
         <span style={{ fontSize:48 }}>🎬</span>
         <p style={{ fontSize:15 }}>Tsy misy reels mbola</p>
         <button onClick={() => navigate('/')} className="btn-primary" style={{ fontSize:13 }}>Miverina</button>
@@ -222,7 +236,7 @@ export default function Reels() {
   const activePost = posts[activeIndex];
 
   return (
-    <div style={{ position:'relative', height:'calc(100vh - 130px)', overflow:'hidden', background:'#000' }}>
+    <div style={{ position:'relative', height:'100dvh', overflow:'hidden', background:'#000' }}>
       {/* Back button */}
       <button onClick={() => navigate(-1)} style={{ position:'absolute', top:14, left:14, zIndex:50, background:'rgba(0,0,0,0.4)', border:'none', borderRadius:'50%', width:38, height:38, display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', color:'white' }}>
         <HiArrowLeft size={20}/>
@@ -239,10 +253,30 @@ export default function Reels() {
               <video
                 ref={el=>videoRefs.current[idx]=el}
                 src={post.mediaURL} loop playsInline
-                style={{ width:'100%', height:'100%', objectFit:'cover' }}
-                onClick={() => { const v=videoRefs.current[idx]; if(v) v.paused?v.play():v.pause(); }}
+                poster={post.thumbURL || undefined}
+                preload={dataSaver ? 'none' : 'metadata'}
+                style={{ width:'100%', height:'100%', objectFit: videoFit[idx] || 'cover', background:'#000' }}
+                onLoadedMetadata={e => {
+                  const v = e.target;
+                  // Portrait/carré = cover (mameno écran) ; paysage tena marina = contain (letterbox, tsy tapaka)
+                  const fit = (v.videoHeight >= v.videoWidth * 0.95) ? 'cover' : 'contain';
+                  setVideoFit(p => p[idx] === fit ? p : { ...p, [idx]: fit });
+                }}
+                onPlay={() => setPausedIdx(p => p===idx?null:p)}
+                onPause={() => idx===activeIndex && setPausedIdx(idx)}
+                onClick={() => { const v=videoRefs.current[idx]; if(v) v.paused?v.play().catch(()=>{}):v.pause(); }}
               />
               <div style={{ position:'absolute', inset:0, background:'linear-gradient(to top, rgba(0,0,0,0.7) 0%, transparent 50%)', pointerEvents:'none' }}/>
+
+              {/* Icône "tap pour lire" — rehefa paused (data saver na tap manuel) */}
+              {idx===activeIndex && pausedIdx===idx && (
+                <div onClick={() => { const v=videoRefs.current[idx]; if(v) v.play().catch(()=>{}); }}
+                  style={{ position:'absolute', inset:0, display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer' }}>
+                  <div style={{ width:70, height:70, background:'rgba(0,0,0,0.45)', border:'2px solid rgba(255,255,255,.7)', borderRadius:'50%', display:'flex', alignItems:'center', justifyContent:'center' }}>
+                    <span style={{ color:'white', fontSize:28, marginLeft:4 }}>▶</span>
+                  </div>
+                </div>
+              )}
 
               {/* Author info */}
               <div style={{ position:'absolute', bottom:80, left:14, right:80 }}>
@@ -284,7 +318,7 @@ export default function Reels() {
                 </button>
 
                 {/* Download */}
-                <button onClick={()=>window.open(post.mediaURL,'_blank')} style={{ background:'none', border:'none', cursor:'pointer', color:'white' }}>
+                <button onClick={()=>downloadMedia(post.mediaURL, 'video')} style={{ background:'none', border:'none', cursor:'pointer', color:'white' }}>
                   <HiDownload size={26}/>
                 </button>
 
@@ -422,6 +456,8 @@ export default function Reels() {
           </div>
         </div>
       )}
+
+      {shareModal && <ShareModal post={shareModal} onClose={() => setShareModal(null)} />}
     </div>
   );
 }

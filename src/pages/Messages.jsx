@@ -2,7 +2,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { ref, push, onValue, update, set, remove } from 'firebase/database';
-import { doc, getDoc, addDoc, collection, serverTimestamp, query, where, onSnapshot, updateDoc, deleteDoc, arrayRemove, arrayUnion } from 'firebase/firestore';
+import { doc, getDoc, addDoc, collection, serverTimestamp, query, where, onSnapshot, updateDoc, deleteDoc, arrayRemove, arrayUnion, writeBatch } from 'firebase/firestore';
 import { rtdb, db } from '../firebase';
 import { useAuth } from '../context/AuthContext';
 import { useLang } from '../context/LanguageContext';
@@ -14,7 +14,7 @@ import {
   HiArrowLeft, HiPaperAirplane, HiSearch, HiPhotograph,
   HiVideoCamera, HiPaperClip, HiX, HiDownload, HiMicrophone, HiStop,
   HiTrash, HiPencil, HiReply, HiDotsVertical, HiCheck,
-  HiArchive, HiColorSwatch, HiMusicNote, HiHeart, HiUserGroup,
+  HiArchive, HiColorSwatch, HiMusicNote, HiHeart, HiUserGroup, HiUserAdd,
 } from 'react-icons/hi';
 
 export default function Messages() {
@@ -79,6 +79,11 @@ export default function Messages() {
   const prevMsgLen = useRef(0);
   const photoRef   = useRef(); const videoRef = useRef(); const fileRef = useRef();
   const groupPhotoRef = useRef();
+  const [addMemberOpen, setAddMemberOpen] = useState(false);
+  const [friendsListG, setFriendsListG] = useState([]);
+  const [memberSearchG, setMemberSearchG] = useState('');
+  const [selectedFriendsG, setSelectedFriendsG] = useState({});
+  const [addingMembersG, setAddingMembersG] = useState(false);
   const [uploadingGroupPhoto, setUploadingGroupPhoto] = useState(false);
   const [editGroupOpen,  setEditGroupOpen]  = useState(false);
   const [msgSearchOpen,  setMsgSearchOpen]  = useState(false);
@@ -463,6 +468,43 @@ export default function Messages() {
     e.target.value = '';
   }
 
+  async function openAddMemberToChat() {
+    if (!activeGroup) return;
+    setAddMemberOpen(true); setMemberSearchG(''); setSelectedFriendsG({});
+    const myFriends = userProfile?.friends || [];
+    const notIn = myFriends.filter(uid => !activeGroup.members?.includes(uid));
+    const list = await Promise.all(notIn.map(uid =>
+      getDoc(doc(db, 'users', uid)).then(sn => sn.exists() ? { uid, ...sn.data() } : null).catch(() => null)
+    ));
+    setFriendsListG(list.filter(Boolean));
+  }
+
+  function copyGroupInviteLink() {
+    if (!activeGroup) return;
+    const url = `${window.location.origin}/messages/group_${activeGroup.id}`;
+    if (navigator.share) { navigator.share({ title: activeGroup.name, text: `Rejoignez la discussion "${activeGroup.name}" sur Traingo !`, url }).catch(() => {}); }
+    else { navigator.clipboard?.writeText(url); alert('Lien copié !'); }
+  }
+
+  async function addSelectedMembersToChat() {
+    const uids = Object.keys(selectedFriendsG).filter(k => selectedFriendsG[k]);
+    if (uids.length === 0 || !activeGroup) return;
+    setAddingMembersG(true);
+    try {
+      await updateDoc(doc(db, 'groups', activeGroup.id), { members: arrayUnion(...uids) });
+      const batch = writeBatch(db);
+      uids.forEach(uid => batch.set(doc(collection(db, 'notifications')), {
+        toUid: uid, fromUid: currentUser.uid,
+        fromName: userProfile.fullName, fromPhoto: userProfile.photoURL || '',
+        type: 'general', message: `${userProfile.fullName} vous a ajouté(e) à la discussion "${activeGroup.name}"`,
+        read: false, createdAt: serverTimestamp(),
+      }));
+      await batch.commit();
+      setAddMemberOpen(false);
+    } catch (err) { alert('Erreur : ' + (err?.message || err)); }
+    setAddingMembersG(false);
+  }
+
   async function leaveGroup() {
     if (!activeGroup) return;
     if (!window.confirm(`Quitter le groupe "${activeGroup.name}" ?`)) return;
@@ -684,6 +726,7 @@ export default function Messages() {
                 {headerMenu && (
                   <div style={{ position: 'absolute', top: '100%', right: 0, background: 'white', border: '1px solid #E4E6EB', borderRadius: 12, boxShadow: '0 4px 20px rgba(0,0,0,.12)', minWidth: 200, zIndex: 50, overflow: 'hidden' }}>
                     <button onClick={() => { setMediaModal(true); setHeaderMenu(false); }} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px', background: 'none', border: 'none', cursor: 'pointer', borderBottom: '1px solid #E4E6EB', fontFamily: 'Poppins', fontSize: 14, color: '#050505' }}><HiArchive size={18} color='#1877F2' /> Médias partagés</button>
+                    <button onClick={() => { setHeaderMenu(false); openAddMemberToChat(); }} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px', background: 'none', border: 'none', cursor: 'pointer', borderBottom: '1px solid #E4E6EB', fontFamily: 'Poppins', fontSize: 14, color: '#050505' }}><HiUserAdd size={18} color='#1877F2' /> Ajouter un membre</button>
                     {isGroupAdmin && (
                       <button onClick={() => { setHeaderMenu(false); openGroupEdit(); }} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px', background: 'none', border: 'none', cursor: 'pointer', borderBottom: '1px solid #E4E6EB', fontFamily: 'Poppins', fontSize: 14, color: '#1877F2' }}><HiPencil size={18} /> Modifier le groupe</button>
                     )}
@@ -941,6 +984,54 @@ export default function Messages() {
           </div>
         </div>
       )}
+
+      {/* ── Modal : Ajouter un membre (groupe de discussion) ─── */}
+      {addMemberOpen && activeGroup && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 430, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }} onClick={() => setAddMemberOpen(false)}>
+          <div onClick={e => e.stopPropagation()} style={{ background: 'white', borderRadius: '20px 20px 0 0', padding: 20, width: '100%', maxWidth: 480, maxHeight: '80vh', overflowY: 'auto' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+              <h3 style={{ fontWeight: 800, color: '#1877F2', fontSize: 16 }}>Ajouter un membre</h3>
+              <button onClick={() => setAddMemberOpen(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#65676B' }}><HiX size={20} /></button>
+            </div>
+
+            <button onClick={copyGroupInviteLink} className="btn-secondary" style={{ width: '100%', padding: '10px 0', fontSize: 13, borderRadius: 10, marginBottom: 14, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+              🔗 Copier / envoyer le lien d'invitation
+            </button>
+
+            <div style={{ position: 'relative', marginBottom: 10 }}>
+              <HiSearch style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: '#65676B' }} />
+              <input className="input" placeholder="Rechercher un ami..." value={memberSearchG} onChange={e => setMemberSearchG(e.target.value)} style={{ paddingLeft: 34 }} />
+            </div>
+
+            {friendsListG.length === 0 && (
+              <p style={{ fontSize: 13, color: '#65676B', textAlign: 'center', padding: '16px 0' }}>
+                Tous vos amis sont déjà dans cette discussion, ou vous n'avez pas d'amis à ajouter directement.
+              </p>
+            )}
+            {friendsListG
+              .filter(f => !memberSearchG.trim() || f.fullName?.toLowerCase().includes(memberSearchG.trim().toLowerCase()))
+              .map(f => (
+                <label key={f.uid} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 4px', cursor: 'pointer', borderBottom: '1px solid #F0F2F5' }}>
+                  <input type="checkbox" checked={!!selectedFriendsG[f.uid]} onChange={e => setSelectedFriendsG(p => ({ ...p, [f.uid]: e.target.checked }))}
+                    style={{ width: 18, height: 18, accentColor: '#1877F2' }} />
+                  <img src={f.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(f.fullName || 'U')}&background=1877F2&color=fff`} alt="" style={{ width: 36, height: 36, borderRadius: '50%', objectFit: 'cover' }} />
+                  <div>
+                    <p style={{ fontWeight: 600, fontSize: 14 }}>{f.fullName}</p>
+                    <p style={{ fontSize: 12, color: '#65676B' }}>@{f.username}</p>
+                  </div>
+                </label>
+              ))}
+
+            {friendsListG.length > 0 && (
+              <button onClick={addSelectedMembersToChat} disabled={addingMembersG || Object.values(selectedFriendsG).every(v => !v)} className="btn-primary"
+                style={{ width: '100%', marginTop: 14, padding: '12px 0', fontSize: 15 }}>
+                {addingMembersG ? 'Ajout...' : 'Ajouter à la discussion'}
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* ── Modal : Modifier le groupe de discussion (admin) ── */}
       {editGroupOpen && activeGroup && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 400, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }} onClick={() => setEditGroupOpen(false)}>

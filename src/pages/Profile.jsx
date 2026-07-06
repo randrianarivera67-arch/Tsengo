@@ -8,10 +8,13 @@ import {
 import { db } from '../firebase';
 import { useAuth } from '../context/AuthContext';
 import { useLang } from '../context/LanguageContext';
+import { timeAgo } from '../utils/timeAgo';
+import { isDataSaverOn, subscribeDataSaver } from '../utils/dataSaver';
+import { downloadMedia } from '../utils/download';
+import ShareModal from '../components/ShareModal';
 import { uploadToTelegram } from '../utils/telegram';
 import { getChatId } from '../utils/chat';
 import { sendPushNotification } from '../utils/onesignal';
-import { timeAgo } from '../utils/timeAgo';
 import { v4 as uuidv4 } from 'uuid';
 import {
   HiCamera, HiPencil, HiTag, HiChat, HiOutlineHeart,
@@ -43,6 +46,9 @@ export default function Profile() {
   const isOwn     = !uid || uid === currentUser?.uid;
   const [profMenu,     setProfMenu]     = useState(false);
   const [storyArchive, setStoryArchive] = useState(null);   // null | []
+  const [dataSaver, setDataSaverState] = useState(isDataSaverOn());
+  useEffect(() => subscribeDataSaver(setDataSaverState), []);
+  const [shareModalPost, setShareModalPost] = useState(null);
   const [souvenirs,    setSouvenirs]    = useState(null);   // null | []
   const targetUid = uid  || currentUser?.uid;
 
@@ -277,10 +283,8 @@ export default function Profile() {
     setEditPost(null);
   }
 
-  async function sharePost(post) {
-    const url = `${window.location.origin}/post/${post.id}`;
-    if (navigator.share) { try { await navigator.share({title:'Traingo',text:post.content,url}); } catch {} }
-    else { navigator.clipboard?.writeText(url); alert('Lien copié !'); }
+  function sharePost(post) {
+    setShareModalPost(post);
   }
 
   function countReactions(r={}) {
@@ -342,7 +346,7 @@ export default function Profile() {
                     <button onClick={() => { navigate('/boost'); setPostMenu(null); }} style={{ width:'100%', display:'flex', alignItems:'center', gap:10, padding:'11px 16px', background:'none', border:'none', cursor:'pointer', color:'#050505', fontSize:14, borderBottom:'1px solid #F0F2F5', fontFamily:'Poppins' }}><HiLightningBolt size={15} color="#a855f7"/> Booster</button>
                     <button onClick={() => { deletePost(post.id); setPostMenu(null); }} style={{ width:'100%', display:'flex', alignItems:'center', gap:10, padding:'11px 16px', background:'none', border:'none', cursor:'pointer', color:'#1877F2', fontSize:14, borderBottom:'1px solid #F0F2F5', fontFamily:'Poppins' }}><HiTrash size={15}/> Supprimer</button>
                   </>}
-                  {post.mediaURL && <button onClick={() => { window.open(post.mediaURL,'_blank'); setPostMenu(null); }} style={{ width:'100%', display:'flex', alignItems:'center', gap:10, padding:'11px 16px', background:'none', border:'none', cursor:'pointer', color:'#050505', fontSize:14, fontFamily:'Poppins' }}><HiDownload size={15} color="#3b82f6"/> Télécharger</button>}
+                  {post.mediaURL && <button onClick={() => { downloadMedia(post.mediaURL, post.mediaType); setPostMenu(null); }} style={{ width:'100%', display:'flex', alignItems:'center', gap:10, padding:'11px 16px', background:'none', border:'none', cursor:'pointer', color:'#050505', fontSize:14, fontFamily:'Poppins' }}><HiDownload size={15} color="#3b82f6"/> Télécharger</button>}
                   {!isOwnPost && !post.mediaURL && <div style={{ padding:'10px 16px', color:'#65676B', fontSize:13 }}>Aucune action</div>}
                 </div>
               )}
@@ -358,9 +362,25 @@ export default function Profile() {
               {post.lieu && <span style={{ display:'flex', alignItems:'center', gap:5, background:'#F0F2F5', borderRadius:20, padding:'5px 12px', color:'#65676B', fontSize:13 }}><HiLocationMarker size={13} color="#1877F2"/>{post.lieu}</span>}
             </div>
           )}
+          {post.sharedFrom && (
+            <div onClick={e => { e.stopPropagation(); navigate(`/post/${post.sharedFrom.id}`); }}
+              style={{ marginTop:8, border:'1px solid #E4E6EB', borderRadius:12, overflow:'hidden', cursor:'pointer' }}>
+              <div style={{ display:'flex', alignItems:'center', gap:8, padding:'9px 12px' }}>
+                <img src={post.sharedFrom.authorPhoto||`https://ui-avatars.com/api/?name=${encodeURIComponent(post.sharedFrom.authorName||'U')}&background=1877F2&color=fff`}
+                  alt="" style={{ width:30, height:30, borderRadius:'50%', objectFit:'cover' }}/>
+                <p style={{ fontWeight:700, fontSize:13 }}>{post.sharedFrom.groupName ? `${post.sharedFrom.groupName} · ${post.sharedFrom.authorName}` : post.sharedFrom.authorName}</p>
+              </div>
+              {post.sharedFrom.content && <p style={{ padding:'0 12px 8px', fontSize:13, color:'#050505' }}>{post.sharedFrom.content}</p>}
+              {post.sharedFrom.mediaURL && (
+                post.sharedFrom.mediaType === 'image'
+                  ? <img src={post.sharedFrom.mediaURL} alt="" style={{ width:'100%', maxHeight:320, objectFit:'cover', display:'block' }}/>
+                  : <video src={post.sharedFrom.mediaURL} muted playsInline style={{ width:'100%', maxHeight:320, objectFit:'cover', display:'block', background:'#000' }}/>
+              )}
+            </div>
+          )}
           {post.mediaURL && (
             <div style={{ marginTop:8 }}>
-              {post.mediaType==='image' ? <img src={post.mediaURL} alt="" style={{ width:'100%', borderRadius:10, maxHeight:350, objectFit:'cover' }}/> : <div onClick={()=>navigate('/reels',{state:{startId:post.id}})} style={{ position:'relative', cursor:'pointer' }}><video src={post.mediaURL} style={{ width:'100%', borderRadius:10, maxHeight:350, objectFit:'cover' }} muted playsInline/><div style={{ position:'absolute', inset:0, display:'flex', alignItems:'center', justifyContent:'center' }}><div style={{ width:50, height:50, background:'rgba(0,0,0,0.5)', borderRadius:'50%', display:'flex', alignItems:'center', justifyContent:'center' }}><span style={{ color:'white', fontSize:20 }}>▶</span></div></div></div>}
+              {post.mediaType==='image' ? <img src={post.mediaURL} alt="" style={{ width:'100%', borderRadius:10, maxHeight:350, objectFit:'cover' }}/> : <div onClick={()=>navigate('/reels',{state:{startId:post.id}})} style={{ position:'relative', cursor:'pointer' }}><video src={post.mediaURL} poster={post.thumbURL || undefined} preload={(dataSaver || post.thumbURL) ? 'none' : 'metadata'} style={{ width:'100%', borderRadius:10, maxHeight:350, objectFit:'cover', background:'#000' }} muted playsInline/><div style={{ position:'absolute', inset:0, display:'flex', alignItems:'center', justifyContent:'center' }}><div style={{ width:50, height:50, background:'rgba(0,0,0,0.5)', borderRadius:'50%', display:'flex', alignItems:'center', justifyContent:'center' }}><span style={{ color:'white', fontSize:20 }}>▶</span></div></div></div>}
             </div>
           )}
         </div>
@@ -746,6 +766,8 @@ export default function Profile() {
           </div>
         </div>
       )}
+
+      {shareModalPost && <ShareModal post={shareModalPost} onClose={() => setShareModalPost(null)} />}
     </div>
   );
 }

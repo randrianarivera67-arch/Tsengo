@@ -57,7 +57,7 @@ export default function Layout({ children }) {
 
   // Dock flottant style Telegram — icônes remplies, couleur par couleur
   // Dock flottant — 3 couleurs du logo uniquement : bleu / rose / doré
-  // Notification andao afindra any amin'ny top bar — ny "Revy" (reels) no centré eto
+  // Notifications afindra any amin'ny top bar — ny "Revy" (Reels) no centré eto
   const bottomNav = [
     { path: '/',                            AIcon: HiHome,      label: t('home'),          color: '#1877F2' },
     { path: '/friends',                     AIcon: HiUserGroup, label: t('friends'),       color: '#F2B300' },
@@ -162,6 +162,16 @@ export default function Layout({ children }) {
           </div>
         ))}
       </>
+    );
+  }
+
+  // ── Reels : plein écran tanteraka, tsy misy navbar/topbar/dock ──
+  const isReels = location.pathname.startsWith('/reels');
+  if (isReels) {
+    return (
+      <div style={{ position: 'fixed', inset: 0, background: '#000', zIndex: 10 }}>
+        {children}
+      </div>
     );
   }
 

@@ -4,8 +4,8 @@ import { useNavigate } from 'react-router-dom';
 import { useNotifications } from '../hooks/useNotifications';
 import { useLang } from '../context/LanguageContext';
 import { getChatId } from '../utils/chat';
-import { timeAgo } from '../utils/timeAgo';
 import { useAuth } from '../context/AuthContext';
+import { timeAgo } from '../utils/timeAgo';
 import { HiHeart, HiChat, HiUserAdd, HiCheck, HiBell, HiNewspaper, HiLightningBolt, HiX } from 'react-icons/hi';
 
 const ICONS = {

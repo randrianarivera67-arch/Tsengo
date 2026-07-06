@@ -7,15 +7,17 @@ import {
 } from 'firebase/firestore';
 import { db } from '../firebase';
 import { useAuth } from '../context/AuthContext';
+import { timeAgo } from '../utils/timeAgo';
+import { downloadMedia } from '../utils/download';
+import ShareModal from '../components/ShareModal';
 import { useLang } from '../context/LanguageContext';
 import { uploadToTelegram } from '../utils/telegram';
 import { getChatId } from '../utils/chat';
-import { timeAgo } from '../utils/timeAgo';
 import { v4 as uuidv4 } from 'uuid';
 import {
   HiArrowLeft, HiOutlineHeart, HiChat, HiShare,
   HiPhotograph, HiVideoCamera, HiTag, HiX, HiPhone,
-  HiLocationMarker, HiPencil, HiTrash, HiReply, HiUserAdd
+  HiLocationMarker, HiPencil, HiTrash, HiReply, HiUserAdd, HiDownload
 } from 'react-icons/hi';
 
 const REACTIONS = ['❤️','😂','😮','😢','😡','👍'];
@@ -105,13 +107,12 @@ export default function PostDetail() {
     setCmtReactPicker(null);
   }
 
-  async function sharePost() {
-    const url = window.location.href;
-    if (navigator.share) { try { await navigator.share({title:'Traingo',url}); } catch {} }
-    else { navigator.clipboard?.writeText(url); alert('Lien copié !'); }
+  function sharePost() {
+    setShareModalOpen(true);
   }
 
   function isFriend(uid) { return (userProfile?.friends||[]).includes(uid); }
+  const [shareModalOpen, setShareModalOpen] = useState(false);
 
   if (!post) return <div style={{ padding:40, textAlign:'center', color:'#65676B' }}>{t('loading')}</div>;
 
@@ -194,7 +195,31 @@ export default function PostDetail() {
             </div>
           )}
           {post.content&&<p style={{ fontSize:15, lineHeight:1.7, wordBreak:'break-word', marginBottom:10 }}>{post.content}</p>}
-          {post.mediaURL&&<div className="post-media">{post.mediaType==='image'?<img src={post.mediaURL} alt=""/>:<video src={post.mediaURL} poster={post.thumbURL || undefined} controls/>}</div>}
+          {post.sharedFrom && (
+            <div onClick={() => navigate(`/post/${post.sharedFrom.id}`)}
+              style={{ marginBottom:10, border:'1px solid #E4E6EB', borderRadius:12, overflow:'hidden', cursor:'pointer' }}>
+              <div style={{ display:'flex', alignItems:'center', gap:8, padding:'9px 12px' }}>
+                <img src={post.sharedFrom.authorPhoto||`https://ui-avatars.com/api/?name=${encodeURIComponent(post.sharedFrom.authorName||'U')}&background=1877F2&color=fff`}
+                  alt="" style={{ width:30, height:30, borderRadius:'50%', objectFit:'cover' }}/>
+                <p style={{ fontWeight:700, fontSize:13 }}>{post.sharedFrom.groupName ? `${post.sharedFrom.groupName} · ${post.sharedFrom.authorName}` : post.sharedFrom.authorName}</p>
+              </div>
+              {post.sharedFrom.content && <p style={{ padding:'0 12px 8px', fontSize:13, color:'#050505' }}>{post.sharedFrom.content}</p>}
+              {post.sharedFrom.mediaURL && (
+                post.sharedFrom.mediaType === 'image'
+                  ? <img src={post.sharedFrom.mediaURL} alt="" style={{ width:'100%', maxHeight:320, objectFit:'cover', display:'block' }}/>
+                  : <video src={post.sharedFrom.mediaURL} muted playsInline style={{ width:'100%', maxHeight:320, objectFit:'cover', display:'block', background:'#000' }}/>
+              )}
+            </div>
+          )}
+          {post.mediaURL&&(
+            <div className="post-media" style={{ position:'relative' }}>
+              {post.mediaType==='image'?<img src={post.mediaURL} alt=""/>:<video src={post.mediaURL} poster={post.thumbURL || undefined} controls/>}
+              <button onClick={() => downloadMedia(post.mediaURL, post.mediaType)}
+                style={{ position:'absolute', top:8, right:8, width:34, height:34, borderRadius:'50%', background:'rgba(0,0,0,.5)', border:'none', cursor:'pointer', color:'white', display:'flex', alignItems:'center', justifyContent:'center' }}>
+                <HiDownload size={16}/>
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Reaction count */}
@@ -230,7 +255,7 @@ export default function PostDetail() {
                 <p style={{ fontWeight:700, fontSize:13 }}>{c.authorName}{c.authorIsVip&&<VIPBadge/>}</p>
                 {c.text&&<p style={{ fontSize:13, lineHeight:1.5, marginTop:2 }}>{c.text}</p>}
                 {c.mediaURL&&<div style={{ marginTop:6 }}>{c.mediaType==='image'?<img src={c.mediaURL} alt="" style={{ maxWidth:200, borderRadius:8 }}/>:<video src={c.mediaURL} controls style={{ maxWidth:200, borderRadius:8 }}/>}</div>}
-                <p style={{ fontSize:10, color:'#65676B', marginTop:4 }}>{c.createdAt?new Date(c.createdAt).toLocaleString('fr-FR'):''}</p>
+                <p style={{ fontSize:10, color:'#65676B', marginTop:4 }}>{c.createdAt?timeAgo(c.createdAt):''}</p>
                 <div style={{ display:'flex', gap:10, marginTop:4 }}>
                   <button onClick={() => setReplyTo(c.authorName)} style={{ background:'none', border:'none', cursor:'pointer', color:'#65676B', fontSize:11, display:'flex', alignItems:'center', gap:3 }}><HiReply size={11}/> Répondre</button><button onClick={() => setCmtReactPicker(p=>p===c.id?null:c.id)} style={{ background:'none', border:'none', cursor:'pointer', color:'#65676B', fontSize:11 }}>{c.reactions?.[currentUser.uid]||'😊'} {Object.keys(c.reactions||{}).length||''}</button>{cmtReactPicker===c.id&&<div style={{ display:'flex', gap:4, background:'white', borderRadius:20, padding:'4px 8px', boxShadow:'0 2px 12px rgba(0,0,0,.15)' }}>{['❤️','😂','😮','😢','👍','🔥'].map(em=><span key={em} onClick={()=>reactToCmt(c.id,em)} style={{ fontSize:18, cursor:'pointer' }}>{em}</span>)}</div>}
                   {c.uid===currentUser.uid && (
@@ -270,6 +295,8 @@ export default function PostDetail() {
           </div>
         </div>
       </div>
+
+      {shareModalOpen && <ShareModal post={post} onClose={() => setShareModalOpen(false)} />}
     </div>
   );
 }

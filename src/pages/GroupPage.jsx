@@ -7,11 +7,17 @@ import {
 } from 'firebase/firestore';
 import { db } from '../firebase';
 import { useAuth } from '../context/AuthContext';
-import { uploadToTelegram } from '../utils/telegram';
 import { timeAgo } from '../utils/timeAgo';
+import { uploadToTelegram } from '../utils/telegram';
+import { captureVideoThumb } from '../utils/videoThumb';
+import { startBackgroundUpload } from '../utils/uploadManager';
+import { isDataSaverOn, subscribeDataSaver } from '../utils/dataSaver';
+import { downloadMedia } from '../utils/download';
+import ShareModal from '../components/ShareModal';
 import {
   HiUserGroup, HiCamera, HiArrowLeft, HiPlus, HiCheck, HiTrash,
-  HiPhotograph, HiVideoCamera, HiChat, HiShare, HiX, HiUserAdd, HiDotsVertical
+  HiPhotograph, HiVideoCamera, HiChat, HiShare, HiX, HiUserAdd, HiDotsVertical,
+  HiDownload, HiSearch
 } from 'react-icons/hi';
 
 const REACTIONS = ['❤️','😂','😮','😢','😡','👍'];
@@ -33,6 +39,13 @@ export default function GroupPage() {
   const [uploadingCover, setUploadingCover] = useState(false);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [showReact,  setShowReact]  = useState({});
+  const [postMenu,   setPostMenu]   = useState(null);
+  const [dataSaver,  setDataSaverState] = useState(isDataSaverOn());
+  useEffect(() => subscribeDataSaver(setDataSaverState), []);
+  const [shareModalPost, setShareModalPost] = useState(null);
+  const [addMemberOpen, setAddMemberOpen] = useState(false);
+  const [friendsList, setFriendsList] = useState([]);
+  const [memberSearch, setMemberSearch] = useState('');
   const [menuOpen,   setMenuOpen]   = useState(false);
 
   // Modifier le groupe (admin uniquement)
@@ -78,7 +91,7 @@ export default function GroupPage() {
 
   // Fermer le menu au clic extérieur
   useEffect(() => {
-    const fn = () => setMenuOpen(false);
+    const fn = () => { setMenuOpen(false); setPostMenu(null); };
     document.addEventListener('click', fn);
     return () => document.removeEventListener('click', fn);
   }, []);
@@ -144,10 +157,42 @@ export default function GroupPage() {
     } catch (err) { alert('Erreur : ' + (err?.message || err)); }
   }
 
-  function inviteToGroup() {
+  function copyInviteLink() {
     const url = `${window.location.origin}/groups/${groupId}`;
     if (navigator.share) { navigator.share({ title: group.name, text: `Rejoignez le groupe ${group.name} sur Traingo !`, url }).catch(() => {}); }
     else { navigator.clipboard?.writeText(url); alert('Lien du groupe copié !'); }
+  }
+
+  const [selectedFriends, setSelectedFriends] = useState({});
+  const [addingMembers, setAddingMembers] = useState(false);
+
+  async function openAddMember() {
+    setAddMemberOpen(true); setMemberSearch(''); setSelectedFriends({});
+    const myFriends = userProfile?.friends || [];
+    const notIn = myFriends.filter(uid => !group.members?.includes(uid));
+    const list = await Promise.all(notIn.map(uid =>
+      getDoc(doc(db, 'users', uid)).then(sn => sn.exists() ? { uid, ...sn.data() } : null).catch(() => null)
+    ));
+    setFriendsList(list.filter(Boolean));
+  }
+
+  async function addSelectedMembers() {
+    const uids = Object.keys(selectedFriends).filter(k => selectedFriends[k]);
+    if (uids.length === 0) return;
+    setAddingMembers(true);
+    try {
+      await updateDoc(doc(db, 'groups', groupId), { members: arrayUnion(...uids) });
+      const batch = writeBatch(db);
+      uids.forEach(uid => batch.set(doc(collection(db, 'notifications')), {
+        toUid: uid, fromUid: currentUser.uid,
+        fromName: userProfile.fullName, fromPhoto: userProfile.photoURL || '',
+        type: 'general', message: `${userProfile.fullName} vous a ajouté(e) au groupe ${group.name}`,
+        read: false, createdAt: serverTimestamp(),
+      }));
+      await batch.commit();
+      setAddMemberOpen(false);
+    } catch (err) { alert('Erreur : ' + (err?.message || err)); }
+    setAddingMembers(false);
   }
 
   function handleMedia(e, type) {
@@ -155,36 +200,62 @@ export default function GroupPage() {
     setMediaFile(file); setMediaType(type); setMediaPreview(URL.createObjectURL(file));
   }
 
+  // Publie dans le groupe (caption capturée en paramètre — utilisable aussi
+  // depuis le callback d'upload en arrière-plan)
+  async function finalizePublish(caption, mediaURL, finalMT, thumbURL) {
+    const postRef = await addDoc(collection(db, 'posts'), {
+      uid: currentUser.uid, authorName: userProfile.fullName,
+      authorUsername: userProfile.username, authorPhoto: userProfile.photoURL || '',
+      authorIsVip: userProfile.isVip || false,
+      content: (caption || '').trim().slice(0, 2000), mediaURL, mediaType: finalMT, thumbURL: thumbURL || '',
+      isSale: false, price: '', contact: '', lieu: '',
+      groupId: group.id, groupName: group.name, groupPhoto: group.photoURL || '',
+      reactions: {}, comments: [], createdAt: serverTimestamp(),
+    });
+    const targets = (group.members || []).filter(m => m !== currentUser.uid);
+    if (targets.length > 0) {
+      const batch = writeBatch(db);
+      targets.forEach(fUid => batch.set(doc(collection(db, 'notifications')), {
+        toUid: fUid, fromUid: currentUser.uid,
+        fromName: userProfile.fullName, fromPhoto: userProfile.photoURL || '',
+        type: 'post', postId: postRef.id,
+        message: `${userProfile.fullName} a publié dans le groupe ${group.name}`,
+        read: false, createdAt: serverTimestamp(),
+      }));
+      await batch.commit();
+    }
+  }
+
   async function publishInGroup() {
     if (!content.trim() && !mediaFile) return;
+
+    // Miniature (poster) — alaina alohan'ny upload
+    let thumbFile = null;
+    if (mediaFile && mediaFile.type.startsWith('video/')) {
+      try { thumbFile = await captureVideoThumb(mediaFile); } catch {}
+    }
+
+    // Vidéo > 12 Mo : upload ARRIÈRE-PLAN (compression + afaka mifindra page)
+    if (mediaFile && mediaFile.type.startsWith('video/') && mediaFile.size > 12 * 1024 * 1024) {
+      const cText = content;
+      const started = startBackgroundUpload(mediaFile, 'Vidéo', async r => {
+        let thumbURL = '';
+        if (thumbFile) { try { const tr = await uploadToTelegram(thumbFile); thumbURL = tr.url || ''; } catch {} }
+        await finalizePublish(cText, r.url, 'video', thumbURL);
+      });
+      if (started) { setContent(''); setMediaFile(null); setMediaPreview(null); setMediaType(''); }
+      return;
+    }
+
     setPosting(true);
     try {
-      let mediaURL = '', finalMT = mediaType;
+      let mediaURL = '', finalMT = mediaType, thumbURL = '';
       if (mediaFile) {
         const r = await uploadToTelegram(mediaFile);
         mediaURL = r.url; finalMT = r.type === 'video' ? 'video' : 'image';
+        if (thumbFile) { try { const tr = await uploadToTelegram(thumbFile); thumbURL = tr.url || ''; } catch {} }
       }
-      const postRef = await addDoc(collection(db, 'posts'), {
-        uid: currentUser.uid, authorName: userProfile.fullName,
-        authorUsername: userProfile.username, authorPhoto: userProfile.photoURL || '',
-        authorIsVip: userProfile.isVip || false,
-        content: content.trim().slice(0, 2000), mediaURL, mediaType: finalMT,
-        isSale: false, price: '', contact: '', lieu: '',
-        groupId: group.id, groupName: group.name, groupPhoto: group.photoURL || '',
-        reactions: {}, comments: [], createdAt: serverTimestamp(),
-      });
-      const targets = (group.members || []).filter(m => m !== currentUser.uid);
-      if (targets.length > 0) {
-        const batch = writeBatch(db);
-        targets.forEach(fUid => batch.set(doc(collection(db, 'notifications')), {
-          toUid: fUid, fromUid: currentUser.uid,
-          fromName: userProfile.fullName, fromPhoto: userProfile.photoURL || '',
-          type: 'post', postId: postRef.id,
-          message: `${userProfile.fullName} a publié dans le groupe ${group.name}`,
-          read: false, createdAt: serverTimestamp(),
-        }));
-        await batch.commit();
-      }
+      await finalizePublish(content, mediaURL, finalMT, thumbURL);
       setContent(''); setMediaFile(null); setMediaPreview(null); setMediaType('');
     } catch (err) { alert('Erreur lors de la publication : ' + (err?.message || err)); }
     setPosting(false);
@@ -205,9 +276,14 @@ export default function GroupPage() {
   }
 
   function sharePost(post) {
-    const url = `${window.location.origin}/post/${post.id}`;
-    if (navigator.share) { navigator.share({ title: group?.name || 'Traingo', text: post.content, url }).catch(() => {}); }
-    else { navigator.clipboard?.writeText(url); alert('Lien copié !'); }
+    setShareModalPost(post);
+  }
+
+  async function deletePostInGroup(post) {
+    if (!window.confirm('Supprimer cette publication ?')) return;
+    try { await deleteDoc(doc(db, 'posts', post.id)); }
+    catch (err) { alert('Erreur : ' + (err?.message || err)); }
+    setPostMenu(null);
   }
 
   if (notFound) return (
@@ -297,8 +373,8 @@ export default function GroupPage() {
             ))}
           </div>
           {isMember
-            ? <button onClick={inviteToGroup} className="btn-blue" style={{ flex: 1, padding: '10px 0', fontSize: 14, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
-                <HiUserAdd size={16} /> Inviter
+            ? <button onClick={openAddMember} className="btn-blue" style={{ flex: 1, padding: '10px 0', fontSize: 14, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+                <HiUserAdd size={16} /> Ajouter un membre
               </button>
             : <button onClick={joinGroup} className="btn-blue" style={{ flex: 1, padding: '10px 0', fontSize: 14, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
                 <HiPlus size={16} /> Rejoindre le groupe
@@ -332,6 +408,53 @@ export default function GroupPage() {
             <button onClick={publishInGroup} disabled={posting || (!content.trim() && !mediaFile)} className="btn-gold" style={{ marginLeft: 'auto', padding: '7px 18px', fontSize: 13 }}>
               {posting ? '...' : 'Publier'}
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* ── Modal : Ajouter un membre ────────────────────────── */}
+      {addMemberOpen && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 400, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }} onClick={() => setAddMemberOpen(false)}>
+          <div onClick={e => e.stopPropagation()} style={{ background: 'white', borderRadius: '20px 20px 0 0', padding: 20, width: '100%', maxWidth: 480, maxHeight: '80vh', overflowY: 'auto' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+              <h3 style={{ fontWeight: 800, color: '#1877F2', fontSize: 16 }}>Ajouter un membre</h3>
+              <button onClick={() => setAddMemberOpen(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#65676B' }}><HiX size={20} /></button>
+            </div>
+
+            <button onClick={copyInviteLink} className="btn-secondary" style={{ width: '100%', padding: '10px 0', fontSize: 13, borderRadius: 10, marginBottom: 14, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+              🔗 Copier / envoyer le lien d'invitation
+            </button>
+
+            <div style={{ position: 'relative', marginBottom: 10 }}>
+              <HiSearch style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: '#65676B' }} />
+              <input className="input" placeholder="Rechercher un ami..." value={memberSearch} onChange={e => setMemberSearch(e.target.value)} style={{ paddingLeft: 34 }} />
+            </div>
+
+            {friendsList.length === 0 && (
+              <p style={{ fontSize: 13, color: '#65676B', textAlign: 'center', padding: '16px 0' }}>
+                Tous vos amis sont déjà membres, ou vous n'avez pas encore d'amis à inviter directement.
+              </p>
+            )}
+            {friendsList
+              .filter(f => !memberSearch.trim() || f.fullName?.toLowerCase().includes(memberSearch.trim().toLowerCase()))
+              .map(f => (
+                <label key={f.uid} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 4px', cursor: 'pointer', borderBottom: '1px solid #F0F2F5' }}>
+                  <input type="checkbox" checked={!!selectedFriends[f.uid]} onChange={e => setSelectedFriends(p => ({ ...p, [f.uid]: e.target.checked }))}
+                    style={{ width: 18, height: 18, accentColor: '#1877F2' }} />
+                  <img src={f.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(f.fullName || 'U')}&background=1877F2&color=fff`} alt="" style={{ width: 36, height: 36, borderRadius: '50%', objectFit: 'cover' }} />
+                  <div>
+                    <p style={{ fontWeight: 600, fontSize: 14 }}>{f.fullName}</p>
+                    <p style={{ fontSize: 12, color: '#65676B' }}>@{f.username}</p>
+                  </div>
+                </label>
+              ))}
+
+            {friendsList.length > 0 && (
+              <button onClick={addSelectedMembers} disabled={addingMembers || Object.values(selectedFriends).every(v => !v)} className="btn-primary"
+                style={{ width: '100%', marginTop: 14, padding: '12px 0', fontSize: 15 }}>
+                {addingMembers ? 'Ajout...' : 'Ajouter au groupe'}
+              </button>
+            )}
           </div>
         </div>
       )}
@@ -393,18 +516,55 @@ export default function GroupPage() {
             <div style={{ padding: '12px 16px 0', display: 'flex', alignItems: 'center', gap: 10 }}>
               <img src={post.authorPhoto || `https://ui-avatars.com/api/?name=${encodeURIComponent(post.authorName || 'U')}&background=1877F2&color=fff`}
                 alt="" className="avatar" style={{ width: 40, height: 40, cursor: 'pointer' }} onClick={() => navigate(`/profile/${post.uid}`)} />
-              <div>
+              <div style={{ flex: 1, minWidth: 0 }}>
                 <p style={{ fontWeight: 700, fontSize: 14 }}>{post.authorName}</p>
                 <p style={{ fontSize: 12, color: '#65676B' }}>{post.createdAt ? timeAgo(post.createdAt) : "À l'instant"}</p>
               </div>
+              {(post.uid === currentUser.uid || post.mediaURL) && (
+                <div style={{ position: 'relative' }} onClick={e => e.stopPropagation()}>
+                  <button onClick={() => setPostMenu(p => p === post.id ? null : post.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#65676B', padding: 4 }}>
+                    <HiDotsVertical size={18} />
+                  </button>
+                  {postMenu === post.id && (
+                    <div style={{ position: 'absolute', top: '100%', right: 0, background: 'white', border: '1px solid #E4E6EB', borderRadius: 12, boxShadow: '0 4px 20px rgba(0,0,0,.14)', minWidth: 170, zIndex: 20, overflow: 'hidden' }}>
+                      {post.mediaURL && (
+                        <button onClick={() => { downloadMedia(post.mediaURL, post.mediaType); setPostMenu(null); }} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: '11px 16px', background: 'none', border: 'none', cursor: 'pointer', color: '#050505', fontSize: 14, fontFamily: 'Poppins', borderBottom: (post.uid === currentUser.uid || isAdmin) ? '1px solid #F0F2F5' : 'none' }}>
+                          <HiDownload size={15} color="#1877F2" /> Télécharger
+                        </button>
+                      )}
+                      {(post.uid === currentUser.uid || isAdmin) && (
+                        <button onClick={() => deletePostInGroup(post)} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: '11px 16px', background: 'none', border: 'none', cursor: 'pointer', color: '#FF2D8D', fontSize: 14, fontFamily: 'Poppins' }}>
+                          <HiTrash size={15} /> Supprimer
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
             <div style={{ padding: '8px 16px', cursor: 'pointer' }} onClick={() => navigate(`/post/${post.id}`)}>
               {post.content && <p style={{ fontSize: 15, lineHeight: 1.6, wordBreak: 'break-word' }}>{post.content}</p>}
+              {post.sharedFrom && (
+                <div onClick={e => { e.stopPropagation(); navigate(`/post/${post.sharedFrom.id}`); }}
+                  style={{ marginTop: 8, border: '1px solid #E4E6EB', borderRadius: 12, overflow: 'hidden', cursor: 'pointer' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '9px 12px' }}>
+                    <img src={post.sharedFrom.authorPhoto || `https://ui-avatars.com/api/?name=${encodeURIComponent(post.sharedFrom.authorName || 'U')}&background=1877F2&color=fff`}
+                      alt="" style={{ width: 30, height: 30, borderRadius: '50%', objectFit: 'cover' }} />
+                    <p style={{ fontWeight: 700, fontSize: 13 }}>{post.sharedFrom.groupName ? `${post.sharedFrom.groupName} · ${post.sharedFrom.authorName}` : post.sharedFrom.authorName}</p>
+                  </div>
+                  {post.sharedFrom.content && <p style={{ padding: '0 12px 8px', fontSize: 13, color: '#050505' }}>{post.sharedFrom.content}</p>}
+                  {post.sharedFrom.mediaURL && (
+                    post.sharedFrom.mediaType === 'image'
+                      ? <img src={post.sharedFrom.mediaURL} alt="" style={{ width: '100%', maxHeight: 320, objectFit: 'cover', display: 'block' }} />
+                      : <video src={post.sharedFrom.mediaURL} muted playsInline style={{ width: '100%', maxHeight: 320, objectFit: 'cover', display: 'block', background: '#000' }} />
+                  )}
+                </div>
+              )}
               {post.mediaURL && (
                 <div style={{ marginTop: 8, marginLeft: -16, marginRight: -16 }}>
                   {post.mediaType === 'image'
                     ? <img src={post.mediaURL} alt="" style={{ width: '100%', maxHeight: 520, objectFit: 'cover', display: 'block' }} />
-                    : <video src={post.mediaURL} controls playsInline style={{ width: '100%', maxHeight: 520, display: 'block', background: '#000' }} />}
+                    : <video src={post.mediaURL} controls playsInline poster={post.thumbURL || undefined} preload={dataSaver ? 'none' : 'metadata'} style={{ width: '100%', maxHeight: 520, display: 'block', background: '#000' }} />}
                 </div>
               )}
             </div>
@@ -438,6 +598,8 @@ export default function GroupPage() {
           </div>
         );
       })}
+
+      {shareModalPost && <ShareModal post={shareModalPost} onClose={() => setShareModalPost(null)} />}
     </div>
   );
 }

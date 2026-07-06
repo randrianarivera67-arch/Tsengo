@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useLang } from '../context/LanguageContext';
 import { useTheme } from '../context/ThemeContext';
+import { useState, useEffect } from 'react';
+import { isDataSaverOn, setDataSaver } from '../utils/dataSaver';
 import {
   HiLogout, HiGlobe, HiColorSwatch, HiUser, HiShieldCheck,
   HiChevronRight, HiStar, HiSpeakerphone, HiInformationCircle
@@ -13,6 +15,13 @@ export default function Settings() {
   const { t } = useLang();
   const { theme } = useTheme();
   const navigate = useNavigate();
+  const [dataSaver, setDataSaverState] = useState(false);
+  useEffect(() => { setDataSaverState(isDataSaverOn()); }, []);
+  function toggleDataSaver() {
+    const next = !dataSaver;
+    setDataSaverState(next);
+    setDataSaver(next);
+  }
 
   async function handleLogout() {
     if (!window.confirm('Hivoaka ve ianao?')) return;
@@ -74,6 +83,22 @@ export default function Settings() {
         >
           <HiUser size={14} style={{ display: 'inline', marginRight: 4 }} />
           {t('editProfile')}
+        </button>
+      </div>
+
+      {/* Économiser des données */}
+      <div className="card" style={{ padding: 16, marginBottom: 16, display: 'flex', alignItems: 'center', gap: 14 }}>
+        <div style={{ width: 38, height: 38, borderRadius: 12, background: '#1877F215', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: 18 }}>📶</div>
+        <div style={{ flex: 1 }}>
+          <p style={{ fontWeight: 600, fontSize: 14 }}>Économiser des données</p>
+          <p style={{ fontSize: 12, color: '#65676B' }}>
+            {dataSaver ? "Les vidéos ne se lancent plus automatiquement" : "Les vidéos peuvent se lancer automatiquement"}
+          </p>
+        </div>
+        <button onClick={toggleDataSaver} role="switch" aria-checked={dataSaver}
+          style={{ width: 46, height: 26, borderRadius: 20, border: 'none', cursor: 'pointer', flexShrink: 0,
+            background: dataSaver ? '#1877F2' : '#E4E6EB', position: 'relative', transition: 'background .2s' }}>
+          <span style={{ position: 'absolute', top: 3, left: dataSaver ? 23 : 3, width: 20, height: 20, borderRadius: '50%', background: 'white', boxShadow: '0 1px 3px rgba(0,0,0,.3)', transition: 'left .2s' }} />
         </button>
       </div>
 

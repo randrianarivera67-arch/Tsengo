@@ -11,9 +11,12 @@ import { useLang } from '../context/LanguageContext';
 import { uploadToTelegram } from '../utils/telegram';
 import { startBackgroundUpload } from '../utils/uploadManager';
 import { captureVideoThumb } from '../utils/videoThumb';
+import { timeAgo } from '../utils/timeAgo';
+import { isDataSaverOn, subscribeDataSaver } from '../utils/dataSaver';
+import { downloadMedia } from '../utils/download';
+import ShareModal from '../components/ShareModal';
 import { getChatId } from '../utils/chat';
 import { sendPushNotification } from '../utils/onesignal';
-import { timeAgo } from '../utils/timeAgo';
 import { v4 as uuidv4 } from 'uuid';
 import {
   HiPhotograph, HiVideoCamera, HiTag, HiOutlineHeart, HiChat,
@@ -52,6 +55,9 @@ export default function Home() {
   const [storyGroups, setStoryGroups] = useState([]);       // [{uid, name, photo, items:[...]}]
   const [storyViewer, setStoryViewer] = useState(null);     // {group, index}
   const [addingStory, setAddingStory] = useState(false);
+  const [dataSaver, setDataSaverState] = useState(isDataSaverOn());
+  useEffect(() => subscribeDataSaver(setDataSaverState), []);
+  const [shareModalPost, setShareModalPost] = useState(null);
   const [storyReactors, setStoryReactors] = useState(null);   // null | [{uid,name,photo,emoji}]
   const storyFileRef = useRef();
 
@@ -341,10 +347,8 @@ export default function Home() {
     setEditPost(null);
   }
 
-  async function sharePost(post) {
-    const url = `${window.location.origin}/post/${post.id}`;
-    if (navigator.share) { try { await navigator.share({ title:'Traingo', text:post.content, url }); } catch {} }
-    else { navigator.clipboard?.writeText(url); alert('Lien copié !'); }
+  function sharePost(post) {
+    setShareModalPost(post);
   }
 
   function countReactions(r = {}) {
@@ -537,7 +541,7 @@ export default function Home() {
             {/* Média + zones tactiles gauche/droite */}
             <div style={{ flex:1, position:'relative', display:'flex', alignItems:'center', justifyContent:'center', overflow:'hidden' }}>
               {cur.mediaType === 'video'
-                ? <video key={cur.id} src={cur.mediaURL} autoPlay playsInline onEnded={nextStory} style={{ maxWidth:'100%', maxHeight:'100%' }} />
+                ? <video key={cur.id} src={cur.mediaURL} autoPlay={!dataSaver} controls={dataSaver} playsInline onEnded={nextStory} style={{ maxWidth:'100%', maxHeight:'100%' }} />
                 : <img key={cur.id} src={cur.mediaURL} alt="" style={{ maxWidth:'100%', maxHeight:'100%', objectFit:'contain' }} />}
               <div onClick={prevStory} style={{ position:'absolute', left:0, top:0, bottom:0, width:'35%' }} />
               <div onClick={nextStory} style={{ position:'absolute', right:0, top:0, bottom:0, width:'65%' }} />
@@ -733,7 +737,7 @@ export default function Home() {
                     <p onClick={() => navigate(`/groups/${post.groupId}`)} style={{ fontWeight:700, fontSize:14, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', cursor:'pointer' }}>{post.groupName}</p>
                     <p style={{ fontSize:12, color:'#65676B' }}>
                       <span onClick={() => navigate(`/profile/${post.uid}`)} style={{ cursor:'pointer', fontWeight:600, color:'#050505' }}>{post.authorName}</span>
-                      {post.authorIsVip&&<VIPBadge/>} · {post.createdAt?timeAgo(post.createdAt):'À l\'instant'}
+                      {post.authorIsVip&&<VIPBadge/>} · {post.createdAt?timeAgo(post.createdAt):"À l'instant"}
                     </p>
                   </div>
                 </div>
@@ -742,7 +746,7 @@ export default function Home() {
                   <img src={post.authorPhoto||`https://ui-avatars.com/api/?name=${encodeURIComponent(post.authorName||'U')}&background=1877F2&color=fff`} alt="" className="avatar" style={{ width:40, height:40, flexShrink:0 }}/>
                   <div style={{ minWidth:0 }}>
                     <p style={{ fontWeight:600, fontSize:14, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{post.authorName}{post.authorIsVip&&<VIPBadge/>}</p>
-                    <p style={{ fontSize:12, color:'#65676B' }}>@{post.authorUsername} · {post.createdAt?timeAgo(post.createdAt):'À l\'instant'}</p>
+                    <p style={{ fontSize:12, color:'#65676B' }}>@{post.authorUsername} · {post.createdAt?timeAgo(post.createdAt):"À l'instant"}</p>
                   </div>
                 </div>
               )}
@@ -771,7 +775,7 @@ export default function Home() {
                       <button onClick={() => { toggleSave(post.id); setPostMenu(null); }} style={{ width:'100%', display:'flex', alignItems:'center', gap:10, padding:'11px 16px', background:'none', border:'none', cursor:'pointer', color:'#050505', fontSize:14, borderBottom:'1px solid #F0F2F5', fontFamily:'Poppins' }}>
                         <HiBookmark size={15} color="#F2B300"/> {(userProfile?.saved||[]).includes(post.id) ? 'Retirer des enregistrements' : 'Enregistrer'}
                       </button>
-                      {post.mediaURL && <button onClick={() => { window.open(post.mediaURL,'_blank'); setPostMenu(null); }} style={{ width:'100%', display:'flex', alignItems:'center', gap:10, padding:'11px 16px', background:'none', border:'none', cursor:'pointer', color:'#050505', fontSize:14, fontFamily:'Poppins' }}><HiDownload size={15} color="#3b82f6"/> Télécharger</button>}
+                      {post.mediaURL && <button onClick={() => { downloadMedia(post.mediaURL, post.mediaType); setPostMenu(null); }} style={{ width:'100%', display:'flex', alignItems:'center', gap:10, padding:'11px 16px', background:'none', border:'none', cursor:'pointer', color:'#050505', fontSize:14, fontFamily:'Poppins' }}><HiDownload size={15} color="#3b82f6"/> Télécharger</button>}
                       {!isOwn && !post.mediaURL && <div style={{ padding:'10px 16px', color:'#65676B', fontSize:13 }}>Aucune action</div>}
                     </div>
                   )}
@@ -788,9 +792,26 @@ export default function Home() {
                   {post.lieu   && <span style={{ display:'flex', alignItems:'center', gap:5, background:'#F0F2F5', borderRadius:20, padding:'5px 12px', color:'#65676B', fontSize:13 }}><HiLocationMarker size={13} color="#1877F2"/>{post.lieu}</span>}
                 </div>
               )}
+              {/* Publication partagée (format Facebook) */}
+              {post.sharedFrom && (
+                <div onClick={e => { e.stopPropagation(); navigate(`/post/${post.sharedFrom.id}`); }}
+                  style={{ marginTop:8, border:'1px solid #E4E6EB', borderRadius:12, overflow:'hidden', cursor:'pointer' }}>
+                  <div style={{ display:'flex', alignItems:'center', gap:8, padding:'9px 12px' }}>
+                    <img src={post.sharedFrom.authorPhoto||`https://ui-avatars.com/api/?name=${encodeURIComponent(post.sharedFrom.authorName||'U')}&background=1877F2&color=fff`}
+                      alt="" style={{ width:30, height:30, borderRadius:'50%', objectFit:'cover' }}/>
+                    <p style={{ fontWeight:700, fontSize:13 }}>{post.sharedFrom.groupName ? `${post.sharedFrom.groupName} · ${post.sharedFrom.authorName}` : post.sharedFrom.authorName}</p>
+                  </div>
+                  {post.sharedFrom.content && <p style={{ padding:'0 12px 8px', fontSize:13, color:'#050505' }}>{post.sharedFrom.content}</p>}
+                  {post.sharedFrom.mediaURL && (
+                    post.sharedFrom.mediaType === 'image'
+                      ? <img src={post.sharedFrom.mediaURL} alt="" style={{ width:'100%', maxHeight:320, objectFit:'cover', display:'block' }}/>
+                      : <video src={post.sharedFrom.mediaURL} muted playsInline style={{ width:'100%', maxHeight:320, objectFit:'cover', display:'block', background:'#000' }}/>
+                  )}
+                </div>
+              )}
               {post.mediaURL && (
                 <div style={{ marginTop:8, marginLeft:-16, marginRight:-16 }}>
-                  {post.mediaType==='image' ? <img src={post.mediaURL} alt="" style={{ width:'100%', borderRadius:0, maxHeight:520, objectFit:'cover', display:'block' }}/> : <div onClick={()=>navigate('/reels',{state:{startId:post.id}})} style={{ position:'relative', cursor:'pointer' }}><video src={post.mediaURL} poster={post.thumbURL || undefined} preload={post.thumbURL ? 'none' : 'metadata'} style={{ width:'100%', borderRadius:0, maxHeight:520, objectFit:'cover', display:'block', background:'#000' }} muted playsInline/><div style={{ position:'absolute', inset:0, display:'flex', alignItems:'center', justifyContent:'center' }}><div style={{ width:50, height:50, background:'rgba(0,0,0,0.5)', borderRadius:' 50%', display:'flex', alignItems:'center', justifyContent:'center' }}><span style={{ color:'white', fontSize:20 }}>▶</span></div></div></div>}
+                  {post.mediaType==='image' ? <img src={post.mediaURL} alt="" style={{ width:'100%', borderRadius:0, maxHeight:520, objectFit:'cover', display:'block' }}/> : <div onClick={()=>navigate('/reels',{state:{startId:post.id}})} style={{ position:'relative', cursor:'pointer' }}><video src={post.mediaURL} poster={post.thumbURL || undefined} preload={(dataSaver || post.thumbURL) ? 'none' : 'metadata'} style={{ width:'100%', borderRadius:0, maxHeight:520, objectFit:'cover', display:'block', background:'#000' }} muted playsInline/><div style={{ position:'absolute', inset:0, display:'flex', alignItems:'center', justifyContent:'center' }}><div style={{ width:50, height:50, background:'rgba(0,0,0,0.5)', borderRadius:' 50%', display:'flex', alignItems:'center', justifyContent:'center' }}><span style={{ color:'white', fontSize:20 }}>▶</span></div></div></div>}
                 </div>
               )}
             </div>
@@ -1000,6 +1021,8 @@ export default function Home() {
           </div>
         );
       })}
+
+      {shareModalPost && <ShareModal post={shareModalPost} onClose={() => setShareModalPost(null)} />}
     </div>
   );
 }

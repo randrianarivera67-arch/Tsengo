@@ -7,15 +7,15 @@ import { HiArrowLeft, HiSun, HiMoon, HiCheck } from 'react-icons/hi';
 const THEMES = [
   {
     value: 'light',
-    label: 'Rose blanche',
-    desc: 'Fond blanc, rose clair',
+    label: 'Claire',
+    desc: 'Fond blanc, accents colorés',
     icon: HiSun,
     preview: ['#FFFFFF', '#E4E6EB', '#1877F2'],
   },
   {
     value: 'dark',
-    label: 'Rose noire',
-    desc: 'Fond sombre, accents roses',
+    label: 'Sombre',
+    desc: 'Fond noir, accents colorés',
     icon: HiMoon,
     preview: ['#0B0D12', '#050505', '#1877F2'],
   },

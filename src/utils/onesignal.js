@@ -47,8 +47,8 @@ async function initFCM(uid) {
         try {
           const d = payload.data || {};
           const actions = d.canReply === '1'
-            ? [{ action: 'reply', type: 'text', title: 'Répondre', placeholder: 'Votre message...' }, { action: 'close', title: 'Fermer' }]
-            : [{ action: 'open', title: 'Voir' }, { action: 'close', title: 'Fermer' }];
+            ? [{ action: 'reply', type: 'text', title: 'Répondre', placeholder: 'Votre message...', icon: '/notif-reply.png' }, { action: 'close', title: 'Fermer', icon: '/notif-close.png' }]
+            : [{ action: 'open', title: 'Voir', icon: '/notif-open.png' }, { action: 'close', title: 'Fermer', icon: '/notif-close.png' }];
           reg.showNotification(d.title || 'Traingo', {
             body: d.body || '',
             icon: d.icon || '/icon-192.png',
