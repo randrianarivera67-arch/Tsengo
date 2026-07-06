@@ -12,6 +12,7 @@ import { timeAgo } from '../utils/timeAgo';
 import { isDataSaverOn, subscribeDataSaver } from '../utils/dataSaver';
 import { downloadMedia } from '../utils/download';
 import ShareModal from '../components/ShareModal';
+import { NeonBriefcase, NeonGraduation, NeonPhone, NeonGlobe, NeonLocation, NeonHome, NeonMic } from '../components/NeonIcons';
 import { uploadToTelegram } from '../utils/telegram';
 import { getChatId } from '../utils/chat';
 import { sendPushNotification } from '../utils/onesignal';
@@ -56,7 +57,10 @@ export default function Profile() {
   const [posts,          setPosts]       = useState([]);
   const [activeTab,      setActiveTab]   = useState('posts');
   const [editing,        setEditing]     = useState(false);
-  const [editForm,       setEditForm]    = useState({ fullName:'', bio:'' });
+  const [editForm,       setEditForm]    = useState({
+    fullName:'', bio:'', work:'', study:'', phone:'', website:'',
+    currentCity:'', hometown:'', accountType:'personal',
+  });
   const [uploadingPhoto, setUploading]   = useState(false);
   const [coverURL,       setCoverURL]    = useState(null);
   const [uploadingCover, setUploadCover] = useState(false);
@@ -90,7 +94,16 @@ export default function Profile() {
   useEffect(() => {
     if (!targetUid) return;
     getDoc(doc(db,'users',targetUid)).then(s => {
-      if (s.exists()) { setProfile(s.data()); setEditForm({ fullName:s.data().fullName, bio:s.data().bio||'' }); setCoverURL(s.data().coverURL||null); }
+      if (s.exists()) {
+        const d = s.data();
+        setProfile(d);
+        setEditForm({
+          fullName: d.fullName || '', bio: d.bio || '',
+          work: d.work || '', study: d.study || '', phone: d.phone || '', website: d.website || '',
+          currentCity: d.currentCity || '', hometown: d.hometown || '', accountType: d.accountType || 'personal',
+        });
+        setCoverURL(d.coverURL || null);
+      }
     });
   }, [targetUid]);
 
@@ -164,7 +177,13 @@ export default function Profile() {
 
   async function saveProfile() {
     if (!editForm.fullName.trim()) return;
-    await updateDoc(doc(db,'users',currentUser.uid), { fullName:editForm.fullName, bio:editForm.bio });
+    await updateDoc(doc(db,'users',currentUser.uid), {
+      fullName: editForm.fullName, bio: editForm.bio,
+      work: editForm.work.trim(), study: editForm.study.trim(),
+      phone: editForm.phone.trim(), website: editForm.website.trim(),
+      currentCity: editForm.currentCity.trim(), hometown: editForm.hometown.trim(),
+      accountType: editForm.accountType,
+    });
     setProfile(p=>({...p,...editForm})); setUserProfile(p=>({...p,...editForm})); setEditing(false);
   }
 
@@ -174,6 +193,23 @@ export default function Profile() {
     await updateDoc(doc(db,'users',currentUser.uid), { sentRequests:arrayUnion(targetUid) });
     await addDoc(collection(db,'notifications'), { toUid:targetUid, fromUid:currentUser.uid, fromName:userProfile.fullName, fromPhoto:userProfile.photoURL||'', type:'friendRequest', message:`${userProfile.fullName} vous a envoyé une demande d'ami`, read:false, createdAt:serverTimestamp() });
     setFriendStatus('requested');
+  }
+
+  const isFollowing = (profile?.followers || []).includes(currentUser?.uid);
+  async function toggleFollow() {
+    if (!currentUser || !targetUid || targetUid === currentUser.uid) return;
+    try {
+      await updateDoc(doc(db, 'users', targetUid), {
+        followers: isFollowing ? arrayRemove(currentUser.uid) : arrayUnion(currentUser.uid),
+      });
+      setProfile(p => ({ ...p, followers: isFollowing ? (p.followers || []).filter(u => u !== currentUser.uid) : [...(p.followers || []), currentUser.uid] }));
+      if (!isFollowing) {
+        await addDoc(collection(db, 'notifications'), {
+          toUid: targetUid, fromUid: currentUser.uid, fromName: userProfile.fullName, fromPhoto: userProfile.photoURL || '',
+          type: 'general', message: `${userProfile.fullName} s'est abonné(e) à votre profil`, read: false, createdAt: serverTimestamp(),
+        });
+      }
+    } catch (err) { alert('Erreur : ' + (err?.message || err)); }
   }
 
   async function reactToPost(postId, emoji) {
@@ -534,6 +570,26 @@ export default function Profile() {
           <div style={{ maxWidth:300, margin:'0 auto' }}>
             <input className="input" value={editForm.fullName} onChange={e=>setEditForm(p=>({...p,fullName:e.target.value}))} style={{ marginBottom:10 }} placeholder={t('fullName')}/>
             <textarea className="input" value={editForm.bio} onChange={e=>setEditForm(p=>({...p,bio:e.target.value}))} placeholder={t('bio')} rows={2} style={{ resize:'none', marginBottom:10 }}/>
+
+            <p style={{ fontSize:11, fontWeight:700, color:'#65676B', textAlign:'left', margin:'6px 0 6px' }}>INFORMATIONS</p>
+            <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:8 }}><NeonBriefcase/><input className="input" value={editForm.work} onChange={e=>setEditForm(p=>({...p,work:e.target.value}))} placeholder="Travail (ex : Développeur chez Traingo)" style={{ flex:1 }}/></div>
+            <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:8 }}><NeonGraduation/><input className="input" value={editForm.study} onChange={e=>setEditForm(p=>({...p,study:e.target.value}))} placeholder="Études (ex : Université d'Antananarivo)" style={{ flex:1 }}/></div>
+            <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:8 }}><NeonLocation/><input className="input" value={editForm.currentCity} onChange={e=>setEditForm(p=>({...p,currentCity:e.target.value}))} placeholder="Ville actuelle" style={{ flex:1 }}/></div>
+            <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:8 }}><NeonHome/><input className="input" value={editForm.hometown} onChange={e=>setEditForm(p=>({...p,hometown:e.target.value}))} placeholder="Ville d'origine" style={{ flex:1 }}/></div>
+            <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:8 }}><NeonPhone/><input className="input" value={editForm.phone} onChange={e=>setEditForm(p=>({...p,phone:e.target.value}))} placeholder="Numéro de téléphone" style={{ flex:1 }}/></div>
+            <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:10 }}><NeonGlobe/><input className="input" value={editForm.website} onChange={e=>setEditForm(p=>({...p,website:e.target.value}))} placeholder="Site web" style={{ flex:1 }}/></div>
+
+            <div onClick={() => setEditForm(p => ({ ...p, accountType: p.accountType === 'artist' ? 'personal' : 'artist' }))}
+              style={{ display:'flex', alignItems:'center', gap:10, padding:'10px 12px', borderRadius:12, background: editForm.accountType==='artist' ? 'linear-gradient(135deg,#FFE9F2,#FFD3E8)' : '#F0F2F5', cursor:'pointer', marginBottom:12, border: editForm.accountType==='artist' ? '1.5px solid #FF2D8D' : '1.5px solid transparent' }}>
+              <NeonMic color={editForm.accountType==='artist' ? '#FF2D8D' : '#65676B'}/>
+              <div style={{ flex:1, textAlign:'left' }}>
+                <p style={{ fontWeight:700, fontSize:13 }}>Compte Artiste</p>
+                <p style={{ fontSize:11, color:'#65676B' }}>Badge spécial + mise en avant des abonnés</p>
+              </div>
+              <div style={{ width:38, height:22, borderRadius:14, background: editForm.accountType==='artist' ? '#FF2D8D' : '#D1D5DB', position:'relative', flexShrink:0 }}>
+                <span style={{ position:'absolute', top:2, left: editForm.accountType==='artist' ? 18 : 2, width:18, height:18, borderRadius:'50%', background:'white', transition:'left .2s' }}/>
+              </div>
+            </div>
             <div style={{ display:'flex', gap:10 }}>
               <button className="btn-secondary" onClick={() => setEditing(false)} style={{ flex:1 }}>{t('cancel')}</button>
               <button className="btn-primary" onClick={saveProfile} style={{ flex:1 }}>{t('save')}</button>
@@ -546,14 +602,34 @@ export default function Profile() {
           </div>
         ) : (
           <>
-            <h2 style={{ fontWeight:700, fontSize:20 }}>{profile.fullName}{profile.isVip&&<VIPBadge/>}</h2>
+            <h2 style={{ fontWeight:700, fontSize:20, display:'flex', alignItems:'center', justifyContent:'center', gap:6 }}>
+              {profile.fullName}{profile.isVip&&<VIPBadge/>}
+              {profile.accountType === 'artist' && (
+                <span style={{ display:'inline-flex', alignItems:'center', gap:4, background:'linear-gradient(135deg,#FF6FA5,#FF2D8D)', color:'white', fontSize:11, fontWeight:800, borderRadius:10, padding:'2px 9px' }}>
+                  <NeonMic size={11} color="white"/> ARTISTE
+                </span>
+              )}
+            </h2>
             <p style={{ color:'#65676B', fontSize:14 }}>@{profile.username}</p>
             {profile.bio&&<p style={{ marginTop:8, fontSize:14, color:'#65676B', maxWidth:280, margin:'8px auto 0' }}>{profile.bio}</p>}
+
+            {/* ── Informations complètes (format Facebook) ── */}
+            {(profile.work || profile.study || profile.currentCity || profile.hometown || profile.phone || profile.website) && (
+              <div style={{ maxWidth:320, margin:'14px auto 0', textAlign:'left', display:'flex', flexDirection:'column', gap:9 }}>
+                {profile.work && <p style={{ fontSize:13, display:'flex', alignItems:'center', gap:9 }}><NeonBriefcase/> Travaille chez <strong>{profile.work}</strong></p>}
+                {profile.study && <p style={{ fontSize:13, display:'flex', alignItems:'center', gap:9 }}><NeonGraduation/> A étudié à <strong>{profile.study}</strong></p>}
+                {profile.currentCity && <p style={{ fontSize:13, display:'flex', alignItems:'center', gap:9 }}><NeonLocation/> Vit à <strong>{profile.currentCity}</strong></p>}
+                {profile.hometown && <p style={{ fontSize:13, display:'flex', alignItems:'center', gap:9 }}><NeonHome/> Originaire de <strong>{profile.hometown}</strong></p>}
+                {profile.phone && <p style={{ fontSize:13, display:'flex', alignItems:'center', gap:9 }}><NeonPhone/> {profile.phone}</p>}
+                {profile.website && <p style={{ fontSize:13, display:'flex', alignItems:'center', gap:9 }}><NeonGlobe/> <a href={profile.website.startsWith('http')?profile.website:`https://${profile.website}`} target="_blank" rel="noreferrer" style={{ color:'#1877F2', textDecoration:'none' }}>{profile.website}</a></p>}
+              </div>
+            )}
             <div style={{ display:'flex', justifyContent:'center', gap:28, marginTop:16 }}>
               {[
                 { label:'Publications', value:regularPosts.length },
                 { label:'Ventes', value:salePosts.length },
                 { label:'Amis', value:friendCount, onClick:()=>setActiveTab('amis') },
+                { label:'Abonnés', value:(profile.followers||[]).length },
               ].map(({label,value,onClick}) => (
                 <div key={label} style={{ textAlign:'center', cursor:onClick?'pointer':'default' }} onClick={onClick}>
                   <p style={{ fontWeight:700, fontSize:20, color:'#1877F2' }}>{value}</p>
@@ -577,6 +653,9 @@ export default function Profile() {
                 </>
               ) : (
                 <>
+                  <button onClick={toggleFollow} className={isFollowing ? 'btn-secondary' : 'btn-gold'} style={{ fontSize:13, padding:'8px 16px' }}>
+                    {isFollowing ? '✓ Abonné' : '⭐ Suivre'}
+                  </button>
                   <button onClick={() => navigate(`/messages/${getChatId(currentUser.uid,targetUid)}`)} className="btn-primary" style={{ fontSize:13, padding:'8px 18px' }}><HiChat size={14} style={{ display:'inline', marginRight:4 }}/>Message</button>
                   {friendStatus==='none'&&<button onClick={sendFriendRequest} style={{ display:'inline-flex', alignItems:'center', gap:6, background:"linear-gradient(180deg,#1B84FF,#1877F2)", border:"none", borderRadius:20, padding:'8px 16px', color:"white", fontWeight:600, cursor:'pointer', fontSize:13, boxShadow:"0 3px 12px rgba(24,119,242,.35)" }}><HiUserAdd size={14}/>Ajouter</button>}
                   {friendStatus==='requested'&&<span style={{ display:'inline-flex', alignItems:'center', background:'#F3F4F6', borderRadius:20, padding:'8px 16px', color:'#9CA3AF', fontSize:13 }}>Demande envoyée</span>}

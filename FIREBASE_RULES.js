@@ -14,9 +14,15 @@ service cloud.firestore {
       allow create: if request.auth != null && request.auth.uid == userId
         && !('isAdmin' in request.resource.data)
         && !('isVip' in request.resource.data);
-      allow update: if request.auth != null && request.auth.uid == userId
-        && !request.resource.data.diff(resource.data).affectedKeys()
-            .hasAny(['isAdmin', 'isVip', 'uid', 'email']);
+      allow update: if request.auth != null && (
+        (request.auth.uid == userId
+          && !request.resource.data.diff(resource.data).affectedKeys()
+              .hasAny(['isAdmin', 'isVip', 'uid', 'email']))
+        ||
+        // ✅ Follow/Unfollow : ny olona hafa dia afaka manova ny "followers" ihany
+        (request.auth.uid != userId
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['followers']))
+      );
     }
 
     // ✅ Groupes (chat + publications) — admins gérés
@@ -47,6 +53,25 @@ service cloud.firestore {
         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['reactions'])
       );
       allow delete: if request.auth != null && resource.data.uid == request.auth.uid;
+    }
+
+    // ✅ Événements — ny mpamorona no manova/mamafa ; ny rehetra afaka
+    // manova attendees/interested (RSVP)
+    match /events/{eventId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null && request.resource.data.createdBy == request.auth.uid;
+      allow update: if request.auth != null && (
+        resource.data.createdBy == request.auth.uid ||
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['attendees', 'interested'])
+      );
+      allow delete: if request.auth != null && resource.data.createdBy == request.auth.uid;
+    }
+
+    // ✅ Petites annonces — ny mpamorona ihany no manova/mamafa
+    match /announcements/{annId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null && request.resource.data.uid == request.auth.uid;
+      allow update, delete: if request.auth != null && resource.data.uid == request.auth.uid;
     }
 
     // Posts — afaka mamaky ny rehetra, afaka manoratra raha authenticated

@@ -815,20 +815,22 @@ export default function Messages() {
                             )}
                           </div>
                         )}
+                        {/* Réaction — ancrée sur le coin de la BULLE elle-même (position:relative
+                            ci-dessus), donc jamais décalée par la longueur du texte/timestamp */}
+                        {Object.keys(msgReactions[msg.id]||{}).length>0&&(
+                          <div style={{position:'absolute',bottom:-11,[isMe?'right':'left']:8,zIndex:3,display:'flex',gap:1,background:'white',borderRadius:20,padding:'2px 6px',boxShadow:'0 2px 8px rgba(0,0,0,.2)',border:'1px solid #E4E6EB',fontSize:14,lineHeight:1,alignItems:'center'}}>
+                            {Object.entries(Object.entries(msgReactions[msg.id]||{}).reduce((a,[,e])=>{a[e]=(a[e]||0)+1;return a;},{})).map(([e,n])=>
+                              <span key={e} style={{display:'flex',alignItems:'center'}}>{e}{n>1?<span style={{fontSize:9,marginLeft:1,color:'#65676B'}}>{n}</span>:''}</span>
+                            )}
+                          </div>
+                        )}
                       </div>
 
-                      <p style={{ fontSize: 10, color: '#65676B', marginTop: 2, textAlign: isMe ? 'right' : 'left' }}>
+                      <p style={{ fontSize: 10, color: '#65676B', marginTop: Object.keys(msgReactions[msg.id]||{}).length>0 ? 8 : 2, textAlign: isMe ? 'right' : 'left' }}>
                         {msg.ts ? new Date(msg.ts).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) : ''}
                         {isMe && <span style={{ color: msg.read ? '#1877F2' : undefined, fontWeight: msg.read ? 700 : 400 }}> · {msg.read ? '✓✓ Vu' : '✓'}</span>}
                       </p>
                     </div>
-                    {Object.keys(msgReactions[msg.id]||{}).length>0&&(
-                      <div style={{position:'relative',display:'flex',justifyContent:isMe?'flex-end':'flex-start',paddingLeft:isMe?0:40,marginTop:-14,marginBottom:4,zIndex:3}}>
-                        <div style={{display:'flex',gap:1,background:'white',borderRadius:20,padding:'3px 7px',boxShadow:'0 2px 8px rgba(0,0,0,.2)',border:'1px solid #E4E6EB',fontSize:16}}>
-                          {Object.entries(Object.entries(msgReactions[msg.id]||{}).reduce((a,[,e])=>{a[e]=(a[e]||0)+1;return a;},{})).map(([e,n])=><span key={e}>{e}{n>1?<span style={{fontSize:10,marginLeft:1}}>{n}</span>:''}</span>)}
-                        </div>
-                      </div>
-                    )}
                   </div>
 
                   {/* Actions du message */}

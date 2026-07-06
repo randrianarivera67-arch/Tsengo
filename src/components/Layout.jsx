@@ -12,11 +12,23 @@ import { db, rtdb } from '../firebase';
 import { subscribeUpload } from '../utils/uploadManager';
 import {
   HiHome, HiOutlineHome, HiUser, HiOutlineUser,
-  HiUserGroup, HiOutlineUserGroup, HiChat, HiOutlineChat,
+  HiUserGroup, HiOutlineUserGroup, HiChat, HiOutlineChat, HiPaperAirplane, HiOutlinePaperAirplane,
   HiBell, HiOutlineBell, HiMenu, HiX, HiSearch, HiLogout, HiCog,
   HiOutlineCog, HiTag, HiFilm, HiPhotograph,
-  HiBookmark, HiOutlineBookmark
+  HiBookmark, HiOutlineBookmark, HiCalendar, HiSpeakerphone, HiShoppingBag, HiChevronRight,
 } from 'react-icons/hi';
+
+// Icône Reels personnalisée : caméra + grand "R" (comme demandé)
+function CameraRIcon({ size = 21, color = 'currentColor' }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <path d="M2 8a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V8Z" fill={color} opacity="0.28"/>
+      <path d="M2 8a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V8Z" stroke={color} strokeWidth="1.6"/>
+      <path d="M15 10.5 21.2 7a.8.8 0 0 1 1.15.72v8.56a.8.8 0 0 1-1.15.72L15 13.5v-3Z" fill={color} opacity="0.28" stroke={color} strokeWidth="1.4" strokeLinejoin="round"/>
+      <text x="8.5" y="15.2" fontSize="9.5" fontWeight="800" fontFamily="Poppins, sans-serif" fill={color} textAnchor="middle">R</text>
+    </svg>
+  );
+}
 
 export default function Layout({ children }) {
   const navigate  = useNavigate();
@@ -33,6 +45,7 @@ export default function Layout({ children }) {
   const [searchOpen,    setSearchOpen]    = useState(false);
   const [searchBarOpen, setSearchBarOpen] = useState(false);
   const [uploadState,   setUploadState]   = useState(null);
+  const [liveInfoOpen,  setLiveInfoOpen]  = useState(false);
   useEffect(() => subscribeUpload(setUploadState), []);
 
   const searchRef   = useRef();
@@ -61,8 +74,8 @@ export default function Layout({ children }) {
   const bottomNav = [
     { path: '/',                            AIcon: HiHome,      label: t('home'),          color: '#1877F2' },
     { path: '/friends',                     AIcon: HiUserGroup, label: t('friends'),       color: '#F2B300' },
-    { path: '/reels',                       AIcon: HiFilm,      label: 'Revy',             color: '#FF2D8D', center: true },
-    { path: '/messages',                    AIcon: HiChat,      label: t('messages'),      color: '#1877F2', badge: msgCount },
+    { path: '/reels',                       AIcon: CameraRIcon, label: 'Revy',             color: '#FF2D8D', center: true },
+    { path: '/messages',                    AIcon: HiPaperAirplane, label: t('messages'),    color: '#1877F2', badge: msgCount },
     { path: `/profile/${currentUser?.uid}`, AIcon: HiUser,      label: t('profile'),       color: '#F2B300' },
   ];
 
@@ -120,15 +133,19 @@ export default function Layout({ children }) {
   }
 
   // Drawer nav — icônes classiques (même style que bottom nav)
+  // Menu plein écran (format "hub") — icônes badges colorés dégradés
   const drawerNav = [
-    { path: '/',                            Icon: HiOutlineHome,      AIcon: HiHome,      label: t('home') },
-    { path: '/friends',                     Icon: HiOutlineUserGroup, AIcon: HiUserGroup, label: t('friends') },
-    { path: '/groups',                      Icon: HiOutlineUserGroup, AIcon: HiUserGroup, label: 'Groupes' },
-    { path: '/saved',                       Icon: HiOutlineBookmark,  AIcon: HiBookmark,  label: 'Enregistrements' },
-    { path: '/messages',                    Icon: HiOutlineChat,      AIcon: HiChat,      label: t('messages'),      badge: msgCount },
-    { path: '/notifications',               Icon: HiOutlineBell,      AIcon: HiBell,      label: t('notifications'), badge: notifCount },
-    { path: `/profile/${currentUser?.uid}`, Icon: HiOutlineUser,      AIcon: HiUser,      label: t('profile') },
-    { path: '/settings',                    Icon: HiOutlineCog,       AIcon: HiCog,       label: t('settings') },
+    { path: '/',                            AIcon: HiHome,          label: t('home'),          sub: 'Fil d\'actualités',  color1:'#1B84FF', color2:'#1877F2' },
+    { path: '/friends',                     AIcon: HiUserGroup,     label: t('friends'),       sub: 'Vos amis',            color1:'#5FD0FF', color2:'#1877F2' },
+    { path: '/groups',                      AIcon: HiUserGroup,     label: 'Groupes',          sub: 'Communautés',          color1:'#8F7BFF', color2:'#5E4BDB' },
+    { path: '/events',                      AIcon: HiCalendar,      label: 'Événements',       sub: 'Créez, participez',    color1:'#3DD9C4', color2:'#12A48D' },
+    { path: '/announcements',               AIcon: HiSpeakerphone,  label: 'Annonces',         sub: 'Petites annonces',     color1:'#FF9A5A', color2:'#FF7A00' },
+    { path: '/shop',                        AIcon: HiShoppingBag,   label: 'Boutique',         sub: 'Achetez, vendez',      color1:'#FF6FA5', color2:'#FF2D8D' },
+    { path: '/saved',                       AIcon: HiBookmark,      label: 'Enregistrements',  sub: 'Vos posts sauvegardés',color1:'#FFD84D', color2:'#F2B300' },
+    { path: '/messages',                    AIcon: HiPaperAirplane, label: t('messages'),      sub: 'Discussions',          color1:'#63A9FF', color2:'#1877F2', badge: msgCount },
+    { path: '/notifications',               AIcon: HiBell,          label: t('notifications'), sub: 'Activité récente',     color1:'#FF7AB8', color2:'#FF2D8D', badge: notifCount },
+    { path: `/profile/${currentUser?.uid}`, AIcon: HiUser,          label: t('profile'),       sub: 'Votre page',           color1:'#B49BFF', color2:'#8F6BFF' },
+    { path: '/settings',                    AIcon: HiCog,           label: t('settings'),      sub: 'Compte, apparence',    color1:'#AEB4BD', color2:'#7C8591' },
   ];
 
   const bg   = isDark ? '#050505' : 'white';
@@ -178,63 +195,80 @@ export default function Layout({ children }) {
   return (
     <div style={{ minHeight: '100vh', background: isDark ? '#0B0D12' : '#FFFFFF', paddingBottom: 96, color: text }}>
 
-      {/* Overlay */}
-      {drawerOpen && <div onClick={() => setDrawerOpen(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', zIndex: 200 }} />}
-
-      {/* ── Drawer ──────────────────────────────────────────────── */}
+      {/* ── Menu plein écran (hamburger) ────────────────────────── */}
       <aside style={{
-        position: 'fixed', top: 0, left: 0, bottom: 0, width: 260, background: bg, zIndex: 201,
+        position: 'fixed', inset: 0, background: bg, zIndex: 201,
         transform: drawerOpen ? 'translateX(0)' : 'translateX(-100%)',
         transition: 'transform .25s cubic-bezier(.4,0,.2,1)',
-        display: 'flex', flexDirection: 'column',
-        boxShadow: drawerOpen ? '4px 0 24px rgba(24,119,242,.18)' : 'none',
-        borderRight: `1px solid ${bdr}`,
+        display: 'flex', flexDirection: 'column', overflowY: 'auto',
       }}>
         {/* Header */}
-        <div style={{ padding: '18px 16px 14px', borderBottom: `1px solid ${bdr}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div style={{ padding: '18px 16px 14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <img src='/tsengo-logo.png' alt="Traingo" style={{ width:48, height:48, objectFit:"contain" }}/>
+            <img src='/tsengo-logo.png' alt="Traingo" style={{ width:44, height:44, objectFit:"contain" }}/>
             <span style={{ fontWeight: 900, fontSize: 18 }}><span style={{ color:'#1877F2' }}>trai</span><span style={{ color:'#FF2D8D' }}>ngo</span></span>
           </div>
-          <button onClick={() => setDrawerOpen(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#65676B' }}><HiX size={22} /></button>
+          <button onClick={() => setDrawerOpen(false)} style={{ background: isDark ? '#232733' : '#F0F2F5', border: 'none', borderRadius: '50%', width: 36, height: 36, cursor: 'pointer', color: '#65676B', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><HiX size={20} /></button>
         </div>
 
-        {/* User mini */}
+        {/* User mini + points/rôle */}
         {userProfile && (
           <div onClick={() => { navigate(`/profile/${currentUser?.uid}`); setDrawerOpen(false); }}
-            style={{ padding: '14px 16px', borderBottom: `1px solid ${bdr}`, display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer' }}>
+            style={{ margin: '4px 16px 10px', padding: '14px', borderRadius: 16, background: isDark ? '#15181F' : '#F0F2F5', display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer' }}>
             <img src={userProfile.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(userProfile.fullName || 'U')}&background=1877F2&color=fff`}
-              alt="" style={{ width: 44, height: 44, borderRadius: '50%', objectFit: 'cover', border: '2px solid #E4E6EB' }} />
-            <div style={{ minWidth: 0 }}>
-              <p style={{ fontWeight: 700, fontSize: 14, color: text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              alt="" style={{ width: 52, height: 52, borderRadius: '50%', objectFit: 'cover', border: '2px solid white' }} />
+            <div style={{ minWidth: 0, flex: 1 }}>
+              <p style={{ fontWeight: 800, fontSize: 16, color: text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 {userProfile.fullName}
-                {userProfile.isVip && <img src='/vip-badge.png' style={{ width:24, height:24, marginLeft:5, verticalAlign:'middle', display:'inline-block', flexShrink:0, objectFit:'contain' }} alt='VIP'/>}
+                {userProfile.isVip && <img src='/vip-badge.png' style={{ width:22, height:22, marginLeft:5, verticalAlign:'middle', display:'inline-block', flexShrink:0, objectFit:'contain' }} alt='VIP'/>}
               </p>
-              <p style={{ fontSize: 12, color: '#65676B' }}>@{userProfile.username}</p>
+              <p style={{ fontSize: 12, color: '#1877F2', fontWeight: 700 }}>
+                {userProfile.accountType === 'artist' ? '🎤 Compte Artiste' : '@' + userProfile.username}
+              </p>
+              {typeof userProfile.followers !== 'undefined' && (
+                <p style={{ fontSize: 11, color: '#65676B', marginTop: 2 }}>{(userProfile.followers || []).length} abonnés</p>
+              )}
             </div>
+            <HiChevronRight size={18} color="#65676B" />
           </div>
         )}
 
-        {/* Nav — icônes classiques */}
-        <nav style={{ flex: 1, padding: '8px 0', overflowY: 'auto' }}>
+        {/* Grille d'icônes colorées (format hub) */}
+        <nav style={{ flex: 1, padding: '4px 14px 14px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
           {drawerNav.map(item => {
             const active = isActive(item.path);
-            const IconComp = active ? item.AIcon : item.Icon;
+            const IconComp = item.AIcon;
             return (
               <button key={item.path} onClick={() => { navigate(item.path); setDrawerOpen(false); }}
                 style={{
-                  width: '100%', display: 'flex', alignItems: 'center', gap: 14, padding: '13px 20px',
-                  background: active ? (isDark ? '#232733' : '#F0F2F5') : 'none', border: 'none',
-                  borderLeft: `3px solid ${active ? '#1877F2' : 'transparent'}`, cursor: 'pointer',
-                  color: active ? '#1877F2' : isDark ? '#65676B' : '#65676B',
-                  fontWeight: active ? 700 : 500, fontSize: 15, textAlign: 'left',
+                  display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 8, padding: '14px', textAlign: 'left',
+                  background: isDark ? '#15181F' : 'white',
+                  border: `1.5px solid ${active ? '#1877F2' : bdr}`, borderRadius: 16, cursor: 'pointer',
+                  boxShadow: active ? '0 2px 10px rgba(24,119,242,.18)' : '0 1px 3px rgba(0,0,0,.06)',
                 }}>
-                <IconComp size={21} />
-                <span style={{ flex: 1 }}>{item.label}</span>
-                {item.badge > 0 && <span style={{ background: '#1877F2', color: 'white', borderRadius: 10, padding: '1px 7px', fontSize: 11, fontWeight: 700 }}>{item.badge > 9 ? '9+' : item.badge}</span>}
+                <span className="icon-badge-3d" style={{ width: 44, height: 44, borderRadius: 13, background: `linear-gradient(145deg, ${item.color1}, ${item.color2})` }}>
+                  <IconComp size={22} color="white" />
+                  {item.badge > 0 && <span className="notif-badge" style={{ zIndex: 2 }}>{item.badge > 9 ? '9+' : item.badge}</span>}
+                </span>
+                <span style={{ fontWeight: 700, fontSize: 14, color: text }}>{item.label}</span>
+                <span style={{ fontSize: 11, color: '#65676B', marginTop: -6 }}>{item.sub}</span>
               </button>
             );
           })}
+
+          {/* Live — franc : nécessite une infrastructure vidéo dédiée, pas encore disponible */}
+          <button onClick={() => setLiveInfoOpen(true)}
+            style={{
+              display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 8, padding: '14px', textAlign: 'left',
+              background: isDark ? '#15181F' : 'white', border: `1.5px solid ${bdr}`, borderRadius: 16, cursor: 'pointer',
+              boxShadow: '0 1px 3px rgba(0,0,0,.06)',
+            }}>
+            <span className="icon-badge-3d" style={{ width: 44, height: 44, borderRadius: 13, background: 'linear-gradient(145deg, #FF6B6B, #E0242D)' }}>
+              <HiSpeakerphone size={22} color="white" />
+            </span>
+            <span style={{ fontWeight: 700, fontSize: 14, color: text }}>Live</span>
+            <span style={{ fontSize: 11, color: '#65676B', marginTop: -6 }}>Bientôt disponible</span>
+          </button>
         </nav>
 
         {/* Logout */}
@@ -244,6 +278,23 @@ export default function Layout({ children }) {
           </button>
         </div>
       </aside>
+
+      {/* ── Modal : Live (info honnête — pas encore disponible) ── */}
+      {liveInfoOpen && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 500, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }} onClick={() => setLiveInfoOpen(false)}>
+          <div onClick={e => e.stopPropagation()} style={{ background: 'white', borderRadius: 20, padding: 24, maxWidth: 340, textAlign: 'center' }}>
+            <div className="icon-badge-3d" style={{ width: 64, height: 64, borderRadius: 20, background: 'linear-gradient(145deg,#FF6B6B,#E0242D)', margin: '0 auto 14px' }}>
+              <HiSpeakerphone size={30} color="white" />
+            </div>
+            <h3 style={{ fontWeight: 800, fontSize: 17, marginBottom: 8 }}>Le Live arrive bientôt</h3>
+            <p style={{ fontSize: 13, color: '#65676B', lineHeight: 1.6, marginBottom: 16 }}>
+              La diffusion en direct demande une infrastructure vidéo spécifique, pas encore mise en place sur Traingo.
+              En attendant, vous pouvez partager vos moments avec une <strong>Story</strong> ou un <strong>Reel</strong>.
+            </p>
+            <button onClick={() => setLiveInfoOpen(false)} className="btn-blue" style={{ padding: '10px 28px', fontSize: 14, borderRadius: 20 }}>Compris</button>
+          </div>
+        </div>
+      )}
 
       {/* ── Header ──────────────────────────────────────────────── */}
       <header className="navbar" style={{ position: 'sticky', top: 0, zIndex: 100, background: bg, borderBottom: `1px solid ${bdr}` }}>
@@ -270,7 +321,7 @@ export default function Layout({ children }) {
           {/* Messages — bouton rond */}
           <button onClick={() => navigate('/messages')}
             style={{ position: 'relative', width: 40, height: 40, borderRadius: '50%', background: '#F0F2F5', border: 'none', cursor: 'pointer', color: '#050505', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-            <HiChat size={20} />
+            <HiPaperAirplane size={19} />
             {msgCount > 0 && (
               <span style={{ position: 'absolute', top: -2, right: -2, background: '#FF1744', color: 'white', borderRadius: '50%', minWidth: 17, height: 17, fontSize: 10, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 2px', border: '2px solid white' }}>
                 {msgCount > 9 ? '9+' : msgCount}

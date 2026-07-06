@@ -58,6 +58,7 @@ export default function Home() {
   const [dataSaver, setDataSaverState] = useState(isDataSaverOn());
   useEffect(() => subscribeDataSaver(setDataSaverState), []);
   const [shareModalPost, setShareModalPost] = useState(null);
+  const [audience, setAudience] = useState('public');   // 'public' | 'friends'
   const [storyReactors, setStoryReactors] = useState(null);   // null | [{uid,name,photo,emoji}]
   const storyFileRef = useRef();
 
@@ -139,7 +140,11 @@ export default function Home() {
     const q = query(collection(db, 'posts'), orderBy('createdAt', 'desc'), limit(20));
     return onSnapshot(q, snap => {
       const blocked = userProfile?.blocked || [];
-      const all = snap.docs.map(d => ({ id: d.id, ...d.data() })).filter(p => !blocked.includes(p.uid));
+      const myFriends = userProfile?.friends || [];
+      const all = snap.docs.map(d => ({ id: d.id, ...d.data() }))
+        .filter(p => !blocked.includes(p.uid))
+        // 🔒 Audience "Amis" : hita amin'ny tompony sy ny namany ihany
+        .filter(p => p.audience !== 'friends' || p.uid === currentUser?.uid || myFriends.includes(p.uid));
       const now = new Date();
       const sorted = [...all].sort((a, b) => {
         const aB = a.isBoosted && a.boostUntil && new Date(a.boostUntil) > now;
@@ -179,6 +184,7 @@ export default function Home() {
       content: content.trim().slice(0, MAX_POST),
       isSale, price: isSale ? parseFloat(price) : '',
       contact: isSale ? contact.trim() : '', lieu: isSale ? lieu.trim() : '',
+      audience,
     };
     // Miniature an'ny vidéo (poster) — alaina eto an-toerana, haingana
     let thumbFile = null;
@@ -219,7 +225,7 @@ export default function Home() {
       });
       setPosting(false); setUploadPct(0);
       if (started) {
-        setContent(''); removeMedia(); setIsSale(false); setPrice(''); setContact(''); setLieu('');
+        setContent(''); removeMedia(); setIsSale(false); setPrice(''); setContact(''); setLieu(''); setAudience('public');
       }
       return;
     }
@@ -231,7 +237,7 @@ export default function Home() {
         mediaURL = r.url; finalMT = r.type === 'video' ? 'video' : 'image';
       }
       await publishPost(mediaURL, finalMT);
-      setContent(''); removeMedia(); setIsSale(false); setPrice(''); setContact(''); setLieu('');
+      setContent(''); removeMedia(); setIsSale(false); setPrice(''); setContact(''); setLieu(''); setAudience('public');
     } catch (err) { console.error(err); alert('Erreur lors de la publication'); }
     setPosting(false); setUploadPct(0);
   }
@@ -600,6 +606,15 @@ export default function Home() {
           </div>
         </div>
 
+        {/* Audience — Public / Amis (format Facebook) */}
+        <div style={{ display:'flex', justifyContent:'flex-end', marginTop:4 }}>
+          <select value={audience} onChange={e => setAudience(e.target.value)}
+            style={{ padding:'5px 10px', borderRadius:14, border:'1.5px solid #E4E6EB', background:'#F0F2F5', fontFamily:'Poppins', fontSize:12, fontWeight:600, color:'#65676B', cursor:'pointer' }}>
+            <option value="public">🌍 Public</option>
+            <option value="friends">👥 Amis</option>
+          </select>
+        </div>
+
         {mediaPreview && (
           <div style={{ position:'relative', marginTop:10 }}>
             {mediaType==='image'
@@ -807,6 +822,20 @@ export default function Home() {
                       ? <img src={post.sharedFrom.mediaURL} alt="" style={{ width:'100%', maxHeight:320, objectFit:'cover', display:'block' }}/>
                       : <video src={post.sharedFrom.mediaURL} muted playsInline style={{ width:'100%', maxHeight:320, objectFit:'cover', display:'block', background:'#000' }}/>
                   )}
+                </div>
+              )}
+              {post.eventFrom && (
+                <div onClick={e => { e.stopPropagation(); navigate('/events'); }}
+                  style={{ marginTop:8, border:'1.5px solid #12A48D', borderRadius:12, overflow:'hidden', cursor:'pointer' }}>
+                  {post.eventFrom.coverURL && <img src={post.eventFrom.coverURL} alt="" style={{ width:'100%', height:140, objectFit:'cover', display:'block' }}/>}
+                  <div style={{ padding:'10px 12px', background:'#EAFBF8' }}>
+                    <p style={{ fontSize:11, fontWeight:800, color:'#12A48D', display:'flex', alignItems:'center', gap:5 }}>📅 ÉVÉNEMENT</p>
+                    <p style={{ fontWeight:800, fontSize:15, marginTop:2 }}>{post.eventFrom.title}</p>
+                    <p style={{ fontSize:12, color:'#65676B', marginTop:2 }}>
+                      {new Date(post.eventFrom.date).toLocaleString('fr-FR', { weekday:'short', day:'numeric', month:'short', hour:'2-digit', minute:'2-digit' })}
+                      {post.eventFrom.lieu ? ` · ${post.eventFrom.lieu}` : ''}
+                    </p>
+                  </div>
                 </div>
               )}
               {post.mediaURL && (
