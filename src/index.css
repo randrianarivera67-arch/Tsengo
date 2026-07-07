@@ -340,8 +340,8 @@ input::placeholder, textarea::placeholder { color: #8A8D91 !important; font-size
 }
 .icon-badge-3d > * { position: relative; z-index: 1; }
 
-/* Balayage lumineux périodique (icônes vives + mamirapiratra) */
-.icon-badge-3d::after, .dock-item.active .dock-icon::after {
+/* Balayage lumineux périodique — sidebar/menu ihany (TSY amin'ny navbar/dock) */
+.icon-badge-3d::after {
   content: '';
   position: absolute; top: 0; left: -60%; width: 40%; height: 100%;
   background: linear-gradient(105deg, transparent, rgba(255,255,255,.8), transparent);
@@ -355,11 +355,11 @@ input::placeholder, textarea::placeholder { color: #8A8D91 !important; font-size
   100% { left: 130%; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .icon-badge-3d::after, .dock-item.active .dock-icon::after { animation: none !important; }
+  .icon-badge-3d::after { animation: none !important; }
 }
+/* Navbar : hauteur mitovy foana, tsy misy mihetsika/mamirapiratra */
 .dock-item.active .dock-icon {
-  transform: translateY(-3px) scale(1.08);
-  box-shadow: 0 6px 16px var(--dock-glow, rgba(24,119,242,.45));
+  box-shadow: 0 3px 10px var(--dock-glow, rgba(24,119,242,.45)), inset 0 1px 2px rgba(255,255,255,.6), inset 0 -3px 6px rgba(0,0,0,.22);
 }
 .dock-item.active { font-weight: 700; }
 

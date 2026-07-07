@@ -19,14 +19,16 @@ import {
   HiMicrophone, HiIdentification, HiDocumentText,
 } from 'react-icons/hi';
 
-// Icône Reels personnalisée : caméra + grand "R" (comme demandé)
-function CameraRIcon({ size = 21, color = 'currentColor' }) {
+// Pill "Revy" — recrée fidèlement l'image de référence : rectangle large,
+// contour blanc, texte "Revy" + trait pointillé + triangle lecture
+function RevyPill({ height = 42 }) {
+  const w = height * 2.2;
   return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-      <path d="M2 8a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V8Z" fill={color} opacity="0.28"/>
-      <path d="M2 8a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V8Z" stroke={color} strokeWidth="1.6"/>
-      <path d="M15 10.5 21.2 7a.8.8 0 0 1 1.15.72v8.56a.8.8 0 0 1-1.15.72L15 13.5v-3Z" fill={color} opacity="0.28" stroke={color} strokeWidth="1.4" strokeLinejoin="round"/>
-      <text x="8.5" y="15.2" fontSize="9.5" fontWeight="800" fontFamily="Poppins, sans-serif" fill={color} textAnchor="middle">R</text>
+    <svg width={w} height={height} viewBox="0 0 220 100" style={{ display: 'block' }}>
+      <rect x="4" y="4" width="212" height="92" rx="22" fill="#FF1D7E" stroke="white" strokeWidth="7"/>
+      <line x1="140" y1="22" x2="140" y2="78" stroke="white" strokeWidth="5" strokeDasharray="9 8" strokeLinecap="round"/>
+      <text x="18" y="68" fontFamily="Poppins, Arial, sans-serif" fontWeight="800" fontSize="46" fill="white">Revy</text>
+      <path d="M162 32 L196 50 L162 68 Z" fill="white"/>
     </svg>
   );
 }
@@ -73,11 +75,11 @@ export default function Layout({ children }) {
   // Dock flottant — 3 couleurs du logo uniquement : bleu / rose / doré
   // Notifications afindra any amin'ny top bar — ny "Revy" (Reels) no centré eto
   const bottomNav = [
-    { path: '/',                            AIcon: HiHome,      label: t('home'),          color: '#1877F2' },
-    { path: '/friends',                     AIcon: HiUserGroup, label: t('friends'),       color: '#F2B300' },
-    { path: '/reels',                       AIcon: CameraRIcon, label: 'Revy',             color: '#FF2D8D', center: true },
-    { path: '/messages',                    AIcon: HiPaperAirplane, label: t('messages'),    color: '#1877F2', badge: msgCount },
-    { path: `/profile/${currentUser?.uid}`, AIcon: HiUser,      label: t('profile'),       color: '#F2B300' },
+    { path: '/',                            AIcon: HiHome,      color: '#1877F2' },
+    { path: '/friends',                     AIcon: HiUserGroup, color: '#F2B300' },
+    { path: '/reels',                       isRevy: true,       color: '#FF1D7E' },
+    { path: '/messages',                    AIcon: HiPaperAirplane, color: '#1877F2', badge: msgCount },
+    { path: `/profile/${currentUser?.uid}`, AIcon: HiUser,      color: '#F2B300' },
   ];
 
   const isActive = p => {
@@ -393,22 +395,27 @@ export default function Layout({ children }) {
 
       {/* ── Dock flottant (style Telegram) ─────────────────────── */}
       <nav className="floating-dock">
-        {bottomNav.map(({ path, AIcon, label, badge, color, center }) => {
+        {bottomNav.map(({ path, AIcon, badge, color, isRevy }) => {
           const active = isActive(path);
           return (
-            <button key={path} className={`dock-item ${active ? 'active' : ''} ${center ? 'dock-item-center' : ''}`} onClick={() => navigate(path)}
-              style={{ color: active ? color : (isDark ? '#C7CCD6' : '#050505'), '--dock-glow': color + '77' }}>
-              <span className="dock-icon icon-badge-3d" style={{
-                background: `linear-gradient(155deg, ${color}ee, ${color})`,
-                width: center ? 52 : 42, height: center ? 52 : 42,
-                marginTop: center ? -16 : (active ? -4 : 0),
-                boxShadow: active ? `0 6px 16px ${color}88, inset 0 1px 2px rgba(255,255,255,.6), inset 0 -3px 6px rgba(0,0,0,.22)` : `0 3px 8px ${color}55, inset 0 1px 2px rgba(255,255,255,.6), inset 0 -3px 6px rgba(0,0,0,.22)`,
-                transform: active ? 'scale(1.06)' : 'scale(1)',
-              }}>
-                <AIcon size={center ? 27 : 22} color="white" />
-                {badge > 0 && <span className="notif-badge">{badge > 9 ? '9+' : badge}</span>}
-              </span>
-              <span style={{ fontWeight: active ? 800 : 600, fontSize: 10.5 }}>{label}</span>
+            <button key={path} className={`dock-item ${active ? 'active' : ''}`} onClick={() => navigate(path)}
+              style={{ color, '--dock-glow': color + '77' }}>
+              {isRevy ? (
+                <span className="dock-icon" style={{ position:'relative', width:'auto', height:42, background:'none', boxShadow:'none' }}>
+                  <RevyPill height={42} />
+                  {badge > 0 && <span className="notif-badge">{badge > 9 ? '9+' : badge}</span>}
+                </span>
+              ) : (
+                <span className="dock-icon" style={{
+                  background: `linear-gradient(155deg, ${color}ee, ${color})`,
+                  width: 42, height: 42,
+                  boxShadow: `0 3px 8px ${color}55, inset 0 1px 2px rgba(255,255,255,.6), inset 0 -3px 6px rgba(0,0,0,.22)`,
+                  opacity: active ? 1 : 0.82,
+                }}>
+                  <AIcon size={22} color="white" />
+                  {badge > 0 && <span className="notif-badge">{badge > 9 ? '9+' : badge}</span>}
+                </span>
+              )}
             </button>
           );
         })}
