@@ -379,23 +379,24 @@ input::placeholder, textarea::placeholder { color: #8A8D91 !important; font-size
 }
 .dock-item.active { font-weight: 700; }
 
-/* Labelle navbar — miloko araka ny icône, mirehitra rehefa active */
+/* Labelle navbar — soratra noire foana (tsy miloko araka ny icône) */
 .dock-label {
   font-size: 10px; font-weight: 600; margin-top: 3px;
-  color: currentColor; opacity: .62;
+  color: #1C1E21; opacity: .68;
   font-family: 'Poppins', sans-serif; letter-spacing: .1px;
-  transition: opacity .18s ease, text-shadow .18s ease;
+  transition: opacity .18s ease, font-weight .18s ease;
 }
 .dock-item.active .dock-label {
-  opacity: 1; font-weight: 700;
-  text-shadow: 0 0 10px var(--dock-glow, rgba(24,119,242,.5));
+  opacity: 1; font-weight: 700; color: #050505;
 }
+.dark .dock-label { color: #E4E6EB; opacity: .68; }
+.dark .dock-item.active .dock-label { color: #FFFFFF; opacity: 1; }
 
 /* ══════════════════ NAVIGATION RAPIDE (sidebar, horizontale premium) ══════════════════ */
 .quicknav-row {
   display: flex; gap: 6px; padding: 6px 14px 14px;
   overflow-x: auto; -webkit-overflow-scrolling: touch;
-  scrollbar-width: none;
+  scrollbar-width: none; flex-shrink: 0; min-height: 92px;
 }
 .quicknav-row::-webkit-scrollbar { display: none; }
 .quicknav-item {

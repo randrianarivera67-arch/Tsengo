@@ -19,27 +19,38 @@ import {
   HiMicrophone, HiIdentification, HiDocumentText,
 } from 'react-icons/hi';
 
-// Pill "Revy" — recrée fidèlement l'image de référence : rectangle large,
-// contour blanc, texte "Revy" + trait pointillé + triangle lecture
-function RevyPill({ height = 42 }) {
-  const w = height * 2.35;
+// Icône "Revy" — cristal rose rond, cerclé or, texte + lecture intégrés (style bijou)
+function RevyGem({ size = 50 }) {
   return (
-    <svg width={w} height={height} viewBox="0 0 235 100" style={{ display: 'block' }}>
+    <svg width={size} height={size} viewBox="0 0 100 100" style={{ display: 'block', filter: 'drop-shadow(0 4px 8px rgba(255,29,126,.5))' }}>
       <defs>
-        <linearGradient id="revyBg" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stopColor="#FF4D9E"/>
-          <stop offset="1" stopColor="#FF1D7E"/>
+        <radialGradient id="revyGemBg" cx="38%" cy="32%" r="75%">
+          <stop offset="0"   stopColor="#FFC1E0"/>
+          <stop offset="45%" stopColor="#FF5DA6"/>
+          <stop offset="100%" stopColor="#D4145A"/>
+        </radialGradient>
+        <linearGradient id="revyGemRim" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0"   stopColor="#FFE9B0"/>
+          <stop offset="0.5" stopColor="#E8B923"/>
+          <stop offset="1"   stopColor="#B8860B"/>
         </linearGradient>
-        <linearGradient id="revyPlay" x1="0" y1="0" x2="1" y2="1">
+        <linearGradient id="revyGemPlay" x1="0" y1="0" x2="1" y2="1">
           <stop offset="0" stopColor="#FFFFFF"/>
-          <stop offset="0.5" stopColor="#E8ECF2"/>
-          <stop offset="1" stopColor="#B8C0CC"/>
+          <stop offset="1" stopColor="#C9D2DC"/>
         </linearGradient>
+        <clipPath id="revyGemClip"><circle cx="50" cy="50" r="45"/></clipPath>
       </defs>
-      <rect x="3" y="8" width="229" height="84" rx="26" fill="url(#revyBg)"/>
-      <text x="26" y="66" fontFamily="Poppins, 'Segoe UI', sans-serif" fontWeight="700" fontSize="44" letterSpacing="0.5" fill="white" fontStyle="italic">Revy</text>
-      <circle cx="188" cy="50" r="26" fill="rgba(255,255,255,.16)"/>
-      <path d="M178 36 L206 50 L178 64 Z" fill="url(#revyPlay)"/>
+      <circle cx="50" cy="50" r="47" fill="url(#revyGemRim)"/>
+      <circle cx="50" cy="50" r="43" fill="url(#revyGemBg)"/>
+      <g clipPath="url(#revyGemClip)" opacity="0.35" stroke="#FFFFFF" strokeWidth="1.2">
+        <line x1="20" y1="10" x2="55" y2="95"/>
+        <line x1="45" y1="5"  x2="85" y2="80"/>
+        <line x1="5"  y1="55" x2="70" y2="15"/>
+        <line x1="10" y1="80" x2="90" y2="45"/>
+      </g>
+      <circle cx="50" cy="50" r="43" fill="none" stroke="rgba(255,255,255,.5)" strokeWidth="1.5"/>
+      <text x="50" y="47" textAnchor="middle" fontFamily="Poppins, 'Segoe UI', sans-serif" fontWeight="700" fontStyle="italic" fontSize="21" fill="white">Revy</text>
+      <path d="M45 58 L45 70 L57 64 Z" fill="url(#revyGemPlay)"/>
     </svg>
   );
 }
@@ -86,11 +97,11 @@ export default function Layout({ children }) {
   // Dock flottant — 3 couleurs du logo uniquement : bleu / rose / doré
   // Notifications afindra any amin'ny top bar — ny "Revy" (Reels) no centré eto
   const bottomNav = [
-    { path: '/',                            AIcon: HiHome,          color: '#1877F2', label: 'Accueil' },
-    { path: '/friends',                     AIcon: HiUserGroup,     color: '#F5C518', label: 'Amis' },
+    { path: '/',                            AIcon: HiHome,          color: '#1877F2', color2: '#1877F2', label: 'Accueil' },
+    { path: '/friends',                     AIcon: HiUserGroup,     color: '#E8B923', color2: '#B8860B', label: 'Amis' },
     { path: '/reels',                       isRevy: true,           color: '#FF1D7E', label: 'Revy' },
-    { path: '/messages',                    AIcon: HiPaperAirplane, color: '#F5C518', label: 'Messages', badge: msgCount },
-    { path: `/profile/${currentUser?.uid}`, AIcon: HiUser,          color: '#1877F2', label: 'Profil' },
+    { path: '/messages',                    AIcon: HiPaperAirplane, color: '#E8B923', color2: '#B8860B', label: 'Messages', badge: msgCount },
+    { path: `/profile/${currentUser?.uid}`, AIcon: HiUser,          color: '#1877F2', color2: '#1877F2', label: 'Profil' },
   ];
 
   const isActive = p => {
@@ -250,7 +261,7 @@ export default function Layout({ children }) {
         )}
 
         {/* Navigation rapide — horizontale, ambony indrindra, endrika premium */}
-        <div className="quicknav-row">
+        <div className="quicknav-row" style={{ flexShrink: 0 }}>
           {quickNav.map(item => {
             const active = isActive(item.path);
             const IconComp = item.AIcon;
@@ -440,18 +451,18 @@ export default function Layout({ children }) {
 
       {/* ── Dock flottant (style Telegram) ─────────────────────── */}
       <nav className="floating-dock">
-        {bottomNav.map(({ path, AIcon, badge, color, isRevy, label }) => {
+        {bottomNav.map(({ path, AIcon, badge, color, color2, isRevy, label }) => {
           const active = isActive(path);
           return (
             <button key={path} className={`dock-item ${active ? 'active' : ''}`} onClick={() => navigate(path)}
               style={{ color, '--dock-glow': color + '77', position: 'relative' }}>
               {isRevy ? (
-                <span className="dock-icon" style={{ position:'relative', width:'auto', height:42, background:'none', boxShadow:'none', overflow:'visible' }}>
-                  <RevyPill height={42} />
+                <span className="dock-icon" style={{ position:'relative', width:50, height:50, background:'none', boxShadow:'none', overflow:'visible', marginTop:-8 }}>
+                  <RevyGem size={50} />
                 </span>
               ) : (
                 <span className="dock-icon" style={{
-                  background: `linear-gradient(155deg, ${color}ee, ${color})`,
+                  background: `linear-gradient(155deg, ${color}, ${color2 || color})`,
                   width: 42, height: 42,
                   boxShadow: `0 3px 8px ${color}55, inset 0 1px 2px rgba(255,255,255,.6), inset 0 -3px 6px rgba(0,0,0,.22)`,
                   opacity: active ? 1 : 0.82,
@@ -461,7 +472,7 @@ export default function Layout({ children }) {
               )}
               {/* Badge — ivelan'ny dock-icon (overflow:hidden), mba tsy ho voatapaka na hikorana */}
               {badge > 0 && <span className="notif-badge" style={{ top: 2, right: 'calc(50% - 26px)' }}>{badge > 9 ? '9+' : badge}</span>}
-              <span className="dock-label">{label}</span>
+              {!isRevy && <span className="dock-label">{label}</span>}
             </button>
           );
         })}
