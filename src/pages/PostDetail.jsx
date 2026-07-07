@@ -10,6 +10,7 @@ import { useAuth } from '../context/AuthContext';
 import { timeAgo } from '../utils/timeAgo';
 import { downloadMedia } from '../utils/download';
 import ShareModal from '../components/ShareModal';
+import PhotoCarousel from '../components/PhotoCarousel';
 import { useLang } from '../context/LanguageContext';
 import { uploadToTelegram } from '../utils/telegram';
 import { getChatId } from '../utils/chat';
@@ -211,7 +212,11 @@ export default function PostDetail() {
               )}
             </div>
           )}
-          {post.mediaURL&&(
+          {post.mediaURLs?.length > 1 ? (
+            <div className="post-media">
+              <PhotoCarousel urls={post.mediaURLs} />
+            </div>
+          ) : post.mediaURL&&(
             <div className="post-media" style={{ position:'relative' }}>
               {post.mediaType==='image'?<img src={post.mediaURL} alt=""/>:<video src={post.mediaURL} poster={post.thumbURL || undefined} controls/>}
               <button onClick={() => downloadMedia(post.mediaURL, post.mediaType)}

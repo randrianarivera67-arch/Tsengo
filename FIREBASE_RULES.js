@@ -55,7 +55,30 @@ service cloud.firestore {
       allow delete: if request.auth != null && resource.data.uid == request.auth.uid;
     }
 
-    // ✅ Événements — ny mpamorona no manova/mamafa ; ny rehetra afaka
+    // ✅ Sera (Pages publiques) — admin(s) manova/mamafa ; ny rehetra afaka manova "followers"
+    match /pages/{pageId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null && request.resource.data.admins.hasAny([request.auth.uid]);
+      allow update: if request.auth != null && (
+        resource.data.admins.hasAny([request.auth.uid]) ||
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['followers'])
+      );
+      allow delete: if request.auth != null && resource.data.admins.hasAny([request.auth.uid]);
+    }
+
+        // ✅ Bloc-notes — an-tsokosoko : ny tompony ihany no mahita/manoratra
+    match /notes/{noteId} {
+      allow read, update, delete: if request.auth != null && resource.data.uid == request.auth.uid;
+      allow create: if request.auth != null && request.resource.data.uid == request.auth.uid;
+    }
+
+        // ✅ Signalements — ny mpandefa ihany no mahita/manoratra ny azy, tsy azo ovaina
+    match /reports/{reportId} {
+      allow create: if request.auth != null && request.resource.data.reportedBy == request.auth.uid;
+      allow read: if request.auth != null && resource.data.reportedBy == request.auth.uid;
+    }
+
+        // ✅ Événements — ny mpamorona no manova/mamafa ; ny rehetra afaka
     // manova attendees/interested (RSVP)
     match /events/{eventId} {
       allow read: if request.auth != null;

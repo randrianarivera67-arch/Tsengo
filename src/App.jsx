@@ -31,6 +31,10 @@ const Saved              = lazy(() => import('./pages/Saved'));
 const Events             = lazy(() => import('./pages/Events'));
 const Announcements      = lazy(() => import('./pages/Announcements'));
 const Shop               = lazy(() => import('./pages/Shop'));
+const Artists            = lazy(() => import('./pages/Artists'));
+const Pages              = lazy(() => import('./pages/Pages'));
+const PageDetail          = lazy(() => import('./pages/PageDetail'));
+const Notes              = lazy(() => import('./pages/Notes'));
 
 const Loader = () => (
   <div style={{ display:'flex', alignItems:'center', justifyContent:'center', height:'60vh' }}>
@@ -65,6 +69,10 @@ function AppRoutes() {
         <Route path="/events"         element={<PrivateRoute><Layout><Events /></Layout></PrivateRoute>} />
         <Route path="/announcements"  element={<PrivateRoute><Layout><Announcements /></Layout></PrivateRoute>} />
         <Route path="/shop"           element={<PrivateRoute><Layout><Shop /></Layout></PrivateRoute>} />
+        <Route path="/artists"        element={<PrivateRoute><Layout><Artists /></Layout></PrivateRoute>} />
+        <Route path="/pages"          element={<PrivateRoute><Layout><Pages /></Layout></PrivateRoute>} />
+        <Route path="/pages/:pageId"  element={<PrivateRoute><Layout><PageDetail /></Layout></PrivateRoute>} />
+        <Route path="/notes"          element={<PrivateRoute><Layout><Notes /></Layout></PrivateRoute>} />
         <Route path="/messages"       element={<PrivateRoute><Layout><Messages /></Layout></PrivateRoute>} />
         <Route path="/messages/:chatId" element={<PrivateRoute><Layout><Messages /></Layout></PrivateRoute>} />
         <Route path="/notifications"  element={<PrivateRoute><Layout><Notifications /></Layout></PrivateRoute>} />

@@ -339,6 +339,24 @@ input::placeholder, textarea::placeholder { color: #8A8D91 !important; font-size
   pointer-events: none;
 }
 .icon-badge-3d > * { position: relative; z-index: 1; }
+
+/* Balayage lumineux périodique (icônes vives + mamirapiratra) */
+.icon-badge-3d::after, .dock-item.active .dock-icon::after {
+  content: '';
+  position: absolute; top: 0; left: -60%; width: 40%; height: 100%;
+  background: linear-gradient(105deg, transparent, rgba(255,255,255,.8), transparent);
+  transform: skewX(-18deg);
+  animation: iconSweep 3.4s ease-in-out infinite;
+  animation-delay: calc(var(--sweep-delay, 0) * 1s);
+}
+@keyframes iconSweep {
+  0%   { left: -60%; }
+  35%  { left: 130%; }
+  100% { left: 130%; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .icon-badge-3d::after, .dock-item.active .dock-icon::after { animation: none !important; }
+}
 .dock-item.active .dock-icon {
   transform: translateY(-3px) scale(1.08);
   box-shadow: 0 6px 16px var(--dock-glow, rgba(24,119,242,.45));

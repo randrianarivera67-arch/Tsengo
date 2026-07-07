@@ -15,6 +15,8 @@ import { timeAgo } from '../utils/timeAgo';
 import { isDataSaverOn, subscribeDataSaver } from '../utils/dataSaver';
 import { downloadMedia } from '../utils/download';
 import ShareModal from '../components/ShareModal';
+import PhotoCarousel from '../components/PhotoCarousel';
+import { NeonGlobe, NeonPeople, NeonLock } from '../components/NeonIcons';
 import { getChatId } from '../utils/chat';
 import { sendPushNotification } from '../utils/onesignal';
 import { v4 as uuidv4 } from 'uuid';
@@ -22,13 +24,14 @@ import {
   HiPhotograph, HiVideoCamera, HiTag, HiOutlineHeart, HiChat,
   HiTrash, HiPencil, HiX, HiShare, HiFilm, HiOutlineChat,
   HiDotsVertical, HiDownload, HiLightningBolt, HiPhone, HiLocationMarker,
-  HiReply, HiUserAdd, HiUserGroup, HiBookmark
+  HiReply, HiUserAdd, HiUserGroup, HiBookmark, HiFlag, HiBan, HiPaperAirplane
 } from 'react-icons/hi';
 
 const MAX_POST    = 2000;
 const MAX_COMMENT = 500;
 const MAX_PRICE   = 999_999_999;
 const REACTIONS   = ['❤️','😂','😮','😢','😡','👍'];
+const SALE_CATEGORIES = ['Vêtements', 'Électronique', 'Déco & Maison', 'Véhicules', 'Alimentation', 'Beauté', 'Autre'];
 
 function VIPBadge() {
   return <img src='/vip-badge.png' style={{ width:32, height:32, marginLeft:5, verticalAlign:'middle', display:'inline-block', flexShrink:0, objectFit:'contain' }} alt='VIP'/>;
@@ -47,6 +50,7 @@ export default function Home() {
   const [price, setPrice]       = useState('');
   const [contact, setContact]   = useState('');
   const [lieu, setLieu]         = useState('');
+  const [saleCategory, setSaleCategory] = useState(SALE_CATEGORIES[0]);
   const [posting, setPosting]   = useState(false);
   const [uploadPct, setUploadPct] = useState(0);
   const [pageGroups, setPageGroups] = useState([]);   // groupes publics (suggestions)
@@ -58,7 +62,8 @@ export default function Home() {
   const [dataSaver, setDataSaverState] = useState(isDataSaverOn());
   useEffect(() => subscribeDataSaver(setDataSaverState), []);
   const [shareModalPost, setShareModalPost] = useState(null);
-  const [audience, setAudience] = useState('public');   // 'public' | 'friends'
+  const [audience, setAudience] = useState('public');   // 'public' | 'friends' | 'me'
+  const [audienceMenuOpen, setAudienceMenuOpen] = useState(false);
   const [storyReactors, setStoryReactors] = useState(null);   // null | [{uid,name,photo,emoji}]
   const storyFileRef = useRef();
 
@@ -144,7 +149,7 @@ export default function Home() {
       const all = snap.docs.map(d => ({ id: d.id, ...d.data() }))
         .filter(p => !blocked.includes(p.uid))
         // 🔒 Audience "Amis" : hita amin'ny tompony sy ny namany ihany
-        .filter(p => p.audience !== 'friends' || p.uid === currentUser?.uid || myFriends.includes(p.uid));
+        .filter(p => p.uid === currentUser?.uid || (p.audience === 'friends' ? myFriends.includes(p.uid) : p.audience !== 'me'));
       const now = new Date();
       const sorted = [...all].sort((a, b) => {
         const aB = a.isBoosted && a.boostUntil && new Date(a.boostUntil) > now;
@@ -156,19 +161,33 @@ export default function Home() {
     });
   }, []);
 
+  const [multiPhotos, setMultiPhotos] = useState([]);   // File[] — mode "plusieurs photos" (2 à 10)
   function handleMedia(e, type) {
-    const file = e.target.files[0]; if (!file) return;
+    const files = Array.from(e.target.files || []);
+    if (!files.length) return;
     const allowed = type === 'image'
       ? ['image/jpeg','image/png','image/gif','image/webp']
       : ['video/mp4','video/webm','video/quicktime'];
+
+    if (type === 'image' && files.length > 1) {
+      const valid = files.filter(f => allowed.includes(f.type)).slice(0, 10);
+      setMultiPhotos(valid);
+      setMF(null); setMP(null); setMT('');
+      e.target.value = '';
+      return;
+    }
+
+    const file = files[0];
     if (!allowed.includes(file.type)) { alert('Type non accepté'); return; }
+    setMultiPhotos([]);
     // no size limit
     setMF(file); setMT(type); setMP(URL.createObjectURL(file));
   }
-  function removeMedia() { setMF(null); setMP(null); setMT(''); }
+  function removeMedia() { setMF(null); setMP(null); setMT(''); setMultiPhotos([]); }
+  function removeOnePhoto(idx) { setMultiPhotos(p => p.filter((_, i) => i !== idx)); }
 
   async function createPost() {
-    if (!content.trim() && !mediaFile) return;
+    if (!content.trim() && !mediaFile && multiPhotos.length === 0) return;
     if (content.length > MAX_POST) return;
     if (isSale) {
       const p = parseFloat(price);
@@ -183,7 +202,7 @@ export default function Home() {
       authorIsVip: userProfile.isVip || false,
       content: content.trim().slice(0, MAX_POST),
       isSale, price: isSale ? parseFloat(price) : '',
-      contact: isSale ? contact.trim() : '', lieu: isSale ? lieu.trim() : '',
+      contact: isSale ? contact.trim() : '', lieu: isSale ? lieu.trim() : '', saleCategory: isSale ? saleCategory : '',
       audience,
     };
     // Miniature an'ny vidéo (poster) — alaina eto an-toerana, haingana
@@ -216,6 +235,33 @@ export default function Home() {
         }));
         await batch.commit();
       }
+    }
+
+    // ── Plusieurs photos (2 à 10) : upload séquentiel, mediaURLs[] ──
+    if (multiPhotos.length > 0) {
+      try {
+        const urls = [];
+        for (let i = 0; i < multiPhotos.length; i++) {
+          const r = await uploadToTelegram(multiPhotos[i], pct => setUploadPct(Math.round(((i + pct / 100) / multiPhotos.length) * 100)));
+          urls.push(r.url);
+        }
+        const postRef = await addDoc(collection(db, 'posts'), {
+          ...fields, mediaURL: urls[0], mediaType: 'image', mediaURLs: urls, thumbURL: '',
+          reactions: {}, comments: [], createdAt: serverTimestamp(),
+        });
+        if (friendTargets.length > 0) {
+          const batch = writeBatch(db);
+          friendTargets.forEach(fUid => batch.set(doc(collection(db,'notifications')), {
+            toUid: fUid, fromUid: myUid, fromName: authorName, fromPhoto: authorPhoto,
+            type: 'post', postId: postRef.id, message: `${authorName} a publié un nouveau post`,
+            read: false, createdAt: serverTimestamp(),
+          }));
+          await batch.commit();
+        }
+        setContent(''); removeMedia(); setIsSale(false); setPrice(''); setContact(''); setLieu(''); setAudience('public');
+      } catch (err) { console.error(err); alert('Erreur lors de la publication'); }
+      setPosting(false); setUploadPct(0);
+      return;
     }
 
     // ── Vidéo > 12 Mo : upload ARRIÈRE-PLAN (afaka mifindra page) ──
@@ -345,6 +391,71 @@ export default function Home() {
     if (!post || post.uid !== currentUser.uid) return;
     if (!window.confirm('Supprimer cette publication ?')) return;
     await deleteDoc(doc(db,'posts',postId));
+  }
+
+  function isFollowingUid(uid) { return (userProfile?.following || []).includes(uid); }
+  async function toggleFollowAuthor(uid, name) {
+    const already = isFollowingUid(uid);
+    try {
+      await updateDoc(doc(db, 'users', uid), { followers: already ? arrayRemove(currentUser.uid) : arrayUnion(currentUser.uid) });
+      await updateDoc(doc(db, 'users', currentUser.uid), { following: already ? arrayRemove(uid) : arrayUnion(uid) });
+      setUserProfile(p => ({ ...p, following: already ? (p.following||[]).filter(u=>u!==uid) : [...(p.following||[]), uid] }));
+      if (!already) {
+        await addDoc(collection(db, 'notifications'), {
+          toUid: uid, fromUid: currentUser.uid, fromName: userProfile.fullName, fromPhoto: userProfile.photoURL || '',
+          type: 'general', message: `${userProfile.fullName} s'est abonné(e) à votre profil`, read: false, createdAt: serverTimestamp(),
+        });
+      }
+    } catch (err) { alert('Erreur : ' + (err?.message || err)); }
+  }
+
+  async function reportPost(post) {
+    if (!window.confirm('Signaler cette publication aux administrateurs ?')) return;
+    try {
+      await addDoc(collection(db, 'reports'), {
+        type: 'post', targetId: post.id, targetUid: post.uid, targetAuthor: post.authorName,
+        reportedBy: currentUser.uid, reportedByName: userProfile.fullName,
+        createdAt: serverTimestamp(), status: 'pending',
+      });
+      alert('Signalement envoyé. Merci.');
+    } catch (err) { alert('Erreur : ' + (err?.message || err)); }
+  }
+
+  async function toggleBlockAuthor(post) {
+    const already = (userProfile?.blocked || []).includes(post.uid);
+    const msg = already ? `Débloquer ${post.authorName} ?` : `Bloquer ${post.authorName} ? Vous ne verrez plus ses publications.`;
+    if (!window.confirm(msg)) return;
+    try {
+      await updateDoc(doc(db, 'users', currentUser.uid), {
+        blocked: already ? arrayRemove(post.uid) : arrayUnion(post.uid),
+      });
+      setUserProfile(p => ({ ...p, blocked: already ? (p.blocked||[]).filter(u=>u!==post.uid) : [...(p.blocked||[]), post.uid] }));
+    } catch (err) { alert('Erreur : ' + (err?.message || err)); }
+  }
+
+  function showAudienceInfo(post) {
+    alert(post.audience === 'friends' ? "Cette publication est visible par ses amis uniquement." : "Cette publication est publique.");
+  }
+
+  const [tagModalPost, setTagModalPost] = useState(null);
+  const [tagSelected, setTagSelected] = useState({});
+  const [tagFriendsList, setTagFriendsList] = useState([]);
+  async function openTagModal(post) {
+    setTagModalPost(post);
+    const init = {}; (post.taggedUids || []).forEach(u => { init[u] = true; });
+    setTagSelected(init);
+    const myFriends = userProfile?.friends || [];
+    const list = await Promise.all(myFriends.map(uid =>
+      getDoc(doc(db, 'users', uid)).then(sn => sn.exists() ? { uid, ...sn.data() } : null).catch(() => null)
+    ));
+    setTagFriendsList(list.filter(Boolean));
+  }
+  async function saveTags() {
+    if (!tagModalPost) return;
+    const uids = Object.keys(tagSelected).filter(k => tagSelected[k]);
+    const names = tagFriendsList.filter(f => uids.includes(f.uid)).map(f => f.fullName);
+    try { await updateDoc(doc(db, 'posts', tagModalPost.id), { taggedUids: uids, taggedNames: names }); setTagModalPost(null); }
+    catch (err) { alert('Erreur : ' + (err?.message || err)); }
   }
 
   async function saveEditPost() {
@@ -606,13 +717,24 @@ export default function Home() {
           </div>
         </div>
 
-        {/* Audience — Public / Amis (format Facebook) */}
-        <div style={{ display:'flex', justifyContent:'flex-end', marginTop:4 }}>
-          <select value={audience} onChange={e => setAudience(e.target.value)}
-            style={{ padding:'5px 10px', borderRadius:14, border:'1.5px solid #E4E6EB', background:'#F0F2F5', fontFamily:'Poppins', fontSize:12, fontWeight:600, color:'#65676B', cursor:'pointer' }}>
-            <option value="public">🌍 Public</option>
-            <option value="friends">👥 Amis</option>
-          </select>
+        {/* Audience — Public / Amis / Moi uniquement (icônes néon, format Facebook) */}
+        <div style={{ display:'flex', justifyContent:'flex-end', marginTop:4, position:'relative' }} onClick={e => e.stopPropagation()}>
+          <button onClick={() => setAudienceMenuOpen(p => !p)}
+            style={{ display:'flex', alignItems:'center', gap:6, padding:'5px 12px', borderRadius:14, border:'1.5px solid #E4E6EB', background:'#F0F2F5', fontFamily:'Poppins', fontSize:12, fontWeight:700, color:'#65676B', cursor:'pointer' }}>
+            {audience==='public' && <><NeonGlobe size={14}/> Public</>}
+            {audience==='friends' && <><NeonPeople size={14}/> Amis</>}
+            {audience==='me' && <><NeonLock size={14}/> Moi uniquement</>}
+          </button>
+          {audienceMenuOpen && (
+            <div style={{ position:'absolute', top:'110%', right:0, background:'white', border:'1px solid #E4E6EB', borderRadius:12, boxShadow:'0 4px 20px rgba(0,0,0,.14)', minWidth:190, zIndex:20, overflow:'hidden' }}>
+              {[['public','Public',<NeonGlobe key="g" size={15}/>],['friends','Amis',<NeonPeople key="p" size={15}/>],['me','Moi uniquement',<NeonLock key="l" size={15}/>]].map(([val,label,icon]) => (
+                <button key={val} onClick={() => { setAudience(val); setAudienceMenuOpen(false); }}
+                  style={{ width:'100%', display:'flex', alignItems:'center', gap:10, padding:'11px 14px', background: audience===val ? '#E7F0FE' : 'none', border:'none', cursor:'pointer', fontFamily:'Poppins', fontSize:13, fontWeight:600, color:'#050505' }}>
+                  {icon} {label}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
 
         {mediaPreview && (
@@ -624,8 +746,28 @@ export default function Home() {
           </div>
         )}
 
+        {multiPhotos.length > 0 && (
+          <div style={{ marginTop:10 }}>
+            <div style={{ display:'flex', gap:8, overflowX:'auto', paddingBottom:4 }}>
+              {multiPhotos.map((f, i) => (
+                <div key={i} style={{ position:'relative', flexShrink:0, width:84, height:84 }}>
+                  <img src={URL.createObjectURL(f)} alt="" style={{ width:'100%', height:'100%', borderRadius:10, objectFit:'cover' }}/>
+                  <button onClick={() => removeOnePhoto(i)} style={{ position:'absolute', top:3, right:3, background:'rgba(0,0,0,.55)', border:'none', borderRadius:'50%', width:20, height:20, cursor:'pointer', color:'white', display:'flex', alignItems:'center', justifyContent:'center' }}><HiX size={11}/></button>
+                </div>
+              ))}
+            </div>
+            <p style={{ fontSize:11, color:'#65676B', marginTop:4 }}>{multiPhotos.length}/10 photos</p>
+          </div>
+        )}
+
         {isSale && (
           <div style={{ marginTop:10, display:'flex', flexDirection:'column', gap:8 }}>
+            <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+              <HiTag color="#1877F2" size={18}/>
+              <select className="input" value={saleCategory} onChange={e => setSaleCategory(e.target.value)} style={{ flex:1 }}>
+                {SALE_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+              </select>
+            </div>
             <div style={{ display:'flex', alignItems:'center', gap:8 }}>
               <HiTag color="#1877F2" size={18}/>
               <input className="input" type="number" placeholder={`${t('price')} (Ar)`} value={price} onChange={e => setPrice(e.target.value)} style={{ flex:1 }} min="1" max={MAX_PRICE}/>
@@ -636,7 +778,7 @@ export default function Home() {
             </div>
             <div style={{ display:'flex', alignItems:'center', gap:8 }}>
               <HiLocationMarker color="#1877F2" size={18}/>
-              <input className="input" type="text" placeholder="Lieu de vente" value={lieu} onChange={e => setLieu(e.target.value)} style={{ flex:1 }} maxLength={100}/>
+              <input className="input" type="text" placeholder="Lieu précis de vente (point exact)" value={lieu} onChange={e => setLieu(e.target.value)} style={{ flex:1 }} maxLength={100}/>
             </div>
           </div>
         )}
@@ -651,12 +793,12 @@ export default function Home() {
         )}
 
         <div style={{ display:'flex', alignItems:'center', gap:8, marginTop:12, flexWrap:'wrap' }}>
-          <input ref={photoRef} type="file" accept="image/jpeg,image/png,image/gif,image/webp" onChange={e => handleMedia(e,'image')} style={{ display:'none' }}/>
+          <input ref={photoRef} type="file" multiple accept="image/jpeg,image/png,image/gif,image/webp" onChange={e => handleMedia(e,'image')} style={{ display:'none' }}/>
           <input ref={videoRef} type="file" accept="video/mp4,video/webm,video/quicktime"       onChange={e => handleMedia(e,'video')} style={{ display:'none' }}/>
           <button onClick={() => photoRef.current.click()} className="btn-blue" style={{ display:'flex', alignItems:'center', gap:5, borderRadius:20, padding:'6px 12px', fontSize:13 }}><HiPhotograph size={16}/>{t('addPhoto')}</button>
           <button onClick={() => videoRef.current.click()} className="btn-primary" style={{ display:'flex', alignItems:'center', gap:5, borderRadius:20, padding:'6px 12px', fontSize:13 }}><HiVideoCamera size={16}/>{t('addVideo')}</button>
           <button onClick={() => setIsSale(p=>!p)} className="btn-gold" style={{ display:'flex', alignItems:'center', gap:5, borderRadius:20, padding:'6px 12px', fontSize:13, opacity:isSale?1:.85, outline:isSale?'2px solid #F2B300':'none' }}><HiTag size={16}/>{t('sell')}</button>
-          <button className="btn-primary" onClick={createPost} disabled={posting||(!content.trim()&&!mediaFile)||content.length>MAX_POST} style={{ marginLeft:'auto', padding:'6px 20px', fontSize:13 }}>
+          <button className="btn-primary" onClick={createPost} disabled={posting||(!content.trim()&&!mediaFile&&multiPhotos.length===0)||content.length>MAX_POST} style={{ marginLeft:'auto', padding:'6px 20px', fontSize:13 }}>
             {posting?'...':t('publishPost')}
           </button>
         </div>
@@ -762,13 +904,19 @@ export default function Home() {
                   <div style={{ minWidth:0 }}>
                     <p style={{ fontWeight:600, fontSize:14, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{post.authorName}{post.authorIsVip&&<VIPBadge/>}</p>
                     <p style={{ fontSize:12, color:'#65676B' }}>@{post.authorUsername} · {post.createdAt?timeAgo(post.createdAt):"À l'instant"}</p>
+                    {post.taggedNames?.length > 0 && <p style={{ fontSize:12, color:'#65676B' }}>avec {post.taggedNames.join(', ')}</p>}
                   </div>
                 </div>
               )}
 
               <div style={{ display:'flex', alignItems:'center', gap:6, flexShrink:0 }}>
                 {post.isSale && <div style={{ textAlign:'right' }}><span className="sale-badge">{t('sale')}</span><p className="price-tag" style={{ marginTop:2, fontSize:13 }}>{post.price} Ar</p></div>}
-                {!isOwn && <button onClick={() => navigate(`/messages/${getChatId(currentUser.uid,post.uid)}`)} style={{ background:'#E4E6EB', border:'none', borderRadius:20, padding:'5px 10px', cursor:'pointer', color:'#1877F2', fontSize:12 }}><HiOutlineChat size={14}/></button>}
+                {!isOwn && (
+                  <button onClick={() => toggleFollowAuthor(post.uid, post.authorName)}
+                    style={{ background: isFollowingUid(post.uid) ? '#F0F2F5' : 'linear-gradient(135deg,#FFE066,#F2B300)', border:'none', borderRadius:20, padding:'5px 12px', cursor:'pointer', color: isFollowingUid(post.uid) ? '#65676B' : '#4A3400', fontSize:12, fontWeight:700, display:'flex', alignItems:'center', gap:4 }}>
+                    {isFollowingUid(post.uid) ? '✓ Suivi' : '⭐ Suivre'}
+                  </button>
+                )}
                 {!isOwn && !isMyFriend && !sentReq && (
                   <button onClick={() => sendFriendReq(post.uid, post.authorName)}
                     style={{ background:'none', border:'1px solid #E4E6EB', borderRadius:20, padding:'5px 10px', cursor:'pointer', color:'#65676B', fontSize:12, display:'flex', alignItems:'center', gap:4 }}>
@@ -790,8 +938,24 @@ export default function Home() {
                       <button onClick={() => { toggleSave(post.id); setPostMenu(null); }} style={{ width:'100%', display:'flex', alignItems:'center', gap:10, padding:'11px 16px', background:'none', border:'none', cursor:'pointer', color:'#050505', fontSize:14, borderBottom:'1px solid #F0F2F5', fontFamily:'Poppins' }}>
                         <HiBookmark size={15} color="#F2B300"/> {(userProfile?.saved||[]).includes(post.id) ? 'Retirer des enregistrements' : 'Enregistrer'}
                       </button>
-                      {post.mediaURL && <button onClick={() => { downloadMedia(post.mediaURL, post.mediaType); setPostMenu(null); }} style={{ width:'100%', display:'flex', alignItems:'center', gap:10, padding:'11px 16px', background:'none', border:'none', cursor:'pointer', color:'#050505', fontSize:14, fontFamily:'Poppins' }}><HiDownload size={15} color="#3b82f6"/> Télécharger</button>}
-                      {!isOwn && !post.mediaURL && <div style={{ padding:'10px 16px', color:'#65676B', fontSize:13 }}>Aucune action</div>}
+                      <button onClick={() => { showAudienceInfo(post); setPostMenu(null); }} style={{ width:'100%', display:'flex', alignItems:'center', gap:10, padding:'11px 16px', background:'none', border:'none', cursor:'pointer', color:'#050505', fontSize:14, borderBottom:'1px solid #F0F2F5', fontFamily:'Poppins' }}>
+                        {post.audience === 'friends' ? '👥 Audience : Amis' : '🌍 Audience : Public'}
+                      </button>
+                      {isOwn && (
+                        <button onClick={() => { openTagModal(post); setPostMenu(null); }} style={{ width:'100%', display:'flex', alignItems:'center', gap:10, padding:'11px 16px', background:'none', border:'none', cursor:'pointer', color:'#050505', fontSize:14, borderBottom:'1px solid #F0F2F5', fontFamily:'Poppins' }}>
+                          <HiUserAdd size={15} color="#1877F2"/> Identifier des amis
+                        </button>
+                      )}
+                      {!isOwn && (
+                        <>
+                          <button onClick={() => { reportPost(post); setPostMenu(null); }} style={{ width:'100%', display:'flex', alignItems:'center', gap:10, padding:'11px 16px', background:'none', border:'none', cursor:'pointer', color:'#050505', fontSize:14, borderBottom:'1px solid #F0F2F5', fontFamily:'Poppins' }}>
+                            <HiFlag size={15} color="#F2B300"/> Signaler à l'admin
+                          </button>
+                          <button onClick={() => { toggleBlockAuthor(post); setPostMenu(null); }} style={{ width:'100%', display:'flex', alignItems:'center', gap:10, padding:'11px 16px', background:'none', border:'none', cursor:'pointer', color:'#FF2D8D', fontSize:14, fontFamily:'Poppins' }}>
+                            <HiBan size={15}/> {(userProfile?.blocked||[]).includes(post.uid) ? 'Débloquer' : 'Bloquer'} cette personne
+                          </button>
+                        </>
+                      )}
                     </div>
                   )}
                 </div>
@@ -838,7 +1002,11 @@ export default function Home() {
                   </div>
                 </div>
               )}
-              {post.mediaURL && (
+              {post.mediaURLs?.length > 1 ? (
+                <div style={{ marginTop:8, marginLeft:-16, marginRight:-16 }}>
+                  <PhotoCarousel urls={post.mediaURLs} />
+                </div>
+              ) : post.mediaURL && (
                 <div style={{ marginTop:8, marginLeft:-16, marginRight:-16 }}>
                   {post.mediaType==='image' ? <img src={post.mediaURL} alt="" style={{ width:'100%', borderRadius:0, maxHeight:520, objectFit:'cover', display:'block' }}/> : <div onClick={()=>navigate('/reels',{state:{startId:post.id}})} style={{ position:'relative', cursor:'pointer' }}><video src={post.mediaURL} poster={post.thumbURL || undefined} preload={(dataSaver || post.thumbURL) ? 'none' : 'metadata'} style={{ width:'100%', borderRadius:0, maxHeight:520, objectFit:'cover', display:'block', background:'#000' }} muted playsInline/><div style={{ position:'absolute', inset:0, display:'flex', alignItems:'center', justifyContent:'center' }}><div style={{ width:50, height:50, background:'rgba(0,0,0,0.5)', borderRadius:' 50%', display:'flex', alignItems:'center', justifyContent:'center' }}><span style={{ color:'white', fontSize:20 }}>▶</span></div></div></div>}
                 </div>
@@ -1052,6 +1220,27 @@ export default function Home() {
       })}
 
       {shareModalPost && <ShareModal post={shareModalPost} onClose={() => setShareModalPost(null)} />}
+
+      {/* ── Modal : Identifier des amis ─────────────────────── */}
+      {tagModalPost && (
+        <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.5)', zIndex:400, display:'flex', alignItems:'flex-end', justifyContent:'center' }} onClick={() => setTagModalPost(null)}>
+          <div onClick={e => e.stopPropagation()} style={{ background:'white', borderRadius:'20px 20px 0 0', padding:20, width:'100%', maxWidth:480, maxHeight:'75vh', overflowY:'auto' }}>
+            <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:14 }}>
+              <h3 style={{ fontWeight:800, fontSize:16 }}>Identifier des amis</h3>
+              <button onClick={() => setTagModalPost(null)} style={{ background:'none', border:'none', cursor:'pointer', color:'#65676B' }}><HiX size={20}/></button>
+            </div>
+            {tagFriendsList.length === 0 && <p style={{ fontSize:13, color:'#65676B', textAlign:'center', padding:'16px 0' }}>Vous n'avez pas encore d'amis à identifier.</p>}
+            {tagFriendsList.map(f => (
+              <label key={f.uid} style={{ display:'flex', alignItems:'center', gap:10, padding:'9px 4px', cursor:'pointer', borderBottom:'1px solid #F0F2F5' }}>
+                <input type="checkbox" checked={!!tagSelected[f.uid]} onChange={e => setTagSelected(p => ({ ...p, [f.uid]: e.target.checked }))} style={{ width:18, height:18, accentColor:'#1877F2' }}/>
+                <img src={f.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(f.fullName||'U')}&background=1877F2&color=fff`} alt="" style={{ width:36, height:36, borderRadius:'50%', objectFit:'cover' }}/>
+                <p style={{ fontWeight:600, fontSize:14 }}>{f.fullName}</p>
+              </label>
+            ))}
+            <button onClick={saveTags} className="btn-primary" style={{ width:'100%', marginTop:14, padding:'11px 0', fontSize:14 }}>Enregistrer</button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

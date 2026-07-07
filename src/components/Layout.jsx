@@ -16,6 +16,7 @@ import {
   HiBell, HiOutlineBell, HiMenu, HiX, HiSearch, HiLogout, HiCog,
   HiOutlineCog, HiTag, HiFilm, HiPhotograph,
   HiBookmark, HiOutlineBookmark, HiCalendar, HiSpeakerphone, HiShoppingBag, HiChevronRight,
+  HiMicrophone, HiIdentification, HiDocumentText,
 } from 'react-icons/hi';
 
 // Icône Reels personnalisée : caméra + grand "R" (comme demandé)
@@ -256,20 +257,40 @@ export default function Layout({ children }) {
             );
           })}
 
-          {/* Live — franc : nécessite une infrastructure vidéo dédiée, pas encore disponible */}
-          <button onClick={() => setLiveInfoOpen(true)}
+          {/* Artiste — canal artiste (musique/vidéo), à la place du Live */}
+          <button onClick={() => { navigate('/artists'); setDrawerOpen(false); }}
             style={{
               display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 8, padding: '14px', textAlign: 'left',
               background: isDark ? '#15181F' : 'white', border: `1.5px solid ${bdr}`, borderRadius: 16, cursor: 'pointer',
               boxShadow: '0 1px 3px rgba(0,0,0,.06)',
             }}>
-            <span className="icon-badge-3d" style={{ width: 44, height: 44, borderRadius: 13, background: 'linear-gradient(145deg, #FF6B6B, #E0242D)' }}>
-              <HiSpeakerphone size={22} color="white" />
+            <span className="icon-badge-3d" style={{ width: 44, height: 44, borderRadius: 13, background: 'linear-gradient(145deg, #FF6FA5, #FF2D8D)' }}>
+              <HiMicrophone size={22} color="white" />
             </span>
-            <span style={{ fontWeight: 700, fontSize: 14, color: text }}>Live</span>
-            <span style={{ fontSize: 11, color: '#65676B', marginTop: -6 }}>Bientôt disponible</span>
+            <span style={{ fontWeight: 700, fontSize: 14, color: text }}>Artiste</span>
+            <span style={{ fontSize: 11, color: '#65676B', marginTop: -6 }}>Musique, vidéos, canal</span>
           </button>
         </nav>
+
+        {/* Sera (Pages) et Bloc-notes */}
+        <div style={{ padding: '0 14px 14px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+          <button onClick={() => { navigate('/pages'); setDrawerOpen(false); }}
+            style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 8, padding: '14px', textAlign: 'left', background: isDark ? '#15181F' : 'white', border: `1.5px solid ${bdr}`, borderRadius: 16, cursor: 'pointer', boxShadow: '0 1px 3px rgba(0,0,0,.06)' }}>
+            <span className="icon-badge-3d" style={{ width: 44, height: 44, borderRadius: 13, background: 'linear-gradient(145deg,#63A9FF,#1877F2)' }}>
+              <HiIdentification size={22} color="white" />
+            </span>
+            <span style={{ fontWeight: 700, fontSize: 14, color: text }}>Sera</span>
+            <span style={{ fontSize: 11, color: '#65676B', marginTop: -6 }}>Pages publiques</span>
+          </button>
+          <button onClick={() => { navigate('/notes'); setDrawerOpen(false); }}
+            style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 8, padding: '14px', textAlign: 'left', background: isDark ? '#15181F' : 'white', border: `1.5px solid ${bdr}`, borderRadius: 16, cursor: 'pointer', boxShadow: '0 1px 3px rgba(0,0,0,.06)' }}>
+            <span className="icon-badge-3d" style={{ width: 44, height: 44, borderRadius: 13, background: 'linear-gradient(145deg,#FFD84D,#F2B300)' }}>
+              <HiDocumentText size={22} color="white" />
+            </span>
+            <span style={{ fontWeight: 700, fontSize: 14, color: text }}>Bloc-notes</span>
+            <span style={{ fontSize: 11, color: '#65676B', marginTop: -6 }}>Vos notes privées</span>
+          </button>
+        </div>
 
         {/* Logout */}
         <div style={{ padding: '8px 0', borderTop: `1px solid ${bdr}` }}>

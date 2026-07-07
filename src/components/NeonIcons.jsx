@@ -70,3 +70,44 @@ export function NeonMic({ size = 16, color = '#FF2D8D' }) {
     </svg>
   );
 }
+
+export function NeonArchive({ size = 16, color = '#1877F2' }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" style={glow(color)}>
+      <rect x="3" y="4" width="18" height="4.5" rx="1.3" stroke={color} strokeWidth="1.8" fill="none"/>
+      <path d="M4.5 8.5V18a1.6 1.6 0 0 0 1.6 1.6h11.8A1.6 1.6 0 0 0 19.5 18V8.5" stroke={color} strokeWidth="1.8" fill="none"/>
+      <path d="M10 12.5h4" stroke={color} strokeWidth="1.8" strokeLinecap="round"/>
+    </svg>
+  );
+}
+
+export function NeonClock({ size = 16, color = '#F2B300' }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" style={glow(color)}>
+      <circle cx="12" cy="12.5" r="8.3" stroke={color} strokeWidth="1.8" fill="none"/>
+      <path d="M12 7.8v5l3.4 2" stroke={color} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
+      <path d="M9 2.5h6" stroke={color} strokeWidth="1.8" strokeLinecap="round"/>
+    </svg>
+  );
+}
+
+export function NeonPeople({ size = 16, color = '#1877F2' }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" style={glow(color)}>
+      <circle cx="9" cy="8" r="3" stroke={color} strokeWidth="1.7" fill="none"/>
+      <circle cx="16.5" cy="9" r="2.4" stroke={color} strokeWidth="1.6" fill="none"/>
+      <path d="M3.5 19.5c0-3 2.5-5.2 5.5-5.2s5.5 2.2 5.5 5.2" stroke={color} strokeWidth="1.7" strokeLinecap="round" fill="none"/>
+      <path d="M15 14.8c2.4.2 4.3 2 4.3 4.4" stroke={color} strokeWidth="1.6" strokeLinecap="round" fill="none"/>
+    </svg>
+  );
+}
+
+export function NeonLock({ size = 16, color = '#65676B' }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" style={glow(color)}>
+      <rect x="5" y="10.5" width="14" height="9.5" rx="2" stroke={color} strokeWidth="1.8" fill="none"/>
+      <path d="M8 10.5V7.8a4 4 0 0 1 8 0v2.7" stroke={color} strokeWidth="1.8" fill="none"/>
+      <circle cx="12" cy="15" r="1.5" fill={color}/>
+    </svg>
+  );
+}

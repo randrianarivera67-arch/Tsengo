@@ -5,10 +5,13 @@ import { collection, query, where, orderBy, onSnapshot, limit } from 'firebase/f
 import { db } from '../firebase';
 import { HiShoppingBag, HiLocationMarker } from 'react-icons/hi';
 
+const CATEGORIES = ['Vêtements', 'Électronique', 'Déco & Maison', 'Véhicules', 'Alimentation', 'Beauté', 'Autre'];
+
 export default function Shop() {
   const navigate = useNavigate();
   const [items, setItems] = useState([]);
   const [loaded, setLoaded] = useState(false);
+  const [category, setCategory] = useState('Tout');
 
   useEffect(() => {
     const q = query(collection(db, 'posts'), where('isSale', '==', true), orderBy('createdAt', 'desc'), limit(100));
@@ -19,6 +22,8 @@ export default function Shop() {
     return () => unsub();
   }, []);
 
+  const filtered = category === 'Tout' ? items : items.filter(p => p.saleCategory === category);
+
   return (
     <div style={{ padding: '14px 12px' }}>
       <h2 style={{ fontWeight: 800, fontSize: 20, display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
@@ -27,18 +32,28 @@ export default function Shop() {
         </span>
         Boutique
       </h2>
-      <p style={{ fontSize: 12, color: '#65676B', marginBottom: 14 }}>Toutes les annonces de vente publiées sur Traingo</p>
+      <p style={{ fontSize: 12, color: '#65676B', marginBottom: 10 }}>Toutes les annonces de vente publiées sur Traingo</p>
+
+      <div style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 12, scrollbarWidth: 'none' }}>
+        {['Tout', ...CATEGORIES].map(c => (
+          <button key={c} onClick={() => setCategory(c)}
+            style={{ flexShrink: 0, padding: '7px 14px', borderRadius: 18, border: 'none', cursor: 'pointer', fontFamily: 'Poppins', fontSize: 12, fontWeight: 700,
+              background: category === c ? '#FF2D8D' : '#F0F2F5', color: category === c ? 'white' : '#050505' }}>
+            {c}
+          </button>
+        ))}
+      </div>
 
       {!loaded && <p style={{ textAlign: 'center', color: '#65676B', padding: 30, fontSize: 14 }}>Chargement...</p>}
-      {loaded && items.length === 0 && (
+      {loaded && filtered.length === 0 && (
         <div className="card" style={{ padding: 30, textAlign: 'center' }}>
-          <p style={{ fontWeight: 700, marginBottom: 4 }}>Aucun article en vente pour le moment</p>
+          <p style={{ fontWeight: 700, marginBottom: 4 }}>Aucun article{category !== 'Tout' ? ` en « ${category} »` : ''}</p>
           <p style={{ fontSize: 13, color: '#65676B' }}>Utilisez le bouton « Vendre » depuis l'accueil pour publier un article.</p>
         </div>
       )}
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-        {items.map(p => (
+        {filtered.map(p => (
           <div key={p.id} onClick={() => navigate(`/post/${p.id}`)}
             className="card" style={{ overflow: 'hidden', cursor: 'pointer' }}>
             {p.mediaURL ? (
@@ -49,7 +64,8 @@ export default function Shop() {
               <div style={{ width: '100%', height: 130, background: '#F0F2F5', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 30 }}>🏷️</div>
             )}
             <div style={{ padding: 10 }}>
-              <p style={{ fontWeight: 800, fontSize: 15, color: '#FF2D8D' }}>{p.price ? `${Number(p.price).toLocaleString()} Ar` : 'Prix à discuter'}</p>
+              {p.saleCategory && <span style={{ fontSize: 10, fontWeight: 700, color: '#FF2D8D', background: '#FFE9F2', borderRadius: 8, padding: '2px 7px' }}>{p.saleCategory}</span>}
+              <p style={{ fontWeight: 800, fontSize: 15, color: '#FF2D8D', marginTop: 4 }}>{p.price ? `${Number(p.price).toLocaleString()} Ar` : 'Prix à discuter'}</p>
               <p style={{ fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>{p.content}</p>
               {p.lieu && <p style={{ fontSize: 11, color: '#65676B', marginTop: 4, display: 'flex', alignItems: 'center', gap: 3 }}><HiLocationMarker size={11} />{p.lieu}</p>}
               <p style={{ fontSize: 11, color: '#65676B', marginTop: 4 }}>{p.authorName}</p>

@@ -12,7 +12,7 @@ import { timeAgo } from '../utils/timeAgo';
 import { isDataSaverOn, subscribeDataSaver } from '../utils/dataSaver';
 import { downloadMedia } from '../utils/download';
 import ShareModal from '../components/ShareModal';
-import { NeonBriefcase, NeonGraduation, NeonPhone, NeonGlobe, NeonLocation, NeonHome, NeonMic } from '../components/NeonIcons';
+import { NeonBriefcase, NeonGraduation, NeonPhone, NeonGlobe, NeonLocation, NeonHome, NeonMic, NeonArchive, NeonClock } from '../components/NeonIcons';
 import { uploadToTelegram } from '../utils/telegram';
 import { getChatId } from '../utils/chat';
 import { sendPushNotification } from '../utils/onesignal';
@@ -20,7 +20,7 @@ import { v4 as uuidv4 } from 'uuid';
 import {
   HiCamera, HiPencil, HiTag, HiChat, HiOutlineHeart,
   HiShare, HiStar, HiX, HiUserAdd, HiPhotograph, HiVideoCamera,
-  HiDotsVertical, HiTrash, HiLightningBolt, HiDownload,
+  HiDotsVertical, HiTrash, HiLightningBolt, HiDownload, HiPaperAirplane, HiFlag, HiBan,
   HiReply, HiPhone, HiLocationMarker
 } from 'react-icons/hi';
 
@@ -46,6 +46,7 @@ export default function Profile() {
 
   const isOwn     = !uid || uid === currentUser?.uid;
   const [profMenu,     setProfMenu]     = useState(false);
+  const [otherMenu,    setOtherMenu]    = useState(false);
   const [storyArchive, setStoryArchive] = useState(null);   // null | []
   const [dataSaver, setDataSaverState] = useState(isDataSaverOn());
   useEffect(() => subscribeDataSaver(setDataSaverState), []);
@@ -86,7 +87,7 @@ export default function Profile() {
   const cVideoRef = useRef({});
 
   useEffect(() => {
-    const fn = () => setPostMenu(null);
+    const fn = () => { setPostMenu(null); setOtherMenu(false); };
     document.addEventListener('click', fn);
   return () => document.removeEventListener('click', fn);
   }, []);
@@ -195,6 +196,33 @@ export default function Profile() {
     setFriendStatus('requested');
   }
 
+  const isBlockedByMe = (userProfile?.blocked || []).includes(targetUid);
+  async function toggleBlockUser() {
+    if (!targetUid || targetUid === currentUser.uid) return;
+    const msg = isBlockedByMe ? `Débloquer ${profile.fullName} ?` : `Bloquer ${profile.fullName} ? Vous ne verrez plus ses publications.`;
+    if (!window.confirm(msg)) return;
+    try {
+      await updateDoc(doc(db, 'users', currentUser.uid), {
+        blocked: isBlockedByMe ? arrayRemove(targetUid) : arrayUnion(targetUid),
+      });
+      setUserProfile(p => ({ ...p, blocked: isBlockedByMe ? (p.blocked||[]).filter(u=>u!==targetUid) : [...(p.blocked||[]), targetUid] }));
+      setOtherMenu(false);
+    } catch (err) { alert('Erreur : ' + (err?.message || err)); }
+  }
+
+  async function reportUser() {
+    if (!window.confirm(`Signaler le profil de ${profile.fullName} aux administrateurs ?`)) return;
+    try {
+      await addDoc(collection(db, 'reports'), {
+        type: 'user', targetUid, targetName: profile.fullName,
+        reportedBy: currentUser.uid, reportedByName: userProfile.fullName,
+        createdAt: serverTimestamp(), status: 'pending',
+      });
+      alert('Signalement envoyé. Merci.');
+      setOtherMenu(false);
+    } catch (err) { alert('Erreur : ' + (err?.message || err)); }
+  }
+
   const isFollowing = (profile?.followers || []).includes(currentUser?.uid);
   async function toggleFollow() {
     if (!currentUser || !targetUid || targetUid === currentUser.uid) return;
@@ -202,7 +230,12 @@ export default function Profile() {
       await updateDoc(doc(db, 'users', targetUid), {
         followers: isFollowing ? arrayRemove(currentUser.uid) : arrayUnion(currentUser.uid),
       });
+      // Miroir ao amin'ny compte-nao ihany koa : mora jerena avy amin'ny fil d'actualités
+      await updateDoc(doc(db, 'users', currentUser.uid), {
+        following: isFollowing ? arrayRemove(targetUid) : arrayUnion(targetUid),
+      });
       setProfile(p => ({ ...p, followers: isFollowing ? (p.followers || []).filter(u => u !== currentUser.uid) : [...(p.followers || []), currentUser.uid] }));
+      setUserProfile(p => ({ ...p, following: isFollowing ? (p.following || []).filter(u => u !== targetUid) : [...(p.following || []), targetUid] }));
       if (!isFollowing) {
         await addDoc(collection(db, 'notifications'), {
           toUid: targetUid, fromUid: currentUser.uid, fromName: userProfile.fullName, fromPhoto: userProfile.photoURL || '',
@@ -645,8 +678,8 @@ export default function Profile() {
                   <button onClick={() => setProfMenu(p => !p)} style={{ width:36, height:36, borderRadius:'50%', background:'#F0F2F5', border:'none', cursor:'pointer', color:'#050505', display:'flex', alignItems:'center', justifyContent:'center' }}><HiDotsVertical size={17}/></button>
                   {profMenu && (
                     <div style={{ position:'absolute', top:'110%', right:0, background:'white', border:'1px solid #E4E6EB', borderRadius:12, boxShadow:'0 4px 20px rgba(0,0,0,.14)', minWidth:210, zIndex:60, overflow:'hidden' }}>
-                      <button onClick={openStoryArchive} style={{ width:'100%', display:'flex', alignItems:'center', gap:10, padding:'12px 16px', background:'none', border:'none', cursor:'pointer', fontFamily:'Poppins', fontSize:14, color:'#050505', borderBottom:'1px solid #F0F2F5' }}>🗂️ Archive de votre story</button>
-                      <button onClick={openSouvenirs} style={{ width:'100%', display:'flex', alignItems:'center', gap:10, padding:'12px 16px', background:'none', border:'none', cursor:'pointer', fontFamily:'Poppins', fontSize:14, color:'#050505' }}>🕰️ Souvenirs</button>
+                      <button onClick={openStoryArchive} style={{ width:'100%', display:'flex', alignItems:'center', gap:10, padding:'12px 16px', background:'none', border:'none', cursor:'pointer', fontFamily:'Poppins', fontSize:14, color:'#050505', borderBottom:'1px solid #F0F2F5' }}><NeonArchive/> Archive de votre story</button>
+                      <button onClick={openSouvenirs} style={{ width:'100%', display:'flex', alignItems:'center', gap:10, padding:'12px 16px', background:'none', border:'none', cursor:'pointer', fontFamily:'Poppins', fontSize:14, color:'#050505' }}><NeonClock/> Souvenirs</button>
                     </div>
                   )}
                 </div>
@@ -656,10 +689,19 @@ export default function Profile() {
                   <button onClick={toggleFollow} className={isFollowing ? 'btn-secondary' : 'btn-gold'} style={{ fontSize:13, padding:'8px 16px' }}>
                     {isFollowing ? '✓ Abonné' : '⭐ Suivre'}
                   </button>
-                  <button onClick={() => navigate(`/messages/${getChatId(currentUser.uid,targetUid)}`)} className="btn-primary" style={{ fontSize:13, padding:'8px 18px' }}><HiChat size={14} style={{ display:'inline', marginRight:4 }}/>Message</button>
+                  <button onClick={() => navigate(`/messages/${getChatId(currentUser.uid,targetUid)}`)} className="btn-primary" style={{ fontSize:13, padding:'8px 18px' }}><HiPaperAirplane size={14} style={{ display:'inline', marginRight:4 }}/>Message</button>
                   {friendStatus==='none'&&<button onClick={sendFriendRequest} style={{ display:'inline-flex', alignItems:'center', gap:6, background:"linear-gradient(180deg,#1B84FF,#1877F2)", border:"none", borderRadius:20, padding:'8px 16px', color:"white", fontWeight:600, cursor:'pointer', fontSize:13, boxShadow:"0 3px 12px rgba(24,119,242,.35)" }}><HiUserAdd size={14}/>Ajouter</button>}
                   {friendStatus==='requested'&&<span style={{ display:'inline-flex', alignItems:'center', background:'#F3F4F6', borderRadius:20, padding:'8px 16px', color:'#9CA3AF', fontSize:13 }}>Demande envoyée</span>}
                   {friendStatus==='friend'&&<span style={{ display:'inline-flex', alignItems:'center', background:'#D1FAE5', borderRadius:20, padding:'8px 16px', color:'#065F46', fontSize:13 }}>✓ Ami</span>}
+                  <div style={{ position:'relative', display:'inline-block' }} onClick={e => e.stopPropagation()}>
+                    <button onClick={() => setOtherMenu(p => !p)} style={{ width:36, height:36, borderRadius:'50%', background:'#F0F2F5', border:'none', cursor:'pointer', color:'#050505', display:'flex', alignItems:'center', justifyContent:'center' }}><HiDotsVertical size={17}/></button>
+                    {otherMenu && (
+                      <div style={{ position:'absolute', top:'110%', right:0, background:'white', border:'1px solid #E4E6EB', borderRadius:12, boxShadow:'0 4px 20px rgba(0,0,0,.14)', minWidth:210, zIndex:60, overflow:'hidden' }}>
+                        <button onClick={reportUser} style={{ width:'100%', display:'flex', alignItems:'center', gap:10, padding:'12px 16px', background:'none', border:'none', cursor:'pointer', fontFamily:'Poppins', fontSize:14, color:'#050505', borderBottom:'1px solid #F0F2F5' }}><HiFlag size={16} color="#F2B300"/> Signaler à l'admin</button>
+                        <button onClick={toggleBlockUser} style={{ width:'100%', display:'flex', alignItems:'center', gap:10, padding:'12px 16px', background:'none', border:'none', cursor:'pointer', fontFamily:'Poppins', fontSize:14, color:'#FF2D8D' }}><HiBan size={16}/> {isBlockedByMe ? 'Débloquer' : 'Bloquer'} cette personne</button>
+                      </div>
+                    )}
+                  </div>
                 </>
               )}
             </div>
