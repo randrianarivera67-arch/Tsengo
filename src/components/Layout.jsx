@@ -440,7 +440,7 @@ export default function Layout({ children }) {
 
       {/* ── Dock flottant (style Telegram) ─────────────────────── */}
       <nav className="floating-dock">
-        {bottomNav.map(({ path, AIcon, badge, color, isRevy }) => {
+        {bottomNav.map(({ path, AIcon, badge, color, isRevy, label }) => {
           const active = isActive(path);
           return (
             <button key={path} className={`dock-item ${active ? 'active' : ''}`} onClick={() => navigate(path)}
