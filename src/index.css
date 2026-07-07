@@ -437,6 +437,7 @@ input::placeholder, textarea::placeholder { color: #8A8D91 !important; font-size
   animation: reelSpin .8s linear infinite;
 }
 @keyframes reelSpin { to { transform: rotate(360deg); } }
+.nav-item {
   display: flex; flex-direction: column; align-items: center;
   padding: 6px 4px; cursor: pointer; border-radius: 12px;
   transition: all .2s; color: var(--gray-txt); font-size: 11px; gap: 3px;
