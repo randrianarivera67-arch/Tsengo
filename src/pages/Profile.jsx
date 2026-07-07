@@ -803,7 +803,7 @@ export default function Profile() {
                     <p style={{ fontWeight:600, fontSize:13, color:'#050505' }}>{f.fullName}{f.isVip&&<img src='/vip-badge.png' style={{ width:32, height:32, marginLeft:5, verticalAlign:'middle', display:'inline-block', flexShrink:0, objectFit:'contain' }} alt='VIP'/>}</p>
                     <p style={{ fontSize:11, color:'#65676B' }}>@{f.username}</p>
                   </div>
-                  <button onClick={e=>{e.stopPropagation();navigate(`/messages/${getChatId(currentUser.uid,f.uid)}`);}} style={{ background:'#E4E6EB', border:'none', borderRadius:16, padding:'5px 12px', color:'#1877F2', cursor:'pointer', fontSize:12, display:'flex', alignItems:'center', gap:4 }}><HiChat size={12}/>Message</button>
+                  <button onClick={e=>{e.stopPropagation();navigate(`/messages/${getChatId(currentUser.uid,f.uid)}`);}} style={{ background:'#E4E6EB', border:'none', borderRadius:16, padding:'5px 12px', color:'#1877F2', cursor:'pointer', fontSize:12, display:'flex', alignItems:'center', gap:4 }}><HiPaperAirplane size={12}/>Message</button>
                 </div>
               ))}
             </div>

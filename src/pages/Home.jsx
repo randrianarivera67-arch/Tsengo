@@ -29,7 +29,7 @@ import {
   HiPhotograph, HiVideoCamera, HiTag, HiOutlineHeart, HiChat,
   HiTrash, HiPencil, HiX, HiShare, HiFilm, HiOutlineChat,
   HiDotsVertical, HiDownload, HiLightningBolt, HiPhone, HiLocationMarker,
-  HiReply, HiUserAdd, HiUserGroup, HiBookmark, HiFlag, HiBan, HiPaperAirplane, HiIdentification, HiShoppingBag, HiCalendar
+  HiReply, HiUserAdd, HiUserGroup, HiBookmark, HiFlag, HiBan, HiPaperAirplane, HiIdentification, HiShoppingBag, HiCalendar, HiClipboardCopy
 } from 'react-icons/hi';
 
 const MAX_POST    = 2000;
@@ -65,6 +65,11 @@ export default function Home() {
   const [storyGroups, setStoryGroups] = useState([]);       // [{uid, name, photo, items:[...]}]
   const [storyViewer, setStoryViewer] = useState(null);     // {group, index}
   const [addingStory, setAddingStory] = useState(false);
+  const [createStoryMenuOpen, setCreateStoryMenuOpen] = useState(false);
+  const [storyPaused, setStoryPaused] = useState(false);
+  const storyPressTimer = useRef(null);
+  const storyPressedRef = useRef(false);
+  const storyVideoRef = useRef(null);
   const [dataSaver, setDataSaverState] = useState(isDataSaverOn());
   useEffect(() => subscribeDataSaver(setDataSaverState), []);
   const [shareModalPost, setShareModalPost] = useState(null);
@@ -100,6 +105,10 @@ export default function Home() {
   const [cmtReactions, setCmtReactions] = useState({});
   const [editPost, setEditPost]     = useState(null);
   const [editContent, setEditContent] = useState('');
+  const [textCopyMenu, setTextCopyMenu] = useState(null);   // {id, content}
+  const [copyToast, setCopyToast]   = useState(false);
+  const textPressTimer = useRef(null);
+  const textPressedRef = useRef(false);
   const [postMenu, setPostMenu]     = useState(null);
   const [editCmt, setEditCmt]       = useState(null);
   const [replyTo, setReplyTo]       = useState({});
@@ -557,6 +566,7 @@ export default function Home() {
       });
     } catch (err) { alert('Erreur story : ' + (err?.message || err)); }
     setAddingStory(false);
+    if (e.target) e.target.value = '';
     e.target.value = '';
   }
 
@@ -684,18 +694,69 @@ export default function Home() {
     });
   }
 
-  // Avance automatique des images (5s)
+  // Appui long sur le texte d'une publication = menu "Copier le texte"
+  function startTextPress(e, post) {
+    textPressedRef.current = false;
+    clearTimeout(textPressTimer.current);
+    textPressTimer.current = setTimeout(() => {
+      textPressedRef.current = true;
+      setTextCopyMenu({ id: post.id, content: post.content });
+    }, 500);
+  }
+  function endTextPress() {
+    clearTimeout(textPressTimer.current);
+  }
+  async function copyPostText(txt) {
+    try {
+      if (navigator.clipboard?.writeText) await navigator.clipboard.writeText(txt);
+      else {
+        const ta = document.createElement('textarea');
+        ta.value = txt; ta.style.position = 'fixed'; ta.style.opacity = '0';
+        document.body.appendChild(ta); ta.select();
+        document.execCommand('copy'); document.body.removeChild(ta);
+      }
+      setTextCopyMenu(null);
+      setCopyToast(true);
+      setTimeout(() => setCopyToast(false), 1600);
+    } catch { setTextCopyMenu(null); }
+  }
+
+  // Appui long = pause (tsy manao next). Tap fohy (<250ms) = navigate (prev/next).
+  function startStoryPress() {
+    storyPressedRef.current = false;
+    clearTimeout(storyPressTimer.current);
+    storyPressTimer.current = setTimeout(() => {
+      storyPressedRef.current = true;      // appui long détecté -> pause
+      setStoryPaused(true);
+      try { storyVideoRef.current?.pause(); } catch {}
+    }, 250);
+  }
+  function endStoryPress(navFn) {
+    clearTimeout(storyPressTimer.current);
+    if (storyPressedRef.current) {
+      // C'était un appui long -> on relâche : reprendre la lecture, PAS de navigation
+      setStoryPaused(false);
+      try { storyVideoRef.current?.play(); } catch {}
+    } else {
+      // Tap court -> navigation (prev/next)
+      if (navFn) navFn();
+    }
+    storyPressedRef.current = false;
+  }
+
+  // Avance automatique des images (5s) — mijanona raha appui long (pause)
   useEffect(() => {
-    if (!storyViewer) return;
+    if (!storyViewer || storyPaused) return;
     const cur = storyViewer.group.items[storyViewer.index];
     if (!cur || cur.mediaType === 'video') return;
     const tm = setTimeout(nextStory, 5000);
     return () => clearTimeout(tm);
-  }, [storyViewer]);
+  }, [storyViewer, storyPaused]);
 
   // ✅ Marquer "Vu" rehefa miseho ny story (raha tsy anao)
   useEffect(() => {
     if (!storyViewer) return;
+    setStoryPaused(false);   // reset pause rehefa miova story
     const cur = storyViewer.group.items[storyViewer.index];
     if (cur) markStoryViewed(cur);
   }, [storyViewer]);
@@ -720,9 +781,9 @@ export default function Home() {
 
       {/* ── Stories (format Facebook) ─────────────────────────── */}
       <div className="stories-strip">
-        {/* Carte : Créer une story (photo/vidéo) */}
+        {/* Carte : Créer une story (menu unifié : texte / photo / vidéo) */}
         <input ref={storyFileRef} type="file" accept="image/*,video/mp4,video/webm,video/quicktime" style={{ display:'none' }} onChange={addStory} />
-        <div className="story-card" onClick={() => !addingStory && storyFileRef.current?.click()} style={{ background:'white', border:'1px solid #E4E6EB' }}>
+        <div className="story-card" onClick={() => !addingStory && setCreateStoryMenuOpen(true)} style={{ background:'white', border:'1px solid #E4E6EB' }}>
           <div style={{ height:'62%', overflow:'hidden' }}>
             <img src={userProfile?.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(userProfile?.fullName||'U')}&background=1877F2&color=fff`}
               alt="" style={{ width:'100%', height:'100%', objectFit:'cover' }} />
@@ -731,12 +792,6 @@ export default function Home() {
           <p style={{ position:'absolute', bottom:8, left:0, right:0, textAlign:'center', fontSize:11, fontWeight:600, color:'#050505' }}>
             {addingStory ? 'Envoi...' : 'Créer une story'}
           </p>
-        </div>
-
-        {/* Carte : Story texte (fond en couleur) */}
-        <div className="story-card" onClick={() => setTextStoryOpen(true)} style={{ background:'linear-gradient(135deg,#050505,#3A3B3C)' }}>
-          <div style={{ position:'absolute', inset:0, display:'flex', alignItems:'center', justifyContent:'center', color:'white', fontSize:36, fontWeight:800 }}>Aa</div>
-          <p style={{ position:'absolute', bottom:8, left:0, right:0, textAlign:'center', fontSize:11, fontWeight:600, color:'white' }}>Story texte</p>
         </div>
 
         {/* Stories des utilisateurs */}
@@ -759,6 +814,37 @@ export default function Home() {
           );
         })}
       </div>
+
+      {/* ── Bottom sheet : Créer une story (choix texte / photo / vidéo) ── */}
+      {createStoryMenuOpen && (
+        <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,.5)', zIndex:400, display:'flex', alignItems:'flex-end', justifyContent:'center' }} onClick={() => setCreateStoryMenuOpen(false)}>
+          <div onClick={e => e.stopPropagation()} style={{ background:'white', borderRadius:'20px 20px 0 0', width:'100%', maxWidth:520, padding:'10px 0 22px' }}>
+            <div style={{ width:40, height:4, borderRadius:2, background:'#CED0D4', margin:'6px auto 12px' }} />
+            <p style={{ fontWeight:800, fontSize:17, textAlign:'center', marginBottom:14, color:'#050505' }}>Créer une story</p>
+            <button onClick={() => { setCreateStoryMenuOpen(false); setTextStoryOpen(true); }}
+              style={{ width:'100%', display:'flex', alignItems:'center', gap:14, padding:'14px 22px', background:'none', border:'none', cursor:'pointer', textAlign:'left' }}>
+              <span className="icon-badge-3d" style={{ width:44, height:44, borderRadius:13, background:'linear-gradient(145deg,#8F7BFF,#5E4BDB)', flexShrink:0 }}>
+                <span style={{ color:'white', fontSize:22, fontWeight:800 }}>Aa</span>
+              </span>
+              <span><span style={{ display:'block', fontWeight:700, fontSize:15, color:'#050505' }}>Texte</span><span style={{ display:'block', fontSize:12, color:'#65676B' }}>Fond en couleur</span></span>
+            </button>
+            <button onClick={() => { setCreateStoryMenuOpen(false); storyFileRef.current.accept='image/*'; storyFileRef.current.click(); }}
+              style={{ width:'100%', display:'flex', alignItems:'center', gap:14, padding:'14px 22px', background:'none', border:'none', cursor:'pointer', textAlign:'left' }}>
+              <span className="icon-badge-3d" style={{ width:44, height:44, borderRadius:13, background:'linear-gradient(145deg,#3DD9C4,#12A48D)', flexShrink:0 }}>
+                <HiPhotograph size={22} color="white" />
+              </span>
+              <span><span style={{ display:'block', fontWeight:700, fontSize:15, color:'#050505' }}>Photo</span><span style={{ display:'block', fontSize:12, color:'#65676B' }}>Depuis votre galerie</span></span>
+            </button>
+            <button onClick={() => { setCreateStoryMenuOpen(false); storyFileRef.current.accept='video/mp4,video/webm,video/quicktime'; storyFileRef.current.click(); }}
+              style={{ width:'100%', display:'flex', alignItems:'center', gap:14, padding:'14px 22px', background:'none', border:'none', cursor:'pointer', textAlign:'left' }}>
+              <span className="icon-badge-3d" style={{ width:44, height:44, borderRadius:13, background:'linear-gradient(145deg,#FF6FA5,#FF2D8D)', flexShrink:0 }}>
+                <HiVideoCamera size={22} color="white" />
+              </span>
+              <span><span style={{ display:'block', fontWeight:700, fontSize:15, color:'#050505' }}>Vidéo</span><span style={{ display:'block', fontSize:12, color:'#65676B' }}>30 secondes max</span></span>
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* ── Modal : Créer une story texte ──────────────────────── */}
       {textStoryOpen && (
@@ -813,12 +899,22 @@ export default function Home() {
             {/* Média + zones tactiles gauche/droite */}
             <div style={{ flex:1, position:'relative', display:'flex', alignItems:'center', justifyContent:'center', overflow:'hidden', background: cur.mediaType === 'text' ? (cur.bgColor || '#1877F2') : 'transparent' }}>
               {cur.mediaType === 'video'
-                ? <video key={cur.id} src={cur.mediaURL} autoPlay={!dataSaver} controls={dataSaver} playsInline onEnded={nextStory} style={{ maxWidth:'100%', maxHeight:'100%' }} />
+                ? <video ref={storyVideoRef} key={cur.id} src={cur.mediaURL} autoPlay={!dataSaver} controls={dataSaver} playsInline onEnded={nextStory} style={{ maxWidth:'100%', maxHeight:'100%' }} />
                 : cur.mediaType === 'text'
                 ? <p style={{ color:'white', fontSize:30, fontWeight:800, textAlign:'center', padding:'0 30px', wordBreak:'break-word' }}>{cur.text}</p>
                 : <img key={cur.id} src={cur.mediaURL} alt="" style={{ maxWidth:'100%', maxHeight:'100%', objectFit:'contain' }} />}
-              <div onClick={prevStory} style={{ position:'absolute', left:0, top:0, bottom:0, width:'35%' }} />
-              <div onClick={nextStory} style={{ position:'absolute', right:0, top:0, bottom:0, width:'65%' }} />
+              {/* Zone gauche : appui long = pause, tap = précédent */}
+              <div
+                onPointerDown={() => startStoryPress()}
+                onPointerUp={() => endStoryPress(prevStory)}
+                onPointerLeave={() => endStoryPress(null)}
+                style={{ position:'absolute', left:0, top:0, bottom:0, width:'35%', touchAction:'none' }} />
+              {/* Zone droite : appui long = pause, tap = suivant */}
+              <div
+                onPointerDown={() => startStoryPress()}
+                onPointerUp={() => endStoryPress(nextStory)}
+                onPointerLeave={() => endStoryPress(null)}
+                style={{ position:'absolute', right:0, top:0, bottom:0, width:'65%', touchAction:'none' }} />
             </div>
 
             {/* ── Répondre (envoie un message direct au propriétaire) ── */}
@@ -1005,6 +1101,30 @@ export default function Home() {
       </div>
 
       {/* Edit post modal */}
+      {/* ── Menu : Copier le texte (appui long sur une publication) ── */}
+      {textCopyMenu && (
+        <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,.5)', zIndex:400, display:'flex', alignItems:'flex-end', justifyContent:'center' }} onClick={() => setTextCopyMenu(null)}>
+          <div onClick={e => e.stopPropagation()} style={{ background:'white', borderRadius:'20px 20px 0 0', width:'100%', maxWidth:520, padding:'10px 0 22px' }}>
+            <div style={{ width:40, height:4, borderRadius:2, background:'#CED0D4', margin:'6px auto 12px' }} />
+            <button onClick={() => copyPostText(textCopyMenu.content)}
+              style={{ width:'100%', display:'flex', alignItems:'center', gap:14, padding:'15px 22px', background:'none', border:'none', cursor:'pointer', textAlign:'left', fontSize:15, fontWeight:600, color:'#050505', fontFamily:'Poppins' }}>
+              <HiClipboardCopy size={22} color="#1877F2" /> Copier le texte
+            </button>
+            <button onClick={() => setTextCopyMenu(null)}
+              style={{ width:'100%', display:'flex', alignItems:'center', gap:14, padding:'15px 22px', background:'none', border:'none', cursor:'pointer', textAlign:'left', fontSize:15, fontWeight:600, color:'#65676B', fontFamily:'Poppins' }}>
+              <HiX size={22} color="#65676B" /> Annuler
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Toast : Texte copié */}
+      {copyToast && (
+        <div style={{ position:'fixed', bottom:104, left:'50%', transform:'translateX(-50%)', zIndex:450, background:'#050505', color:'white', padding:'10px 20px', borderRadius:22, fontSize:14, fontWeight:600, fontFamily:'Poppins', boxShadow:'0 6px 20px rgba(0,0,0,.3)' }}>
+          ✓ Texte copié
+        </div>
+      )}
+
       {editPost && (
         <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,.5)', zIndex:200, display:'flex', alignItems:'center', justifyContent:'center', padding:20 }}>
           <div className="card" style={{ width:'100%', maxWidth:400, padding:20 }}>
@@ -1208,7 +1328,19 @@ export default function Home() {
 
             {/* Content */}
             <div style={{ padding:'10px 16px', cursor:'pointer' }} onClick={() => navigate(`/post/${post.id}`)}>
-              {post.content && <p style={{ fontSize:15, lineHeight:1.6, wordBreak:'break-word' }}>{post.content}</p>}
+              {post.content && (
+                <p
+                  onClick={e => {
+                    // Raha nisy sélection texte (copie), tsy mandeha amin'ny post
+                    if (window.getSelection && window.getSelection().toString().length > 0) { e.stopPropagation(); return; }
+                  }}
+                  onContextMenu={e => { e.stopPropagation(); }}
+                  onPointerDown={e => startTextPress(e, post)}
+                  onPointerUp={endTextPress}
+                  onPointerLeave={endTextPress}
+                  style={{ fontSize:15, lineHeight:1.6, wordBreak:'break-word', whiteSpace:'pre-wrap', userSelect:'text', WebkitUserSelect:'text', cursor:'text' }}
+                >{post.content}</p>
+              )}
               {post.isSale && (post.contact||post.lieu) && (
                 <div style={{ marginTop:8, display:'flex', flexWrap:'wrap', gap:8 }}>
                   {post.contact && <a href={`tel:${post.contact}`} onClick={e=>e.stopPropagation()} style={{ display:'flex', alignItems:'center', gap:5, background:'#E4E6EB', borderRadius:20, padding:'5px 12px', color:'#1877F2', fontSize:13, fontWeight:600, textDecoration:'none' }}><HiPhone size={13}/>{post.contact}</a>}

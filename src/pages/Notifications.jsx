@@ -6,7 +6,7 @@ import { useLang } from '../context/LanguageContext';
 import { getChatId } from '../utils/chat';
 import { useAuth } from '../context/AuthContext';
 import { timeAgo } from '../utils/timeAgo';
-import { HiHeart, HiChat, HiUserAdd, HiCheck, HiBell, HiNewspaper, HiLightningBolt, HiX } from 'react-icons/hi';
+import { HiHeart, HiChat, HiPaperAirplane, HiUserAdd, HiCheck, HiBell, HiNewspaper, HiLightningBolt, HiX } from 'react-icons/hi';
 
 const ICONS = {
   comment:        { icon: HiChat,          color: '#3b82f6' },
@@ -14,7 +14,7 @@ const ICONS = {
   friendRequest:  { icon: HiUserAdd,       color: '#8b5cf6' },
   friendAccepted: { icon: HiCheck,         color: '#22c55e' },
   post:           { icon: HiNewspaper,     color: '#f59e0b' },
-  message:        { icon: HiChat,          color: '#06b6d4' },
+  message:        { icon: HiPaperAirplane, color: '#06b6d4' },
   boost:          { icon: HiLightningBolt, color: '#a855f7' },
 };
 

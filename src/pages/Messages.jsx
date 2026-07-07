@@ -679,7 +679,7 @@ export default function Messages() {
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <p style={{ fontWeight: 700, fontSize: 15 }}>{item.data.user.fullName}</p>
+                    <p style={{ fontWeight: item.data.unread > 0 ? 800 : 500, fontSize: 15, color: item.data.unread > 0 ? '#050505' : '#65676B' }}>{item.data.user.fullName}</p>
                     {item.data.unread > 0 && <span style={{ background: '#1877F2', color: 'white', borderRadius: 10, padding: '1px 7px', fontSize: 11, fontWeight: 700 }}>{item.data.unread}</span>}
                   </div>
                   <p style={{ fontSize: 12, color: '#65676B', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>

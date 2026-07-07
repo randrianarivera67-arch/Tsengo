@@ -11,7 +11,7 @@ import { useAuth } from '../context/AuthContext';
 import { useLang } from '../context/LanguageContext';
 import { getChatId } from '../utils/chat';
 import { sendPushNotification } from '../utils/onesignal';
-import { HiSearch, HiUserAdd, HiUserRemove, HiChat, HiCheck, HiX, HiUsers } from 'react-icons/hi';
+import { HiSearch, HiUserAdd, HiUserRemove, HiPaperAirplane, HiCheck, HiX, HiUsers } from 'react-icons/hi';
 
 function VIPBadge() {
   return <img src='/vip-badge.png' style={{ width:32, height:32, marginLeft:5, verticalAlign:'middle', display:'inline-block', flexShrink:0, objectFit:'contain' }} alt='VIP'/>;
@@ -214,7 +214,7 @@ export default function Friends() {
                         onClick={() => navigate(`/messages/${getChatId(currentUser.uid, user.uid)}`)}
                         style={{ background: '#E4E6EB', border: 'none', borderRadius: 20, padding: '6px 12px', cursor: 'pointer', color: '#1877F2', fontWeight: 600, fontSize: 12, display: 'flex', alignItems: 'center', gap: 4 }}
                       >
-                        <HiChat size={14} /> {t('message')}
+                        <HiPaperAirplane size={14} /> {t('message')}
                       </button>
                       <button onClick={() => removeFriend(user.uid)} style={{ background: 'none', border: '1px solid #E4E6EB', borderRadius: 20, padding: '5px 12px', cursor: 'pointer', color: '#65676B', fontSize: 12 }}>
                         {t('removeFriend')}
@@ -269,7 +269,7 @@ export default function Friends() {
                     onClick={() => navigate(`/messages/${getChatId(currentUser.uid, friend.uid)}`)}
                     style={{ background: 'linear-gradient(135deg,#FF2D8D,#FF7AB8)', border: 'none', borderRadius: '50%', width: 36, height: 36, cursor: 'pointer', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                   >
-                    <HiChat size={17} />
+                    <HiPaperAirplane size={17} />
                   </button>
                   <button
                     onClick={() => navigate(`/profile/${friend.uid}`)}

@@ -45,6 +45,7 @@ export default function Reels() {
   const [reactionModal,     setRM]              = useState(null);
   const [videoFit,          setVideoFit]        = useState({});   // idx -> 'cover' | 'contain'
   const [pausedIdx,         setPausedIdx]        = useState(null);
+  const [bufferingIdx,      setBufferingIdx]     = useState(null);
   const [dataSaver,         setDataSaverState]   = useState(isDataSaverOn());
   useEffect(() => subscribeDataSaver(setDataSaverState), []);
   const [shareModal,        setShareModal]       = useState(null);
@@ -254,7 +255,7 @@ export default function Reels() {
                 ref={el=>videoRefs.current[idx]=el}
                 src={post.mediaURL} loop playsInline
                 poster={post.thumbURL || undefined}
-                preload={dataSaver ? 'none' : 'metadata'}
+                preload={dataSaver ? 'none' : (Math.abs(idx - activeIndex) <= 1 ? 'auto' : 'metadata')}
                 style={{ width:'100%', height:'100%', objectFit: videoFit[idx] || 'cover', background:'#000' }}
                 onLoadedMetadata={e => {
                   const v = e.target;
@@ -262,11 +263,21 @@ export default function Reels() {
                   const fit = (v.videoHeight >= v.videoWidth * 0.95) ? 'cover' : 'contain';
                   setVideoFit(p => p[idx] === fit ? p : { ...p, [idx]: fit });
                 }}
+                onWaiting={() => idx===activeIndex && setBufferingIdx(idx)}
+                onPlaying={() => setBufferingIdx(p => p===idx ? null : p)}
+                onCanPlay={() => setBufferingIdx(p => p===idx ? null : p)}
                 onPlay={() => setPausedIdx(p => p===idx?null:p)}
                 onPause={() => idx===activeIndex && setPausedIdx(idx)}
                 onClick={() => { const v=videoRefs.current[idx]; if(v) v.paused?v.play().catch(()=>{}):v.pause(); }}
               />
               <div style={{ position:'absolute', inset:0, background:'linear-gradient(to top, rgba(0,0,0,0.7) 0%, transparent 50%)', pointerEvents:'none' }}/>
+
+              {/* Spinner buffering — miseho rehefa tena mbuffer ihany (tsy paused manuel) */}
+              {idx===activeIndex && bufferingIdx===idx && pausedIdx!==idx && (
+                <div style={{ position:'absolute', inset:0, display:'flex', alignItems:'center', justifyContent:'center', pointerEvents:'none' }}>
+                  <div className="reel-spinner" />
+                </div>
+              )}
 
               {/* Icône "tap pour lire" — rehefa paused (data saver na tap manuel) */}
               {idx===activeIndex && pausedIdx===idx && (

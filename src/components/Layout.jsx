@@ -22,13 +22,24 @@ import {
 // Pill "Revy" — recrée fidèlement l'image de référence : rectangle large,
 // contour blanc, texte "Revy" + trait pointillé + triangle lecture
 function RevyPill({ height = 42 }) {
-  const w = height * 2.2;
+  const w = height * 2.35;
   return (
-    <svg width={w} height={height} viewBox="0 0 220 100" style={{ display: 'block' }}>
-      <rect x="4" y="4" width="212" height="92" rx="22" fill="#FF1D7E" stroke="white" strokeWidth="7"/>
-      <line x1="140" y1="22" x2="140" y2="78" stroke="white" strokeWidth="5" strokeDasharray="9 8" strokeLinecap="round"/>
-      <text x="18" y="68" fontFamily="Poppins, Arial, sans-serif" fontWeight="800" fontSize="46" fill="white">Revy</text>
-      <path d="M162 32 L196 50 L162 68 Z" fill="white"/>
+    <svg width={w} height={height} viewBox="0 0 235 100" style={{ display: 'block' }}>
+      <defs>
+        <linearGradient id="revyBg" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stopColor="#FF4D9E"/>
+          <stop offset="1" stopColor="#FF1D7E"/>
+        </linearGradient>
+        <linearGradient id="revyPlay" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stopColor="#FFFFFF"/>
+          <stop offset="0.5" stopColor="#E8ECF2"/>
+          <stop offset="1" stopColor="#B8C0CC"/>
+        </linearGradient>
+      </defs>
+      <rect x="3" y="8" width="229" height="84" rx="26" fill="url(#revyBg)"/>
+      <text x="26" y="66" fontFamily="Poppins, 'Segoe UI', sans-serif" fontWeight="700" fontSize="44" letterSpacing="0.5" fill="white" fontStyle="italic">Revy</text>
+      <circle cx="188" cy="50" r="26" fill="rgba(255,255,255,.16)"/>
+      <path d="M178 36 L206 50 L178 64 Z" fill="url(#revyPlay)"/>
     </svg>
   );
 }
@@ -75,11 +86,11 @@ export default function Layout({ children }) {
   // Dock flottant — 3 couleurs du logo uniquement : bleu / rose / doré
   // Notifications afindra any amin'ny top bar — ny "Revy" (Reels) no centré eto
   const bottomNav = [
-    { path: '/',                            AIcon: HiHome,      color: '#1877F2' },
-    { path: '/friends',                     AIcon: HiUserGroup, color: '#F2B300' },
-    { path: '/reels',                       isRevy: true,       color: '#FF1D7E' },
-    { path: '/messages',                    AIcon: HiPaperAirplane, color: '#1877F2', badge: msgCount },
-    { path: `/profile/${currentUser?.uid}`, AIcon: HiUser,      color: '#F2B300' },
+    { path: '/',                            AIcon: HiHome,          color: '#1877F2', label: 'Accueil' },
+    { path: '/friends',                     AIcon: HiUserGroup,     color: '#F5C518', label: 'Amis' },
+    { path: '/reels',                       isRevy: true,           color: '#FF1D7E', label: 'Revy' },
+    { path: '/messages',                    AIcon: HiPaperAirplane, color: '#F5C518', label: 'Messages', badge: msgCount },
+    { path: `/profile/${currentUser?.uid}`, AIcon: HiUser,          color: '#1877F2', label: 'Profil' },
   ];
 
   const isActive = p => {
@@ -135,20 +146,22 @@ export default function Layout({ children }) {
     navigate('/login', { replace: true });
   }
 
-  // Drawer nav — icônes classiques (même style que bottom nav)
-  // Menu plein écran (format "hub") — icônes badges colorés dégradés
+  // Navigation rapide — horizontale, ambony indrindra (matetika ampiasaina)
+  const quickNav = [
+    { path: '/',                            AIcon: HiHome,          label: t('home'),          color1:'#1B84FF', color2:'#1877F2' },
+    { path: '/friends',                     AIcon: HiUserGroup,     label: t('friends'),       color1:'#FFD84D', color2:'#F5C518' },
+    { path: '/messages',                    AIcon: HiPaperAirplane, label: t('messages'),      color1:'#63A9FF', color2:'#1877F2', badge: msgCount },
+    { path: '/notifications',               AIcon: HiBell,          label: t('notifications'), color1:'#FF7AB8', color2:'#FF2D8D', badge: notifCount },
+    { path: `/profile/${currentUser?.uid}`, AIcon: HiUser,          label: t('profile'),       color1:'#63A9FF', color2:'#1877F2' },
+  ];
+
+  // Hub — grille d'icônes (fonctionnalités)
   const drawerNav = [
-    { path: '/',                            AIcon: HiHome,          label: t('home'),          sub: 'Fil d\'actualités',  color1:'#1B84FF', color2:'#1877F2' },
-    { path: '/friends',                     AIcon: HiUserGroup,     label: t('friends'),       sub: 'Vos amis',            color1:'#5FD0FF', color2:'#1877F2' },
     { path: '/groups',                      AIcon: HiUserGroup,     label: 'Groupes',          sub: 'Communautés',          color1:'#8F7BFF', color2:'#5E4BDB' },
     { path: '/events',                      AIcon: HiCalendar,      label: 'Événements',       sub: 'Créez, participez',    color1:'#3DD9C4', color2:'#12A48D' },
     { path: '/announcements',               AIcon: HiSpeakerphone,  label: 'Annonces',         sub: 'Petites annonces',     color1:'#FF9A5A', color2:'#FF7A00' },
     { path: '/shop',                        AIcon: HiShoppingBag,   label: 'Boutique',         sub: 'Achetez, vendez',      color1:'#FF6FA5', color2:'#FF2D8D' },
-    { path: '/saved',                       AIcon: HiBookmark,      label: 'Enregistrements',  sub: 'Vos posts sauvegardés',color1:'#FFD84D', color2:'#F2B300' },
-    { path: '/messages',                    AIcon: HiPaperAirplane, label: t('messages'),      sub: 'Discussions',          color1:'#63A9FF', color2:'#1877F2', badge: msgCount },
-    { path: '/notifications',               AIcon: HiBell,          label: t('notifications'), sub: 'Activité récente',     color1:'#FF7AB8', color2:'#FF2D8D', badge: notifCount },
-    { path: `/profile/${currentUser?.uid}`, AIcon: HiUser,          label: t('profile'),       sub: 'Votre page',           color1:'#B49BFF', color2:'#8F6BFF' },
-    { path: '/settings',                    AIcon: HiCog,           label: t('settings'),      sub: 'Compte, apparence',    color1:'#AEB4BD', color2:'#7C8591' },
+    { path: '/saved',                       AIcon: HiBookmark,      label: 'Enregistrements',  sub: 'Vos posts sauvegardés',color1:'#FFD84D', color2:'#F5C518' },
   ];
 
   const bg   = isDark ? '#050505' : 'white';
@@ -236,6 +249,24 @@ export default function Layout({ children }) {
           </div>
         )}
 
+        {/* Navigation rapide — horizontale, ambony indrindra, endrika premium */}
+        <div className="quicknav-row">
+          {quickNav.map(item => {
+            const active = isActive(item.path);
+            const IconComp = item.AIcon;
+            return (
+              <button key={item.path} onClick={() => { navigate(item.path); setDrawerOpen(false); }}
+                className={`quicknav-item ${active ? 'active' : ''}`}>
+                <span className="quicknav-icon icon-sweep" style={{ background: `linear-gradient(145deg, ${item.color1}, ${item.color2})`, '--glow': item.color2 + '66' }}>
+                  <IconComp size={20} color="white" />
+                  {item.badge > 0 && <span className="notif-badge">{item.badge > 9 ? '9+' : item.badge}</span>}
+                </span>
+                <span className="quicknav-label" style={{ color: text }}>{item.label}</span>
+              </button>
+            );
+          })}
+        </div>
+
         {/* Grille d'icônes colorées (format hub) */}
         <nav style={{ flex: 1, padding: '4px 14px 14px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
           {drawerNav.map(item => {
@@ -249,7 +280,7 @@ export default function Layout({ children }) {
                   border: `1.5px solid ${active ? '#1877F2' : bdr}`, borderRadius: 16, cursor: 'pointer',
                   boxShadow: active ? '0 2px 10px rgba(24,119,242,.18)' : '0 1px 3px rgba(0,0,0,.06)',
                 }}>
-                <span className="icon-badge-3d" style={{ width: 44, height: 44, borderRadius: 13, background: `linear-gradient(145deg, ${item.color1}, ${item.color2})` }}>
+                <span className="icon-badge-3d icon-sweep" style={{ width: 44, height: 44, borderRadius: 13, background: `linear-gradient(145deg, ${item.color1}, ${item.color2})`, '--sweep-delay': Math.random() * 2 }}>
                   <IconComp size={22} color="white" />
                   {item.badge > 0 && <span className="notif-badge" style={{ zIndex: 2 }}>{item.badge > 9 ? '9+' : item.badge}</span>}
                 </span>
@@ -266,7 +297,7 @@ export default function Layout({ children }) {
               background: isDark ? '#15181F' : 'white', border: `1.5px solid ${bdr}`, borderRadius: 16, cursor: 'pointer',
               boxShadow: '0 1px 3px rgba(0,0,0,.06)',
             }}>
-            <span className="icon-badge-3d" style={{ width: 44, height: 44, borderRadius: 13, background: 'linear-gradient(145deg, #FF6FA5, #FF2D8D)' }}>
+            <span className="icon-badge-3d icon-sweep" style={{ width: 44, height: 44, borderRadius: 13, background: 'linear-gradient(145deg, #FF6FA5, #FF2D8D)', '--sweep-delay': Math.random() * 2 }}>
               <HiMicrophone size={22} color="white" />
             </span>
             <span style={{ fontWeight: 700, fontSize: 14, color: text }}>Artiste</span>
@@ -291,6 +322,21 @@ export default function Layout({ children }) {
             </span>
             <span style={{ fontWeight: 700, fontSize: 14, color: text }}>Bloc-notes</span>
             <span style={{ fontSize: 11, color: '#65676B', marginTop: -6 }}>Vos notes privées</span>
+          </button>
+        </div>
+
+        {/* Paramètres — atokana ambany indrindra (tsy atambatra amin'ny hafa) */}
+        <div style={{ padding: '0 14px 6px' }}>
+          <button onClick={() => { navigate('/settings'); setDrawerOpen(false); }}
+            style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 12, padding: '13px 14px', textAlign: 'left', background: isDark ? '#15181F' : '#F7F8FA', border: `1.5px solid ${isActive('/settings') ? '#1877F2' : bdr}`, borderRadius: 14, cursor: 'pointer' }}>
+            <span className="icon-badge-3d" style={{ width: 38, height: 38, borderRadius: 11, background: 'linear-gradient(145deg,#AEB4BD,#7C8591)', flexShrink: 0 }}>
+              <HiCog size={20} color="white" />
+            </span>
+            <span style={{ flex: 1, minWidth: 0 }}>
+              <span style={{ display: 'block', fontWeight: 700, fontSize: 14, color: text }}>{t('settings')}</span>
+              <span style={{ display: 'block', fontSize: 11, color: '#65676B' }}>Compte, apparence</span>
+            </span>
+            <HiChevronRight size={18} color="#65676B" />
           </button>
         </div>
 
@@ -398,11 +444,10 @@ export default function Layout({ children }) {
           const active = isActive(path);
           return (
             <button key={path} className={`dock-item ${active ? 'active' : ''}`} onClick={() => navigate(path)}
-              style={{ color, '--dock-glow': color + '77' }}>
+              style={{ color, '--dock-glow': color + '77', position: 'relative' }}>
               {isRevy ? (
-                <span className="dock-icon" style={{ position:'relative', width:'auto', height:42, background:'none', boxShadow:'none' }}>
+                <span className="dock-icon" style={{ position:'relative', width:'auto', height:42, background:'none', boxShadow:'none', overflow:'visible' }}>
                   <RevyPill height={42} />
-                  {badge > 0 && <span className="notif-badge">{badge > 9 ? '9+' : badge}</span>}
                 </span>
               ) : (
                 <span className="dock-icon" style={{
@@ -412,9 +457,11 @@ export default function Layout({ children }) {
                   opacity: active ? 1 : 0.82,
                 }}>
                   <AIcon size={22} color="white" />
-                  {badge > 0 && <span className="notif-badge">{badge > 9 ? '9+' : badge}</span>}
                 </span>
               )}
+              {/* Badge — ivelan'ny dock-icon (overflow:hidden), mba tsy ho voatapaka na hikorana */}
+              {badge > 0 && <span className="notif-badge" style={{ top: 2, right: 'calc(50% - 26px)' }}>{badge > 9 ? '9+' : badge}</span>}
+              <span className="dock-label">{label}</span>
             </button>
           );
         })}
