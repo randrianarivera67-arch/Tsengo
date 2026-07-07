@@ -46,11 +46,11 @@ service cloud.firestore {
     match /stories/{storyId} {
       allow read: if request.auth != null;
       allow create: if request.auth != null && request.resource.data.uid == request.auth.uid;
-      // ✅ Réactions : ny olona rehetra afaka manova ny champ "reactions" irery ;
+      // ✅ Réactions (maro) + Vu : ny olona rehetra afaka manova ireo champ ireo ihany ;
       // ny tompony afaka manova ny zavatra rehetra
       allow update: if request.auth != null && (
         resource.data.uid == request.auth.uid ||
-        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['reactions'])
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['reactions', 'viewers'])
       );
       allow delete: if request.auth != null && resource.data.uid == request.auth.uid;
     }

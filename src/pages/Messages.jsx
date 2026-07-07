@@ -4,6 +4,7 @@ import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { ref, push, onValue, update, set, remove } from 'firebase/database';
 import { doc, getDoc, addDoc, collection, serverTimestamp, query, where, onSnapshot, updateDoc, deleteDoc, arrayRemove, arrayUnion, writeBatch } from 'firebase/firestore';
 import { rtdb, db } from '../firebase';
+import { useActiveStoryUids } from '../hooks/useActiveStoryUids';
 import { useAuth } from '../context/AuthContext';
 import { useLang } from '../context/LanguageContext';
 import { uploadToTelegram } from '../utils/telegram';
@@ -21,6 +22,7 @@ import {
 export default function Messages() {
   const { chatId: paramChatId } = useParams();
   const { currentUser, userProfile, setUserProfile } = useAuth();
+  const activeStoryUids = useActiveStoryUids();
   const { t } = useLang();
   const navigate = useNavigate();
   const location = useLocation();
@@ -641,80 +643,74 @@ export default function Messages() {
           )}
         </div>
 
-        {/* Liste */}
+        {/* Liste unifiée (DM + groupes), triée par activité récente (format Facebook) */}
         <div style={{ flex: 1, overflowY: 'auto' }}>
-          {groups.length > 0 && (
-            <div style={{ borderBottom: '1px solid #E4E6EB' }}>
-              <p style={{ padding: '10px 14px 4px', fontSize: 11, fontWeight: 700, color: '#65676B', textTransform: 'uppercase', letterSpacing: 1 }}>👥 Groupes</p>
-              {groups.map(g => (
-                <div key={g.id}
-                  onClick={() => { setActiveChatId(`group_${g.id}`); navigate(`/messages/group_${g.id}`, { replace: true }); }}
-                  style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '11px 14px', cursor: 'pointer', background: activeChatId === `group_${g.id}` ? '#E7F0FE' : 'white', borderBottom: '1px solid #F0F2F5' }}>
-                  <div style={{ width: 46, height: 46, borderRadius: '50%', background: 'linear-gradient(135deg,#1B84FF,#1877F2)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: '0 2px 8px rgba(24,119,242,.35)' }}>
-                    {g.photoURL ? <img src={g.photoURL} alt="" style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }} /> : <HiUserGroup size={22} color="white" />}
-                  </div>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <p style={{ fontWeight: 700, fontSize: 14, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{g.name}</p>
-                    <p style={{ fontSize: 12, color: '#65676B', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                      {groupMetas[g.id]?.text
-                        ? `${groupMetas[g.id].from ? groupMetas[g.id].from.split(' ')[0] + ' : ' : ''}${groupMetas[g.id].text}`
-                        : `${g.members?.length || 0} membres${g.admins?.includes(currentUser.uid) ? ' · Vous êtes admin' : ''}`}
-                    </p>
-                  </div>
+          {(() => {
+            const dmItems = conversations.map(conv => ({ type: 'dm', key: conv.chatId, ts: conv.lastMsg?.ts || 0, data: conv }));
+            const groupItems = groups.map(g => ({ type: 'group', key: g.id, ts: groupMetas[g.id]?.ts || 0, data: g }));
+            const unified = [...dmItems, ...groupItems].sort((a, b) => b.ts - a.ts);
+
+            if (unified.length === 0) return <div style={{ padding: 30, textAlign: 'center', color: '#65676B', fontSize: 14 }}>{t('noMessages')}</div>;
+
+            return unified.map(item => item.type === 'group' ? (
+              <div key={`g_${item.key}`}
+                onClick={() => { setActiveChatId(`group_${item.key}`); navigate(`/messages/group_${item.key}`, { replace: true }); }}
+                style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '11px 14px', cursor: 'pointer', background: activeChatId === `group_${item.key}` ? '#E7F0FE' : 'white', borderBottom: '1px solid #F0F2F5' }}>
+                <div style={{ width: 52, height: 52, borderRadius: '50%', background: 'linear-gradient(135deg,#1B84FF,#1877F2)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: '0 2px 8px rgba(24,119,242,.35)' }}>
+                  {item.data.photoURL ? <img src={item.data.photoURL} alt="" style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }} /> : <HiUserGroup size={22} color="white" />}
                 </div>
-              ))}
-            </div>
-          )}
-          {conversations.length === 0
-            ? <div style={{ padding: 30, textAlign: 'center', color: '#65676B', fontSize: 14 }}>{t('noMessages')}</div>
-            : conversations.map(conv => (
-              <div key={conv.chatId} style={{ position: 'relative' }}>
-                <div
-                  onClick={() => { setActiveChatId(conv.chatId); setActiveUser(conv.user); navigate(`/messages/${conv.chatId}`, { replace: true }); }}
-                  style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 14px', cursor: 'pointer', background: activeChatId === conv.chatId ? '#E4E6EB' : 'white', borderBottom: '1px solid #F0F2F5' }}>
-                  <div style={{ position: 'relative' }}>
-                    <img src={conv.user.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(conv.user.fullName)}&background=1877F2&color=fff`}
-                      alt="" className="avatar" style={{ width: 46, height: 46 }} />
-                    {/* ✅ Indicateur en ligne */}
-                    <span style={{ position: 'absolute', bottom: 1, right: 1, width: 11, height: 11, background: online[conv.otherUid] ? '#22c55e' : '#9ca3af', borderRadius: '50%', border: '2px solid white' }} />
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <p style={{ fontWeight: 700, fontSize: 15, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.data.name}</p>
+                  <p style={{ fontSize: 12, color: '#65676B', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {groupMetas[item.key]?.text
+                      ? `${groupMetas[item.key].from ? groupMetas[item.key].from.split(' ')[0] + ' : ' : ''}${groupMetas[item.key].text}`
+                      : `${item.data.members?.length || 0} membres${item.data.admins?.includes(currentUser.uid) ? ' · Vous êtes admin' : ''}`}
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <div key={`c_${item.key}`}
+                onClick={() => { setActiveChatId(item.key); setActiveUser(item.data.user); navigate(`/messages/${item.key}`, { replace: true }); }}
+                style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 14px', cursor: 'pointer', background: activeChatId === item.key ? '#E4E6EB' : 'white', borderBottom: '1px solid #F0F2F5' }}>
+                <div style={{ position: 'relative' }}>
+                  <img src={item.data.user.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(item.data.user.fullName)}&background=1877F2&color=fff`}
+                    alt="" className="avatar" style={{ width: 52, height: 52, border: activeStoryUids.has(item.data.otherUid) ? '2.5px solid #1877F2' : 'none' }} />
+                  <span style={{ position: 'absolute', bottom: 1, right: 1, width: 11, height: 11, background: online[item.data.otherUid] ? '#22c55e' : '#9ca3af', borderRadius: '50%', border: '2px solid white' }} />
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <p style={{ fontWeight: 700, fontSize: 15 }}>{item.data.user.fullName}</p>
+                    {item.data.unread > 0 && <span style={{ background: '#1877F2', color: 'white', borderRadius: 10, padding: '1px 7px', fontSize: 11, fontWeight: 700 }}>{item.data.unread}</span>}
                   </div>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <p style={{ fontWeight: 600, fontSize: 14 }}>{conv.user.fullName}</p>
-                      {conv.unread > 0 && <span style={{ background: '#1877F2', color: 'white', borderRadius: 10, padding: '1px 7px', fontSize: 11, fontWeight: 700 }}>{conv.unread}</span>}
-                    </div>
-                    <p style={{ fontSize: 12, color: '#65676B', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                      {/* Ny point maitso amin'ny avatar no milaza "en ligne" — ny message farany no hita foana eto (format Facebook) */}
-                      <span style={{ fontWeight: conv.unread > 0 ? 700 : 400, color: conv.unread > 0 ? '#050505' : '#65676B' }}>
-                        {(conv.lastMsg?.fromUid === currentUser.uid ? 'Vous: ' : '') + (conv.lastMsg?.mediaType === 'audio' ? '🎤 Vocal' : conv.lastMsg?.text || (conv.lastMsg?.mediaURL ? '📎 Média' : ''))}
+                  <p style={{ fontSize: 12, color: '#65676B', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    <span style={{ fontWeight: item.data.unread > 0 ? 700 : 400, color: item.data.unread > 0 ? '#050505' : '#65676B' }}>
+                      {(item.data.lastMsg?.fromUid === currentUser.uid ? 'Vous: ' : '') + (item.data.lastMsg?.mediaType === 'audio' ? '🎤 Vocal' : item.data.lastMsg?.text || (item.data.lastMsg?.mediaURL ? '📎 Média' : ''))}
+                    </span>
+                    {item.data.lastMsg?.fromUid === currentUser.uid && (
+                      <span style={{ marginLeft: 5, fontWeight: 700, color: item.data.lastMsg?.read ? '#1877F2' : '#8A8D91', fontSize: 11 }}>
+                        {item.data.lastMsg?.read ? '✓✓ Vu' : '✓ Envoyé'}
                       </span>
-                      {conv.lastMsg?.fromUid === currentUser.uid && (
-                        <span style={{ marginLeft: 5, fontWeight: 700, color: conv.lastMsg?.read ? '#1877F2' : '#8A8D91', fontSize: 11 }}>
-                          {conv.lastMsg?.read ? '✓✓ Vu' : '✓ Envoyé'}
-                        </span>
-                      )}
-                    </p>
-                  </div>
-                  {/* Menu ⋮ pour supprimer */}
+                    )}
+                  </p>
+                </div>
+                <div style={{ position: 'relative' }} onClick={e => e.stopPropagation()}>
                   <button
-                    onClick={e => { e.stopPropagation(); setConvMenu(convMenu === conv.chatId ? null : conv.chatId); }}
+                    onClick={() => setConvMenu(convMenu === item.key ? null : item.key)}
                     style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#65676B', padding: '4px 6px', flexShrink: 0 }}>
                     <HiDotsVertical size={18} />
                   </button>
+                  {convMenu === item.key && (
+                    <div onClick={e => e.stopPropagation()} style={{ position: 'absolute', right: 10, top: '100%', zIndex: 50, background: 'white', border: '1px solid #E4E6EB', borderRadius: 12, boxShadow: '0 6px 20px rgba(0,0,0,.12)', overflow: 'hidden', minWidth: 140 }}>
+                      <button onClick={() => { setConvMenu(null); setDeleteConfirm(item.key); }}
+                        style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 8, padding: '11px 16px', background: 'none', border: 'none', cursor: 'pointer', color: '#1877F2', fontSize: 13, fontWeight: 600 }}>
+                        <HiTrash size={16} /> Supprimer
+                      </button>
+                    </div>
+                  )}
                 </div>
-
-                {/* Menu suppression conversation */}
-                {convMenu === conv.chatId && (
-                  <div onClick={e => e.stopPropagation()} style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', zIndex: 50, background: 'white', border: '1px solid #E4E6EB', borderRadius: 12, boxShadow: '0 6px 20px rgba(0,0,0,.12)', overflow: 'hidden', minWidth: 140 }}>
-                    <button onClick={() => { setConvMenu(null); setDeleteConfirm(conv.chatId); }}
-                      style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 8, padding: '11px 16px', background: 'none', border: 'none', cursor: 'pointer', color: '#1877F2', fontSize: 13, fontWeight: 600 }}>
-                      <HiTrash size={16} /> Supprimer
-                    </button>
-                  </div>
-                )}
               </div>
-            ))
-          }
+            ));
+          })()}
         </div>
       </div>
 

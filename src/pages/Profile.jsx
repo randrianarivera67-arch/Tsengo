@@ -13,6 +13,7 @@ import { isDataSaverOn, subscribeDataSaver } from '../utils/dataSaver';
 import { downloadMedia } from '../utils/download';
 import ShareModal from '../components/ShareModal';
 import FollowListModal from '../components/FollowListModal';
+import { useActiveStoryUids } from '../hooks/useActiveStoryUids';
 import { NeonBriefcase, NeonGraduation, NeonPhone, NeonGlobe, NeonLocation, NeonHome, NeonMic, NeonArchive, NeonClock } from '../components/NeonIcons';
 import { uploadToTelegram } from '../utils/telegram';
 import { getChatId } from '../utils/chat';
@@ -42,6 +43,7 @@ const TABS = [
 export default function Profile() {
   const { uid }  = useParams();
   const { currentUser, userProfile, setUserProfile } = useAuth();
+  const activeStoryUids = useActiveStoryUids();
   const { t }    = useLang();
   const navigate = useNavigate();
 
@@ -594,7 +596,7 @@ export default function Profile() {
         </>}
         <div style={{ position:'absolute', bottom:-55, left:'50%', transform:'translateX(-50%)' }}>
           <div style={{ position:'relative' }}>
-            <img src={profile.photoURL||`https://ui-avatars.com/api/?name=${encodeURIComponent(profile.fullName)}&background=1877F2&color=fff&size=100`} alt="" className="avatar avatar-ring" onClick={()=>setZoomPhoto(profile.photoURL)} style={{ width:100, height:100, border:'4px solid white', objectFit:'cover', cursor:'pointer' }}/>
+            <img src={profile.photoURL||`https://ui-avatars.com/api/?name=${encodeURIComponent(profile.fullName)}&background=1877F2&color=fff&size=100`} alt="" className="avatar avatar-ring" onClick={()=>setZoomPhoto(profile.photoURL)} style={{ width:100, height:100, border: activeStoryUids.has(targetUid) ? '4px solid #1877F2' : '4px solid white', boxShadow: activeStoryUids.has(targetUid) ? '0 0 0 3px white, 0 0 0 6px #63A9FF' : 'none', objectFit:'cover', cursor:'pointer' }}/>
             {isOwn&&<><button onClick={() => photoRef.current.click()} disabled={uploadingPhoto} style={{ position:'absolute', bottom:2, right:2, background:'#1877F2', border:'2px solid white', borderRadius:'50%', width:28, height:28, cursor:'pointer', color:'white', display:'flex', alignItems:'center', justifyContent:'center' }}>{uploadingPhoto?'...':<HiCamera size={14}/>}</button><input ref={photoRef} type="file" accept="image/*" onChange={uploadProfilePhoto} style={{ display:'none' }}/></>}
           </div>
         </div>

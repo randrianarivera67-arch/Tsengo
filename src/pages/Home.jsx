@@ -3,7 +3,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   collection, addDoc, serverTimestamp, query, orderBy, onSnapshot, limit,
-  doc, updateDoc, arrayUnion, arrayRemove, deleteDoc, writeBatch, getDoc, getDocs, where, deleteField
+  doc, updateDoc, arrayUnion, arrayRemove, deleteDoc, writeBatch, getDoc, getDocs, where
 } from 'firebase/firestore';
 import { db } from '../firebase';
 import { useAuth } from '../context/AuthContext';
@@ -11,13 +11,18 @@ import { useLang } from '../context/LanguageContext';
 import { uploadToTelegram } from '../utils/telegram';
 import { startBackgroundUpload } from '../utils/uploadManager';
 import { captureVideoThumb } from '../utils/videoThumb';
+import { trimVideoTo30s } from '../utils/trimVideo';
 import { timeAgo } from '../utils/timeAgo';
 import { isDataSaverOn, subscribeDataSaver } from '../utils/dataSaver';
 import { downloadMedia } from '../utils/download';
 import ShareModal from '../components/ShareModal';
 import PhotoCarousel from '../components/PhotoCarousel';
+import StoryRing from '../components/StoryRing';
+import { useActiveStoryUids } from '../hooks/useActiveStoryUids';
 import { NeonGlobe, NeonPeople, NeonLock, NeonMic } from '../components/NeonIcons';
 import { getChatId } from '../utils/chat';
+import { ref as dbRef, push as dbPush, update as dbUpdate } from 'firebase/database';
+import { rtdb } from '../firebase';
 import { sendPushNotification } from '../utils/onesignal';
 import { v4 as uuidv4 } from 'uuid';
 import {
@@ -39,6 +44,7 @@ function VIPBadge() {
 
 export default function Home() {
   const { currentUser, userProfile, setUserProfile } = useAuth();
+  const activeStoryUids = useActiveStoryUids();
   const { t } = useLang();
   const navigate = useNavigate();
 
@@ -511,7 +517,13 @@ export default function Home() {
     if (!okTypes.includes(file.type)) { alert('Type non accepté'); return; }
     setAddingStory(true);
     try {
-      const r = await uploadToTelegram(file);
+      let finalFile = file;
+      if (file.type.startsWith('video/')) {
+        // Vidéo story : 30 segondra farafahabetsany — raccourci ho azy raha mihoatra
+        const trimmed = await trimVideoTo30s(file);
+        if (trimmed) finalFile = trimmed;
+      }
+      const r = await uploadToTelegram(finalFile);
       await addDoc(collection(db, 'stories'), {
         uid: currentUser.uid,
         authorName: userProfile.fullName,
@@ -526,6 +538,40 @@ export default function Home() {
     e.target.value = '';
   }
 
+  // ── Story texte (fond en couleur, format Facebook) ──
+  const STORY_BG_COLORS = [
+    'linear-gradient(135deg,#1877F2,#63A9FF)',
+    'linear-gradient(135deg,#FF2D8D,#FF7AB8)',
+    'linear-gradient(135deg,#F2B300,#FFE066)',
+    'linear-gradient(135deg,#8F6BFF,#B49BFF)',
+    'linear-gradient(135deg,#12A48D,#3DD9C4)',
+    'linear-gradient(135deg,#FF7A00,#FF9A3D)',
+    '#050505',
+  ];
+  const [textStoryOpen,  setTextStoryOpen]  = useState(false);
+  const [textStoryValue, setTextStoryValue] = useState('');
+  const [textStoryBg,    setTextStoryBg]    = useState(STORY_BG_COLORS[0]);
+  const [postingTextStory, setPostingTextStory] = useState(false);
+
+  async function publishTextStory() {
+    if (!textStoryValue.trim()) return;
+    setPostingTextStory(true);
+    try {
+      await addDoc(collection(db, 'stories'), {
+        uid: currentUser.uid,
+        authorName: userProfile.fullName,
+        authorPhoto: userProfile.photoURL || '',
+        mediaType: 'text',
+        text: textStoryValue.trim().slice(0, 280),
+        bgColor: textStoryBg,
+        ts: Date.now(),
+        createdAt: serverTimestamp(),
+      });
+      setTextStoryOpen(false); setTextStoryValue(''); setTextStoryBg(STORY_BG_COLORS[0]);
+    } catch (err) { alert('Erreur story : ' + (err?.message || err)); }
+    setPostingTextStory(false);
+  }
+
   async function deleteStory(st) {
     if (st.uid !== currentUser.uid) return;
     if (!window.confirm('Supprimer cette story ?')) return;
@@ -533,24 +579,70 @@ export default function Home() {
     setStoryViewer(null);
   }
 
-  function openStories(group) { setStoryViewer({ group, index: 0 }); }
+  // ── Répondre à une story = hafatra mivantana any amin'ny DM an'ilay tompony ──
+  const [storyReply, setStoryReply] = useState('');
+  const [sendingStoryReply, setSendingStoryReply] = useState(false);
+  async function sendStoryReply(st) {
+    if (!storyReply.trim() || st.uid === currentUser.uid) return;
+    setSendingStoryReply(true);
+    try {
+      const chatId = getChatId(currentUser.uid, st.uid);
+      const preview = st.mediaType === 'text' ? (st.text || '').slice(0, 40) : (st.mediaType === 'video' ? '🎬 Vidéo' : '📷 Photo');
+      await dbPush(dbRef(rtdb, `conversations/${chatId}/messages`), {
+        fromUid: currentUser.uid, toUid: st.uid,
+        fromName: userProfile.fullName, fromPhoto: userProfile.photoURL || '',
+        text: `↪️ En réponse à votre story (${preview}) : ${storyReply.trim()}`,
+        ts: Date.now(), read: false,
+      });
+      await dbUpdate(dbRef(rtdb, `conversations/${chatId}/meta`), {
+        lastMessage: storyReply.trim(), lastTs: Date.now(),
+      }).catch(() => {});
+      setStoryReply('');
+    } catch (err) { alert('Erreur : ' + (err?.message || err)); }
+    setSendingStoryReply(false);
+  }
 
-  // ── Réactions amin'ny story ──
-  async function reactToStory(st, emoji) {
-    const mine = st.reactions?.[currentUser.uid];
+  function openStories(group) {
+    setStoryViewer({ group, index: 0 });
+  }
+
+  // ── Fanamarihana fa hitan'ilay olona ny story (Vu) ──
+  async function markStoryViewed(st) {
+    if (!st || st.uid === currentUser.uid) return;
+    if ((st.viewers || []).includes(currentUser.uid)) return;
+    try { await updateDoc(doc(db, 'stories', st.id), { viewers: arrayUnion(currentUser.uid) }); } catch {}
+  }
+
+  // ── Réactions amin'ny story : AFAKA maro (toy Facebook) — array isaky ny olona ──
+  const [flyingEmojis, setFlyingEmojis] = useState([]);
+  async function reactToStory(st, emoji, evt) {
+    const mine = st.reactions?.[currentUser.uid] || [];
+    const already = mine.includes(emoji);
     try {
       await updateDoc(doc(db, 'stories', st.id), {
-        [`reactions.${currentUser.uid}`]: mine === emoji ? deleteField() : emoji,
+        [`reactions.${currentUser.uid}`]: already ? mine.filter(e => e !== emoji) : [...mine, emoji],
       });
+      if (!already) {
+        // ── Animation : emoji miakatra sy manjavona (format story Facebook) ──
+        const fid = Date.now() + Math.random();
+        const x = evt?.clientX ?? window.innerWidth / 2;
+        setFlyingEmojis(p => [...p, { id: fid, emoji, x }]);
+        setTimeout(() => setFlyingEmojis(p => p.filter(f => f.id !== fid)), 1200);
+      }
     } catch (err) { console.error('story react:', err?.message || err); }
   }
 
+  // ── Lisitry ny "Vu" + réactions (mitambatra, ho an'ny tompony) ──
   async function openStoryReactors(st) {
-    const entries = Object.entries(st.reactions || {});
+    const uids = [...new Set([...(st.viewers || []), ...Object.keys(st.reactions || {})])];
     setStoryReactors([]);
-    const list = await Promise.all(entries.slice(0, 50).map(([uid, emoji]) =>
-      getDoc(doc(db, 'users', uid)).then(sn => sn.exists() ? { uid, emoji, name: sn.data().fullName, photo: sn.data().photoURL || '' } : null).catch(() => null)
+    const list = await Promise.all(uids.slice(0, 80).map(uid =>
+      getDoc(doc(db, 'users', uid)).then(sn => sn.exists()
+        ? { uid, emojis: st.reactions?.[uid] || [], name: sn.data().fullName, photo: sn.data().photoURL || '' }
+        : null).catch(() => null)
     ));
+    // Ny nanao réaction voalohany, avy eo ny nijery fotsiny
+    list.sort((a, b) => (b?.emojis.length || 0) - (a?.emojis.length || 0));
     setStoryReactors(list.filter(Boolean));
   }
   function nextStory() {
@@ -579,6 +671,13 @@ export default function Home() {
     return () => clearTimeout(tm);
   }, [storyViewer]);
 
+  // ✅ Marquer "Vu" rehefa miseho ny story (raha tsy anao)
+  useEffect(() => {
+    if (!storyViewer) return;
+    const cur = storyViewer.group.items[storyViewer.index];
+    if (cur) markStoryViewed(cur);
+  }, [storyViewer]);
+
   // ── J'aime rapide (clic) + appui long = choix de réaction (format Facebook) ──
   function quickLike(post) {
     if (lpFired.current) { lpFired.current = false; return; }
@@ -599,7 +698,7 @@ export default function Home() {
 
       {/* ── Stories (format Facebook) ─────────────────────────── */}
       <div className="stories-strip">
-        {/* Carte : Créer une story */}
+        {/* Carte : Créer une story (photo/vidéo) */}
         <input ref={storyFileRef} type="file" accept="image/*,video/mp4,video/webm,video/quicktime" style={{ display:'none' }} onChange={addStory} />
         <div className="story-card" onClick={() => !addingStory && storyFileRef.current?.click()} style={{ background:'white', border:'1px solid #E4E6EB' }}>
           <div style={{ height:'62%', overflow:'hidden' }}>
@@ -612,13 +711,23 @@ export default function Home() {
           </p>
         </div>
 
+        {/* Carte : Story texte (fond en couleur) */}
+        <div className="story-card" onClick={() => setTextStoryOpen(true)} style={{ background:'linear-gradient(135deg,#050505,#3A3B3C)' }}>
+          <div style={{ position:'absolute', inset:0, display:'flex', alignItems:'center', justifyContent:'center', color:'white', fontSize:36, fontWeight:800 }}>Aa</div>
+          <p style={{ position:'absolute', bottom:8, left:0, right:0, textAlign:'center', fontSize:11, fontWeight:600, color:'white' }}>Story texte</p>
+        </div>
+
         {/* Stories des utilisateurs */}
         {storyGroups.map(g => {
           const last = g.items[g.items.length - 1];
           return (
-            <div key={g.uid} className="story-card" onClick={() => openStories(g)}>
+            <div key={g.uid} className="story-card" onClick={() => openStories(g)} style={last.mediaType === 'text' ? { background: last.bgColor || '#1877F2' } : undefined}>
               {last.mediaType === 'video'
                 ? <video src={last.mediaURL} muted playsInline preload="metadata" />
+                : last.mediaType === 'text'
+                ? <div style={{ width:'100%', height:'100%', display:'flex', alignItems:'center', justifyContent:'center', padding:10 }}>
+                    <p style={{ color:'white', fontSize:13, fontWeight:700, textAlign:'center', overflow:'hidden', display:'-webkit-box', WebkitLineClamp:5, WebkitBoxOrient:'vertical' }}>{last.text}</p>
+                  </div>
                 : <img src={last.mediaURL} alt="" />}
               <div className="story-gradient" />
               <img className="story-avatar"
@@ -629,14 +738,38 @@ export default function Home() {
         })}
       </div>
 
+      {/* ── Modal : Créer une story texte ──────────────────────── */}
+      {textStoryOpen && (
+        <div style={{ position:'fixed', inset:0, background: textStoryBg, zIndex:350, display:'flex', flexDirection:'column' }}>
+          <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', padding:'14px 16px' }}>
+            <button onClick={() => setTextStoryOpen(false)} style={{ background:'rgba(255,255,255,.2)', border:'none', borderRadius:'50%', width:36, height:36, cursor:'pointer', color:'white', display:'flex', alignItems:'center', justifyContent:'center' }}><HiX size={20}/></button>
+            <button onClick={publishTextStory} disabled={postingTextStory || !textStoryValue.trim()} className="btn-gold" style={{ padding:'9px 22px', fontSize:14 }}>
+              {postingTextStory ? '...' : 'Publier'}
+            </button>
+          </div>
+          <div style={{ flex:1, display:'flex', alignItems:'center', justifyContent:'center', padding:24 }}>
+            <textarea autoFocus value={textStoryValue} onChange={e => setTextStoryValue(e.target.value)} placeholder="Écrivez quelque chose..." maxLength={280}
+              style={{ width:'100%', background:'none', border:'none', outline:'none', color:'white', fontSize:28, fontWeight:800, textAlign:'center', resize:'none', height:200, fontFamily:'Poppins' }} />
+          </div>
+          <div style={{ display:'flex', gap:10, padding:'16px 20px 28px', overflowX:'auto', justifyContent:'center' }}>
+            {STORY_BG_COLORS.map((bg, i) => (
+              <button key={i} onClick={() => setTextStoryBg(bg)}
+                style={{ width:36, height:36, borderRadius:'50%', background:bg, border: textStoryBg===bg ? '3px solid white' : '2px solid rgba(255,255,255,.4)', cursor:'pointer', flexShrink:0 }} />
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* ── Visionneuse de story (plein écran) ─────────────────── */}
       {storyViewer && (() => {
         const raw = storyViewer.group.items[storyViewer.index];
         // Version "fraîche" (mivantana avy amin'ny snapshot) mba hita avy hatrany ny réactions
         const cur = storyGroups.find(g => g.uid === storyViewer.group.uid)?.items.find(i => i.id === raw.id) || raw;
         const isMyStory = cur.uid === currentUser.uid;
-        const myStoryR = cur.reactions?.[currentUser.uid];
+        const myStoryR = cur.reactions?.[currentUser.uid] || [];
         const rCount = Object.keys(cur.reactions || {}).length;
+        const vCount = new Set([...(cur.viewers||[]), ...Object.keys(cur.reactions||{})]).size;
+        const allEmojis = Object.values(cur.reactions || {}).flat();
         return (
           <div style={{ position:'fixed', inset:0, background:'#000', zIndex:300, display:'flex', flexDirection:'column' }}>
             {/* Barres de progression */}
@@ -656,39 +789,60 @@ export default function Home() {
               <button onClick={() => setStoryViewer(null)} style={{ background:'none', border:'none', cursor:'pointer', color:'white', fontSize:24, padding:'0 6px' }}>✕</button>
             </div>
             {/* Média + zones tactiles gauche/droite */}
-            <div style={{ flex:1, position:'relative', display:'flex', alignItems:'center', justifyContent:'center', overflow:'hidden' }}>
+            <div style={{ flex:1, position:'relative', display:'flex', alignItems:'center', justifyContent:'center', overflow:'hidden', background: cur.mediaType === 'text' ? (cur.bgColor || '#1877F2') : 'transparent' }}>
               {cur.mediaType === 'video'
                 ? <video key={cur.id} src={cur.mediaURL} autoPlay={!dataSaver} controls={dataSaver} playsInline onEnded={nextStory} style={{ maxWidth:'100%', maxHeight:'100%' }} />
+                : cur.mediaType === 'text'
+                ? <p style={{ color:'white', fontSize:30, fontWeight:800, textAlign:'center', padding:'0 30px', wordBreak:'break-word' }}>{cur.text}</p>
                 : <img key={cur.id} src={cur.mediaURL} alt="" style={{ maxWidth:'100%', maxHeight:'100%', objectFit:'contain' }} />}
               <div onClick={prevStory} style={{ position:'absolute', left:0, top:0, bottom:0, width:'35%' }} />
               <div onClick={nextStory} style={{ position:'absolute', right:0, top:0, bottom:0, width:'65%' }} />
             </div>
 
-            {/* ── Réactions (format Facebook) ─────────────────── */}
+            {/* ── Répondre (envoie un message direct au propriétaire) ── */}
+            {!isMyStory && (
+              <div style={{ padding:'0 14px 8px', display:'flex', alignItems:'center', gap:8 }} onClick={e => e.stopPropagation()}>
+                <input value={storyReply} onChange={e => setStoryReply(e.target.value)}
+                  onKeyDown={e => { if (e.key === 'Enter') sendStoryReply(cur); }}
+                  placeholder="Répondre..." maxLength={500}
+                  style={{ flex:1, background:'rgba(255,255,255,.15)', border:'1.5px solid rgba(255,255,255,.35)', borderRadius:22, padding:'10px 16px', color:'white', fontSize:14, fontFamily:'Poppins', outline:'none' }} />
+                {storyReply.trim() && (
+                  <button onClick={() => sendStoryReply(cur)} disabled={sendingStoryReply}
+                    style={{ background:'#1877F2', border:'none', borderRadius:'50%', width:40, height:40, cursor:'pointer', color:'white', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
+                    <HiPaperAirplane size={18} />
+                  </button>
+                )}
+              </div>
+            )}
+
+            {/* ── Réactions (format Facebook, plusieurs possibles) ── */}
             <div style={{ padding:'10px 14px 18px', display:'flex', alignItems:'center', justifyContent:'center', gap:10 }} onClick={e => e.stopPropagation()}>
               {isMyStory ? (
                 <button onClick={() => openStoryReactors(cur)}
                   style={{ background:'rgba(255,255,255,.14)', border:'1px solid rgba(255,255,255,.3)', borderRadius:22, padding:'9px 18px', cursor:'pointer', color:'white', fontFamily:'Poppins', fontSize:13, fontWeight:700, display:'flex', alignItems:'center', gap:8 }}>
-                  {rCount > 0
-                    ? <>{[...new Set(Object.values(cur.reactions))].slice(0,3).join('')} {rCount} réaction{rCount>1?'s':''} — voir</>
-                    : <>👀 Aucune réaction pour le moment</>}
+                  👁 {vCount} vue{vCount>1?'s':''}{rCount > 0 ? ` · ${[...new Set(allEmojis)].slice(0,3).join('')} ${rCount}` : ''} — voir
                 </button>
               ) : (
                 REACTIONS.map(em => (
-                  <button key={em} onClick={() => reactToStory(cur, em)}
-                    style={{ background: myStoryR === em ? 'rgba(255,255,255,.32)' : 'rgba(255,255,255,.12)', border: myStoryR === em ? '1.5px solid white' : '1px solid rgba(255,255,255,.25)', borderRadius:'50%', width:44, height:44, cursor:'pointer', fontSize:22, display:'flex', alignItems:'center', justifyContent:'center', transform: myStoryR === em ? 'scale(1.15)' : 'none', transition:'all .15s' }}>
+                  <button key={em} onClick={e => reactToStory(cur, em, e)}
+                    style={{ background: myStoryR.includes(em) ? 'rgba(255,255,255,.32)' : 'rgba(255,255,255,.12)', border: myStoryR.includes(em) ? '1.5px solid white' : '1px solid rgba(255,255,255,.25)', borderRadius:'50%', width:44, height:44, cursor:'pointer', fontSize:22, display:'flex', alignItems:'center', justifyContent:'center', transform: myStoryR.includes(em) ? 'scale(1.15)' : 'none', transition:'all .15s' }}>
                     {em}
                   </button>
                 ))
               )}
             </div>
 
-            {/* Lisitry ny nanao réaction (tompony ihany) */}
+            {/* Animation : emoji miakatra sy manjavona rehefa misy réaction (format story Facebook) */}
+            {flyingEmojis.map(f => (
+              <span key={f.id} className="story-emoji-fly" style={{ left: f.x - 16 }}>{f.emoji}</span>
+            ))}
+
+            {/* Lisitry ny "Vu" + réactions (tompony ihany) */}
             {storyReactors !== null && (
               <div style={{ position:'absolute', inset:0, background:'rgba(0,0,0,.6)', display:'flex', alignItems:'flex-end', justifyContent:'center', zIndex:10 }} onClick={() => setStoryReactors(null)}>
                 <div onClick={e => e.stopPropagation()} style={{ background:'white', borderRadius:'20px 20px 0 0', padding:18, width:'100%', maxWidth:480, maxHeight:'60vh', overflowY:'auto' }}>
                   <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:12 }}>
-                    <h3 style={{ fontWeight:800, color:'#1877F2', fontSize:16 }}>Réactions à votre story</h3>
+                    <h3 style={{ fontWeight:800, color:'#1877F2', fontSize:16 }}>Vues et réactions</h3>
                     <button onClick={() => setStoryReactors(null)} style={{ background:'none', border:'none', cursor:'pointer', color:'#65676B', fontSize:20 }}>✕</button>
                   </div>
                   {storyReactors.length === 0 && <p style={{ fontSize:13, color:'#65676B', textAlign:'center', padding:'14px 0' }}>Chargement...</p>}
@@ -697,7 +851,9 @@ export default function Home() {
                       style={{ display:'flex', alignItems:'center', gap:10, padding:'9px 2px', cursor:'pointer', borderBottom:'1px solid #F0F2F5' }}>
                       <img src={r.photo || `https://ui-avatars.com/api/?name=${encodeURIComponent(r.name||'U')}&background=1877F2&color=fff`} alt="" style={{ width:38, height:38, borderRadius:'50%', objectFit:'cover' }} />
                       <p style={{ flex:1, fontWeight:600, fontSize:14 }}>{r.name}</p>
-                      <span style={{ fontSize:20 }}>{r.emoji}</span>
+                      {r.emojis.length > 0
+                        ? <span style={{ fontSize:18 }}>{r.emojis.join(' ')}</span>
+                        : <span style={{ fontSize:11, color:'#65676B' }}>👁 Vu</span>}
                     </div>
                   ))}
                 </div>
@@ -933,7 +1089,9 @@ export default function Home() {
                 </div>
               ) : (
                 <div style={{ display:'flex', alignItems:'center', gap:10, cursor:'pointer', flex:1, minWidth:0 }} onClick={() => navigate(`/profile/${post.uid}`)}>
-                  <img src={post.authorPhoto||`https://ui-avatars.com/api/?name=${encodeURIComponent(post.authorName||'U')}&background=1877F2&color=fff`} alt="" className="avatar" style={{ width:40, height:40, flexShrink:0 }}/>
+                  <StoryRing active={activeStoryUids.has(post.uid)}>
+                    <img src={post.authorPhoto||`https://ui-avatars.com/api/?name=${encodeURIComponent(post.authorName||'U')}&background=1877F2&color=fff`} alt="" className="avatar" style={{ width:40, height:40, flexShrink:0 }}/>
+                  </StoryRing>
                   <div style={{ minWidth:0 }}>
                     <p style={{ fontWeight:600, fontSize:14, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{post.authorName}{post.authorIsVip&&<VIPBadge/>}</p>
                     <p style={{ fontSize:12, color:'#65676B' }}>@{post.authorUsername} · {post.createdAt?timeAgo(post.createdAt):"À l'instant"}</p>
