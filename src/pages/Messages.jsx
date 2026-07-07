@@ -15,7 +15,7 @@ import {
   HiVideoCamera, HiPaperClip, HiX, HiDownload, HiMicrophone, HiStop,
   HiTrash, HiPencil, HiReply, HiDotsVertical, HiCheck,
   HiArchive, HiColorSwatch, HiMusicNote, HiHeart, HiUserGroup, HiUserAdd,
-  HiPhone, HiVideoCamera, HiBan,
+  HiPhone, HiBan,
 } from 'react-icons/hi';
 
 export default function Messages() {

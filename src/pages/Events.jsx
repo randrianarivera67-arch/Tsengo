@@ -171,7 +171,7 @@ export default function Events() {
             </div>
 
             <input type="file" accept="image/*" id="ev-cover" style={{ display: 'none' }} onChange={pickCover} />
-            <label htmlFor="ev-cover" style={{ display: 'block', height: 110, borderRadius: 12, background: coverPreview ? `url(${coverPreview}) center/cover` : '#F0F2F5', marginBottom: 12, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#65676B' }}>
+            <label htmlFor="ev-cover" style={{ height: 110, borderRadius: 12, background: coverPreview ? `url(${coverPreview}) center/cover` : '#F0F2F5', marginBottom: 12, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#65676B' }}>
               {!coverPreview && <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13 }}><HiPhotograph size={18} /> Ajouter une couverture</span>}
             </label>
 
