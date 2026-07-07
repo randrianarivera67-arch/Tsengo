@@ -16,7 +16,7 @@ import { uploadToTelegram } from '../utils/telegram';
 import { getChatId } from '../utils/chat';
 import { v4 as uuidv4 } from 'uuid';
 import {
-  HiArrowLeft, HiOutlineHeart, HiChat, HiShare,
+  HiArrowLeft, HiOutlineHeart, HiChat, HiShare, HiUserGroup, HiIdentification, HiShoppingBag,
   HiPhotograph, HiVideoCamera, HiTag, HiX, HiPhone,
   HiLocationMarker, HiPencil, HiTrash, HiReply, HiUserAdd, HiDownload
 } from 'react-icons/hi';
@@ -168,22 +168,54 @@ export default function PostDetail() {
       <div className="card post-card">
         {/* Header */}
         <div style={{ padding:'14px 16px 0', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
-          <div style={{ display:'flex', alignItems:'center', gap:10, cursor:'pointer', flex:1, minWidth:0 }} onClick={() => navigate(`/profile/${post.uid}`)}>
-            <img src={post.authorPhoto||`https://ui-avatars.com/api/?name=${encodeURIComponent(post.authorName||'U')}&background=1877F2&color=fff`} alt="" className="avatar" style={{ width:42, height:42, flexShrink:0 }}/>
-            <div>
-              <p style={{ fontWeight:700, fontSize:15 }}>{post.authorName}{post.authorIsVip&&<VIPBadge/>}</p>
-              <p style={{ fontSize:12, color:'#65676B' }}>@{post.authorUsername} · {post.createdAt?timeAgo(post.createdAt):''}</p>
+          {post.groupName ? (
+            <div onClick={() => navigate(`/groups/${post.groupId}`)} style={{ display:'flex', alignItems:'center', gap:10, cursor:'pointer', flex:1, minWidth:0 }}>
+              <div style={{ width:42, height:42, borderRadius:10, background:'linear-gradient(145deg,#1B84FF,#1877F2)', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0, overflow:'hidden' }}>
+                {post.groupPhoto ? <img src={post.groupPhoto} alt="" style={{ width:'100%', height:'100%', objectFit:'cover' }}/> : <HiUserGroup size={20} color="white"/>}
+              </div>
+              <div><p style={{ fontWeight:700, fontSize:15 }}>{post.groupName}</p><p style={{ fontSize:12, color:'#65676B' }}>Groupe · {post.createdAt?timeAgo(post.createdAt):''}</p></div>
             </div>
-          </div>
-          <div style={{ display:'flex', gap:6, flexShrink:0 }}>
-            {post.uid!==currentUser.uid&&<button onClick={() => navigate(`/messages/${getChatId(currentUser.uid,post.uid)}`)} style={{ background:'#E4E6EB', border:'none', borderRadius:20, padding:'6px 12px', cursor:'pointer', color:'#1877F2', fontSize:12, fontWeight:600 }}>💬 Message</button>}
-            {post.uid!==currentUser.uid&&!isFriend(post.uid)&&!(userProfile?.sentRequests||[]).includes(post.uid)&&(
-              <button onClick={async()=>{
-                await addDoc(collection(db,'friendRequests'),{fromUid:currentUser.uid,toUid:post.uid,fromName:userProfile.fullName,fromPhoto:userProfile.photoURL||'',status:'pending',createdAt:serverTimestamp()});
-                alert('Demande envoyée !');
-              }} style={{ background:'none', border:'1px solid #E4E6EB', borderRadius:20, padding:'6px 12px', cursor:'pointer', color:'#65676B', fontSize:12, display:'flex', alignItems:'center', gap:4 }}><HiUserAdd size={13}/> Ajouter</button>
-            )}
-          </div>
+          ) : post.pageId ? (
+            <div onClick={() => navigate(`/pages/${post.pageId}`)} style={{ display:'flex', alignItems:'center', gap:10, cursor:'pointer', flex:1, minWidth:0 }}>
+              <div style={{ width:42, height:42, borderRadius:10, background:'linear-gradient(145deg,#63A9FF,#1877F2)', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0, overflow:'hidden' }}>
+                {post.pagePhoto ? <img src={post.pagePhoto} alt="" style={{ width:'100%', height:'100%', objectFit:'cover' }}/> : <HiIdentification size={20} color="white"/>}
+              </div>
+              <div><p style={{ fontWeight:700, fontSize:15 }}>{post.pageName}</p><p style={{ fontSize:12, color:'#65676B' }}>Sera · {post.createdAt?timeAgo(post.createdAt):''}</p></div>
+            </div>
+          ) : post.artistId ? (
+            <div onClick={() => navigate(`/artists/${post.artistId}`)} style={{ display:'flex', alignItems:'center', gap:10, cursor:'pointer', flex:1, minWidth:0 }}>
+              <div style={{ width:42, height:42, borderRadius:'50%', background:'linear-gradient(145deg,#FF6FA5,#FF2D8D)', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0, overflow:'hidden' }}>
+                {post.artistPhoto ? <img src={post.artistPhoto} alt="" style={{ width:'100%', height:'100%', objectFit:'cover' }}/> : <span style={{ color:'white' }}>🎤</span>}
+              </div>
+              <div><p style={{ fontWeight:700, fontSize:15 }}>{post.artistName} 🎤</p><p style={{ fontSize:12, color:'#65676B' }}>{post.genre} · {post.createdAt?timeAgo(post.createdAt):''}</p></div>
+            </div>
+          ) : post.shopId ? (
+            <div onClick={() => navigate(`/shop/${post.shopId}`)} style={{ display:'flex', alignItems:'center', gap:10, cursor:'pointer', flex:1, minWidth:0 }}>
+              <div style={{ width:42, height:42, borderRadius:10, background:'linear-gradient(145deg,#FF6FA5,#FF2D8D)', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0, overflow:'hidden' }}>
+                {post.shopPhoto ? <img src={post.shopPhoto} alt="" style={{ width:'100%', height:'100%', objectFit:'cover' }}/> : <HiShoppingBag size={20} color="white"/>}
+              </div>
+              <div><p style={{ fontWeight:700, fontSize:15 }}>{post.shopName} 🏪</p><p style={{ fontSize:12, color:'#65676B' }}>Boutique · {post.createdAt?timeAgo(post.createdAt):''}</p></div>
+            </div>
+          ) : (
+            <div style={{ display:'flex', alignItems:'center', gap:10, cursor:'pointer', flex:1, minWidth:0 }} onClick={() => navigate(`/profile/${post.uid}`)}>
+              <img src={post.authorPhoto||`https://ui-avatars.com/api/?name=${encodeURIComponent(post.authorName||'U')}&background=1877F2&color=fff`} alt="" className="avatar" style={{ width:42, height:42, flexShrink:0 }}/>
+              <div>
+                <p style={{ fontWeight:700, fontSize:15 }}>{post.authorName}{post.authorIsVip&&<VIPBadge/>}</p>
+                <p style={{ fontSize:12, color:'#65676B' }}>@{post.authorUsername} · {post.createdAt?timeAgo(post.createdAt):''}</p>
+              </div>
+            </div>
+          )}
+          {!post.groupName && !post.pageId && !post.artistId && !post.shopId && (
+            <div style={{ display:'flex', gap:6, flexShrink:0 }}>
+              {post.uid!==currentUser.uid&&<button onClick={() => navigate(`/messages/${getChatId(currentUser.uid,post.uid)}`)} style={{ background:'#E4E6EB', border:'none', borderRadius:20, padding:'6px 12px', cursor:'pointer', color:'#1877F2', fontSize:12, fontWeight:600 }}>💬 Message</button>}
+              {post.uid!==currentUser.uid&&!isFriend(post.uid)&&!(userProfile?.sentRequests||[]).includes(post.uid)&&(
+                <button onClick={async()=>{
+                  await addDoc(collection(db,'friendRequests'),{fromUid:currentUser.uid,toUid:post.uid,fromName:userProfile.fullName,fromPhoto:userProfile.photoURL||'',status:'pending',createdAt:serverTimestamp()});
+                  alert('Demande envoyée !');
+                }} style={{ background:'none', border:'1px solid #E4E6EB', borderRadius:20, padding:'6px 12px', cursor:'pointer', color:'#65676B', fontSize:12, display:'flex', alignItems:'center', gap:4 }}><HiUserAdd size={13}/> Ajouter</button>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Content */}

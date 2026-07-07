@@ -3,9 +3,15 @@
 // mifindra page hafa ao anaty Traingo aza ianao (module singleton,
 // tsy miankina amin'ny composant React). Misy indicateur global ao amin'ny Layout.
 import { uploadToTelegram } from './telegram';
-import { compressVideo } from './videoCompress';
 
-const COMPRESS_THRESHOLD = 25 * 1024 * 1024; // vidéo > 25 Mo → compressée aloha
+// ⚠️ FIX BUG (video "loading" mandrakizay / mijanona am-po) : ny compression
+// tao aloha (MediaRecorder/canvas) dia mamorona fichier tsy misy "duration"
+// marina ao anaty métadonnées matetika — io no nahatonga ny video "vita
+// télécharger" fa tsy mety mihitsy milalao (loading atrany), ary mety
+// nanova ny endriky ny video (portrait/paysage) satria fanoratana indray.
+// Ny vahaolana azo antoka kokoa : ampiasaina TSY MIOVA (byte-exact) foana
+// ilay fichier original, alefa amin'ny chunking — mitovy tanteraka amin'ilay
+// napetraky ny mpampiasa (endrika, hauteur, durée marina foana).
 
 let current = null; // { label, pct, status: 'uploading'|'saving'|'done'|'error', error? }
 const listeners = new Set();
@@ -19,7 +25,7 @@ export function subscribeUpload(cb) {
 }
 
 export function isUploading() {
-  return !!current && (current.status === 'uploading' || current.status === 'saving' || current.status === 'compressing');
+  return !!current && (current.status === 'uploading' || current.status === 'saving');
 }
 
 /**
@@ -43,21 +49,6 @@ export function startBackgroundUpload(file, label, afterUpload) {
 
   (async () => {
     try {
-      // 🎞️ Compression aloha raha vidéo lehibe (720p ~2,5 Mbps → lecture fluide)
-      if (file.type?.startsWith('video/') && file.size > COMPRESS_THRESHOLD) {
-        current = { ...current, status: 'compressing', pct: 0 };
-        emit();
-        const compressed = await compressVideo(file, pct => {
-          if (current) { current = { ...current, pct }; emit(); }
-        });
-        if (compressed && compressed.size > 0 && compressed.size < file.size) {
-          console.log(`Compression : ${Math.round(file.size/1048576)} Mo → ${Math.round(compressed.size/1048576)} Mo`);
-          file = compressed;
-        }
-        current = { ...current, status: 'uploading', pct: 0 };
-        emit();
-      }
-
       const r = await uploadToTelegram(file, pct => {
         if (current) { current = { ...current, pct }; emit(); }
       });

@@ -109,25 +109,29 @@ export default function ArtistDetail() {
       if (mediaType === 'video' && !thumbFile) {
         try { const auto = await captureVideoThumb(mediaFile); if (auto) { const tr = await uploadToTelegram(auto); thumbURL = tr.url || ''; } } catch {}
       } else if (thumbFile) {
-        const tr = await uploadToTelegram(thumbFile); thumbURL = tr.url || '';
+        try { const tr = await uploadToTelegram(thumbFile); thumbURL = tr.url || ''; } catch {}
       }
       const postRef = await addDoc(collection(db, 'posts'), {
-        uid: currentUser.uid, authorName: artist.name, authorPhoto: artist.photoURL || '',
+        uid: currentUser.uid, authorName: artist.name, authorUsername: '', authorPhoto: artist.photoURL || '',
         content: content.trim().slice(0, 500), mediaURL: r.url, mediaType: mediaType === 'audio' ? 'audio' : 'video', thumbURL,
         isSale: false, price: '', contact: '', lieu: '',
         artistId: artist.id, artistName: artist.name, artistPhoto: artist.photoURL || '', genre,
         reactions: {}, comments: [], createdAt: serverTimestamp(),
       });
-      const targets = artist.followers || [];
-      if (targets.length > 0) {
-        const batch = writeBatch(db);
-        targets.forEach(fUid => batch.set(doc(collection(db,'notifications')), {
-          toUid: fUid, fromUid: currentUser.uid, fromName: artist.name, fromPhoto: artist.photoURL || '',
-          type: 'post', postId: postRef.id, message: `${artist.name} a publié un nouveau son : ${content.trim().slice(0,40) || genre}`,
-          read: false, createdAt: serverTimestamp(),
-        }));
-        await batch.commit();
-      }
+      // ✅ Le titre est publié (addDoc réussi) — une notification qui échoue
+      // ne doit JAMAIS déclencher un faux message "Erreur"
+      try {
+        const targets = artist.followers || [];
+        if (targets.length > 0) {
+          const batch = writeBatch(db);
+          targets.forEach(fUid => batch.set(doc(collection(db,'notifications')), {
+            toUid: fUid, fromUid: currentUser.uid, fromName: artist.name, fromPhoto: artist.photoURL || '',
+            type: 'post', postId: postRef.id, message: `${artist.name} a publié un nouveau son : ${content.trim().slice(0,40) || genre}`,
+            read: false, createdAt: serverTimestamp(),
+          }));
+          await batch.commit();
+        }
+      } catch (notifErr) { console.warn('Notification abonnés échouée (titre déjà publié) :', notifErr?.message || notifErr); }
       setContent(''); setMediaFile(null); setMediaType(''); setThumbFile(null); setThumbPreview(null);
     } catch (err) { alert('Erreur : ' + (err?.message || err)); }
     setPosting(false);

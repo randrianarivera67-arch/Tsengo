@@ -36,6 +36,16 @@ export default function GroupPage() {
   const [mediaPreview, setMediaPreview] = useState(null);
   const [mediaType,  setMediaType]  = useState('');
   const [posting,    setPosting]    = useState(false);
+  const [gpLocation, setGpLocation] = useState('');
+  const [gpMood,     setGpMood]     = useState('');
+  const [gpAllowMessages, setGpAllowMessages] = useState(true);
+  const [gpMoreOpen, setGpMoreOpen] = useState(false);
+  const [gpLocationOpen, setGpLocationOpen] = useState(false);
+  const [gpMoodOpen, setGpMoodOpen] = useState(false);
+  const [gpTagOpen,  setGpTagOpen]  = useState(false);
+  const [gpTagSel,   setGpTagSel]   = useState({});
+  const [gpTagList,  setGpTagList]  = useState([]);
+  const MOODS = ['😊 se sent heureux(se)', '😢 se sent triste', '🥳 fait la fête', '😴 fatigué(e)', '🙏 reconnaissant(e)', '💪 motivé(e)', '😍 amoureux(se)', '🤒 malade'];
   const [uploadingCover, setUploadingCover] = useState(false);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [showReact,  setShowReact]  = useState({});
@@ -209,21 +219,36 @@ export default function GroupPage() {
       authorIsVip: userProfile.isVip || false,
       content: (caption || '').trim().slice(0, 2000), mediaURL, mediaType: finalMT, thumbURL: thumbURL || '',
       isSale: false, price: '', contact: '', lieu: '',
+      location: gpLocation.trim(), mood: gpMood, allowMessages: gpAllowMessages,
+      taggedUids: Object.keys(gpTagSel).filter(k => gpTagSel[k]),
+      taggedNames: gpTagList.filter(f => gpTagSel[f.uid]).map(f => f.fullName),
       groupId: group.id, groupName: group.name, groupPhoto: group.photoURL || '',
       reactions: {}, comments: [], createdAt: serverTimestamp(),
     });
-    const targets = (group.members || []).filter(m => m !== currentUser.uid);
-    if (targets.length > 0) {
-      const batch = writeBatch(db);
-      targets.forEach(fUid => batch.set(doc(collection(db, 'notifications')), {
-        toUid: fUid, fromUid: currentUser.uid,
-        fromName: userProfile.fullName, fromPhoto: userProfile.photoURL || '',
-        type: 'post', postId: postRef.id,
-        message: `${userProfile.fullName} a publié dans le groupe ${group.name}`,
-        read: false, createdAt: serverTimestamp(),
-      }));
-      await batch.commit();
-    }
+    try {
+      const targets = (group.members || []).filter(m => m !== currentUser.uid);
+      if (targets.length > 0) {
+        const batch = writeBatch(db);
+        targets.forEach(fUid => batch.set(doc(collection(db, 'notifications')), {
+          toUid: fUid, fromUid: currentUser.uid,
+          fromName: userProfile.fullName, fromPhoto: userProfile.photoURL || '',
+          type: 'post', postId: postRef.id,
+          message: `${userProfile.fullName} a publié dans le groupe ${group.name}`,
+          read: false, createdAt: serverTimestamp(),
+        }));
+        await batch.commit();
+      }
+    } catch (notifErr) { console.warn('Notification échouée (publication déjà faite) :', notifErr?.message || notifErr); }
+    setGpLocation(''); setGpMood(''); setGpAllowMessages(true); setGpTagSel({});
+  }
+
+  async function openGpTagModal() {
+    setGpTagOpen(true);
+    const myFriends = userProfile?.friends || [];
+    const list = await Promise.all(myFriends.map(uid =>
+      getDoc(doc(db, 'users', uid)).then(sn => sn.exists() ? { uid, ...sn.data() } : null).catch(() => null)
+    ));
+    setGpTagList(list.filter(Boolean));
   }
 
   async function publishInGroup() {
@@ -235,7 +260,7 @@ export default function GroupPage() {
       try { thumbFile = await captureVideoThumb(mediaFile); } catch {}
     }
 
-    // Vidéo > 12 Mo : upload ARRIÈRE-PLAN (compression + afaka mifindra page)
+    // Vidéo > 12 Mo : upload ARRIÈRE-PLAN (afaka mifindra page)
     if (mediaFile && mediaFile.type.startsWith('video/') && mediaFile.size > 12 * 1024 * 1024) {
       const cText = content;
       const started = startBackgroundUpload(mediaFile, 'Vidéo', async r => {
@@ -391,6 +416,13 @@ export default function GroupPage() {
             <textarea className="input" placeholder="Exprimez-vous..." value={content} onChange={e => setContent(e.target.value)} rows={1}
               style={{ resize: 'none', borderRadius: 20 }} maxLength={2000} />
           </div>
+          {(gpLocation || gpMood || Object.values(gpTagSel).some(Boolean)) && (
+            <div style={{ display:'flex', flexWrap:'wrap', gap:6, marginTop:8 }}>
+              {gpLocation && <span style={{ display:'flex', alignItems:'center', gap:5, background:'#FFE9F2', color:'#FF2D8D', borderRadius:16, padding:'4px 10px', fontSize:12, fontWeight:700 }}>📍 {gpLocation} <span onClick={() => setGpLocation('')} style={{ cursor:'pointer' }}>✕</span></span>}
+              {gpMood && <span style={{ display:'flex', alignItems:'center', gap:5, background:'#FFF6DB', color:'#B8860B', borderRadius:16, padding:'4px 10px', fontSize:12, fontWeight:700 }}>{gpMood} <span onClick={() => setGpMood('')} style={{ cursor:'pointer' }}>✕</span></span>}
+              {Object.values(gpTagSel).some(Boolean) && <span style={{ display:'flex', alignItems:'center', gap:5, background:'#E7F0FE', color:'#1877F2', borderRadius:16, padding:'4px 10px', fontSize:12, fontWeight:700 }}>🏷️ avec {gpTagList.filter(f => gpTagSel[f.uid]).map(f => f.fullName).join(', ')} <span onClick={() => setGpTagSel({})} style={{ cursor:'pointer' }}>✕</span></span>}
+            </div>
+          )}
           {mediaPreview && (
             <div style={{ position: 'relative', marginTop: 10 }}>
               {mediaType === 'image'
@@ -405,6 +437,7 @@ export default function GroupPage() {
             <input ref={postVideoRef} type="file" accept="video/mp4,video/webm,video/quicktime" style={{ display: 'none' }} onChange={e => handleMedia(e, 'video')} />
             <button onClick={() => postPhotoRef.current?.click()} className="btn-blue" style={{ display: 'flex', alignItems: 'center', gap: 5, borderRadius: 20, padding: '6px 12px', fontSize: 12 }}><HiPhotograph size={15} /> Photo</button>
             <button onClick={() => postVideoRef.current?.click()} className="btn-primary" style={{ display: 'flex', alignItems: 'center', gap: 5, borderRadius: 20, padding: '6px 12px', fontSize: 12 }}><HiVideoCamera size={15} /> Vidéo</button>
+            <button onClick={() => setGpMoreOpen(true)} className="btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: 5, borderRadius: 20, padding: '6px 12px', fontSize: 12 }}>⋯ Plus</button>
             <button onClick={publishInGroup} disabled={posting || (!content.trim() && !mediaFile)} className="btn-gold" style={{ marginLeft: 'auto', padding: '7px 18px', fontSize: 13 }}>
               {posting ? '...' : 'Publier'}
             </button>
@@ -519,6 +552,12 @@ export default function GroupPage() {
               <div style={{ flex: 1, minWidth: 0 }}>
                 <p style={{ fontWeight: 700, fontSize: 14 }}>{post.authorName}</p>
                 <p style={{ fontSize: 12, color: '#65676B' }}>{post.createdAt ? timeAgo(post.createdAt) : "À l'instant"}</p>
+                {post.taggedNames?.length > 0 && <p style={{ fontSize:12, color:'#65676B' }}>avec {post.taggedNames.join(', ')}</p>}
+                {(post.mood || post.location) && (
+                  <p style={{ fontSize:12, color:'#65676B' }}>
+                    {post.mood && <>{post.mood}</>}{post.mood && post.location ? ' à ' : ''}{post.location && <>📍 {post.location}</>}
+                  </p>
+                )}
               </div>
               {(post.uid === currentUser.uid || post.mediaURL) && (
                 <div style={{ position: 'relative' }} onClick={e => e.stopPropagation()}>
@@ -600,6 +639,72 @@ export default function GroupPage() {
       })}
 
       {shareModalPost && <ShareModal post={shareModalPost} onClose={() => setShareModalPost(null)} />}
+
+      {/* ── Bottom sheet : Plus d'options (groupe) ─────────────── */}
+      {gpMoreOpen && (
+        <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.5)', zIndex:420, display:'flex', alignItems:'flex-end', justifyContent:'center' }} onClick={() => setGpMoreOpen(false)}>
+          <div onClick={e => e.stopPropagation()} style={{ background:'white', borderRadius:'20px 20px 0 0', padding:'8px 0 20px', width:'100%', maxWidth:480 }}>
+            <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', padding:'10px 20px 14px' }}>
+              <h3 style={{ fontWeight:800, fontSize:16 }}>Plus d'options</h3>
+              <button onClick={() => setGpMoreOpen(false)} style={{ background:'none', border:'none', cursor:'pointer', color:'#65676B' }}><HiX size={20}/></button>
+            </div>
+            {[
+              { icon:<HiUserAdd size={20} color="#1877F2"/>, label:'Identifier des personnes', action:() => { setGpMoreOpen(false); openGpTagModal(); } },
+              { icon:<span style={{ fontSize:20 }}>📍</span>, label: gpLocation ? `Lieu : ${gpLocation}` : 'Ajouter un lieu', action:() => { setGpMoreOpen(false); setGpLocationOpen(true); } },
+              { icon:<span style={{ fontSize:20 }}>😊</span>, label: gpMood || 'Humeur / Activité', action:() => { setGpMoreOpen(false); setGpMoodOpen(true); } },
+              { icon:<HiChat size={20} color="#1877F2"/>, label: gpAllowMessages ? 'Recevoir des messages : Activé' : 'Recevoir des messages : Désactivé', action:() => setGpAllowMessages(p => !p) },
+            ].map((item, i) => (
+              <button key={i} onClick={item.action} style={{ width:'100%', display:'flex', alignItems:'center', gap:14, padding:'13px 20px', background:'none', border:'none', cursor:'pointer', fontFamily:'Poppins', fontSize:15, fontWeight:600, color:'#050505', textAlign:'left' }}>
+                {item.icon} {item.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {gpLocationOpen && (
+        <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.5)', zIndex:430, display:'flex', alignItems:'center', justifyContent:'center', padding:20 }} onClick={() => setGpLocationOpen(false)}>
+          <div onClick={e => e.stopPropagation()} style={{ background:'white', borderRadius:18, padding:20, width:'100%', maxWidth:360 }}>
+            <h3 style={{ fontWeight:800, fontSize:15, marginBottom:12 }}>📍 Ajouter un lieu</h3>
+            <input className="input" autoFocus placeholder="Où êtes-vous ?" value={gpLocation} onChange={e => setGpLocation(e.target.value)} maxLength={100} style={{ marginBottom:14 }}/>
+            <button onClick={() => setGpLocationOpen(false)} className="btn-primary" style={{ width:'100%', padding:'10px 0', fontSize:14 }}>OK</button>
+          </div>
+        </div>
+      )}
+
+      {gpMoodOpen && (
+        <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.5)', zIndex:430, display:'flex', alignItems:'flex-end', justifyContent:'center' }} onClick={() => setGpMoodOpen(false)}>
+          <div onClick={e => e.stopPropagation()} style={{ background:'white', borderRadius:'20px 20px 0 0', padding:20, width:'100%', maxWidth:480 }}>
+            <h3 style={{ fontWeight:800, fontSize:15, marginBottom:12 }}>Comment vous sentez-vous ?</h3>
+            {MOODS.map(m => (
+              <button key={m} onClick={() => { setGpMood(m); setGpMoodOpen(false); }}
+                style={{ width:'100%', textAlign:'left', padding:'11px 6px', background:'none', border:'none', borderBottom:'1px solid #F0F2F5', cursor:'pointer', fontSize:15, fontFamily:'Poppins' }}>
+                {m}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {gpTagOpen && (
+        <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.5)', zIndex:430, display:'flex', alignItems:'flex-end', justifyContent:'center' }} onClick={() => setGpTagOpen(false)}>
+          <div onClick={e => e.stopPropagation()} style={{ background:'white', borderRadius:'20px 20px 0 0', padding:20, width:'100%', maxWidth:480, maxHeight:'75vh', overflowY:'auto' }}>
+            <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:14 }}>
+              <h3 style={{ fontWeight:800, fontSize:16 }}>Identifier des amis</h3>
+              <button onClick={() => setGpTagOpen(false)} style={{ background:'none', border:'none', cursor:'pointer', color:'#65676B' }}><HiX size={20}/></button>
+            </div>
+            {gpTagList.length === 0 && <p style={{ fontSize:13, color:'#65676B', textAlign:'center', padding:'16px 0' }}>Vous n'avez pas encore d'amis à identifier.</p>}
+            {gpTagList.map(f => (
+              <label key={f.uid} style={{ display:'flex', alignItems:'center', gap:10, padding:'9px 4px', cursor:'pointer', borderBottom:'1px solid #F0F2F5' }}>
+                <input type="checkbox" checked={!!gpTagSel[f.uid]} onChange={e => setGpTagSel(p => ({ ...p, [f.uid]: e.target.checked }))} style={{ width:18, height:18, accentColor:'#1877F2' }}/>
+                <img src={f.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(f.fullName||'U')}&background=1877F2&color=fff`} alt="" style={{ width:36, height:36, borderRadius:'50%', objectFit:'cover' }}/>
+                <p style={{ fontWeight:600, fontSize:14 }}>{f.fullName}</p>
+              </label>
+            ))}
+            <button onClick={() => setGpTagOpen(false)} className="btn-primary" style={{ width:'100%', marginTop:14, padding:'11px 0', fontSize:14 }}>OK</button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -31,6 +31,7 @@ export default function PageDetail() {
   const [mediaPreview, setMediaPreview] = useState(null);
   const [mediaType, setMediaType] = useState('');
   const [posting, setPosting] = useState(false);
+  const [pgAllowMessages, setPgAllowMessages] = useState(true);
   const [menuOpen, setMenuOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
   const [editForm, setEditForm] = useState({ name:'', description:'', website:'', phone:'', location:'', team:'', hobbies:'' });
@@ -106,19 +107,22 @@ export default function PageDetail() {
         uid: currentUser.uid, authorName: pg.name, authorUsername: '', authorPhoto: pg.photoURL || '',
         authorIsVip: false, content: content.trim().slice(0, 2000), mediaURL, mediaType: finalMT,
         isSale: false, price:'', contact:'', lieu:'',
+        allowMessages: pgAllowMessages,
         pageId: pg.id, pageName: pg.name, pagePhoto: pg.photoURL || '',
         reactions: {}, comments: [], createdAt: serverTimestamp(),
       });
-      const targets = pg.followers || [];
-      if (targets.length > 0) {
-        const batch = writeBatch(db);
-        targets.forEach(fUid => batch.set(doc(collection(db,'notifications')), {
-          toUid: fUid, fromUid: currentUser.uid, fromName: pg.name, fromPhoto: pg.photoURL || '',
-          type: 'post', postId: postRef.id, message: `${pg.name} a publié une nouvelle actualité`,
-          read: false, createdAt: serverTimestamp(),
-        }));
-        await batch.commit();
-      }
+      try {
+        const targets = pg.followers || [];
+        if (targets.length > 0) {
+          const batch = writeBatch(db);
+          targets.forEach(fUid => batch.set(doc(collection(db,'notifications')), {
+            toUid: fUid, fromUid: currentUser.uid, fromName: pg.name, fromPhoto: pg.photoURL || '',
+            type: 'post', postId: postRef.id, message: `${pg.name} a publié une nouvelle actualité`,
+            read: false, createdAt: serverTimestamp(),
+          }));
+          await batch.commit();
+        }
+      } catch (notifErr) { console.warn('Notification échouée (publication déjà faite) :', notifErr?.message || notifErr); }
       setContent(''); setMediaFile(null); setMediaPreview(null); setMediaType('');
     } catch (err) { alert('Erreur : ' + (err?.message || err)); }
     setPosting(false);
@@ -209,6 +213,8 @@ export default function PageDetail() {
             <input ref={postVideoRef} type="file" accept="video/mp4,video/webm,video/quicktime" style={{ display:'none' }} onChange={e => handleMedia(e,'video')} />
             <button onClick={() => postPhotoRef.current?.click()} className="btn-blue" style={{ display:'flex', alignItems:'center', gap:5, borderRadius:20, padding:'6px 12px', fontSize:12 }}><HiPhotograph size={15}/> Photo</button>
             <button onClick={() => postVideoRef.current?.click()} className="btn-primary" style={{ display:'flex', alignItems:'center', gap:5, borderRadius:20, padding:'6px 12px', fontSize:12 }}><HiVideoCamera size={15}/> Vidéo</button>
+            <button onClick={() => navigate('/events')} className="btn-secondary" style={{ display:'flex', alignItems:'center', gap:5, borderRadius:20, padding:'6px 12px', fontSize:12 }}>📅 Événement</button>
+            <button onClick={() => setPgAllowMessages(p => !p)} className="btn-secondary" style={{ display:'flex', alignItems:'center', gap:5, borderRadius:20, padding:'6px 12px', fontSize:12, opacity: pgAllowMessages ? 1 : .6 }}>💬 Messages {pgAllowMessages ? 'ON' : 'OFF'}</button>
             <button onClick={publish} disabled={posting || (!content.trim() && !mediaFile)} className="btn-gold" style={{ marginLeft:'auto', padding:'7px 18px', fontSize:13 }}>{posting ? '...' : 'Publier'}</button>
           </div>
         </div>

@@ -19,7 +19,7 @@ import ShareModal from '../components/ShareModal';
 import PhotoCarousel from '../components/PhotoCarousel';
 import StoryRing from '../components/StoryRing';
 import { useActiveStoryUids } from '../hooks/useActiveStoryUids';
-import { NeonGlobe, NeonPeople, NeonLock, NeonMic } from '../components/NeonIcons';
+import { NeonGlobe, NeonPeople, NeonLock, NeonMic, NeonLocation } from '../components/NeonIcons';
 import { getChatId } from '../utils/chat';
 import { ref as dbRef, push as dbPush, update as dbUpdate } from 'firebase/database';
 import { rtdb } from '../firebase';
@@ -29,7 +29,7 @@ import {
   HiPhotograph, HiVideoCamera, HiTag, HiOutlineHeart, HiChat,
   HiTrash, HiPencil, HiX, HiShare, HiFilm, HiOutlineChat,
   HiDotsVertical, HiDownload, HiLightningBolt, HiPhone, HiLocationMarker,
-  HiReply, HiUserAdd, HiUserGroup, HiBookmark, HiFlag, HiBan, HiPaperAirplane, HiIdentification, HiShoppingBag
+  HiReply, HiUserAdd, HiUserGroup, HiBookmark, HiFlag, HiBan, HiPaperAirplane, HiIdentification, HiShoppingBag, HiCalendar
 } from 'react-icons/hi';
 
 const MAX_POST    = 2000;
@@ -70,6 +70,16 @@ export default function Home() {
   const [shareModalPost, setShareModalPost] = useState(null);
   const [audience, setAudience] = useState('public');   // 'public' | 'friends' | 'me'
   const [audienceMenuOpen, setAudienceMenuOpen] = useState(false);
+  const [composerMoreOpen, setComposerMoreOpen] = useState(false);
+  const [postLocation, setPostLocation] = useState('');
+  const [postMood, setPostMood] = useState('');
+  const [allowMessages, setAllowMessages] = useState(true);
+  const [locationPromptOpen, setLocationPromptOpen] = useState(false);
+  const [moodPickerOpen, setMoodPickerOpen] = useState(false);
+  const [composerTagOpen, setComposerTagOpen] = useState(false);
+  const [composerTagSel, setComposerTagSel] = useState({});
+  const [composerTagList, setComposerTagList] = useState([]);
+  const MOODS = ['😊 se sent heureux(se)', '😢 se sent triste', '🥳 fait la fête', '😴 fatigué(e)', '🙏 reconnaissant(e)', '💪 motivé(e)', '😍 amoureux(se)', '🤒 malade'];
   const [storyReactors, setStoryReactors] = useState(null);   // null | [{uid,name,photo,emoji}]
   const storyFileRef = useRef();
 
@@ -210,6 +220,9 @@ export default function Home() {
       isSale, price: isSale ? parseFloat(price) : '',
       contact: isSale ? contact.trim() : '', lieu: isSale ? lieu.trim() : '', saleCategory: isSale ? saleCategory : '',
       audience,
+      location: postLocation.trim(), mood: postMood, allowMessages,
+      taggedUids: Object.keys(composerTagSel).filter(k => composerTagSel[k]),
+      taggedNames: composerTagList.filter(f => composerTagSel[f.uid]).map(f => f.fullName),
     };
     // Miniature an'ny vidéo (poster) — alaina eto an-toerana, haingana
     let thumbFile = null;
@@ -264,7 +277,7 @@ export default function Home() {
           }));
           await batch.commit();
         }
-        setContent(''); removeMedia(); setIsSale(false); setPrice(''); setContact(''); setLieu(''); setAudience('public');
+        setContent(''); removeMedia(); setIsSale(false); setPrice(''); setContact(''); setLieu(''); setAudience('public'); setPostLocation(''); setPostMood(''); setAllowMessages(true); setComposerTagSel({});
       } catch (err) { console.error(err); alert('Erreur lors de la publication'); }
       setPosting(false); setUploadPct(0);
       return;
@@ -277,7 +290,7 @@ export default function Home() {
       });
       setPosting(false); setUploadPct(0);
       if (started) {
-        setContent(''); removeMedia(); setIsSale(false); setPrice(''); setContact(''); setLieu(''); setAudience('public');
+        setContent(''); removeMedia(); setIsSale(false); setPrice(''); setContact(''); setLieu(''); setAudience('public'); setPostLocation(''); setPostMood(''); setAllowMessages(true); setComposerTagSel({});
       }
       return;
     }
@@ -289,7 +302,7 @@ export default function Home() {
         mediaURL = r.url; finalMT = r.type === 'video' ? 'video' : 'image';
       }
       await publishPost(mediaURL, finalMT);
-      setContent(''); removeMedia(); setIsSale(false); setPrice(''); setContact(''); setLieu(''); setAudience('public');
+      setContent(''); removeMedia(); setIsSale(false); setPrice(''); setContact(''); setLieu(''); setAudience('public'); setPostLocation(''); setPostMood(''); setAllowMessages(true); setComposerTagSel({});
     } catch (err) { console.error(err); alert('Erreur lors de la publication'); }
     setPosting(false); setUploadPct(0);
   }
@@ -446,6 +459,15 @@ export default function Home() {
   const [tagModalPost, setTagModalPost] = useState(null);
   const [tagSelected, setTagSelected] = useState({});
   const [tagFriendsList, setTagFriendsList] = useState([]);
+  async function openComposerTagModal() {
+    setComposerTagOpen(true);
+    const myFriends = userProfile?.friends || [];
+    const list = await Promise.all(myFriends.map(uid =>
+      getDoc(doc(db, 'users', uid)).then(sn => sn.exists() ? { uid, ...sn.data() } : null).catch(() => null)
+    ));
+    setComposerTagList(list.filter(Boolean));
+  }
+
   async function openTagModal(post) {
     setTagModalPost(post);
     const init = {}; (post.taggedUids || []).forEach(u => { init[u] = true; });
@@ -893,6 +915,27 @@ export default function Home() {
           )}
         </div>
 
+        {/* Pastilles : lieu / humeur / amis identifiés (format Facebook) */}
+        {(postLocation || postMood || Object.values(composerTagSel).some(Boolean)) && (
+          <div style={{ display:'flex', flexWrap:'wrap', gap:6, marginTop:8 }}>
+            {postLocation && (
+              <span style={{ display:'flex', alignItems:'center', gap:5, background:'#FFE9F2', color:'#FF2D8D', borderRadius:16, padding:'4px 10px', fontSize:12, fontWeight:700 }}>
+                📍 {postLocation} <span onClick={() => setPostLocation('')} style={{ cursor:'pointer' }}>✕</span>
+              </span>
+            )}
+            {postMood && (
+              <span style={{ display:'flex', alignItems:'center', gap:5, background:'#FFF6DB', color:'#B8860B', borderRadius:16, padding:'4px 10px', fontSize:12, fontWeight:700 }}>
+                {postMood} <span onClick={() => setPostMood('')} style={{ cursor:'pointer' }}>✕</span>
+              </span>
+            )}
+            {Object.values(composerTagSel).some(Boolean) && (
+              <span style={{ display:'flex', alignItems:'center', gap:5, background:'#E7F0FE', color:'#1877F2', borderRadius:16, padding:'4px 10px', fontSize:12, fontWeight:700 }}>
+                🏷️ avec {composerTagList.filter(f => composerTagSel[f.uid]).map(f => f.fullName).join(', ')} <span onClick={() => setComposerTagSel({})} style={{ cursor:'pointer' }}>✕</span>
+              </span>
+            )}
+          </div>
+        )}
+
         {mediaPreview && (
           <div style={{ position:'relative', marginTop:10 }}>
             {mediaType==='image'
@@ -954,6 +997,7 @@ export default function Home() {
           <button onClick={() => photoRef.current.click()} className="btn-blue" style={{ display:'flex', alignItems:'center', gap:5, borderRadius:20, padding:'6px 12px', fontSize:13 }}><HiPhotograph size={16}/>{t('addPhoto')}</button>
           <button onClick={() => videoRef.current.click()} className="btn-primary" style={{ display:'flex', alignItems:'center', gap:5, borderRadius:20, padding:'6px 12px', fontSize:13 }}><HiVideoCamera size={16}/>{t('addVideo')}</button>
           <button onClick={() => setIsSale(p=>!p)} className="btn-gold" style={{ display:'flex', alignItems:'center', gap:5, borderRadius:20, padding:'6px 12px', fontSize:13, opacity:isSale?1:.85, outline:isSale?'2px solid #F2B300':'none' }}><HiTag size={16}/>{t('sell')}</button>
+          <button onClick={() => setComposerMoreOpen(true)} className="btn-secondary" style={{ display:'flex', alignItems:'center', gap:5, borderRadius:20, padding:'6px 12px', fontSize:13 }}>⋯ Plus</button>
           <button className="btn-primary" onClick={createPost} disabled={posting||(!content.trim()&&!mediaFile&&multiPhotos.length===0)||content.length>MAX_POST} style={{ marginLeft:'auto', padding:'6px 20px', fontSize:13 }}>
             {posting?'...':t('publishPost')}
           </button>
@@ -1096,6 +1140,11 @@ export default function Home() {
                     <p style={{ fontWeight:600, fontSize:14, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{post.authorName}{post.authorIsVip&&<VIPBadge/>}</p>
                     <p style={{ fontSize:12, color:'#65676B' }}>@{post.authorUsername} · {post.createdAt?timeAgo(post.createdAt):"À l'instant"}</p>
                     {post.taggedNames?.length > 0 && <p style={{ fontSize:12, color:'#65676B' }}>avec {post.taggedNames.join(', ')}</p>}
+                    {(post.mood || post.location) && (
+                      <p style={{ fontSize:12, color:'#65676B' }}>
+                        {post.mood && <>{post.mood}</>}{post.mood && post.location ? ' à ' : ''}{post.location && <>📍 {post.location}</>}
+                      </p>
+                    )}
                   </div>
                 </div>
               )}
@@ -1415,6 +1464,77 @@ export default function Home() {
       })}
 
       {shareModalPost && <ShareModal post={shareModalPost} onClose={() => setShareModalPost(null)} />}
+
+      {/* ── Bottom sheet : Plus d'options (format "Créer une publication" Facebook) ── */}
+      {composerMoreOpen && (
+        <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.5)', zIndex:400, display:'flex', alignItems:'flex-end', justifyContent:'center' }} onClick={() => setComposerMoreOpen(false)}>
+          <div onClick={e => e.stopPropagation()} style={{ background:'white', borderRadius:'20px 20px 0 0', padding:'8px 0 20px', width:'100%', maxWidth:480 }}>
+            <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', padding:'10px 20px 14px' }}>
+              <h3 style={{ fontWeight:800, fontSize:16 }}>Plus d'options</h3>
+              <button onClick={() => setComposerMoreOpen(false)} style={{ background:'none', border:'none', cursor:'pointer', color:'#65676B' }}><HiX size={20}/></button>
+            </div>
+            {[
+              { icon:<HiUserAdd size={20} color="#1877F2"/>, label:'Identifier des personnes', action:() => { setComposerMoreOpen(false); openComposerTagModal(); } },
+              { icon:<NeonLocation size={20}/>, label: postLocation ? `Lieu : ${postLocation}` : 'Ajouter un lieu', action:() => { setComposerMoreOpen(false); setLocationPromptOpen(true); } },
+              { icon:<span style={{ fontSize:20 }}>😊</span>, label: postMood || 'Humeur / Activité', action:() => { setComposerMoreOpen(false); setMoodPickerOpen(true); } },
+              { icon:<HiPaperAirplane size={20} color="#1877F2"/>, label: allowMessages ? 'Recevoir des messages : Activé' : 'Recevoir des messages : Désactivé', action:() => setAllowMessages(p => !p) },
+              { icon:<span className="icon-badge-3d" style={{ width:26, height:26, borderRadius:8, background:'linear-gradient(145deg,#3DD9C4,#12A48D)', display:'inline-flex' }}><HiCalendar size={14} color="white"/></span>, label:'Créer un événement', action:() => { setComposerMoreOpen(false); navigate('/events'); } },
+              { icon:<span className="icon-badge-3d" style={{ width:26, height:26, borderRadius:8, background:'linear-gradient(145deg,#FF6B6B,#E0242D)', display:'inline-flex' }}><HiVideoCamera size={14} color="white"/></span>, label:'Lancer un direct', action:() => { setComposerMoreOpen(false); alert("Le Live arrive bientôt sur Traingo — une infrastructure vidéo dédiée est en préparation. En attendant, essayez une Story ou un Reel !"); } },
+            ].map((item, i) => (
+              <button key={i} onClick={item.action} style={{ width:'100%', display:'flex', alignItems:'center', gap:14, padding:'13px 20px', background:'none', border:'none', cursor:'pointer', fontFamily:'Poppins', fontSize:15, fontWeight:600, color:'#050505', textAlign:'left' }}>
+                {item.icon} {item.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* ── Prompt : Ajouter un lieu ─────────────────────────── */}
+      {locationPromptOpen && (
+        <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.5)', zIndex:410, display:'flex', alignItems:'center', justifyContent:'center', padding:20 }} onClick={() => setLocationPromptOpen(false)}>
+          <div onClick={e => e.stopPropagation()} style={{ background:'white', borderRadius:18, padding:20, width:'100%', maxWidth:360 }}>
+            <h3 style={{ fontWeight:800, fontSize:15, marginBottom:12 }}>📍 Ajouter un lieu</h3>
+            <input className="input" autoFocus placeholder="Où êtes-vous ?" value={postLocation} onChange={e => setPostLocation(e.target.value)} maxLength={100} style={{ marginBottom:14 }}/>
+            <button onClick={() => setLocationPromptOpen(false)} className="btn-primary" style={{ width:'100%', padding:'10px 0', fontSize:14 }}>OK</button>
+          </div>
+        </div>
+      )}
+
+      {/* ── Sélecteur : Humeur / Activité ────────────────────── */}
+      {moodPickerOpen && (
+        <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.5)', zIndex:410, display:'flex', alignItems:'flex-end', justifyContent:'center' }} onClick={() => setMoodPickerOpen(false)}>
+          <div onClick={e => e.stopPropagation()} style={{ background:'white', borderRadius:'20px 20px 0 0', padding:20, width:'100%', maxWidth:480 }}>
+            <h3 style={{ fontWeight:800, fontSize:15, marginBottom:12 }}>Comment vous sentez-vous ?</h3>
+            {MOODS.map(m => (
+              <button key={m} onClick={() => { setPostMood(m); setMoodPickerOpen(false); }}
+                style={{ width:'100%', textAlign:'left', padding:'11px 6px', background:'none', border:'none', borderBottom:'1px solid #F0F2F5', cursor:'pointer', fontSize:15, fontFamily:'Poppins' }}>
+                {m}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* ── Modal : Identifier des amis (avant publication) ──── */}
+      {composerTagOpen && (
+        <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.5)', zIndex:410, display:'flex', alignItems:'flex-end', justifyContent:'center' }} onClick={() => setComposerTagOpen(false)}>
+          <div onClick={e => e.stopPropagation()} style={{ background:'white', borderRadius:'20px 20px 0 0', padding:20, width:'100%', maxWidth:480, maxHeight:'75vh', overflowY:'auto' }}>
+            <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:14 }}>
+              <h3 style={{ fontWeight:800, fontSize:16 }}>Identifier des amis</h3>
+              <button onClick={() => setComposerTagOpen(false)} style={{ background:'none', border:'none', cursor:'pointer', color:'#65676B' }}><HiX size={20}/></button>
+            </div>
+            {composerTagList.length === 0 && <p style={{ fontSize:13, color:'#65676B', textAlign:'center', padding:'16px 0' }}>Vous n'avez pas encore d'amis à identifier.</p>}
+            {composerTagList.map(f => (
+              <label key={f.uid} style={{ display:'flex', alignItems:'center', gap:10, padding:'9px 4px', cursor:'pointer', borderBottom:'1px solid #F0F2F5' }}>
+                <input type="checkbox" checked={!!composerTagSel[f.uid]} onChange={e => setComposerTagSel(p => ({ ...p, [f.uid]: e.target.checked }))} style={{ width:18, height:18, accentColor:'#1877F2' }}/>
+                <img src={f.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(f.fullName||'U')}&background=1877F2&color=fff`} alt="" style={{ width:36, height:36, borderRadius:'50%', objectFit:'cover' }}/>
+                <p style={{ fontWeight:600, fontSize:14 }}>{f.fullName}</p>
+              </label>
+            ))}
+            <button onClick={() => setComposerTagOpen(false)} className="btn-primary" style={{ width:'100%', marginTop:14, padding:'11px 0', fontSize:14 }}>OK</button>
+          </div>
+        </div>
+      )}
 
       {/* ── Modal : Identifier des amis ─────────────────────── */}
       {tagModalPost && (

@@ -376,18 +376,17 @@ export default function Layout({ children }) {
           border: `1.5px solid ${uploadState.status === 'error' ? '#FF2D8D' : '#E4E6EB'}`,
           borderRadius: 16, padding: '10px 14px', boxShadow: '0 6px 24px rgba(5,5,5,.18)' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, fontWeight: 700, fontFamily: 'Poppins' }}>
-            {uploadState.status === 'compressing' && <>🎞️ <span>Compression de la vidéo — {uploadState.pct}%</span></>}
             {uploadState.status === 'uploading' && <>📤 <span>{uploadState.label} — {uploadState.pct}%</span></>}
             {uploadState.status === 'saving'    && <>⏳ <span>Publication en cours...</span></>}
             {uploadState.status === 'done'      && <>✅ <span style={{ color: '#1877F2' }}>Publié !</span></>}
             {uploadState.status === 'error'     && <>⚠️ <span style={{ color: '#FF2D8D' }}>Échec : {uploadState.error}</span></>}
           </div>
-          {(uploadState.status === 'uploading' || uploadState.status === 'compressing') && (
+          {uploadState.status === 'uploading' && (
             <div style={{ height: 5, background: '#F0F2F5', borderRadius: 4, marginTop: 7, overflow: 'hidden' }}>
               <div style={{ height: '100%', width: `${uploadState.pct}%`, background: 'linear-gradient(90deg,#1877F2,#FF2D8D,#F2B300)', borderRadius: 4, transition: 'width .3s' }} />
             </div>
           )}
-          {(uploadState.status === 'uploading' || uploadState.status === 'saving' || uploadState.status === 'compressing') && (
+          {(uploadState.status === 'uploading' || uploadState.status === 'saving') && (
             <p style={{ fontSize: 10, color: '#65676B', marginTop: 5, fontFamily: 'Poppins' }}>Vous pouvez continuer à naviguer — l'envoi continue en arrière-plan.</p>
           )}
         </div>
