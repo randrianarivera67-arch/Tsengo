@@ -66,6 +66,28 @@ service cloud.firestore {
       allow delete: if request.auth != null && resource.data.admins.hasAny([request.auth.uid]);
     }
 
+        // ✅ Artistes — admin(s) manova/mamafa ; ny rehetra afaka manova "followers"
+    match /artists/{artistId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null && request.resource.data.admins.hasAny([request.auth.uid]);
+      allow update: if request.auth != null && (
+        resource.data.admins.hasAny([request.auth.uid]) ||
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['followers'])
+      );
+      allow delete: if request.auth != null && resource.data.admins.hasAny([request.auth.uid]);
+    }
+
+    // ✅ Boutiques — admin(s) manova/mamafa ; ny rehetra afaka manova "followers"
+    match /shops/{shopId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null && request.resource.data.admins.hasAny([request.auth.uid]);
+      allow update: if request.auth != null && (
+        resource.data.admins.hasAny([request.auth.uid]) ||
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['followers'])
+      );
+      allow delete: if request.auth != null && resource.data.admins.hasAny([request.auth.uid]);
+    }
+
         // ✅ Bloc-notes — an-tsokosoko : ny tompony ihany no mahita/manoratra
     match /notes/{noteId} {
       allow read, update, delete: if request.auth != null && resource.data.uid == request.auth.uid;

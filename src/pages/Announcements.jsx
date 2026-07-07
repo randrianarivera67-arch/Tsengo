@@ -1,15 +1,17 @@
 // src/pages/Announcements.jsx — Petites annonces (format classifieds)
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { collection, query, orderBy, onSnapshot, addDoc, deleteDoc, doc, serverTimestamp, limit } from 'firebase/firestore';
 import { db } from '../firebase';
 import { useAuth } from '../context/AuthContext';
 import { timeAgo } from '../utils/timeAgo';
-import { HiSpeakerphone, HiPlus, HiX, HiTrash, HiPhone, HiLocationMarker } from 'react-icons/hi';
+import { HiSpeakerphone, HiPlus, HiX, HiTrash, HiPhone, HiLocationMarker, HiArrowLeft } from 'react-icons/hi';
 
 const CATEGORIES = ['Emploi', 'Immobilier', 'Objet perdu/trouvé', 'Service', 'Covoiturage', 'Autre'];
 
 export default function Announcements() {
   const { currentUser, userProfile } = useAuth();
+  const navigate = useNavigate();
   const [items, setItems] = useState([]);
   const [open, setOpen] = useState(false);
   const [title, setTitle] = useState('');
@@ -52,7 +54,8 @@ export default function Announcements() {
   return (
     <div style={{ padding: '14px 12px' }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
-        <h2 style={{ fontWeight: 800, fontSize: 20, display: 'flex', alignItems: 'center', gap: 8 }}>
+        <h2 style={{ fontWeight: 800, fontSize: 20, display: 'flex', alignItems: 'center', gap: 10 }}>
+          <button onClick={() => navigate(-1)} style={{ background: '#F0F2F5', border: 'none', borderRadius: '50%', width: 34, height: 34, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#050505' }}><HiArrowLeft size={18} /></button>
           <span className="icon-badge-3d" style={{ width: 34, height: 34, borderRadius: 10, background: 'linear-gradient(145deg,#FF9A5A,#FF7A00)' }}>
             <HiSpeakerphone size={18} color="white" />
           </span>

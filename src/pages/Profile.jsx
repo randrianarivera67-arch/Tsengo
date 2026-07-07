@@ -12,6 +12,7 @@ import { timeAgo } from '../utils/timeAgo';
 import { isDataSaverOn, subscribeDataSaver } from '../utils/dataSaver';
 import { downloadMedia } from '../utils/download';
 import ShareModal from '../components/ShareModal';
+import FollowListModal from '../components/FollowListModal';
 import { NeonBriefcase, NeonGraduation, NeonPhone, NeonGlobe, NeonLocation, NeonHome, NeonMic, NeonArchive, NeonClock } from '../components/NeonIcons';
 import { uploadToTelegram } from '../utils/telegram';
 import { getChatId } from '../utils/chat';
@@ -47,6 +48,7 @@ export default function Profile() {
   const isOwn     = !uid || uid === currentUser?.uid;
   const [profMenu,     setProfMenu]     = useState(false);
   const [otherMenu,    setOtherMenu]    = useState(false);
+  const [followListOpen, setFollowListOpen] = useState(null); // null | 'followers' | 'following'
   const [storyArchive, setStoryArchive] = useState(null);   // null | []
   const [dataSaver, setDataSaverState] = useState(isDataSaverOn());
   useEffect(() => subscribeDataSaver(setDataSaverState), []);
@@ -611,18 +613,6 @@ export default function Profile() {
             <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:8 }}><NeonHome/><input className="input" value={editForm.hometown} onChange={e=>setEditForm(p=>({...p,hometown:e.target.value}))} placeholder="Ville d'origine" style={{ flex:1 }}/></div>
             <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:8 }}><NeonPhone/><input className="input" value={editForm.phone} onChange={e=>setEditForm(p=>({...p,phone:e.target.value}))} placeholder="Numéro de téléphone" style={{ flex:1 }}/></div>
             <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:10 }}><NeonGlobe/><input className="input" value={editForm.website} onChange={e=>setEditForm(p=>({...p,website:e.target.value}))} placeholder="Site web" style={{ flex:1 }}/></div>
-
-            <div onClick={() => setEditForm(p => ({ ...p, accountType: p.accountType === 'artist' ? 'personal' : 'artist' }))}
-              style={{ display:'flex', alignItems:'center', gap:10, padding:'10px 12px', borderRadius:12, background: editForm.accountType==='artist' ? 'linear-gradient(135deg,#FFE9F2,#FFD3E8)' : '#F0F2F5', cursor:'pointer', marginBottom:12, border: editForm.accountType==='artist' ? '1.5px solid #FF2D8D' : '1.5px solid transparent' }}>
-              <NeonMic color={editForm.accountType==='artist' ? '#FF2D8D' : '#65676B'}/>
-              <div style={{ flex:1, textAlign:'left' }}>
-                <p style={{ fontWeight:700, fontSize:13 }}>Compte Artiste</p>
-                <p style={{ fontSize:11, color:'#65676B' }}>Badge spécial + mise en avant des abonnés</p>
-              </div>
-              <div style={{ width:38, height:22, borderRadius:14, background: editForm.accountType==='artist' ? '#FF2D8D' : '#D1D5DB', position:'relative', flexShrink:0 }}>
-                <span style={{ position:'absolute', top:2, left: editForm.accountType==='artist' ? 18 : 2, width:18, height:18, borderRadius:'50%', background:'white', transition:'left .2s' }}/>
-              </div>
-            </div>
             <div style={{ display:'flex', gap:10 }}>
               <button className="btn-secondary" onClick={() => setEditing(false)} style={{ flex:1 }}>{t('cancel')}</button>
               <button className="btn-primary" onClick={saveProfile} style={{ flex:1 }}>{t('save')}</button>
@@ -657,12 +647,13 @@ export default function Profile() {
                 {profile.website && <p style={{ fontSize:13, display:'flex', alignItems:'center', gap:9 }}><NeonGlobe/> <a href={profile.website.startsWith('http')?profile.website:`https://${profile.website}`} target="_blank" rel="noreferrer" style={{ color:'#1877F2', textDecoration:'none' }}>{profile.website}</a></p>}
               </div>
             )}
-            <div style={{ display:'flex', justifyContent:'center', gap:28, marginTop:16 }}>
+            <div style={{ display:'flex', justifyContent:'center', gap:24, marginTop:16 }}>
               {[
                 { label:'Publications', value:regularPosts.length },
                 { label:'Ventes', value:salePosts.length },
                 { label:'Amis', value:friendCount, onClick:()=>setActiveTab('amis') },
-                { label:'Abonnés', value:(profile.followers||[]).length },
+                { label:'Abonnés', value:(profile.followers||[]).length, onClick:()=>(profile.followers||[]).length>0&&setFollowListOpen('followers') },
+                { label:'Suivi(e)s', value:(profile.following||[]).length, onClick:()=>(profile.following||[]).length>0&&setFollowListOpen('following') },
               ].map(({label,value,onClick}) => (
                 <div key={label} style={{ textAlign:'center', cursor:onClick?'pointer':'default' }} onClick={onClick}>
                   <p style={{ fontWeight:700, fontSize:20, color:'#1877F2' }}>{value}</p>
@@ -889,6 +880,13 @@ export default function Profile() {
       )}
 
       {shareModalPost && <ShareModal post={shareModalPost} onClose={() => setShareModalPost(null)} />}
+      {followListOpen && (
+        <FollowListModal
+          uids={followListOpen === 'followers' ? (profile.followers||[]) : (profile.following||[])}
+          title={followListOpen === 'followers' ? 'Abonnés' : 'Suivi(e)s'}
+          onClose={() => setFollowListOpen(null)}
+        />
+      )}
     </div>
   );
 }

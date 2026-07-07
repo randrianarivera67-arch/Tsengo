@@ -397,12 +397,18 @@ export default function Layout({ children }) {
           const active = isActive(path);
           return (
             <button key={path} className={`dock-item ${active ? 'active' : ''} ${center ? 'dock-item-center' : ''}`} onClick={() => navigate(path)}
-              style={{ color: active ? color : (isDark ? '#8A93A6' : '#65676B'), '--dock-glow': color + '66' }}>
-              <span className="dock-icon" style={{ background: active ? color : (color + '22'), width: center ? 50 : 38, height: center ? 50 : 38, marginTop: center ? -14 : 0, boxShadow: center ? `0 4px 14px ${color}77` : 'none' }}>
-                <AIcon size={center ? 26 : 21} color={active ? 'white' : color} />
+              style={{ color: active ? color : (isDark ? '#C7CCD6' : '#050505'), '--dock-glow': color + '77' }}>
+              <span className="dock-icon icon-badge-3d" style={{
+                background: `linear-gradient(155deg, ${color}ee, ${color})`,
+                width: center ? 52 : 42, height: center ? 52 : 42,
+                marginTop: center ? -16 : (active ? -4 : 0),
+                boxShadow: active ? `0 6px 16px ${color}88, inset 0 1px 2px rgba(255,255,255,.6), inset 0 -3px 6px rgba(0,0,0,.22)` : `0 3px 8px ${color}55, inset 0 1px 2px rgba(255,255,255,.6), inset 0 -3px 6px rgba(0,0,0,.22)`,
+                transform: active ? 'scale(1.06)' : 'scale(1)',
+              }}>
+                <AIcon size={center ? 27 : 22} color="white" />
                 {badge > 0 && <span className="notif-badge">{badge > 9 ? '9+' : badge}</span>}
               </span>
-              <span style={{ fontWeight: center ? 800 : 600 }}>{label}</span>
+              <span style={{ fontWeight: active ? 800 : 600, fontSize: 10.5 }}>{label}</span>
             </button>
           );
         })}

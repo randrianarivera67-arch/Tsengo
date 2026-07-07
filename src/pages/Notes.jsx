@@ -1,15 +1,17 @@
 // src/pages/Notes.jsx — Bloc-notes (texte tehirizina ho fichier ao amin'ny bot Telegram)
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { collection, query, where, orderBy, onSnapshot, addDoc, updateDoc, deleteDoc, doc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../firebase';
 import { useAuth } from '../context/AuthContext';
 import { uploadToTelegram } from '../utils/telegram';
 import { timeAgo } from '../utils/timeAgo';
 import { NeonArchive } from '../components/NeonIcons';
-import { HiPlus, HiX, HiTrash, HiPencil } from 'react-icons/hi';
+import { HiPlus, HiX, HiTrash, HiPencil, HiArrowLeft } from 'react-icons/hi';
 
 export default function Notes() {
   const { currentUser } = useAuth();
+  const navigate = useNavigate();
   const [notes, setNotes] = useState([]);
   const [editing, setEditing] = useState(null);   // null | {id?, title, body}
   const [saving, setSaving] = useState(false);
@@ -65,7 +67,8 @@ export default function Notes() {
   return (
     <div style={{ padding: '14px 12px' }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
-        <h2 style={{ fontWeight: 800, fontSize: 20, display: 'flex', alignItems: 'center', gap: 8 }}>
+        <h2 style={{ fontWeight: 800, fontSize: 20, display: 'flex', alignItems: 'center', gap: 10 }}>
+          <button onClick={() => navigate(-1)} style={{ background: '#F0F2F5', border: 'none', borderRadius: '50%', width: 34, height: 34, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#050505' }}><HiArrowLeft size={18} /></button>
           <span className="icon-badge-3d" style={{ width: 34, height: 34, borderRadius: 10, background: 'linear-gradient(145deg,#FFD84D,#F2B300)' }}>
             <NeonArchive size={17} color="white" />
           </span>

@@ -9,7 +9,7 @@ import { db } from '../firebase';
 import { useAuth } from '../context/AuthContext';
 import { uploadToTelegram } from '../utils/telegram';
 import { timeAgo } from '../utils/timeAgo';
-import { HiCalendar, HiPlus, HiX, HiTrash, HiLocationMarker, HiUserGroup, HiPhotograph, HiCheck } from 'react-icons/hi';
+import { HiCalendar, HiPlus, HiX, HiTrash, HiLocationMarker, HiUserGroup, HiPhotograph, HiCheck, HiArrowLeft } from 'react-icons/hi';
 
 export default function Events() {
   const { currentUser, userProfile } = useAuth();
@@ -101,7 +101,8 @@ export default function Events() {
   return (
     <div style={{ padding: '14px 12px' }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
-        <h2 style={{ fontWeight: 800, fontSize: 20, display: 'flex', alignItems: 'center', gap: 8 }}>
+        <h2 style={{ fontWeight: 800, fontSize: 20, display: 'flex', alignItems: 'center', gap: 10 }}>
+          <button onClick={() => navigate(-1)} style={{ background: '#F0F2F5', border: 'none', borderRadius: '50%', width: 34, height: 34, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#050505' }}><HiArrowLeft size={18} /></button>
           <span className="icon-badge-3d" style={{ width: 34, height: 34, borderRadius: 10, background: 'linear-gradient(145deg,#3DD9C4,#12A48D)' }}>
             <HiCalendar size={18} color="white" />
           </span>

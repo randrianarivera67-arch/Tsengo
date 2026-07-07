@@ -10,6 +10,7 @@ import { useAuth } from '../context/AuthContext';
 import { uploadToTelegram } from '../utils/telegram';
 import { timeAgo } from '../utils/timeAgo';
 import { NeonGlobe, NeonPhone, NeonLocation } from '../components/NeonIcons';
+import FollowListModal from '../components/FollowListModal';
 import {
   HiIdentification, HiCamera, HiArrowLeft, HiPencil, HiX, HiTrash,
   HiPhotograph, HiVideoCamera, HiChat, HiShare, HiDotsVertical
@@ -32,8 +33,9 @@ export default function PageDetail() {
   const [posting, setPosting] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
-  const [editForm, setEditForm] = useState({ name:'', description:'', website:'', phone:'', location:'' });
+  const [editForm, setEditForm] = useState({ name:'', description:'', website:'', phone:'', location:'', team:'', hobbies:'' });
   const [showReact, setShowReact] = useState({});
+  const [followersOpen, setFollowersOpen] = useState(false);
 
   const coverRef = useRef(); const photoRef = useRef();
   const postPhotoRef = useRef(); const postVideoRef = useRef();
@@ -75,7 +77,7 @@ export default function PageDetail() {
   }
 
   function openEdit() {
-    setEditForm({ name: pg.name||'', description: pg.description||'', website: pg.website||'', phone: pg.phone||'', location: pg.location||'' });
+    setEditForm({ name: pg.name||'', description: pg.description||'', website: pg.website||'', phone: pg.phone||'', location: pg.location||'', team: pg.team||'', hobbies: pg.hobbies||'' });
     setEditOpen(true);
   }
   async function saveEdit() {
@@ -164,7 +166,7 @@ export default function PageDetail() {
         <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start' }}>
           <div style={{ minWidth:0 }}>
             <h2 style={{ fontWeight:800, fontSize:19 }}>{pg.name}</h2>
-            <p style={{ fontSize:12, color:'#65676B' }}>{pg.category} · {(pg.followers||[]).length} abonnés</p>
+            <p style={{ fontSize:12, color:'#65676B' }}>{pg.category} · <span onClick={() => (pg.followers||[]).length>0 && setFollowersOpen(true)} style={{ cursor: (pg.followers||[]).length>0?'pointer':'default', textDecoration: (pg.followers||[]).length>0?'underline':'none' }}>{(pg.followers||[]).length} abonnés</span></p>
           </div>
           <div style={{ position:'relative' }} onClick={e => e.stopPropagation()}>
             <button onClick={() => setMenuOpen(p=>!p)} style={{ background:'#F0F2F5', border:'none', borderRadius:'50%', width:34, height:34, cursor:'pointer' }}><HiDotsVertical size={17}/></button>
@@ -182,6 +184,8 @@ export default function PageDetail() {
           {pg.location && <p style={{ fontSize:13, display:'flex', alignItems:'center', gap:8 }}><NeonLocation size={15}/> {pg.location}</p>}
           {pg.phone && <p style={{ fontSize:13, display:'flex', alignItems:'center', gap:8 }}><NeonPhone size={15}/> {pg.phone}</p>}
           {pg.website && <p style={{ fontSize:13, display:'flex', alignItems:'center', gap:8 }}><NeonGlobe size={15}/> <a href={pg.website.startsWith('http')?pg.website:`https://${pg.website}`} target="_blank" rel="noreferrer" style={{ color:'#1877F2' }}>{pg.website}</a></p>}
+          {pg.team && <p style={{ fontSize:13, color:'#65676B' }}>👥 Équipe : {pg.team}</p>}
+          {pg.hobbies && <p style={{ fontSize:13, color:'#65676B' }}>🎯 {pg.hobbies}</p>}
         </div>
 
         {!isAdmin && (
@@ -255,11 +259,14 @@ export default function PageDetail() {
             <textarea className="input" value={editForm.description} onChange={e=>setEditForm(p=>({...p,description:e.target.value}))} placeholder="Description" rows={3} style={{ resize:'none', marginBottom:10 }}/>
             <input className="input" value={editForm.location} onChange={e=>setEditForm(p=>({...p,location:e.target.value}))} placeholder="Lieu (point exact)" style={{ marginBottom:10 }}/>
             <input className="input" value={editForm.phone} onChange={e=>setEditForm(p=>({...p,phone:e.target.value}))} placeholder="Téléphone" style={{ marginBottom:10 }}/>
-            <input className="input" value={editForm.website} onChange={e=>setEditForm(p=>({...p,website:e.target.value}))} placeholder="Site web" style={{ marginBottom:14 }}/>
+            <input className="input" value={editForm.website} onChange={e=>setEditForm(p=>({...p,website:e.target.value}))} placeholder="Site web" style={{ marginBottom:10 }}/>
+            <input className="input" value={editForm.team} onChange={e=>setEditForm(p=>({...p,team:e.target.value}))} placeholder="Équipe (personnes qui gèrent la page)" style={{ marginBottom:10 }}/>
+            <input className="input" value={editForm.hobbies} onChange={e=>setEditForm(p=>({...p,hobbies:e.target.value}))} placeholder="Loisirs / activités" style={{ marginBottom:14 }}/>
             <button onClick={saveEdit} className="btn-blue" style={{ width:'100%', padding:'11px 0', fontSize:14 }}>Enregistrer</button>
           </div>
         </div>
       )}
+      {followersOpen && <FollowListModal uids={pg.followers||[]} title="Abonnés" onClose={() => setFollowersOpen(false)} />}
     </div>
   );
 }

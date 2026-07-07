@@ -15,11 +15,12 @@ import {
   HiVideoCamera, HiPaperClip, HiX, HiDownload, HiMicrophone, HiStop,
   HiTrash, HiPencil, HiReply, HiDotsVertical, HiCheck,
   HiArchive, HiColorSwatch, HiMusicNote, HiHeart, HiUserGroup, HiUserAdd,
+  HiPhone, HiVideoCamera, HiBan,
 } from 'react-icons/hi';
 
 export default function Messages() {
   const { chatId: paramChatId } = useParams();
-  const { currentUser, userProfile } = useAuth();
+  const { currentUser, userProfile, setUserProfile } = useAuth();
   const { t } = useLang();
   const navigate = useNavigate();
   const location = useLocation();
@@ -85,6 +86,7 @@ export default function Messages() {
   const [selectedFriendsG, setSelectedFriendsG] = useState({});
   const [addingMembersG, setAddingMembersG] = useState(false);
   const [uploadingGroupPhoto, setUploadingGroupPhoto] = useState(false);
+  const [callInfoOpen, setCallInfoOpen] = useState(false);
   const [editGroupOpen,  setEditGroupOpen]  = useState(false);
   const [msgSearchOpen,  setMsgSearchOpen]  = useState(false);
   const [groupMetas,     setGroupMetas]     = useState({});
@@ -523,6 +525,19 @@ export default function Messages() {
     setActiveChatId(null); navigate('/messages', { replace: true });
   }
 
+  async function toggleBlockInChat() {
+    if (!otherUid) return;
+    const already = (userProfile?.blocked || []).includes(otherUid);
+    const msg = already ? 'Débloquer cette personne ?' : 'Bloquer cette personne ? Vous ne verrez plus ses messages ni publications.';
+    if (!window.confirm(msg)) return;
+    try {
+      await updateDoc(doc(db, 'users', currentUser.uid), {
+        blocked: already ? arrayRemove(otherUid) : arrayUnion(otherUid),
+      });
+      setUserProfile(p => ({ ...p, blocked: already ? (p.blocked||[]).filter(u=>u!==otherUid) : [...(p.blocked||[]), otherUid] }));
+    } catch (err) { alert('Erreur : ' + (err?.message || err)); }
+  }
+
   async function deleteConversation(chatId) {
     await remove(ref(rtdb, `conversations/${chatId}`));
     if (activeChatId === chatId) {
@@ -721,6 +736,7 @@ export default function Messages() {
                 <p style={{ fontWeight: 700, fontSize: 15, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{activeGroup.name}</p>
                 <p style={{ fontSize: 11, color: '#65676B' }}>{activeGroup.members?.length || 0} membres{isGroupAdmin ? ' · Admin' : ''}</p>
               </div>
+              <button onClick={() => setCallInfoOpen(true)} style={{ background: '#F0F2F5', border: 'none', borderRadius: '50%', width: 36, height: 36, cursor: 'pointer', color: '#1877F2', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><HiVideoCamera size={18} /></button>
               <div style={{ position: 'relative' }} onClick={e => e.stopPropagation()}>
                 <button onClick={() => setHeaderMenu(p => !p)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#65676B', padding: 4 }}><HiDotsVertical size={20} /></button>
                 {headerMenu && (
@@ -753,12 +769,15 @@ export default function Messages() {
                   {online[otherUid] ? '● En ligne' : t('offline')}
                 </p>
               </div>
+              <button onClick={() => setCallInfoOpen(true)} style={{ background: '#F0F2F5', border: 'none', borderRadius: '50%', width: 36, height: 36, cursor: 'pointer', color: '#1877F2', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><HiPhone size={17} /></button>
+              <button onClick={() => setCallInfoOpen(true)} style={{ background: '#F0F2F5', border: 'none', borderRadius: '50%', width: 36, height: 36, cursor: 'pointer', color: '#1877F2', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><HiVideoCamera size={18} /></button>
               <div style={{ position:'relative' }} onClick={e=>e.stopPropagation()}>
                 <button onClick={()=>setHeaderMenu(p=>!p)} style={{ background:'none', border:'none', cursor:'pointer', color:'#65676B', padding:4 }}><HiDotsVertical size={20}/></button>
                 {headerMenu&&(
                   <div style={{ position:'absolute', top:'100%', right:0, background:'white', border:'1px solid #E4E6EB', borderRadius:12, boxShadow:'0 4px 20px rgba(0,0,0,.12)', minWidth:200, zIndex:50, overflow:'hidden' }}>
                     <button onClick={()=>{setMediaModal(true);setHeaderMenu(false);}} style={{ width:'100%', display:'flex', alignItems:'center', gap:12, padding:'12px 16px', background:'none', border:'none', cursor:'pointer', borderBottom:'1px solid #E4E6EB', fontFamily:'Poppins', fontSize:14, color:'#050505' }}><HiArchive size={18} color='#1877F2'/> Médias partagés</button>
                     <button onClick={()=>{setThemeModal(true);setHeaderMenu(false);}} style={{ width:'100%', display:'flex', alignItems:'center', gap:12, padding:'12px 16px', background:'none', border:'none', cursor:'pointer', borderBottom:'1px solid #E4E6EB', fontFamily:'Poppins', fontSize:14, color:'#050505' }}><HiColorSwatch size={18} color='#a855f7'/> Thème</button>
+                    <button onClick={()=>{toggleBlockInChat();setHeaderMenu(false);}} style={{ width:'100%', display:'flex', alignItems:'center', gap:12, padding:'12px 16px', background:'none', border:'none', cursor:'pointer', borderBottom:'1px solid #E4E6EB', fontFamily:'Poppins', fontSize:14, color:'#FF2D8D' }}><HiBan size={18}/> {(userProfile?.blocked||[]).includes(otherUid) ? 'Débloquer' : 'Bloquer'} cette personne</button>
                     <button onClick={()=>{setDeleteConfirm(activeChatId);setHeaderMenu(false);}} style={{ width:'100%', display:'flex', alignItems:'center', gap:12, padding:'12px 16px', background:'none', border:'none', cursor:'pointer', fontFamily:'Poppins', fontSize:14, color:'#ef4444' }}><HiTrash size={18}/> Supprimer</button>
                   </div>
                 )}
@@ -1131,6 +1150,22 @@ export default function Messages() {
                 {label}
               </button>
             ))}
+          </div>
+        </div>
+      )}
+
+      {/* ── Info honnête : appels vocaux/vidéo bientôt disponibles ── */}
+      {callInfoOpen && (
+        <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.5)', zIndex:500, display:'flex', alignItems:'center', justifyContent:'center', padding:20 }} onClick={() => setCallInfoOpen(false)}>
+          <div onClick={e => e.stopPropagation()} style={{ background:'white', borderRadius:20, padding:24, maxWidth:320, textAlign:'center' }}>
+            <div className="icon-badge-3d" style={{ width:60, height:60, borderRadius:18, background:'linear-gradient(145deg,#63A9FF,#1877F2)', margin:'0 auto 14px' }}>
+              <HiVideoCamera size={28} color="white" />
+            </div>
+            <h3 style={{ fontWeight:800, fontSize:16, marginBottom:8 }}>Bientôt disponible</h3>
+            <p style={{ fontSize:13, color:'#65676B', lineHeight:1.6, marginBottom:16 }}>
+              Les appels vocaux, vidéo et vidéoconférence de groupe arrivent prochainement sur Traingo.
+            </p>
+            <button onClick={() => setCallInfoOpen(false)} className="btn-blue" style={{ padding:'10px 28px', fontSize:14, borderRadius:20 }}>Compris</button>
           </div>
         </div>
       )}

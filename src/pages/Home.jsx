@@ -16,7 +16,7 @@ import { isDataSaverOn, subscribeDataSaver } from '../utils/dataSaver';
 import { downloadMedia } from '../utils/download';
 import ShareModal from '../components/ShareModal';
 import PhotoCarousel from '../components/PhotoCarousel';
-import { NeonGlobe, NeonPeople, NeonLock } from '../components/NeonIcons';
+import { NeonGlobe, NeonPeople, NeonLock, NeonMic } from '../components/NeonIcons';
 import { getChatId } from '../utils/chat';
 import { sendPushNotification } from '../utils/onesignal';
 import { v4 as uuidv4 } from 'uuid';
@@ -24,7 +24,7 @@ import {
   HiPhotograph, HiVideoCamera, HiTag, HiOutlineHeart, HiChat,
   HiTrash, HiPencil, HiX, HiShare, HiFilm, HiOutlineChat,
   HiDotsVertical, HiDownload, HiLightningBolt, HiPhone, HiLocationMarker,
-  HiReply, HiUserAdd, HiUserGroup, HiBookmark, HiFlag, HiBan, HiPaperAirplane
+  HiReply, HiUserAdd, HiUserGroup, HiBookmark, HiFlag, HiBan, HiPaperAirplane, HiIdentification, HiShoppingBag
 } from 'react-icons/hi';
 
 const MAX_POST    = 2000;
@@ -898,6 +898,39 @@ export default function Home() {
                     </p>
                   </div>
                 </div>
+              ) : post.pageId ? (
+                /* Pub de Sera (page) : photo + nom de la page, clic → page */
+                <div onClick={() => navigate(`/pages/${post.pageId}`)} style={{ display:'flex', alignItems:'center', gap:10, cursor:'pointer', flex:1, minWidth:0 }}>
+                  <div style={{ width:44, height:44, borderRadius:10, background:'linear-gradient(145deg,#63A9FF,#1877F2)', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0, overflow:'hidden' }}>
+                    {post.pagePhoto ? <img src={post.pagePhoto} alt="" style={{ width:'100%', height:'100%', objectFit:'cover' }}/> : <HiIdentification size={22} color="white"/>}
+                  </div>
+                  <div style={{ minWidth:0 }}>
+                    <p style={{ fontWeight:700, fontSize:14, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{post.pageName}</p>
+                    <p style={{ fontSize:12, color:'#65676B' }}>Sera · {post.createdAt?timeAgo(post.createdAt):"À l'instant"}</p>
+                  </div>
+                </div>
+              ) : post.artistId ? (
+                /* Pub de canal Artiste : photo + nom, clic → page artiste */
+                <div onClick={() => navigate(`/artists/${post.artistId}`)} style={{ display:'flex', alignItems:'center', gap:10, cursor:'pointer', flex:1, minWidth:0 }}>
+                  <div style={{ width:44, height:44, borderRadius:'50%', background:'linear-gradient(145deg,#FF6FA5,#FF2D8D)', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0, overflow:'hidden' }}>
+                    {post.artistPhoto ? <img src={post.artistPhoto} alt="" style={{ width:'100%', height:'100%', objectFit:'cover' }}/> : <NeonMic size={20} color="white"/>}
+                  </div>
+                  <div style={{ minWidth:0 }}>
+                    <p style={{ fontWeight:700, fontSize:14, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{post.artistName} <span style={{ fontSize:10, fontWeight:800, color:'#FF2D8D' }}>🎤</span></p>
+                    <p style={{ fontSize:12, color:'#65676B' }}>{post.genre} · {post.createdAt?timeAgo(post.createdAt):"À l'instant"}</p>
+                  </div>
+                </div>
+              ) : post.shopId ? (
+                /* Pub de Boutique : photo + nom, clic → page boutique */
+                <div onClick={() => navigate(`/shop/${post.shopId}`)} style={{ display:'flex', alignItems:'center', gap:10, cursor:'pointer', flex:1, minWidth:0 }}>
+                  <div style={{ width:44, height:44, borderRadius:10, background:'linear-gradient(145deg,#FF6FA5,#FF2D8D)', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0, overflow:'hidden' }}>
+                    {post.shopPhoto ? <img src={post.shopPhoto} alt="" style={{ width:'100%', height:'100%', objectFit:'cover' }}/> : <HiShoppingBag size={22} color="white"/>}
+                  </div>
+                  <div style={{ minWidth:0 }}>
+                    <p style={{ fontWeight:700, fontSize:14, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{post.shopName} <span style={{ fontSize:10, fontWeight:800, color:'#FF2D8D' }}>🏪</span></p>
+                    <p style={{ fontSize:12, color:'#65676B' }}>Boutique · {post.createdAt?timeAgo(post.createdAt):"À l'instant"}</p>
+                  </div>
+                </div>
               ) : (
                 <div style={{ display:'flex', alignItems:'center', gap:10, cursor:'pointer', flex:1, minWidth:0 }} onClick={() => navigate(`/profile/${post.uid}`)}>
                   <img src={post.authorPhoto||`https://ui-avatars.com/api/?name=${encodeURIComponent(post.authorName||'U')}&background=1877F2&color=fff`} alt="" className="avatar" style={{ width:40, height:40, flexShrink:0 }}/>
@@ -929,30 +962,34 @@ export default function Home() {
                   <button onClick={() => setPostMenu(postMenu===post.id?null:post.id)}
                     style={{ background:'none', border:'none', cursor:'pointer', color:'#65676B', padding:4, display:'flex', alignItems:'center' }}><HiDotsVertical size={18}/></button>
                   {postMenu === post.id && (
-                    <div style={{ position:'absolute', top:'100%', right:0, background:'white', border:'1px solid #E4E6EB', borderRadius:12, boxShadow:'0 4px 20px rgba(0,0,0,.12)', minWidth:170, zIndex:50, overflow:'hidden' }}>
+                    <div style={{ position:'absolute', top:'100%', right:0, background:'white', border:'1px solid #E4E6EB', borderRadius:14, boxShadow:'0 6px 24px rgba(0,0,0,.16)', minWidth:220, zIndex:50, overflow:'hidden' }}>
                       {isOwn && <>
-                        <button onClick={() => { setEditPost(post); setEditContent(post.content); setPostMenu(null); }} style={{ width:'100%', display:'flex', alignItems:'center', gap:10, padding:'11px 16px', background:'none', border:'none', cursor:'pointer', color:'#050505', fontSize:14, borderBottom:'1px solid #F0F2F5', fontFamily:'Poppins' }}><HiPencil size={15} color="#1877F2"/> Modifier</button>
-                        <button onClick={() => { navigate('/boost'); setPostMenu(null); }} style={{ width:'100%', display:'flex', alignItems:'center', gap:10, padding:'11px 16px', background:'none', border:'none', cursor:'pointer', color:'#050505', fontSize:14, borderBottom:'1px solid #F0F2F5', fontFamily:'Poppins' }}><HiLightningBolt size={15} color="#a855f7"/> Booster</button>
-                        <button onClick={() => { deletePost(post.id); setPostMenu(null); }} style={{ width:'100%', display:'flex', alignItems:'center', gap:10, padding:'11px 16px', background:'none', border:'none', cursor:'pointer', color:'#1877F2', fontSize:14, borderBottom:'1px solid #F0F2F5', fontFamily:'Poppins' }}><HiTrash size={15}/> Supprimer</button>
+                        <button onClick={() => { setEditPost(post); setEditContent(post.content); setPostMenu(null); }} style={{ width:'100%', display:'flex', alignItems:'center', gap:12, padding:'13px 18px', background:'none', border:'none', cursor:'pointer', color:'#050505', fontSize:15, fontWeight:600, borderBottom:'1px solid #F0F2F5', fontFamily:'Poppins' }}><HiPencil size={17} color="#1877F2"/> Modifier</button>
+                        <button onClick={() => { navigate('/boost'); setPostMenu(null); }} style={{ width:'100%', display:'flex', alignItems:'center', gap:12, padding:'13px 18px', background:'none', border:'none', cursor:'pointer', color:'#050505', fontSize:15, fontWeight:600, borderBottom:'1px solid #F0F2F5', fontFamily:'Poppins' }}><HiLightningBolt size={17} color="#a855f7"/> Booster</button>
                       </>}
-                      <button onClick={() => { toggleSave(post.id); setPostMenu(null); }} style={{ width:'100%', display:'flex', alignItems:'center', gap:10, padding:'11px 16px', background:'none', border:'none', cursor:'pointer', color:'#050505', fontSize:14, borderBottom:'1px solid #F0F2F5', fontFamily:'Poppins' }}>
-                        <HiBookmark size={15} color="#F2B300"/> {(userProfile?.saved||[]).includes(post.id) ? 'Retirer des enregistrements' : 'Enregistrer'}
+                      <button onClick={() => { toggleSave(post.id); setPostMenu(null); }} style={{ width:'100%', display:'flex', alignItems:'center', gap:12, padding:'13px 18px', background:'none', border:'none', cursor:'pointer', color:'#050505', fontSize:15, fontWeight:600, borderBottom:'1px solid #F0F2F5', fontFamily:'Poppins' }}>
+                        <HiBookmark size={17} color="#F2B300"/> {(userProfile?.saved||[]).includes(post.id) ? 'Retirer des enregistrements' : 'Enregistrer'}
                       </button>
-                      <button onClick={() => { showAudienceInfo(post); setPostMenu(null); }} style={{ width:'100%', display:'flex', alignItems:'center', gap:10, padding:'11px 16px', background:'none', border:'none', cursor:'pointer', color:'#050505', fontSize:14, borderBottom:'1px solid #F0F2F5', fontFamily:'Poppins' }}>
-                        {post.audience === 'friends' ? '👥 Audience : Amis' : '🌍 Audience : Public'}
+                      <button onClick={() => { showAudienceInfo(post); setPostMenu(null); }} style={{ width:'100%', display:'flex', alignItems:'center', gap:12, padding:'13px 18px', background:'none', border:'none', cursor:'pointer', color:'#050505', fontSize:15, fontWeight:600, borderBottom:'1px solid #F0F2F5', fontFamily:'Poppins' }}>
+                        {post.audience === 'friends' ? <NeonPeople size={17}/> : <NeonGlobe size={17}/>} Audience : {post.audience === 'friends' ? 'Amis' : 'Public'}
                       </button>
                       {isOwn && (
-                        <button onClick={() => { openTagModal(post); setPostMenu(null); }} style={{ width:'100%', display:'flex', alignItems:'center', gap:10, padding:'11px 16px', background:'none', border:'none', cursor:'pointer', color:'#050505', fontSize:14, borderBottom:'1px solid #F0F2F5', fontFamily:'Poppins' }}>
-                          <HiUserAdd size={15} color="#1877F2"/> Identifier des amis
+                        <button onClick={() => { openTagModal(post); setPostMenu(null); }} style={{ width:'100%', display:'flex', alignItems:'center', gap:12, padding:'13px 18px', background:'none', border:'none', cursor:'pointer', color:'#050505', fontSize:15, fontWeight:600, fontFamily:'Poppins' }}>
+                          <HiUserAdd size={17} color="#1877F2"/> Identifier des amis
+                        </button>
+                      )}
+                      {isOwn && (
+                        <button onClick={() => { deletePost(post.id); setPostMenu(null); }} style={{ width:'100%', display:'flex', alignItems:'center', gap:12, padding:'13px 18px', background:'none', border:'none', cursor:'pointer', color:'#FF2D8D', fontSize:15, fontWeight:600, borderTop:'1px solid #F0F2F5', fontFamily:'Poppins' }}>
+                          <HiTrash size={17}/> Supprimer
                         </button>
                       )}
                       {!isOwn && (
                         <>
-                          <button onClick={() => { reportPost(post); setPostMenu(null); }} style={{ width:'100%', display:'flex', alignItems:'center', gap:10, padding:'11px 16px', background:'none', border:'none', cursor:'pointer', color:'#050505', fontSize:14, borderBottom:'1px solid #F0F2F5', fontFamily:'Poppins' }}>
-                            <HiFlag size={15} color="#F2B300"/> Signaler à l'admin
+                          <button onClick={() => { reportPost(post); setPostMenu(null); }} style={{ width:'100%', display:'flex', alignItems:'center', gap:12, padding:'13px 18px', background:'none', border:'none', cursor:'pointer', color:'#050505', fontSize:15, fontWeight:600, borderBottom:'1px solid #F0F2F5', fontFamily:'Poppins' }}>
+                            <HiFlag size={17} color="#F2B300"/> Signaler à l'admin
                           </button>
-                          <button onClick={() => { toggleBlockAuthor(post); setPostMenu(null); }} style={{ width:'100%', display:'flex', alignItems:'center', gap:10, padding:'11px 16px', background:'none', border:'none', cursor:'pointer', color:'#FF2D8D', fontSize:14, fontFamily:'Poppins' }}>
-                            <HiBan size={15}/> {(userProfile?.blocked||[]).includes(post.uid) ? 'Débloquer' : 'Bloquer'} cette personne
+                          <button onClick={() => { toggleBlockAuthor(post); setPostMenu(null); }} style={{ width:'100%', display:'flex', alignItems:'center', gap:12, padding:'13px 18px', background:'none', border:'none', cursor:'pointer', color:'#FF2D8D', fontSize:15, fontWeight:600, fontFamily:'Poppins' }}>
+                            <HiBan size={17}/> {(userProfile?.blocked||[]).includes(post.uid) ? 'Débloquer' : 'Bloquer'} cette personne
                           </button>
                         </>
                       )}
