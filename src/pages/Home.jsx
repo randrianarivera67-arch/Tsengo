@@ -29,7 +29,7 @@ import {
   HiPhotograph, HiVideoCamera, HiTag, HiOutlineHeart, HiChat,
   HiTrash, HiPencil, HiX, HiShare, HiFilm, HiOutlineChat,
   HiDotsVertical, HiDownload, HiLightningBolt, HiPhone, HiLocationMarker,
-  HiReply, HiUserAdd, HiUserGroup, HiBookmark, HiFlag, HiBan, HiPaperAirplane, HiIdentification, HiShoppingBag, HiCalendar, HiClipboardCopy
+  HiReply, HiUserAdd, HiUserGroup, HiBookmark, HiFlag, HiBan, HiPaperAirplane, HiIdentification, HiShoppingBag, HiCalendar, HiClipboardCopy, HiInformationCircle
 } from 'react-icons/hi';
 
 const MAX_POST    = 2000;
@@ -109,66 +109,81 @@ function waveBars(seed, n = 56) {
 
 const MUSIC_GRADS = [['#FF6FA5', '#FF2D8D'], ['#A66BFF', '#7A2DFF'], ['#3DBEFF', '#1877F2']];
 
-function MusicCard({ track, index, playing, onToggle, onArtist }) {
+function MusicCard({ track, index, playing, onToggle, onArtist, onSave, onBlock, isSaved, isBlocked }) {
   const [menuOpen, setMenuOpen] = useState(false);
+  const [infoOpen, setInfoOpen] = useState(false);
   const [dur, setDur] = useState('');
   const bars = useRef(waveBars(track.id || String(index)));
   const grad = MUSIC_GRADS[index % 3];
-
   useEffect(() => {
     if (!track.mediaURL) return;
-    const a = new Audio();
-    a.preload = 'metadata';
-    a.src = track.mediaURL;
-    const on = () => { const d = a.duration; if (d && isFinite(d)) { const m = Math.floor(d / 60), s = Math.floor(d % 60); setDur(`${m}:${String(s).padStart(2, '0')}`); } };
+    const a = new Audio(); a.preload = 'metadata'; a.src = track.mediaURL;
+    const on = () => { const d = a.duration; if (d && isFinite(d)) { const m = Math.floor(d/60), s = Math.floor(d%60); setDur(m + ':' + String(s).padStart(2,'0')); } };
     a.addEventListener('loadedmetadata', on);
     return () => { a.removeEventListener('loadedmetadata', on); a.src = ''; };
   }, [track.mediaURL]);
-
+  const infoRows = [['Titre', track.songTitle],['Artiste', track.artistName],['Genre', track.genre],['Auteur / Compositeur', track.songAuthorComposer],['Label', track.songLabel],['Studio', track.songStudio],['Equipe', track.songTeam],['Direction artistique', track.songArt],['Description', track.content]].filter(([,v]) => v);
+  const Item = ({ icon, label, color, danger, onClick }) => (
+    <button onClick={onClick} style={{ width:'100%', display:'flex', alignItems:'center', gap:13, padding:'15px 20px', background:'none', border:'none', cursor:'pointer', color: danger ? '#FF2D8D' : '#050505', fontSize:15, fontWeight:600, borderBottom:'1px solid #F0F2F5', fontFamily:'Poppins' }}>{icon} {label}</button>
+  );
   return (
     <div style={{ flex: '0 0 180px', background: '#0c0c12', borderRadius: 16, overflow: 'hidden', position: 'relative' }}>
       <div style={{ position: 'relative', height: 110, display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
-        {/* Avatar artiste (clic → page artiste) */}
         <div onClick={() => onArtist?.(track.artistId)} style={{ position: 'absolute', top: 8, left: 8, width: 34, height: 34, borderRadius: '50%', overflow: 'hidden', border: '2px solid rgba(255,255,255,.85)', zIndex: 3, cursor: 'pointer', background: 'linear-gradient(145deg,#FF6FA5,#FF2D8D)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          {track.artistPhoto ? <img src={track.artistPhoto} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <span style={{ color: '#fff', fontWeight: 800, fontSize: 15 }}>{(track.artistName || '?')[0]}</span>}
+          {track.artistPhoto ? <img src={track.artistPhoto} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <span style={{ color: '#fff', fontWeight: 800, fontSize: 14 }}>{(track.artistName || '?')[0]}</span>}
         </div>
-        {/* Menu (⋮) */}
-        <div onClick={() => setMenuOpen(o => !o)} style={{ position: 'absolute', top: 12, right: 12, zIndex: 4, color: 'rgba(255,255,255,.9)', cursor: 'pointer', fontSize: 22, lineHeight: 1, padding: '0 4px' }}>⋮</div>
-        {/* Onde musicale */}
+        <button onClick={() => setMenuOpen(true)} style={{ position: 'absolute', top: 8, right: 8, zIndex: 4, background: 'rgba(0,0,0,.35)', border: 'none', borderRadius: '50%', width: 26, height: 26, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', cursor: 'pointer' }}><HiDotsVertical size={16} /></button>
         <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 2, padding: '0 10px' }}>
-          {bars.current.map((h, i) => (
-            <div key={i} style={{ width: 3, height: h, borderRadius: 3, background: i / bars.current.length < 0.5 ? grad[0] : grad[1], opacity: playing ? 0.9 : 0.6 }} />
-          ))}
+          {bars.current.map((h, i) => (<div key={i} style={{ width: 3, height: h, borderRadius: 3, background: i / bars.current.length < 0.5 ? grad[0] : grad[1], opacity: playing ? 0.9 : 0.6 }} />))}
         </div>
-        {/* Play / Pause */}
         <div onClick={() => onToggle?.(track)} style={{ position: 'relative', zIndex: 2, width: 42, height: 42, borderRadius: '50%', background: 'rgba(0,0,0,.5)', border: '2px solid rgba(255,255,255,.92)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', boxShadow: '0 4px 14px rgba(0,0,0,.4)' }}>
-          {playing
-            ? <svg width="18" height="20" viewBox="0 0 24 24" fill="#fff"><rect x="6" y="4" width="4" height="16" rx="1.5" /><rect x="14" y="4" width="4" height="16" rx="1.5" /></svg>
-            : <svg width="18" height="20" viewBox="0 0 24 24" fill="#fff" style={{ marginLeft: 3 }}><path d="M6 4l14 8-14 8z" /></svg>}
+          {playing ? <svg width="16" height="18" viewBox="0 0 24 24" fill="#fff"><rect x="6" y="4" width="4" height="16" rx="1.5" /><rect x="14" y="4" width="4" height="16" rx="1.5" /></svg> : <svg width="16" height="18" viewBox="0 0 24 24" fill="#fff" style={{ marginLeft: 3 }}><path d="M6 4l14 8-14 8z" /></svg>}
         </div>
-        {/* Menu déroulant */}
-        {menuOpen && (
-          <div style={{ position: 'absolute', top: 44, right: 12, zIndex: 6, background: '#fff', borderRadius: 12, boxShadow: '0 8px 24px rgba(0,0,0,.25)', overflow: 'hidden', width: 172 }}>
-            <div onClick={() => { setMenuOpen(false); onArtist?.(track.artistId); }} style={{ padding: '11px 14px', fontSize: 13.5, color: '#050505', cursor: 'pointer' }}>ℹ️ Informations</div>
-            <div onClick={() => { setMenuOpen(false); if (track.mediaURL) window.open(track.mediaURL, '_blank'); }} style={{ padding: '11px 14px', fontSize: 13.5, color: '#050505', cursor: 'pointer', borderTop: '1px solid #F0F2F5' }}>⬇️ Télécharger</div>
-            <div onClick={() => setMenuOpen(false)} style={{ padding: '11px 14px', fontSize: 13.5, color: '#050505', cursor: 'pointer', borderTop: '1px solid #F0F2F5' }}>🔖 Enregistré</div>
-            <div onClick={() => setMenuOpen(false)} style={{ padding: '11px 14px', fontSize: 13.5, color: '#050505', cursor: 'pointer', borderTop: '1px solid #F0F2F5' }}>🚫 Bloqué</div>
-          </div>
-        )}
       </div>
-      {/* Pied : titre + artiste + durée */}
       <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', padding: '8px 10px 10px', background: '#0c0c12' }}>
         <div style={{ minWidth: 0 }}>
           <div style={{ fontWeight: 800, fontSize: 13, color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{track.songTitle || track.content || 'Sans titre'}</div>
           <div style={{ fontSize: 11, color: '#b9b9c2', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{track.artistName}</div>
         </div>
-        {dur && <div style={{ fontSize: 12, color: '#e6e6ea', fontWeight: 600, flexShrink: 0, marginLeft: 8 }}>{dur}</div>}
+        {dur && <div style={{ fontSize: 11, color: '#e6e6ea', fontWeight: 600, flexShrink: 0, marginLeft: 6 }}>{dur}</div>}
       </div>
+      {menuOpen && (
+        <div onClick={() => setMenuOpen(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.5)', zIndex: 300, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
+          <div onClick={e => e.stopPropagation()} style={{ background: '#fff', borderRadius: '18px 18px 0 0', width: '100%', maxWidth: 480, overflow: 'hidden', fontFamily: 'Poppins' }}>
+            <Item icon={<HiInformationCircle size={20} color="#1877F2" />} label="Informations" onClick={() => { setMenuOpen(false); setInfoOpen(true); }} />
+            <Item icon={<HiDownload size={20} color="#12A48D" />} label="Télécharger" onClick={() => { setMenuOpen(false); downloadMedia(track.mediaURL, 'audio', track.songTitle || 'audio'); }} />
+            <Item icon={<HiBookmark size={20} color="#F2B300" />} label={isSaved ? 'Retirer des enregistrements' : 'Enregistrer'} onClick={() => { setMenuOpen(false); onSave?.(track.id); }} />
+            <Item icon={<HiBan size={20} color="#FF2D8D" />} label={isBlocked ? 'Débloquer' : 'Bloquer'} danger onClick={() => { setMenuOpen(false); onBlock?.(track); }} />
+          </div>
+        </div>
+      )}
+      {infoOpen && (
+        <div onClick={() => setInfoOpen(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.55)', zIndex: 300, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
+          <div onClick={e => e.stopPropagation()} style={{ background: '#fff', borderRadius: '18px 18px 0 0', width: '100%', maxWidth: 480, maxHeight: '80vh', overflowY: 'auto', padding: '18px 20px 26px', fontFamily: 'Poppins' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
+              <div style={{ width: 46, height: 46, borderRadius: '50%', overflow: 'hidden', background: 'linear-gradient(145deg,#FF6FA5,#FF2D8D)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                {track.artistPhoto ? <img src={track.artistPhoto} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <span style={{ color: '#fff', fontWeight: 800 }}>{(track.artistName || '?')[0]}</span>}
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontWeight: 800, fontSize: 17 }}>{track.songTitle || 'Sans titre'}</div>
+                <div style={{ fontSize: 13, color: '#65676B' }}>{track.artistName}</div>
+              </div>
+              <button onClick={() => setInfoOpen(false)} style={{ background: '#F0F2F5', border: 'none', borderRadius: '50%', width: 34, height: 34, cursor: 'pointer', color: '#65676B', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><HiX size={18} /></button>
+            </div>
+            {infoRows.map(([k, v]) => (
+              <div key={k} style={{ display: 'flex', gap: 10, padding: '9px 0', borderTop: '1px solid #F0F2F5' }}>
+                <span style={{ fontSize: 12.5, color: '#65676B', fontWeight: 700, width: 130, flexShrink: 0 }}>{k}</span>
+                <span style={{ fontSize: 13.5, color: '#050505' }}>{v}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
 
-function MusicRow({ tracks, playingId, onToggle, onArtist }) {
+function MusicRow({ tracks, playingId, onToggle, onArtist, onSave, onBlock, savedIds = [], blockedIds = [] }) {
   if (!tracks || tracks.length === 0) return null;
   return (
     <div className="card" style={{ marginBottom: 14, padding: '12px 0 6px' }}>
@@ -177,7 +192,7 @@ function MusicRow({ tracks, playingId, onToggle, onArtist }) {
       </div>
       <div style={{ display: 'flex', gap: 12, overflowX: 'auto', padding: '2px 14px 8px', WebkitOverflowScrolling: 'touch' }}>
         {tracks.map((t, i) => (
-          <MusicCard key={t.id} track={t} index={i} playing={playingId === t.id} onToggle={onToggle} onArtist={onArtist} />
+          <MusicCard key={t.id} track={t} index={i} playing={playingId === t.id} onToggle={onToggle} onArtist={onArtist} onSave={onSave} onBlock={onBlock} isSaved={savedIds.includes(t.id)} isBlocked={blockedIds.includes(t.uid)} />
         ))}
       </div>
     </div>
@@ -1386,7 +1401,7 @@ export default function Home() {
       )}
 
       {/* Feed */}
-      {posts.map((post, pIdx) => {
+      {posts.filter(p => !(p.mediaType === 'audio' && p.isMusic)).map((post, pIdx) => {
         const rc     = countReactions(post.reactions);
         const myR    = post.reactions?.[currentUser.uid];
         const total  = Object.keys(post.reactions||{}).length;
@@ -1403,6 +1418,10 @@ export default function Home() {
               playingId={playingTrackId}
               onToggle={toggleMusic}
               onArtist={aid => aid && navigate(`/artists/${aid}`)}
+              onSave={toggleSave}
+              onBlock={toggleBlockAuthor}
+              savedIds={userProfile?.saved || []}
+              blockedIds={userProfile?.blocked || []}
             />
           )}
           <div className="card post-card animate-fade" style={{ marginBottom:14, border:boosted?'1px solid #a855f755':undefined }}>
