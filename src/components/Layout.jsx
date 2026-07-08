@@ -233,7 +233,7 @@ export default function Layout({ children }) {
         <div style={{ padding: '18px 16px 14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <img src='/trengo-logo.png' alt="Trengo" style={{ width:44, height:44, objectFit:"contain" }}/>
-            <span style={{ fontWeight: 900, fontSize: 18 }}><span style={{ color:'#1877F2' }}>trai</span><span style={{ color:'#FF2D8D' }}>ngo</span></span>
+            <span style={{ fontWeight: 900, fontSize: 18 }}><span style={{ color:'#1877F2' }}>tre</span><span style={{ color:'#FF2D8D' }}>ngo</span></span>
           </div>
           <button onClick={() => setDrawerOpen(false)} style={{ background: isDark ? '#232733' : '#F0F2F5', border: 'none', borderRadius: '50%', width: 36, height: 36, cursor: 'pointer', color: '#65676B', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><HiX size={20} /></button>
         </div>
@@ -267,11 +267,11 @@ export default function Layout({ children }) {
             const IconComp = item.AIcon;
             return (
               <button key={item.path} onClick={() => { navigate(item.path); setDrawerOpen(false); }}
-                className={`quicknav-item ${active ? 'active' : ''}`}>
+                className={`quicknav-item ${active ? 'active' : ''}`} style={{ position: 'relative' }}>
                 <span className="quicknav-icon icon-sweep" style={{ background: `linear-gradient(145deg, ${item.color1}, ${item.color2})`, '--glow': item.color2 + '66' }}>
                   <IconComp size={20} color="white" />
-                  {item.badge > 0 && <span className="notif-badge">{item.badge > 9 ? '9+' : item.badge}</span>}
                 </span>
+                {item.badge > 0 && <span className="notif-badge" style={{ top: 2, right: 'calc(50% - 24px)', zIndex: 3 }}>{item.badge > 9 ? '9+' : item.badge}</span>}
                 <span className="quicknav-label" style={{ color: text }}>{item.label}</span>
               </button>
             );
@@ -287,14 +287,14 @@ export default function Layout({ children }) {
               <button key={item.path} onClick={() => { navigate(item.path); setDrawerOpen(false); }}
                 style={{
                   display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 8, padding: '14px', textAlign: 'left',
-                  background: isDark ? '#15181F' : 'white',
+                  background: isDark ? '#15181F' : 'white', position: 'relative',
                   border: `1.5px solid ${active ? '#1877F2' : bdr}`, borderRadius: 16, cursor: 'pointer',
                   boxShadow: active ? '0 2px 10px rgba(24,119,242,.18)' : '0 1px 3px rgba(0,0,0,.06)',
                 }}>
                 <span className="icon-badge-3d icon-sweep" style={{ width: 44, height: 44, borderRadius: 13, background: `linear-gradient(145deg, ${item.color1}, ${item.color2})`, '--sweep-delay': Math.random() * 2 }}>
                   <IconComp size={22} color="white" />
-                  {item.badge > 0 && <span className="notif-badge" style={{ zIndex: 2 }}>{item.badge > 9 ? '9+' : item.badge}</span>}
                 </span>
+                {item.badge > 0 && <span className="notif-badge" style={{ top: 10, left: 46, zIndex: 3 }}>{item.badge > 9 ? '9+' : item.badge}</span>}
                 <span style={{ fontWeight: 700, fontSize: 14, color: text }}>{item.label}</span>
                 <span style={{ fontSize: 11, color: '#65676B', marginTop: -6 }}>{item.sub}</span>
               </button>
@@ -388,7 +388,7 @@ export default function Layout({ children }) {
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', flex: 1, minWidth: 0 }} onClick={() => navigate('/')}>
             <img src='/trengo-logo.png' alt="Trengo" style={{ width: 44, height: 44, objectFit: 'contain', flexShrink: 0 }} />
             <span style={{ fontWeight: 900, fontSize: 21, letterSpacing: -1, whiteSpace: 'nowrap' }}>
-              <span style={{ color: '#1877F2' }}>trai</span><span style={{ color: '#FF2D8D' }}>ngo</span>
+              <span style={{ color: '#1877F2' }}>tre</span><span style={{ color: '#FF2D8D' }}>ngo</span>
             </span>
           </div>
 

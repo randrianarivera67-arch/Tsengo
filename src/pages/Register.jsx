@@ -35,9 +35,8 @@ export default function Register() {
   const { t } = useLang();
   const navigate = useNavigate();
 
-  // Un utilisateur déjà connecté qui visite /register est redirigé —
-  // sauf pendant l'onboarding (étapes 2 et 3) juste après la création du compte.
-  if (currentUser && step === 1 && !creating && !loading) {
+  // Rehefa vita ny fanamboarana kaonty (étape 3), tsy tokony hiverina eto intsony.
+  if (currentUser && !creating) {
     return <Navigate to="/" replace />;
   }
 
@@ -57,7 +56,7 @@ export default function Register() {
   const pwColors = ['#ef4444', '#f97316', '#eab308', '#22c55e'];
   const pwLabels = ['Malemy loatra', 'Miandany', 'Tsara', 'Matanjaka'];
 
-  // ── Étape 1 : création du compte ─────────────────────────────
+  // ── Étape 1 : angona ilaina, tsy mbola mamorona kaonty ────────
   async function handleSubmit(e) {
     e.preventDefault();
     setError('');
@@ -71,27 +70,16 @@ export default function Register() {
     if (form.password !== form.confirm) return setError('Teny miafina tsy mitovy / Mots de passe différents');
 
     setLoading(true);
-    setCreating(true);
     try {
       const q = query(collection(db, 'users'), where('username', '==', form.username.toLowerCase()));
       const snap = await getDocs(q);
       if (!snap.empty) {
-        setCreating(false);
         setLoading(false);
         return setError('Username efa ampiasaina / Username déjà utilisé');
       }
-
-      await register(form.email, form.password, form.fullName.trim(), form.username);
-      setStep(2); // → onboarding
+      setStep(2);
     } catch (err) {
-      setCreating(false);
-      if (err.code === 'auth/email-already-in-use') {
-        setError('Email efa ampiasaina / Email déjà utilisé');
-      } else if (err.code === 'auth/invalid-email') {
-        setError('Email tsy mety / Email invalide');
-      } else {
-        setError(t('error') + ': ' + err.message);
-      }
+      setError(t('error') + ': ' + err.message);
     }
     setLoading(false);
   }
@@ -111,30 +99,7 @@ export default function Register() {
     setError('');
     if (!isValidPhone(infoForm.phone)) return setError('Numéro de téléphone tsy mety / invalide');
     if (!isValidWebsite(infoForm.website)) return setError('Site web tsy mety / invalide (ex: monsite.com)');
-
-    const data = {
-      work: infoForm.work.trim(),
-      study: infoForm.study.trim(),
-      hometown: infoForm.hometown.trim(),
-      currentCity: infoForm.currentCity.trim(),
-      phone: infoForm.phone.trim(),
-      website: infoForm.website.trim(),
-    };
-
-    // Rien saisi → passer directement à l'étape 3
-    if (!Object.values(data).some(v => v)) { setStep(3); return; }
-
-    setLoading(true);
-    try {
-      if (currentUser) {
-        await updateDoc(doc(db, 'users', currentUser.uid), data);
-        setUserProfile(p => ({ ...(p || {}), ...data }));
-      }
-      setStep(3);
-    } catch (err) {
-      setError(t('error') + ': ' + err.message);
-    }
-    setLoading(false);
+    setStep(3);
   }
 
   // ── Étape 3 : photos (facultatif) ────────────────────────────
@@ -159,29 +124,70 @@ export default function Register() {
 
   async function handlePhotosSubmit(e) {
     e.preventDefault();
-    setError('');
-    if (!profileFile && !coverFile) { finishOnboarding(); return; }
+    await finalizeAccount(false);
+  }
 
+  async function finalizeAccount(skipPhotos) {
+    setError('');
     setLoading(true);
+    setCreating(true);
     try {
-      const updates = {};
-      if (profileFile) {
-        const r = await uploadToCloudinary(profileFile, 'trengo/avatars', p => setUploadPct(p));
-        updates.photoURL = r.url;
+      // Fanamarinana farany, sao efa nalain'olona ilay username nandritra ny fenoana étape 2-3
+      const q = query(collection(db, 'users'), where('username', '==', form.username.toLowerCase()));
+      const snap = await getDocs(q);
+      if (!snap.empty) {
+        setCreating(false);
+        setLoading(false);
+        setStep(1);
+        return setError('Username efa ampiasaina / Username déjà utilisé — avero ny étape 1');
       }
-      if (coverFile) {
-        setUploadPct(0);
-        const r = await uploadToCloudinary(coverFile, 'trengo/covers', p => setUploadPct(p));
-        updates.coverURL = r.url;
+
+      const res = await register(form.email, form.password, form.fullName.trim(), form.username);
+      const uid = res.user.uid;
+
+      const infoData = {
+        work: infoForm.work.trim(),
+        study: infoForm.study.trim(),
+        hometown: infoForm.hometown.trim(),
+        currentCity: infoForm.currentCity.trim(),
+        phone: infoForm.phone.trim(),
+        website: infoForm.website.trim(),
+      };
+      if (Object.values(infoData).some(v => v)) {
+        await updateDoc(doc(db, 'users', uid), infoData);
+        setUserProfile(p => ({ ...(p || {}), ...infoData }));
       }
-      if (currentUser && Object.keys(updates).length) {
-        await updateDoc(doc(db, 'users', currentUser.uid), updates);
-        setUserProfile(p => ({ ...(p || {}), ...updates }));
+
+      if (!skipPhotos && (profileFile || coverFile)) {
+        const photoUpdates = {};
+        if (profileFile) {
+          const r = await uploadToCloudinary(profileFile, 'trengo/avatars', p => setUploadPct(p));
+          photoUpdates.photoURL = r.url;
+        }
+        if (coverFile) {
+          setUploadPct(0);
+          const r = await uploadToCloudinary(coverFile, 'trengo/covers', p => setUploadPct(p));
+          photoUpdates.coverURL = r.url;
+        }
+        if (Object.keys(photoUpdates).length) {
+          await updateDoc(doc(db, 'users', uid), photoUpdates);
+          setUserProfile(p => ({ ...(p || {}), ...photoUpdates }));
+        }
       }
+
       finishOnboarding();
     } catch (err) {
-      setError("Upload tsy nety, andramo indray na tsindrio 'Ignorer'");
+      setCreating(false);
       setLoading(false);
+      if (err.code === 'auth/email-already-in-use') {
+        setError('Email efa ampiasaina / Email déjà utilisé — avero ny étape 1');
+        setStep(1);
+      } else if (err.code === 'auth/invalid-email') {
+        setError('Email tsy mety / Email invalide — avero ny étape 1');
+        setStep(1);
+      } else {
+        setError("Upload tsy nety, andramo indray na tsindrio 'Ignorer'");
+      }
     }
   }
 
@@ -206,13 +212,14 @@ export default function Register() {
   return (
     <div style={{
       minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center',
-      background: 'linear-gradient(160deg, #E4E6EB 0%, #F0F2F5 50%, #E4E6EB 100%)',
+      backgroundImage: 'linear-gradient(rgba(8, 30, 63, 0.35), rgba(8, 30, 63, 0.45)), url(/login-bg.jpg)',
+      backgroundSize: 'cover', backgroundPosition: 'center', backgroundRepeat: 'no-repeat',
       padding: 20
     }}>
       <div style={{ width: '100%', maxWidth: 420 }}>
         <div style={{ textAlign: 'center', marginBottom: 28 }}>
-          <img src="/trengo-logo.png" alt="Trengo" style={{ width:64, height:64, objectFit:"contain", margin:"0 auto 10px", display:"block" }}/>
-          <h1 style={{ fontSize: 28, fontWeight: 800, color: '#1877F2', letterSpacing: -1 }}>Trengo</h1>
+          <img src="/trengo-logo.png" alt="Trengo" style={{ width:64, height:64, objectFit:"contain", margin:"0 auto 10px", display:"block", filter:'drop-shadow(0 4px 14px rgba(0,0,0,0.35))' }}/>
+          <h1 style={{ fontSize: 28, fontWeight: 800, color: '#FFFFFF', letterSpacing: -1, textShadow: '0 2px 12px rgba(0,0,0,0.45)' }}>Trengo</h1>
         </div>
 
         <div className="card" style={{ padding: 28 }}>
@@ -271,7 +278,7 @@ export default function Register() {
                 </div>
 
                 <button className="btn-primary" type="submit" disabled={loading} style={{ marginTop: 8, width: '100%', padding: '12px' }}>
-                  {loading ? t('loading') : t('createAccount')}
+                  {loading ? t('loading') : 'Suivant / Manaraka'}
                 </button>
               </form>
 
@@ -383,9 +390,9 @@ export default function Register() {
                 )}
 
                 <button className="btn-primary" type="submit" disabled={loading} style={{ width: '100%', padding: '12px' }}>
-                  {loading ? t('loading') : 'Terminer / Vita'}
+                  {loading ? t('loading') : t('createAccount')}
                 </button>
-                <button type="button" onClick={() => { setError(''); finishOnboarding(); }} disabled={loading} style={skipBtn}>
+                <button type="button" onClick={() => finalizeAccount(true)} disabled={loading} style={skipBtn}>
                   Ignorer
                 </button>
               </form>
