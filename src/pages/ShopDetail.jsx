@@ -37,6 +37,8 @@ export default function ShopDetail() {
   const [posting, setPosting] = useState(false);
   const [shopFullOpen, setShopFullOpen] = useState(false);
   const [itemCategory, setItemCategory] = useState('');
+  const [itemOldPrice, setItemOldPrice] = useState('');
+  const [shopFilter, setShopFilter] = useState('Tout');
   const [publishTarget, setPublishTarget] = useState('page');
   const [myGroups, setMyGroups] = useState([]);
   const [itemGroupSel, setItemGroupSel] = useState({});
@@ -115,7 +117,7 @@ export default function ShopDetail() {
       const baseData = {
         uid: currentUser.uid, authorName: shop.name, authorPhoto: shop.photoURL || '',
         content: content.trim().slice(0, 500), mediaURL, mediaType: mediaURL ? 'image' : '',
-        isSale: true, price: parseFloat(price) || 0, contact: shop.contact || '', lieu: shop.address || '',
+        isSale: true, price: parseFloat(price) || 0, oldPrice: parseFloat(itemOldPrice) || 0, contact: shop.contact || '', lieu: shop.address || '',
         saleCategory: itemCategory || shop.category || '',
         shopId: shop.id, shopName: shop.name, shopPhoto: shop.photoURL || '',
         reactions: {}, comments: [], createdAt: serverTimestamp(),
@@ -141,7 +143,7 @@ export default function ShopDetail() {
         await batch.commit();
       }
       setContent(''); setPrice(''); setMediaFile(null); setMediaPreview(null);
-      setItemCategory(''); setPublishTarget('page'); setItemGroupSel({}); setShopFullOpen(false);
+      setItemCategory(''); setItemOldPrice(''); setPublishTarget('page'); setItemGroupSel({}); setShopFullOpen(false);
     } catch (err) { alert('Erreur : ' + (err?.message || err)); }
     setPosting(false);
   }
@@ -233,6 +235,10 @@ export default function ShopDetail() {
           <HiTag color="#FF2D8D" size={18}/>
           <input className="input" type="number" placeholder="Prix (Ar)" value={price} onChange={e => setPrice(e.target.value)} style={{ flex:1 }} />
         </div>
+        <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:8 }}>
+          <span style={{ fontSize:13, color:'#8A8D91', width:22, textAlign:'center' }}>≈</span>
+          <input className="input" type="number" placeholder="Ancien prix (optionnel — pour afficher -%)" value={itemOldPrice} onChange={e => setItemOldPrice(e.target.value)} style={{ flex:1 }} />
+        </div>
         <select value={itemCategory || shop.category || CATEGORIES[0]} onChange={e => setItemCategory(e.target.value)} className="input" style={{ marginBottom:8 }}>
           {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
         </select>
@@ -275,16 +281,48 @@ export default function ShopDetail() {
       )}
 
       {items.length === 0 && <p style={{ padding:30, textAlign:'center', color:'#65676B', fontSize:14 }}>Aucun article publié pour le moment.</p>}
-      <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10, padding:'0 12px' }}>
-        {items.map(p => (
-          <div key={p.id} onClick={() => navigate(`/post/${p.id}`)} className="card" style={{ overflow:'hidden', cursor:'pointer' }}>
-            {p.mediaURL ? <img src={p.mediaURL} alt="" style={{ width:'100%', height:130, objectFit:'cover', display:'block' }} /> : <div style={{ width:'100%', height:130, background:'#F0F2F5', display:'flex', alignItems:'center', justifyContent:'center', fontSize:30 }}>🏷️</div>}
-            <div style={{ padding:10 }}>
-              <p style={{ fontWeight:800, fontSize:15, color:'#FF2D8D' }}>{p.price ? `${Number(p.price).toLocaleString()} Ar` : 'Prix à discuter'}</p>
-              <p style={{ fontSize:13, overflow:'hidden', textOverflow:'ellipsis', display:'-webkit-box', WebkitLineClamp:2, WebkitBoxOrient:'vertical' }}>{p.content}</p>
+
+      {/* Filtres catégorie (chips) — style AliExpress */}
+      {items.length > 0 && (
+        <div style={{ display:'flex', gap:8, overflowX:'auto', padding:'4px 12px 10px', scrollbarWidth:'none' }}>
+          {['Tout', ...Array.from(new Set(items.map(p => p.saleCategory).filter(Boolean)))].map(cat => (
+            <button key={cat} onClick={() => setShopFilter(cat)}
+              style={{ flex:'0 0 auto', padding:'7px 16px', borderRadius:18, border:'none', cursor:'pointer', fontFamily:'Poppins', fontSize:13, fontWeight:700,
+                background: shopFilter===cat ? 'linear-gradient(145deg,#FF6FA5,#FF2D8D)' : '#F0F2F5',
+                color: shopFilter===cat ? 'white' : '#65676B', whiteSpace:'nowrap' }}>
+              {cat}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* Grille articles — style AliExpress (2 colonnes) */}
+      <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:8, padding:'0 12px 12px' }}>
+        {items.filter(p => shopFilter==='Tout' || p.saleCategory===shopFilter).map(p => {
+          const oldPrice = p.oldPrice || (p.price ? Math.round(Number(p.price) * 1.6) : 0);
+          const discount = p.price && oldPrice > p.price ? Math.round((1 - p.price/oldPrice) * 100) : 0;
+          return (
+            <div key={p.id} onClick={() => navigate(`/post/${p.id}`)} className="card" style={{ overflow:'hidden', cursor:'pointer', borderRadius:12, boxShadow:'0 1px 4px rgba(0,0,0,.08)' }}>
+              <div style={{ position:'relative' }}>
+                {p.mediaURL
+                  ? <img src={p.mediaURL} alt="" style={{ width:'100%', aspectRatio:'1', objectFit:'cover', display:'block' }} />
+                  : <div style={{ width:'100%', aspectRatio:'1', background:'#F0F2F5', display:'flex', alignItems:'center', justifyContent:'center', fontSize:36 }}>🏷️</div>}
+                {discount > 0 && <span style={{ position:'absolute', top:6, left:6, background:'#FF1744', color:'white', fontSize:11, fontWeight:800, padding:'2px 7px', borderRadius:6 }}>-{discount}%</span>}
+              </div>
+              <div style={{ padding:'8px 9px 10px' }}>
+                <p style={{ fontSize:12.5, lineHeight:1.35, overflow:'hidden', textOverflow:'ellipsis', display:'-webkit-box', WebkitLineClamp:2, WebkitBoxOrient:'vertical', minHeight:34 }}>{p.content}</p>
+                <div style={{ display:'flex', alignItems:'baseline', gap:5, marginTop:5 }}>
+                  <span style={{ fontWeight:800, fontSize:16, color:'#FF2D8D' }}>{p.price ? `${Number(p.price).toLocaleString()} Ar` : 'À discuter'}</span>
+                </div>
+                {discount > 0 && <span style={{ fontSize:11, color:'#8A8D91', textDecoration:'line-through' }}>{oldPrice.toLocaleString()} Ar</span>}
+                <div style={{ display:'flex', alignItems:'center', gap:4, marginTop:4 }}>
+                  <span style={{ fontSize:10, color:'#FF9500' }}>★★★★★</span>
+                  <span style={{ fontSize:10, color:'#8A8D91' }}>· Vendu</span>
+                </div>
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       {editOpen && (

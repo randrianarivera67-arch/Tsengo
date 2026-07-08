@@ -54,6 +54,13 @@ export default function ArtistDetail() {
   const [publishTarget, setPublishTarget] = useState('page');  // 'page' | 'groups'
   const [myGroups, setMyGroups]     = useState([]);
   const [songGroupSel, setSongGroupSel] = useState({});
+  // Lecteur (Spotify-style)
+  const [currentTrack, setCurrentTrack] = useState(null);
+  const [playing, setPlaying] = useState(false);
+  const [trackInfo, setTrackInfo] = useState(null);
+  const [curTime, setCurTime] = useState(0);
+  const [duration, setDuration] = useState(0);
+  const playerRef = useRef(null);
   const audioRef = useRef(); const videoRef = useRef(); const thumbRef = useRef();
   const coverRef = useRef(); const photoRef = useRef();
 
@@ -79,6 +86,14 @@ export default function ArtistDetail() {
   }, [artistId]);
 
   useEffect(() => { const fn = () => setMenuOpen(false); document.addEventListener('click', fn); return () => document.removeEventListener('click', fn); }, []);
+
+  // Lecteur : démarrage auto quand le titre change
+  useEffect(() => {
+    if (!currentTrack || !playerRef.current) return;
+    const p = playerRef.current;
+    p.load();
+    if (playing) p.play().catch(() => {});
+  }, [currentTrack]);
 
   async function changeImage(e, field) {
     const file = e.target.files[0]; if (!file) return;
@@ -120,6 +135,31 @@ export default function ArtistDetail() {
   function chooseTarget(target) {
     setPublishTarget(target);
     if (target === 'groups' && myGroups.length === 0) loadMyGroups();
+  }
+
+  function playTrack(t) {
+    if (currentTrack?.id === t.id) { togglePlay(); return; }
+    setCurrentTrack(t);
+    setPlaying(true);
+    setCurTime(0);
+    // La lecture démarre via useEffect (quand la source est prête)
+  }
+  function togglePlay() {
+    const p = playerRef.current;
+    if (!p) return;
+    if (p.paused) { p.play().catch(()=>{}); setPlaying(true); }
+    else { p.pause(); setPlaying(false); }
+  }
+  function playAdjacent(dir) {
+    if (!currentTrack) return;
+    const idx = tracks.findIndex(x => x.id === currentTrack.id);
+    const ni = idx + dir;
+    if (ni >= 0 && ni < tracks.length) playTrack(tracks[ni]);
+  }
+  function fmtTime(s) {
+    if (!s || isNaN(s)) return '0:00';
+    const m = Math.floor(s / 60), sec = Math.floor(s % 60);
+    return `${m}:${sec < 10 ? '0' : ''}${sec}`;
   }
 
   async function publishTrack() {
@@ -337,31 +377,75 @@ export default function ArtistDetail() {
       )}
 
       {tracks.length === 0 && <p style={{ padding:30, textAlign:'center', color:'#65676B', fontSize:14 }}>Aucun titre publié pour le moment.</p>}
-      {tracks.map(t => (
-        <div key={t.id} className="card" style={{ marginTop:10, overflow:'hidden', borderLeft:`4px solid ${GENRE_COLORS[t.genre]||'#FF2D8D'}` }}>
-          <div style={{ display:'flex', gap:10, padding:12 }}>
-            <div style={{ width:56, height:56, borderRadius:10, background: t.thumbURL ? `url(${t.thumbURL}) center/cover` : `linear-gradient(145deg, ${GENRE_COLORS[t.genre]||'#FF2D8D'}, #050505)`, flexShrink:0, display:'flex', alignItems:'center', justifyContent:'center' }}>
-              {!t.thumbURL && <NeonMic color="white" size={22}/>}
+
+      {/* ── Liste des titres — style Spotify ─────────────────── */}
+      {tracks.length > 0 && (
+        <div className="card" style={{ marginTop:12, overflow:'hidden' }}>
+          <div style={{ display:'flex', alignItems:'center', gap:10, padding:'14px 16px 8px' }}>
+            <NeonMic color="#FF2D8D" size={20}/>
+            <h3 style={{ fontWeight:800, fontSize:16 }}>Titres</h3>
+            <span style={{ fontSize:12, color:'#65676B' }}>{tracks.length}</span>
+          </div>
+          {tracks.map((t, i) => {
+            const isCur = currentTrack?.id === t.id;
+            return (
+              <div key={t.id} onClick={() => playTrack(t)}
+                style={{ display:'flex', alignItems:'center', gap:12, padding:'9px 16px', cursor:'pointer', background: isCur ? 'rgba(255,45,141,.08)' : 'transparent', borderTop: i>0?'1px solid #F0F2F5':'none' }}>
+                {/* Numéro / indicateur lecture */}
+                <div style={{ width:24, textAlign:'center', flexShrink:0 }}>
+                  {isCur && playing
+                    ? <span style={{ color:'#FF2D8D', fontSize:15 }}>▶</span>
+                    : <span style={{ color:'#65676B', fontSize:14, fontWeight:600 }}>{i+1}</span>}
+                </div>
+                {/* Pochette */}
+                <div style={{ width:44, height:44, borderRadius:8, background: t.thumbURL ? `url(${t.thumbURL}) center/cover` : `linear-gradient(145deg, ${GENRE_COLORS[t.genre]||'#FF2D8D'}, #050505)`, flexShrink:0, display:'flex', alignItems:'center', justifyContent:'center', position:'relative' }}>
+                  {!t.thumbURL && <NeonMic color="white" size={16}/>}
+                  {t.mediaType === 'video' && <span style={{ position:'absolute', bottom:2, right:2, fontSize:10 }}>🎬</span>}
+                </div>
+                {/* Infos */}
+                <div style={{ flex:1, minWidth:0 }}>
+                  <p style={{ fontWeight:600, fontSize:14, color: isCur ? '#FF2D8D' : '#050505', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{t.songTitle || t.content || 'Sans titre'}</p>
+                  <p style={{ fontSize:12, color:'#65676B', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
+                    {[artist.name, t.songAuthorComposer].filter(Boolean).join(' · ')} <span style={{ color: GENRE_COLORS[t.genre]||'#FF2D8D' }}>· {t.genre}</span>
+                  </p>
+                </div>
+                {/* Menu / détails */}
+                <button onClick={e => { e.stopPropagation(); setTrackInfo(t); }} style={{ background:'none', border:'none', cursor:'pointer', color:'#65676B', flexShrink:0 }}><HiDotsVertical size={18}/></button>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* ── Fiche titre (détails : équipe, art, studio…) ── */}
+      {trackInfo && (
+        <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,.5)', zIndex:400, display:'flex', alignItems:'flex-end', justifyContent:'center' }} onClick={() => setTrackInfo(null)}>
+          <div onClick={e=>e.stopPropagation()} style={{ background:'white', borderRadius:'20px 20px 0 0', padding:'10px 0 22px', width:'100%', maxWidth:480, maxHeight:'80vh', overflowY:'auto' }}>
+            <div style={{ width:40, height:4, borderRadius:2, background:'#CED0D4', margin:'6px auto 14px' }} />
+            <div style={{ display:'flex', gap:14, padding:'0 20px 14px' }}>
+              <div style={{ width:80, height:80, borderRadius:12, background: trackInfo.thumbURL ? `url(${trackInfo.thumbURL}) center/cover` : `linear-gradient(145deg, ${GENRE_COLORS[trackInfo.genre]||'#FF2D8D'}, #050505)`, flexShrink:0, display:'flex', alignItems:'center', justifyContent:'center' }}>
+                {!trackInfo.thumbURL && <NeonMic color="white" size={28}/>}
+              </div>
+              <div style={{ flex:1, minWidth:0 }}>
+                <p style={{ fontWeight:800, fontSize:17 }}>{trackInfo.songTitle || 'Sans titre'}</p>
+                <p style={{ fontSize:13, color:'#65676B' }}>{artist.name} · {trackInfo.genre}</p>
+                {trackInfo.createdAt && <p style={{ fontSize:12, color:'#8A8D91', marginTop:2 }}>{timeAgo(trackInfo.createdAt)}</p>}
+              </div>
             </div>
-            <div style={{ flex:1, minWidth:0 }}>
-              <p style={{ fontWeight:700, fontSize:14 }}>{t.songTitle || t.content || t.genre} <span style={{ fontSize:11, fontWeight:700, color: GENRE_COLORS[t.genre]||'#FF2D8D' }}>· {t.genre}</span></p>
-              {t.songAuthorComposer && <p style={{ fontSize:11, color:'#65676B', marginTop:2 }}>A/C : {t.songAuthorComposer}</p>}
-              {(t.songLabel || t.songStudio) && <p style={{ fontSize:11, color:'#65676B' }}>{[t.songLabel, t.songStudio].filter(Boolean).join(' · ')}</p>}
-              <p style={{ fontSize:11, color:'#65676B', marginTop:2 }}>{t.createdAt ? timeAgo(t.createdAt) : ''}</p>
+            {trackInfo.content && <p style={{ fontSize:14, padding:'0 20px 10px', lineHeight:1.5 }}>{trackInfo.content}</p>}
+            <div style={{ padding:'0 20px' }}>
+              {trackInfo.songAuthorComposer && <InfoRow label="A/C (Auteur / Compositeur)" value={trackInfo.songAuthorComposer} />}
+              {trackInfo.songLabel  && <InfoRow label="Label"  value={trackInfo.songLabel} />}
+              {trackInfo.songStudio && <InfoRow label="Studio" value={trackInfo.songStudio} />}
+              {trackInfo.songTeam   && <InfoRow label="Équipe" value={trackInfo.songTeam} />}
+              {trackInfo.songArt    && <InfoRow label="Direction artistique" value={trackInfo.songArt} />}
+            </div>
+            <div style={{ padding:'14px 20px 0' }}>
+              <button onClick={() => { playTrack(trackInfo); setTrackInfo(null); }} className="btn-gold" style={{ width:'100%', padding:'12px', fontSize:15 }}>▶ Lire</button>
             </div>
           </div>
-          {t.content && t.songTitle && <p style={{ fontSize:13, color:'#050505', padding:'0 12px 8px', lineHeight:1.5 }}>{t.content}</p>}
-          {(t.songTeam || t.songArt) && (
-            <div style={{ padding:'0 12px 8px', display:'flex', flexWrap:'wrap', gap:6 }}>
-              {t.songTeam && <span style={{ fontSize:11, background:'#F0F2F5', borderRadius:12, padding:'3px 10px', color:'#65676B' }}>👥 {t.songTeam}</span>}
-              {t.songArt && <span style={{ fontSize:11, background:'#FFE9F2', color:'#FF2D8D', borderRadius:12, padding:'3px 10px', fontWeight:600 }}>🎨 {t.songArt}</span>}
-            </div>
-          )}
-          {t.mediaType === 'audio'
-            ? <audio src={t.mediaURL} controls style={{ width:'100%', padding:'0 12px 12px' }} />
-            : <video src={t.mediaURL} controls poster={t.thumbURL || undefined} style={{ width:'100%', maxHeight:340, background:'#000' }} />}
         </div>
-      ))}
+      )}
 
       {editOpen && (
         <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,.5)', zIndex:400, display:'flex', alignItems:'flex-end', justifyContent:'center' }} onClick={() => setEditOpen(false)}>
@@ -383,6 +467,57 @@ export default function ArtistDetail() {
       )}
 
       {followersOpen && <FollowListModal uids={artist.followers||[]} title="Abonnés" onClose={() => setFollowersOpen(false)} />}
+
+      {/* ── LECTEUR (mini-player Spotify) ── */}
+      {currentTrack && (
+        <>
+          {/* Élément média (audio ou vidéo) */}
+          {currentTrack.mediaType === 'video' ? (
+            <video ref={playerRef} src={currentTrack.mediaURL} playsInline
+              onTimeUpdate={e => setCurTime(e.target.currentTime)}
+              onLoadedMetadata={e => setDuration(e.target.duration)}
+              onEnded={() => playAdjacent(1)}
+              onPlay={() => setPlaying(true)} onPause={() => setPlaying(false)}
+              style={{ position:'fixed', bottom:150, right:12, width:150, borderRadius:12, zIndex:250, background:'#000', boxShadow:'0 6px 20px rgba(0,0,0,.4)' }} />
+          ) : (
+            <audio ref={playerRef} src={currentTrack.mediaURL}
+              onTimeUpdate={e => setCurTime(e.target.currentTime)}
+              onLoadedMetadata={e => setDuration(e.target.duration)}
+              onEnded={() => playAdjacent(1)}
+              onPlay={() => setPlaying(true)} onPause={() => setPlaying(false)} />
+          )}
+
+          <div style={{ position:'fixed', bottom:92, left:0, right:0, zIndex:260, display:'flex', justifyContent:'center', padding:'0 8px', pointerEvents:'none' }}>
+            <div style={{ pointerEvents:'auto', width:'100%', maxWidth:600, background:'linear-gradient(135deg,#2A0A1B,#4A0E2E)', borderRadius:14, padding:'8px 12px', boxShadow:'0 6px 24px rgba(0,0,0,.4)', display:'flex', alignItems:'center', gap:12 }}>
+              <div style={{ width:44, height:44, borderRadius:8, background: currentTrack.thumbURL ? `url(${currentTrack.thumbURL}) center/cover` : `linear-gradient(145deg, ${GENRE_COLORS[currentTrack.genre]||'#FF2D8D'}, #050505)`, flexShrink:0, display:'flex', alignItems:'center', justifyContent:'center' }}>
+                {!currentTrack.thumbURL && <NeonMic color="white" size={16}/>}
+              </div>
+              <div style={{ flex:1, minWidth:0 }}>
+                <p style={{ fontWeight:700, fontSize:13, color:'white', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{currentTrack.songTitle || 'Sans titre'}</p>
+                <p style={{ fontSize:11, color:'rgba(255,255,255,.7)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{artist.name}</p>
+                {/* Barre de progression */}
+                <div style={{ marginTop:4, height:3, background:'rgba(255,255,255,.25)', borderRadius:2, cursor:'pointer' }}
+                  onClick={e => { const r = e.currentTarget.getBoundingClientRect(); const pct = (e.clientX - r.left) / r.width; if (playerRef.current && duration) { playerRef.current.currentTime = pct * duration; } }}>
+                  <div style={{ width: duration ? `${(curTime/duration)*100}%` : '0%', height:'100%', background:'#FF2D8D', borderRadius:2 }} />
+                </div>
+              </div>
+              <button onClick={() => playAdjacent(-1)} style={{ background:'none', border:'none', cursor:'pointer', color:'white', flexShrink:0 }}>⏮</button>
+              <button onClick={togglePlay} style={{ background:'white', border:'none', borderRadius:'50%', width:36, height:36, cursor:'pointer', color:'#4A0E2E', fontSize:15, flexShrink:0, display:'flex', alignItems:'center', justifyContent:'center' }}>{playing ? '❚❚' : '▶'}</button>
+              <button onClick={() => playAdjacent(1)} style={{ background:'none', border:'none', cursor:'pointer', color:'white', flexShrink:0 }}>⏭</button>
+              <button onClick={() => { setCurrentTrack(null); setPlaying(false); }} style={{ background:'none', border:'none', cursor:'pointer', color:'rgba(255,255,255,.6)', flexShrink:0 }}><HiX size={16}/></button>
+            </div>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+function InfoRow({ label, value }) {
+  return (
+    <div style={{ display:'flex', justifyContent:'space-between', gap:12, padding:'8px 0', borderBottom:'1px solid #F0F2F5' }}>
+      <span style={{ fontSize:13, color:'#65676B', flexShrink:0 }}>{label}</span>
+      <span style={{ fontSize:13, fontWeight:600, textAlign:'right' }}>{value}</span>
     </div>
   );
 }
