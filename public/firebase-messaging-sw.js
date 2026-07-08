@@ -1,4 +1,4 @@
-// Traingo — Service Worker FCM
+// Trengo — Service Worker FCM
 // Ny "notification" payload dia asehon'ny SDK ho azy (na mikatona tanteraka aza
 // ny app) — ka TSY mampiseho intsony ity SW ity (tsy misy doublon).
 // Ny listener notificationclick dia soratana ALOHAN'ny firebase mba ho izy no
@@ -34,12 +34,12 @@ self.addEventListener('notificationclick', function (event) {
         }),
       }).then(r => {
         if (!r.ok) throw new Error('HTTP ' + r.status);
-        return self.registration.showNotification('Traingo ✓', {
+        return self.registration.showNotification('Trengo ✓', {
           body: 'Réponse envoyée : ' + text.slice(0, 60),
           icon: '/icon-192.png', badge: '/icon-96.png', tag: 'reply_ok',
         });
       }).catch(() =>
-        self.registration.showNotification('Traingo ⚠️', {
+        self.registration.showNotification('Trengo ⚠️', {
           body: "Échec de l'envoi — ouvrez l'app pour répondre",
           icon: '/icon-192.png', tag: 'reply_fail',
         })

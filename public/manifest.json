@@ -1,7 +1,7 @@
 {
-  "name": "Traingo",
-  "short_name": "Traingo",
-  "description": "Réseau social Traingo",
+  "name": "Trengo",
+  "short_name": "Trengo",
+  "description": "Réseau social Trengo",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#FFFFFF",
