@@ -2,7 +2,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
-  doc, onSnapshot, updateDoc, deleteDoc, collection, query, where,
+  doc, onSnapshot, updateDoc, deleteDoc, collection, query, where, getDocs,
   addDoc, serverTimestamp, arrayUnion, arrayRemove, writeBatch
 } from 'firebase/firestore';
 import { db } from '../firebase';
@@ -32,6 +32,10 @@ export default function PageDetail() {
   const [mediaType, setMediaType] = useState('');
   const [posting, setPosting] = useState(false);
   const [pgAllowMessages, setPgAllowMessages] = useState(true);
+  const [pgFullOpen, setPgFullOpen] = useState(false);
+  const [publishTarget, setPublishTarget] = useState('page');
+  const [myGroups, setMyGroups] = useState([]);
+  const [pgGroupSel, setPgGroupSel] = useState({});
   const [menuOpen, setMenuOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
   const [editForm, setEditForm] = useState({ name:'', description:'', website:'', phone:'', location:'', team:'', hobbies:'' });
@@ -97,33 +101,56 @@ export default function PageDetail() {
     setMediaFile(file); setMediaType(type); setMediaPreview(URL.createObjectURL(file));
   }
 
+  async function loadMyGroups() {
+    try {
+      const snap = await getDocs(query(collection(db, 'groups'), where('members', 'array-contains', currentUser.uid)));
+      setMyGroups(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+    } catch (e) { console.warn('loadMyGroups:', e?.message); }
+  }
+  function chooseTarget(target) {
+    setPublishTarget(target);
+    if (target === 'groups' && myGroups.length === 0) loadMyGroups();
+  }
+
   async function publish() {
     if (!content.trim() && !mediaFile) return;
     setPosting(true);
     try {
       let mediaURL = '', finalMT = mediaType;
       if (mediaFile) { const r = await uploadToTelegram(mediaFile); mediaURL = r.url; finalMT = r.type === 'video' ? 'video' : 'image'; }
-      const postRef = await addDoc(collection(db, 'posts'), {
+      const targetGroups = publishTarget === 'groups' ? Object.keys(pgGroupSel).filter(k => pgGroupSel[k]) : [];
+      const baseData = {
         uid: currentUser.uid, authorName: pg.name, authorUsername: '', authorPhoto: pg.photoURL || '',
         authorIsVip: false, content: content.trim().slice(0, 2000), mediaURL, mediaType: finalMT,
         isSale: false, price:'', contact:'', lieu:'',
         allowMessages: pgAllowMessages,
         pageId: pg.id, pageName: pg.name, pagePhoto: pg.photoURL || '',
         reactions: {}, comments: [], createdAt: serverTimestamp(),
-      });
+      };
+      if (targetGroups.length > 0) {
+        const batch = writeBatch(db);
+        targetGroups.forEach(gid => {
+          const g = myGroups.find(x => x.id === gid);
+          batch.set(doc(collection(db, 'posts')), { ...baseData, groupId: gid, groupName: g?.name || '', postedByPage: true });
+        });
+        await batch.commit();
+      } else {
+        await addDoc(collection(db, 'posts'), baseData);
+      }
       try {
-        const targets = pg.followers || [];
+        const targets = (targetGroups.length === 0) ? (pg.followers || []) : [];
         if (targets.length > 0) {
           const batch = writeBatch(db);
           targets.forEach(fUid => batch.set(doc(collection(db,'notifications')), {
             toUid: fUid, fromUid: currentUser.uid, fromName: pg.name, fromPhoto: pg.photoURL || '',
-            type: 'post', postId: postRef.id, message: `${pg.name} a publié une nouvelle actualité`,
+            type: 'post', message: `${pg.name} a publié une nouvelle actualité`,
             read: false, createdAt: serverTimestamp(),
           }));
           await batch.commit();
         }
       } catch (notifErr) { console.warn('Notification échouée (publication déjà faite) :', notifErr?.message || notifErr); }
       setContent(''); setMediaFile(null); setMediaPreview(null); setMediaType('');
+      setPublishTarget('page'); setPgGroupSel({}); setPgFullOpen(false);
     } catch (err) { alert('Erreur : ' + (err?.message || err)); }
     setPosting(false);
   }
@@ -200,24 +227,75 @@ export default function PageDetail() {
       </div>
 
       {isAdmin && (
-        <div className="card post-card" style={{ padding:14, marginTop:14, marginBottom:8 }}>
-          <textarea className="input" placeholder="Publier une actualité..." value={content} onChange={e => setContent(e.target.value)} rows={2} style={{ resize:'none' }} maxLength={2000}/>
-          {mediaPreview && (
-            <div style={{ position:'relative', marginTop:10 }}>
-              {mediaType==='image' ? <img src={mediaPreview} alt="" style={{ width:'100%', borderRadius:10, maxHeight:240, objectFit:'cover' }}/> : <video src={mediaPreview} controls style={{ width:'100%', borderRadius:10, maxHeight:240 }}/>}
-              <button onClick={() => { setMediaFile(null); setMediaPreview(null); setMediaType(''); }} style={{ position:'absolute', top:6, right:6, background:'rgba(0,0,0,.55)', border:'none', borderRadius:'50%', width:28, height:28, cursor:'pointer', color:'white' }}><HiX size={15}/></button>
-            </div>
-          )}
-          <div style={{ display:'flex', alignItems:'center', gap:8, marginTop:10 }}>
-            <input ref={postPhotoRef} type="file" accept="image/*" style={{ display:'none' }} onChange={e => handleMedia(e,'image')} />
-            <input ref={postVideoRef} type="file" accept="video/mp4,video/webm,video/quicktime" style={{ display:'none' }} onChange={e => handleMedia(e,'video')} />
-            <button onClick={() => postPhotoRef.current?.click()} className="btn-blue" style={{ display:'flex', alignItems:'center', gap:5, borderRadius:20, padding:'6px 12px', fontSize:12 }}><HiPhotograph size={15}/> Photo</button>
-            <button onClick={() => postVideoRef.current?.click()} className="btn-primary" style={{ display:'flex', alignItems:'center', gap:5, borderRadius:20, padding:'6px 12px', fontSize:12 }}><HiVideoCamera size={15}/> Vidéo</button>
-            <button onClick={() => navigate('/events')} className="btn-secondary" style={{ display:'flex', alignItems:'center', gap:5, borderRadius:20, padding:'6px 12px', fontSize:12 }}>📅 Événement</button>
-            <button onClick={() => setPgAllowMessages(p => !p)} className="btn-secondary" style={{ display:'flex', alignItems:'center', gap:5, borderRadius:20, padding:'6px 12px', fontSize:12, opacity: pgAllowMessages ? 1 : .6 }}>💬 Messages {pgAllowMessages ? 'ON' : 'OFF'}</button>
-            <button onClick={publish} disabled={posting || (!content.trim() && !mediaFile)} className="btn-gold" style={{ marginLeft:'auto', padding:'7px 18px', fontSize:13 }}>{posting ? '...' : 'Publier'}</button>
-          </div>
+        <div className="card post-card" style={{ padding:12, marginTop:14, marginBottom:8 }}>
+          <button onClick={() => setPgFullOpen(true)}
+            style={{ width:'100%', textAlign:'left', background:'#F0F2F5', border:'none', borderRadius:22, padding:'11px 16px', color:'#65676B', fontSize:14.5, fontFamily:'Poppins', cursor:'pointer' }}>
+            Publier une actualité...
+          </button>
         </div>
+      )}
+
+      {/* ── PAGE FENO : Publier (séra) ── */}
+      {pgFullOpen && (
+      <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,.35)', zIndex:350, display:'flex', alignItems:'flex-start', justifyContent:'center', overflowY:'auto' }}>
+      <div className="card post-card" style={{ padding:16, width:'100%', maxWidth:600, minHeight:'100vh', borderRadius:0 }}>
+        <div style={{ display:'flex', alignItems:'center', gap:12, marginBottom:14, paddingBottom:12, borderBottom:'1px solid #E4E6EB' }}>
+          <button onClick={() => setPgFullOpen(false)} style={{ background:'none', border:'none', cursor:'pointer', padding:4 }}><HiX size={24} color="#050505"/></button>
+          <h3 style={{ fontWeight:800, fontSize:18, flex:1 }}>Créer une publication</h3>
+          <button onClick={publish} disabled={posting || (!content.trim() && !mediaFile)} className="btn-gold" style={{ padding:'7px 20px', fontSize:14 }}>{posting ? '...' : 'Publier'}</button>
+        </div>
+
+        <textarea className="input" placeholder="Publier une actualité..." value={content} onChange={e => setContent(e.target.value)} rows={3} style={{ resize:'none', border:'none', fontSize:16, marginBottom:8 }} maxLength={2000} autoFocus/>
+        {mediaPreview && (
+          <div style={{ position:'relative', marginBottom:10 }}>
+            {mediaType==='image' ? <img src={mediaPreview} alt="" style={{ width:'100%', borderRadius:10, maxHeight:240, objectFit:'cover' }}/> : <video src={mediaPreview} controls style={{ width:'100%', borderRadius:10, maxHeight:240 }}/>}
+            <button onClick={() => { setMediaFile(null); setMediaPreview(null); setMediaType(''); }} style={{ position:'absolute', top:6, right:6, background:'rgba(0,0,0,.55)', border:'none', borderRadius:'50%', width:28, height:28, cursor:'pointer', color:'white' }}><HiX size={15}/></button>
+          </div>
+        )}
+        {/* Options — icône + labelle (événement en tant que page séra) */}
+        <div style={{ border:'1px solid #E4E6EB', borderRadius:12, overflow:'hidden', marginBottom:12 }}>
+          <input ref={postPhotoRef} type="file" accept="image/*" style={{ display:'none' }} onChange={e => handleMedia(e,'image')} />
+          <input ref={postVideoRef} type="file" accept="video/mp4,video/webm,video/quicktime" style={{ display:'none' }} onChange={e => handleMedia(e,'video')} />
+          {[
+            { icon:<HiPhotograph size={22} color="#45BD62"/>, label:'Photo / Vidéo', action:() => postPhotoRef.current?.click() },
+            { icon:<HiVideoCamera size={22} color="#F3425F"/>, label:'Vidéo',        action:() => postVideoRef.current?.click() },
+            { icon:<span style={{ fontSize:22 }}>📅</span>,     label:'Créer un événement (page séra)', action:() => navigate('/events') },
+            { icon:<span style={{ fontSize:22 }}>💬</span>,     label: pgAllowMessages ? 'Recevoir des messages : Activé' : 'Recevoir des messages : Désactivé', action:() => setPgAllowMessages(p=>!p), active: pgAllowMessages },
+          ].map((opt, i) => (
+            <button key={i} onClick={opt.action}
+              style={{ width:'100%', display:'flex', alignItems:'center', gap:14, padding:'13px 16px', background: opt.active ? '#E7F0FE' : 'none', border:'none', borderTop: i>0?'1px solid #F0F2F5':'none', cursor:'pointer', textAlign:'left', fontFamily:'Poppins', fontSize:15, fontWeight:600, color:'#050505' }}>
+              {opt.icon} {opt.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Choix : ma page séra OU groupes */}
+        <div style={{ border:'1px solid #E4E6EB', borderRadius:12, overflow:'hidden', marginBottom:8 }}>
+          <button onClick={() => chooseTarget('page')}
+            style={{ width:'100%', display:'flex', alignItems:'center', gap:10, padding:'13px 16px', background: publishTarget==='page' ? '#E7F0FE' : 'none', border:'none', borderBottom:'1px solid #F0F2F5', cursor:'pointer', textAlign:'left', fontFamily:'Poppins', fontSize:14, fontWeight:700, color:'#050505' }}>
+            <span style={{ width:18, height:18, borderRadius:'50%', border:'2px solid #1877F2', display:'inline-flex', alignItems:'center', justifyContent:'center' }}>{publishTarget==='page' && <span style={{ width:9, height:9, borderRadius:'50%', background:'#1877F2' }}/>}</span>
+            Publier dans ma page séra
+          </button>
+          <button onClick={() => chooseTarget('groups')}
+            style={{ width:'100%', display:'flex', alignItems:'center', gap:10, padding:'13px 16px', background: publishTarget==='groups' ? '#E7F0FE' : 'none', border:'none', cursor:'pointer', textAlign:'left', fontFamily:'Poppins', fontSize:14, fontWeight:700, color:'#050505' }}>
+            <span style={{ width:18, height:18, borderRadius:'50%', border:'2px solid #1877F2', display:'inline-flex', alignItems:'center', justifyContent:'center' }}>{publishTarget==='groups' && <span style={{ width:9, height:9, borderRadius:'50%', background:'#1877F2' }}/>}</span>
+            Publier dans des groupes
+          </button>
+        </div>
+        {publishTarget === 'groups' && (
+          <div style={{ border:'1px solid #E4E6EB', borderRadius:12, overflow:'hidden', marginBottom:8 }}>
+            {myGroups.length === 0 && <p style={{ padding:16, textAlign:'center', fontSize:13, color:'#65676B' }}>Aucun groupe accessible.</p>}
+            {myGroups.map(g => (
+              <button key={g.id} onClick={() => setPgGroupSel(p => ({ ...p, [g.id]: !p[g.id] }))}
+                style={{ width:'100%', display:'flex', alignItems:'center', gap:10, padding:'11px 16px', background:'none', border:'none', borderTop:'1px solid #F0F2F5', cursor:'pointer', textAlign:'left', fontFamily:'Poppins', fontSize:14, color:'#050505' }}>
+                <span style={{ width:20, height:20, borderRadius:5, border:'2px solid #1877F2', background: pgGroupSel[g.id] ? '#1877F2' : 'transparent', display:'inline-flex', alignItems:'center', justifyContent:'center', color:'white', fontSize:13 }}>{pgGroupSel[g.id] && '✓'}</span>
+                {g.name}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+      </div>
       )}
 
       {posts.length === 0 && <p style={{ padding:30, textAlign:'center', color:'#65676B', fontSize:14 }}>Aucune actualité publiée pour le moment.</p>}

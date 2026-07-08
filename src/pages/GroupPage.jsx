@@ -40,6 +40,7 @@ export default function GroupPage() {
   const [gpMood,     setGpMood]     = useState('');
   const [gpAllowMessages, setGpAllowMessages] = useState(true);
   const [gpMoreOpen, setGpMoreOpen] = useState(false);
+  const [gpFullOpen, setGpFullOpen] = useState(false);
   const [gpLocationOpen, setGpLocationOpen] = useState(false);
   const [gpMoodOpen, setGpMoodOpen] = useState(false);
   const [gpTagOpen,  setGpTagOpen]  = useState(false);
@@ -281,7 +282,7 @@ export default function GroupPage() {
         if (thumbFile) { try { const tr = await uploadToTelegram(thumbFile); thumbURL = tr.url || ''; } catch {} }
       }
       await finalizePublish(content, mediaURL, finalMT, thumbURL);
-      setContent(''); setMediaFile(null); setMediaPreview(null); setMediaType('');
+      setContent(''); setMediaFile(null); setMediaPreview(null); setMediaType(''); setGpFullOpen(false); setGpLocation(''); setGpMood(''); setGpTagSel({});
     } catch (err) { alert('Erreur lors de la publication : ' + (err?.message || err)); }
     setPosting(false);
   }
@@ -407,15 +408,49 @@ export default function GroupPage() {
         </div>
       </div>
 
-      {/* ── Composer (comme l'accueil) ──────────────────────── */}
+      {/* ── Composer groupe : barre kely (icône fotsiny) ────── */}
       {isMember && (
-        <div className="card post-card" style={{ padding: 14, marginTop: 14, marginBottom: 8 }}>
+        <div className="card post-card" style={{ padding: 12, marginTop: 14, marginBottom: 8 }}>
           <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
             <img src={userProfile?.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(userProfile?.fullName || 'U')}&background=1877F2&color=fff`}
               alt="" className="avatar" style={{ width: 40, height: 40, flexShrink: 0 }} />
-            <textarea className="input" placeholder="Exprimez-vous..." value={content} onChange={e => setContent(e.target.value)} rows={1}
-              style={{ resize: 'none', borderRadius: 20 }} maxLength={2000} />
+            <button onClick={() => setGpFullOpen(true)}
+              style={{ flex:1, textAlign:'left', background:'#F0F2F5', border:'none', borderRadius:22, padding:'10px 16px', color:'#65676B', fontSize:14.5, fontFamily:'Poppins', cursor:'pointer' }}>
+              Exprimez-vous dans le groupe...
+            </button>
           </div>
+          <div style={{ display:'flex', alignItems:'center', marginTop:10, paddingTop:8, borderTop:'1px solid #E4E6EB' }}>
+            <button onClick={() => { setGpFullOpen(true); setTimeout(() => postPhotoRef.current?.click(), 60); }} title="Photo"
+              style={{ flex:1, display:'flex', justifyContent:'center', alignItems:'center', background:'none', border:'none', cursor:'pointer', padding:'6px 0' }}>
+              <HiPhotograph size={22} color="#45BD62" />
+            </button>
+            <button onClick={() => { setGpFullOpen(true); setTimeout(() => postVideoRef.current?.click(), 60); }} title="Vidéo"
+              style={{ flex:1, display:'flex', justifyContent:'center', alignItems:'center', background:'none', border:'none', cursor:'pointer', padding:'6px 0', borderLeft:'1px solid #E4E6EB' }}>
+              <HiVideoCamera size={22} color="#F3425F" />
+            </button>
+            <button onClick={() => setGpFullOpen(true)} title="Plus"
+              style={{ flex:1, display:'flex', justifyContent:'center', alignItems:'center', gap:5, background:'none', border:'none', cursor:'pointer', padding:'6px 0', borderLeft:'1px solid #E4E6EB', color:'#1877F2', fontWeight:700, fontSize:13, fontFamily:'Poppins' }}>
+              <span style={{ fontSize:18 }}>＋</span> Publié
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ── PAGE FENO : Publier dans le groupe (tsy misy vente/événement/direct) ── */}
+      {gpFullOpen && (
+      <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,.35)', zIndex:350, display:'flex', alignItems:'flex-start', justifyContent:'center', overflowY:'auto' }}>
+      <div className="card post-card" style={{ padding:16, width:'100%', maxWidth:600, minHeight:'100vh', borderRadius:0 }}>
+        <div style={{ display:'flex', alignItems:'center', gap:12, marginBottom:14, paddingBottom:12, borderBottom:'1px solid #E4E6EB' }}>
+          <button onClick={() => setGpFullOpen(false)} style={{ background:'none', border:'none', cursor:'pointer', padding:4 }}><HiX size={24} color="#050505"/></button>
+          <h3 style={{ fontWeight:800, fontSize:18, flex:1 }}>Publier dans le groupe</h3>
+          <button className="btn-gold" onClick={() => publishInGroup()} disabled={posting || (!content.trim() && !mediaFile)} style={{ padding:'7px 20px', fontSize:14 }}>
+            {posting ? '...' : 'Publier'}
+          </button>
+        </div>
+        <div style={{ display:'flex', gap:10, alignItems:'flex-start' }}>
+          <img src={userProfile?.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(userProfile?.fullName || 'U')}&background=1877F2&color=fff`} alt="" className="avatar" style={{ width:42, height:42, flexShrink:0 }}/>
+          <textarea className="input" placeholder="Exprimez-vous..." value={content} onChange={e => setContent(e.target.value)} rows={3} style={{ resize:'none', flex:1, border:'none', fontSize:17 }} maxLength={2000} autoFocus/>
+        </div>
           {(gpLocation || gpMood || Object.values(gpTagSel).some(Boolean)) && (
             <div style={{ display:'flex', flexWrap:'wrap', gap:6, marginTop:8 }}>
               {gpLocation && <span style={{ display:'flex', alignItems:'center', gap:5, background:'#FFE9F2', color:'#FF2D8D', borderRadius:16, padding:'4px 10px', fontSize:12, fontWeight:700 }}>📍 {gpLocation} <span onClick={() => setGpLocation('')} style={{ cursor:'pointer' }}>✕</span></span>}
@@ -432,17 +467,25 @@ export default function GroupPage() {
                 style={{ position: 'absolute', top: 6, right: 6, background: 'rgba(0,0,0,.55)', border: 'none', borderRadius: '50%', width: 28, height: 28, cursor: 'pointer', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><HiX size={15} /></button>
             </div>
           )}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 10 }}>
+          {/* Options — tsy misy Vente / Événement / En direct (groupe) */}
+          <div style={{ marginTop:16, border:'1px solid #E4E6EB', borderRadius:12, overflow:'hidden' }}>
             <input ref={postPhotoRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={e => handleMedia(e, 'image')} />
             <input ref={postVideoRef} type="file" accept="video/mp4,video/webm,video/quicktime" style={{ display: 'none' }} onChange={e => handleMedia(e, 'video')} />
-            <button onClick={() => postPhotoRef.current?.click()} className="btn-blue" style={{ display: 'flex', alignItems: 'center', gap: 5, borderRadius: 20, padding: '6px 12px', fontSize: 12 }}><HiPhotograph size={15} /> Photo</button>
-            <button onClick={() => postVideoRef.current?.click()} className="btn-primary" style={{ display: 'flex', alignItems: 'center', gap: 5, borderRadius: 20, padding: '6px 12px', fontSize: 12 }}><HiVideoCamera size={15} /> Vidéo</button>
-            <button onClick={() => setGpMoreOpen(true)} className="btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: 5, borderRadius: 20, padding: '6px 12px', fontSize: 12 }}>⋯ Plus</button>
-            <button onClick={publishInGroup} disabled={posting || (!content.trim() && !mediaFile)} className="btn-gold" style={{ marginLeft: 'auto', padding: '7px 18px', fontSize: 13 }}>
-              {posting ? '...' : 'Publier'}
-            </button>
+            {[
+              { icon:<HiPhotograph size={22} color="#45BD62"/>, label:'Photo / Vidéo', action:() => postPhotoRef.current?.click() },
+              { icon:<HiVideoCamera size={22} color="#F3425F"/>, label:'Vidéo',        action:() => postVideoRef.current?.click() },
+              { icon:<HiUserAdd size={22} color="#1877F2"/>,     label:'Identifier des personnes', action:() => setGpTagOpen(true) },
+              { icon:<span style={{ fontSize:22 }}>📍</span>,     label: gpLocation ? `Lieu : ${gpLocation}` : 'Ajouter un lieu', action:() => setGpLocationOpen(true) },
+              { icon:<span style={{ fontSize:22 }}>😊</span>,     label: gpMood || 'Humeur / Activité', action:() => setGpMoodOpen(true) },
+            ].map((opt, i) => (
+              <button key={i} onClick={opt.action}
+                style={{ width:'100%', display:'flex', alignItems:'center', gap:14, padding:'13px 16px', background:'none', border:'none', borderTop: i>0?'1px solid #F0F2F5':'none', cursor:'pointer', textAlign:'left', fontFamily:'Poppins', fontSize:15, fontWeight:600, color:'#050505' }}>
+                {opt.icon} {opt.label}
+              </button>
+            ))}
           </div>
-        </div>
+      </div>
+      </div>
       )}
 
       {/* ── Modal : Ajouter un membre ────────────────────────── */}

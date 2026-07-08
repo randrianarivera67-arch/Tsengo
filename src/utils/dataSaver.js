@@ -1,20 +1,29 @@
 // src/utils/dataSaver.js
-// "Économiser des données" — safidy tehirizina eo amin'ny appareil (localStorage).
-// Rehefa ON : ny vidéo (Reels, Stories, fil/groupe/profil) tsy mandeha ho azy —
-// mila tap voalohany ny mpampiasa, ary tsy misy préchargement (preload="none").
-const KEY = 'traingo_data_saver';
+// Toggle "Économiser les données" — mitahiry ao amin'ny localStorage,
+// ary mampahafantatra ny composant rehetra mampiasa azy (Home, Reels, Profile, GroupPage)
+// rehefa miova ny valiny (na dia tsy mamerina fanontàna ny page aza).
+
+const KEY = 'tsengo_data_saver';
 const listeners = new Set();
 
 export function isDataSaverOn() {
-  try { return localStorage.getItem(KEY) === '1'; } catch { return false; }
+  try {
+    return localStorage.getItem(KEY) === '1';
+  } catch {
+    return false;
+  }
 }
 
-export function setDataSaver(on) {
-  try { localStorage.setItem(KEY, on ? '1' : '0'); } catch {}
-  for (const cb of listeners) { try { cb(on); } catch {} }
+export function setDataSaverOn(value) {
+  try {
+    localStorage.setItem(KEY, value ? '1' : '0');
+  } catch {}
+  listeners.forEach(cb => cb(!!value));
 }
 
-export function subscribeDataSaver(cb) {
-  listeners.add(cb);
-  return () => listeners.delete(cb);
+// Ampiasan'ny page rehetra (Home, Reels, Profile, GroupPage) mba ho voamarina
+// ny state raha ovana ao amin'ny Paramètres na amin'ny tab hafa.
+export function subscribeDataSaver(callback) {
+  listeners.add(callback);
+  return () => listeners.delete(callback);
 }

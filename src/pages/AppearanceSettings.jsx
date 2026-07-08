@@ -3,19 +3,21 @@ import { useNavigate } from 'react-router-dom';
 import { useTheme } from '../context/ThemeContext';
 import { useLang } from '../context/LanguageContext';
 import { HiArrowLeft, HiSun, HiMoon, HiCheck } from 'react-icons/hi';
+import { useState } from 'react';
+import { isDataSaverOn, setDataSaverOn } from '../utils/dataSaver';
 
 const THEMES = [
   {
     value: 'light',
-    label: 'Claire',
-    desc: 'Fond blanc, accents colorés',
+    label: 'Rose blanche',
+    desc: 'Fond blanc, rose clair',
     icon: HiSun,
     preview: ['#FFFFFF', '#E4E6EB', '#1877F2'],
   },
   {
     value: 'dark',
-    label: 'Sombre',
-    desc: 'Fond noir, accents colorés',
+    label: 'Rose noire',
+    desc: 'Fond sombre, accents roses',
     icon: HiMoon,
     preview: ['#0B0D12', '#050505', '#1877F2'],
   },
@@ -25,6 +27,13 @@ export default function AppearanceSettings() {
   const { theme, toggleTheme } = useTheme();
   const { t } = useLang();
   const navigate = useNavigate();
+  const [dataSaver, setDataSaver] = useState(isDataSaverOn());
+
+  function handleToggleDataSaver() {
+    const next = !dataSaver;
+    setDataSaver(next);
+    setDataSaverOn(next);
+  }
 
   return (
     <div style={{ padding: '16px 12px' }}>
@@ -76,6 +85,28 @@ export default function AppearanceSettings() {
             </div>
           );
         })}
+      </div>
+
+      <div
+        onClick={handleToggleDataSaver}
+        style={{
+          marginTop: 20, border: '2px solid #E4E6EB', borderRadius: 16, padding: 16,
+          cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 14, background: 'white',
+        }}
+      >
+        <div style={{ flex: 1 }}>
+          <p style={{ fontWeight: 700, fontSize: 15, color: '#050505' }}>Économiser les données</p>
+          <p style={{ fontSize: 12, color: '#65676B' }}>Tsy mandeha automatique ny vidéo (fil d'actu, groupe, page profil)</p>
+        </div>
+        <div style={{
+          width: 46, height: 26, borderRadius: 13, flexShrink: 0,
+          background: dataSaver ? '#1877F2' : '#E4E6EB', transition: 'background .2s', position: 'relative',
+        }}>
+          <div style={{
+            width: 22, height: 22, borderRadius: '50%', background: 'white', position: 'absolute', top: 2,
+            left: dataSaver ? 22 : 2, transition: 'left .2s', boxShadow: '0 1px 3px rgba(0,0,0,.3)',
+          }}/>
+        </div>
       </div>
 
       <div style={{ marginTop: 20, borderRadius: 16, overflow: 'hidden', height: 70, background: 'linear-gradient(135deg,#1877F2,#63A9FF,#FFB3D9)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>

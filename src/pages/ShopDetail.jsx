@@ -2,7 +2,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
-  doc, onSnapshot, updateDoc, deleteDoc, collection, query, where,
+  doc, onSnapshot, updateDoc, deleteDoc, collection, query, where, getDocs,
   addDoc, serverTimestamp, arrayUnion, arrayRemove, writeBatch
 } from 'firebase/firestore';
 import { db } from '../firebase';
@@ -35,6 +35,11 @@ export default function ShopDetail() {
   const [mediaFile, setMediaFile] = useState(null);
   const [mediaPreview, setMediaPreview] = useState(null);
   const [posting, setPosting] = useState(false);
+  const [shopFullOpen, setShopFullOpen] = useState(false);
+  const [itemCategory, setItemCategory] = useState('');
+  const [publishTarget, setPublishTarget] = useState('page');
+  const [myGroups, setMyGroups] = useState([]);
+  const [itemGroupSel, setItemGroupSel] = useState({});
   const photoInputRef = useRef(); const coverRef = useRef(); const logoRef = useRef();
 
   const isAdmin = !!shop?.admins?.includes(currentUser?.uid);
@@ -89,30 +94,54 @@ export default function ShopDetail() {
 
   function pickPhoto(e) { const f = e.target.files[0]; if (!f) return; setMediaFile(f); setMediaPreview(URL.createObjectURL(f)); }
 
+  async function loadMyGroups() {
+    try {
+      const snap = await getDocs(query(collection(db, 'groups'), where('members', 'array-contains', currentUser.uid)));
+      setMyGroups(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+    } catch (e) { console.warn('loadMyGroups:', e?.message); }
+  }
+  function chooseTarget(target) {
+    setPublishTarget(target);
+    if (target === 'groups' && myGroups.length === 0) loadMyGroups();
+  }
+
   async function publishItem() {
     if (!content.trim() && !mediaFile) return;
     setPosting(true);
     try {
       let mediaURL = '';
       if (mediaFile) { const r = await uploadToTelegram(mediaFile); mediaURL = r.url; }
-      const postRef = await addDoc(collection(db, 'posts'), {
+      const targetGroups = publishTarget === 'groups' ? Object.keys(itemGroupSel).filter(k => itemGroupSel[k]) : [];
+      const baseData = {
         uid: currentUser.uid, authorName: shop.name, authorPhoto: shop.photoURL || '',
         content: content.trim().slice(0, 500), mediaURL, mediaType: mediaURL ? 'image' : '',
-        isSale: true, price: parseFloat(price) || 0, contact: shop.contact || '', lieu: shop.address || '', saleCategory: shop.category || '',
+        isSale: true, price: parseFloat(price) || 0, contact: shop.contact || '', lieu: shop.address || '',
+        saleCategory: itemCategory || shop.category || '',
         shopId: shop.id, shopName: shop.name, shopPhoto: shop.photoURL || '',
         reactions: {}, comments: [], createdAt: serverTimestamp(),
-      });
-      const targets = shop.followers || [];
+      };
+      if (targetGroups.length > 0) {
+        const batch = writeBatch(db);
+        targetGroups.forEach(gid => {
+          const g = myGroups.find(x => x.id === gid);
+          batch.set(doc(collection(db, 'posts')), { ...baseData, groupId: gid, groupName: g?.name || '', postedByShop: true });
+        });
+        await batch.commit();
+      } else {
+        await addDoc(collection(db, 'posts'), baseData);
+      }
+      const targets = (targetGroups.length === 0) ? (shop.followers || []) : [];
       if (targets.length > 0) {
         const batch = writeBatch(db);
         targets.forEach(fUid => batch.set(doc(collection(db,'notifications')), {
           toUid: fUid, fromUid: currentUser.uid, fromName: shop.name, fromPhoto: shop.photoURL || '',
-          type: 'post', postId: postRef.id, message: `${shop.name} a ajouté un nouvel article : ${content.trim().slice(0,40)}`,
+          type: 'post', message: `${shop.name} a ajouté un nouvel article : ${content.trim().slice(0,40)}`,
           read: false, createdAt: serverTimestamp(),
         }));
         await batch.commit();
       }
       setContent(''); setPrice(''); setMediaFile(null); setMediaPreview(null);
+      setItemCategory(''); setPublishTarget('page'); setItemGroupSel({}); setShopFullOpen(false);
     } catch (err) { alert('Erreur : ' + (err?.message || err)); }
     setPosting(false);
   }
@@ -181,25 +210,68 @@ export default function ShopDetail() {
       </div>
 
       {isAdmin && (
-        <div className="card post-card" style={{ padding:14, marginTop:14, marginBottom:8 }}>
-          <p style={{ fontWeight:700, fontSize:14, marginBottom:8 }}>Ajouter un article</p>
-          <textarea className="input" placeholder="Nom / description de l'article..." value={content} onChange={e => setContent(e.target.value)} rows={2} style={{ resize:'none', marginBottom:8 }} maxLength={500} />
-          <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:8 }}>
-            <HiTag color="#FF2D8D" size={18}/>
-            <input className="input" type="number" placeholder="Prix (Ar)" value={price} onChange={e => setPrice(e.target.value)} style={{ flex:1 }} />
-          </div>
-          <input ref={photoInputRef} type="file" accept="image/*" style={{ display:'none' }} onChange={pickPhoto} />
-          {mediaPreview && (
-            <div style={{ position:'relative', marginBottom:8 }}>
-              <img src={mediaPreview} alt="" style={{ width:'100%', borderRadius:10, maxHeight:200, objectFit:'cover' }} />
-              <button onClick={() => { setMediaFile(null); setMediaPreview(null); }} style={{ position:'absolute', top:6, right:6, background:'rgba(0,0,0,.55)', border:'none', borderRadius:'50%', width:28, height:28, cursor:'pointer', color:'white' }}><HiX size={15}/></button>
-            </div>
-          )}
-          <div style={{ display:'flex', gap:8 }}>
-            <button onClick={() => photoInputRef.current.click()} className="btn-blue" style={{ display:'flex', alignItems:'center', gap:5, padding:'6px 12px', fontSize:12, borderRadius:20 }}><HiPhotograph size={14}/> Photo</button>
-            <button onClick={publishItem} disabled={posting || (!content.trim() && !mediaFile)} className="btn-gold" style={{ marginLeft:'auto', padding:'7px 18px', fontSize:13 }}>{posting ? '...' : 'Publier'}</button>
-          </div>
+        <div className="card post-card" style={{ padding:12, marginTop:14, marginBottom:8 }}>
+          <button onClick={() => setShopFullOpen(true)}
+            style={{ width:'100%', display:'flex', alignItems:'center', justifyContent:'center', gap:8, background:'linear-gradient(145deg,#FF6FA5,#FF2D8D)', border:'none', borderRadius:22, padding:'12px', color:'white', fontWeight:800, fontSize:15, fontFamily:'Poppins', cursor:'pointer' }}>
+            <HiShoppingBag size={20}/> Ajouter un article
+          </button>
         </div>
+      )}
+
+      {/* ── PAGE FENO : Ajouter un article (boutique) ── */}
+      {shopFullOpen && (
+      <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,.35)', zIndex:350, display:'flex', alignItems:'flex-start', justifyContent:'center', overflowY:'auto' }}>
+      <div className="card post-card" style={{ padding:16, width:'100%', maxWidth:600, minHeight:'100vh', borderRadius:0 }}>
+        <div style={{ display:'flex', alignItems:'center', gap:12, marginBottom:14, paddingBottom:12, borderBottom:'1px solid #E4E6EB' }}>
+          <button onClick={() => setShopFullOpen(false)} style={{ background:'none', border:'none', cursor:'pointer', padding:4 }}><HiX size={24} color="#050505"/></button>
+          <h3 style={{ fontWeight:800, fontSize:18, flex:1 }}>Ajouter un article</h3>
+          <button onClick={publishItem} disabled={posting || (!content.trim() && !mediaFile)} className="btn-gold" style={{ padding:'7px 20px', fontSize:14 }}>{posting ? '...' : 'Publier'}</button>
+        </div>
+
+        <textarea className="input" placeholder="Nom / description de l'article..." value={content} onChange={e => setContent(e.target.value)} rows={3} style={{ resize:'none', marginBottom:8, border:'none', fontSize:16 }} maxLength={500} autoFocus/>
+        <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:8 }}>
+          <HiTag color="#FF2D8D" size={18}/>
+          <input className="input" type="number" placeholder="Prix (Ar)" value={price} onChange={e => setPrice(e.target.value)} style={{ flex:1 }} />
+        </div>
+        <select value={itemCategory || shop.category || CATEGORIES[0]} onChange={e => setItemCategory(e.target.value)} className="input" style={{ marginBottom:8 }}>
+          {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+        </select>
+        <input ref={photoInputRef} type="file" accept="image/*" style={{ display:'none' }} onChange={pickPhoto} />
+        {mediaPreview && (
+          <div style={{ position:'relative', marginBottom:8 }}>
+            <img src={mediaPreview} alt="" style={{ width:'100%', borderRadius:10, maxHeight:240, objectFit:'cover' }} />
+            <button onClick={() => { setMediaFile(null); setMediaPreview(null); }} style={{ position:'absolute', top:6, right:6, background:'rgba(0,0,0,.55)', border:'none', borderRadius:'50%', width:28, height:28, cursor:'pointer', color:'white' }}><HiX size={15}/></button>
+          </div>
+        )}
+        <button onClick={() => photoInputRef.current.click()} className="btn-blue" style={{ display:'flex', alignItems:'center', gap:6, padding:'12px', fontSize:14, borderRadius:12, width:'100%', justifyContent:'center', marginBottom:12 }}><HiPhotograph size={18}/> Photo de l'article</button>
+
+        {/* Choix : ma page boutique OU groupes */}
+        <div style={{ border:'1px solid #E4E6EB', borderRadius:12, overflow:'hidden', marginBottom:8 }}>
+          <button onClick={() => chooseTarget('page')}
+            style={{ width:'100%', display:'flex', alignItems:'center', gap:10, padding:'13px 16px', background: publishTarget==='page' ? '#E7F0FE' : 'none', border:'none', borderBottom:'1px solid #F0F2F5', cursor:'pointer', textAlign:'left', fontFamily:'Poppins', fontSize:14, fontWeight:700, color:'#050505' }}>
+            <span style={{ width:18, height:18, borderRadius:'50%', border:'2px solid #1877F2', display:'inline-flex', alignItems:'center', justifyContent:'center' }}>{publishTarget==='page' && <span style={{ width:9, height:9, borderRadius:'50%', background:'#1877F2' }}/>}</span>
+            Publier dans ma boutique
+          </button>
+          <button onClick={() => chooseTarget('groups')}
+            style={{ width:'100%', display:'flex', alignItems:'center', gap:10, padding:'13px 16px', background: publishTarget==='groups' ? '#E7F0FE' : 'none', border:'none', cursor:'pointer', textAlign:'left', fontFamily:'Poppins', fontSize:14, fontWeight:700, color:'#050505' }}>
+            <span style={{ width:18, height:18, borderRadius:'50%', border:'2px solid #1877F2', display:'inline-flex', alignItems:'center', justifyContent:'center' }}>{publishTarget==='groups' && <span style={{ width:9, height:9, borderRadius:'50%', background:'#1877F2' }}/>}</span>
+            Publier dans des groupes
+          </button>
+        </div>
+        {publishTarget === 'groups' && (
+          <div style={{ border:'1px solid #E4E6EB', borderRadius:12, overflow:'hidden', marginBottom:8 }}>
+            {myGroups.length === 0 && <p style={{ padding:16, textAlign:'center', fontSize:13, color:'#65676B' }}>Aucun groupe accessible.</p>}
+            {myGroups.map(g => (
+              <button key={g.id} onClick={() => setItemGroupSel(p => ({ ...p, [g.id]: !p[g.id] }))}
+                style={{ width:'100%', display:'flex', alignItems:'center', gap:10, padding:'11px 16px', background:'none', border:'none', borderTop:'1px solid #F0F2F5', cursor:'pointer', textAlign:'left', fontFamily:'Poppins', fontSize:14, color:'#050505' }}>
+                <span style={{ width:20, height:20, borderRadius:5, border:'2px solid #1877F2', background: itemGroupSel[g.id] ? '#1877F2' : 'transparent', display:'inline-flex', alignItems:'center', justifyContent:'center', color:'white', fontSize:13 }}>{itemGroupSel[g.id] && '✓'}</span>
+                {g.name}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+      </div>
       )}
 
       {items.length === 0 && <p style={{ padding:30, textAlign:'center', color:'#65676B', fontSize:14 }}>Aucun article publié pour le moment.</p>}

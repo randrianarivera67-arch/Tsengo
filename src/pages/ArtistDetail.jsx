@@ -2,7 +2,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
-  doc, onSnapshot, updateDoc, deleteDoc, collection, query, where,
+  doc, onSnapshot, updateDoc, deleteDoc, collection, query, where, getDocs,
   addDoc, serverTimestamp, arrayUnion, arrayRemove, writeBatch
 } from 'firebase/firestore';
 import { db } from '../firebase';
@@ -43,6 +43,17 @@ export default function ArtistDetail() {
   const [thumbFile, setThumbFile] = useState(null);
   const [thumbPreview, setThumbPreview] = useState(null);
   const [posting, setPosting] = useState(false);
+  // Champs hira (Résaka artiste)
+  const [songFullOpen, setSongFullOpen] = useState(false);
+  const [songTitle, setSongTitle]   = useState('');
+  const [songAC, setSongAC]         = useState('');   // Auteur / Compositeur
+  const [songLabel, setSongLabel]   = useState('');
+  const [songStudio, setSongStudio] = useState('');
+  const [songTeam, setSongTeam]     = useState('');   // équipe
+  const [songArt, setSongArt]       = useState('');   // direction artistique
+  const [publishTarget, setPublishTarget] = useState('page');  // 'page' | 'groups'
+  const [myGroups, setMyGroups]     = useState([]);
+  const [songGroupSel, setSongGroupSel] = useState({});
   const audioRef = useRef(); const videoRef = useRef(); const thumbRef = useRef();
   const coverRef = useRef(); const photoRef = useRef();
 
@@ -100,8 +111,20 @@ export default function ArtistDetail() {
   function pickVideo(e) { const f = e.target.files[0]; if (!f) return; setMediaFile(f); setMediaType('video'); }
   function pickThumb(e) { const f = e.target.files[0]; if (!f) return; setThumbFile(f); setThumbPreview(URL.createObjectURL(f)); }
 
+  async function loadMyGroups() {
+    try {
+      const snap = await getDocs(query(collection(db, 'groups'), where('members', 'array-contains', currentUser.uid)));
+      setMyGroups(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+    } catch (e) { console.warn('loadMyGroups:', e?.message); }
+  }
+  function chooseTarget(target) {
+    setPublishTarget(target);
+    if (target === 'groups' && myGroups.length === 0) loadMyGroups();
+  }
+
   async function publishTrack() {
     if (!mediaFile) { alert('Ajoutez un audio ou une vidéo'); return; }
+    if (!songTitle.trim()) { alert('Ajoutez un titre'); return; }
     setPosting(true);
     try {
       const r = await uploadToTelegram(mediaFile);
@@ -111,28 +134,55 @@ export default function ArtistDetail() {
       } else if (thumbFile) {
         try { const tr = await uploadToTelegram(thumbFile); thumbURL = tr.url || ''; } catch {}
       }
-      const postRef = await addDoc(collection(db, 'posts'), {
+      // Groupes cibles (si "publier dans groupes") — sinon page artiste
+      const targetGroups = publishTarget === 'groups' ? Object.keys(songGroupSel).filter(k => songGroupSel[k]) : [];
+
+      const baseData = {
         uid: currentUser.uid, authorName: artist.name, authorUsername: '', authorPhoto: artist.photoURL || '',
         content: content.trim().slice(0, 500), mediaURL: r.url, mediaType: mediaType === 'audio' ? 'audio' : 'video', thumbURL,
         isSale: false, price: '', contact: '', lieu: '',
         artistId: artist.id, artistName: artist.name, artistPhoto: artist.photoURL || '', genre,
+        isMusic: true,
+        songTitle: songTitle.trim().slice(0, 120),
+        songAuthorComposer: songAC.trim().slice(0, 160),   // A/C (auteur/compositeur)
+        songLabel: songLabel.trim().slice(0, 120),
+        songStudio: songStudio.trim().slice(0, 120),
+        songTeam: songTeam.trim().slice(0, 250),           // équipe
+        songArt: songArt.trim().slice(0, 160),             // art / direction artistique
         reactions: {}, comments: [], createdAt: serverTimestamp(),
-      });
-      // ✅ Le titre est publié (addDoc réussi) — une notification qui échoue
-      // ne doit JAMAIS déclencher un faux message "Erreur"
+      };
+
+      if (targetGroups.length > 0) {
+        // Publier dans chaque groupe (la page artiste publie directement dedans)
+        const batch = writeBatch(db);
+        targetGroups.forEach(gid => {
+          const g = myGroups.find(x => x.id === gid);
+          const ref = doc(collection(db, 'posts'));
+          batch.set(ref, { ...baseData, groupId: gid, groupName: g?.name || '', postedByArtist: true });
+        });
+        await batch.commit();
+      } else {
+        // Publier sur la page artiste (+ fil d'actualités, canal audio)
+        await addDoc(collection(db, 'posts'), baseData);
+      }
+
+      // ✅ Le titre est publié — une notification qui échoue ne doit JAMAIS
+      // déclencher un faux message "Erreur"
       try {
         const targets = artist.followers || [];
         if (targets.length > 0) {
           const batch = writeBatch(db);
           targets.forEach(fUid => batch.set(doc(collection(db,'notifications')), {
             toUid: fUid, fromUid: currentUser.uid, fromName: artist.name, fromPhoto: artist.photoURL || '',
-            type: 'post', postId: postRef.id, message: `${artist.name} a publié un nouveau son : ${content.trim().slice(0,40) || genre}`,
+            type: 'post', message: `${artist.name} a publié un nouveau son : ${songTitle.trim().slice(0,40)}`,
             read: false, createdAt: serverTimestamp(),
           }));
           await batch.commit();
         }
       } catch (notifErr) { console.warn('Notification abonnés échouée (titre déjà publié) :', notifErr?.message || notifErr); }
       setContent(''); setMediaFile(null); setMediaType(''); setThumbFile(null); setThumbPreview(null);
+      setSongTitle(''); setSongAC(''); setSongLabel(''); setSongStudio(''); setSongTeam(''); setSongArt('');
+      setPublishTarget('page'); setSongGroupSel({}); setSongFullOpen(false);
     } catch (err) { alert('Erreur : ' + (err?.message || err)); }
     setPosting(false);
   }
@@ -206,30 +256,84 @@ export default function ArtistDetail() {
       </div>
 
       {isAdmin && (
-        <div className="card post-card" style={{ padding:14, marginTop:14, marginBottom:8 }}>
-          <p style={{ fontWeight:700, fontSize:14, marginBottom:8 }}>Publier un nouveau son ou vidéo</p>
-          <textarea className="input" placeholder="Titre / description..." value={content} onChange={e => setContent(e.target.value)} rows={2} style={{ resize:'none', marginBottom:8 }} maxLength={500} />
-          <select value={genre} onChange={e => setGenre(e.target.value)} className="input" style={{ marginBottom:8 }}>
-            {GENRES.map(g => <option key={g} value={g}>{g}</option>)}
-          </select>
-          <input ref={audioRef} type="file" accept="audio/*" style={{ display:'none' }} onChange={pickAudio} />
-          <input ref={videoRef} type="file" accept="video/mp4,video/webm,video/quicktime" style={{ display:'none' }} onChange={pickVideo} />
-          <input ref={thumbRef} type="file" accept="image/*" style={{ display:'none' }} onChange={pickThumb} />
-          {mediaFile && (
-            <div style={{ display:'flex', alignItems:'center', gap:8, background:'#F0F2F5', borderRadius:10, padding:'8px 12px', marginBottom:8 }}>
-              {mediaType === 'audio' ? <HiMusicNote color="#FF2D8D" /> : <HiVideoCamera color="#FF2D8D" />}
-              <p style={{ fontSize:13, flex:1, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{mediaFile.name}</p>
-              <button onClick={() => { setMediaFile(null); setMediaType(''); }} style={{ background:'none', border:'none', cursor:'pointer', color:'#65676B' }}><HiX size={16}/></button>
-            </div>
-          )}
-          {thumbPreview && <img src={thumbPreview} alt="" style={{ width:70, height:70, borderRadius:10, objectFit:'cover', marginBottom:8 }} />}
-          <div style={{ display:'flex', gap:8, flexWrap:'wrap' }}>
-            <button onClick={() => audioRef.current.click()} className="btn-primary" style={{ display:'flex', alignItems:'center', gap:5, padding:'6px 12px', fontSize:12, borderRadius:20 }}><HiMusicNote size={14}/> Audio</button>
-            <button onClick={() => videoRef.current.click()} className="btn-blue" style={{ display:'flex', alignItems:'center', gap:5, padding:'6px 12px', fontSize:12, borderRadius:20 }}><HiVideoCamera size={14}/> Vidéo</button>
-            <button onClick={() => thumbRef.current.click()} className="btn-secondary" style={{ display:'flex', alignItems:'center', gap:5, padding:'6px 12px', fontSize:12, borderRadius:20 }}><HiPhotograph size={14}/> Vignette</button>
-            <button onClick={publishTrack} disabled={posting || !mediaFile} className="btn-gold" style={{ marginLeft:'auto', padding:'7px 18px', fontSize:13 }}>{posting ? '...' : 'Publier'}</button>
-          </div>
+        <div className="card post-card" style={{ padding:12, marginTop:14, marginBottom:8 }}>
+          <button onClick={() => setSongFullOpen(true)}
+            style={{ width:'100%', display:'flex', alignItems:'center', justifyContent:'center', gap:8, background:'linear-gradient(145deg,#FF6FA5,#FF2D8D)', border:'none', borderRadius:22, padding:'12px', color:'white', fontWeight:800, fontSize:15, fontFamily:'Poppins', cursor:'pointer' }}>
+            <HiMusicNote size={20}/> Publier un nouveau son / vidéo
+          </button>
         </div>
+      )}
+
+      {/* ── PAGE FENO : Publier un titre (artiste) ── */}
+      {songFullOpen && (
+      <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,.35)', zIndex:350, display:'flex', alignItems:'flex-start', justifyContent:'center', overflowY:'auto' }}>
+      <div className="card post-card" style={{ padding:16, width:'100%', maxWidth:600, minHeight:'100vh', borderRadius:0 }}>
+        <div style={{ display:'flex', alignItems:'center', gap:12, marginBottom:14, paddingBottom:12, borderBottom:'1px solid #E4E6EB' }}>
+          <button onClick={() => setSongFullOpen(false)} style={{ background:'none', border:'none', cursor:'pointer', padding:4 }}><HiX size={24} color="#050505"/></button>
+          <h3 style={{ fontWeight:800, fontSize:18, flex:1 }}>Publier un titre</h3>
+          <button onClick={publishTrack} disabled={posting || !mediaFile || !songTitle.trim()} className="btn-gold" style={{ padding:'7px 20px', fontSize:14 }}>{posting ? '...' : 'Publier'}</button>
+        </div>
+
+        <input ref={audioRef} type="file" accept="audio/*" style={{ display:'none' }} onChange={pickAudio} />
+        <input ref={videoRef} type="file" accept="video/mp4,video/webm,video/quicktime" style={{ display:'none' }} onChange={pickVideo} />
+        <input ref={thumbRef} type="file" accept="image/*" style={{ display:'none' }} onChange={pickThumb} />
+
+        {/* Média : Audio / Vidéo + Vignette (art) */}
+        <div style={{ display:'flex', gap:8, marginBottom:12 }}>
+          <button onClick={() => audioRef.current.click()} className="btn-primary" style={{ flex:1, display:'flex', alignItems:'center', justifyContent:'center', gap:6, padding:'12px', fontSize:13, borderRadius:12 }}><HiMusicNote size={18}/> Audio</button>
+          <button onClick={() => videoRef.current.click()} className="btn-blue" style={{ flex:1, display:'flex', alignItems:'center', justifyContent:'center', gap:6, padding:'12px', fontSize:13, borderRadius:12 }}><HiVideoCamera size={18}/> Vidéo</button>
+          <button onClick={() => thumbRef.current.click()} className="btn-secondary" style={{ flex:1, display:'flex', alignItems:'center', justifyContent:'center', gap:6, padding:'12px', fontSize:13, borderRadius:12 }}><HiPhotograph size={18}/> Art</button>
+        </div>
+        {mediaFile && (
+          <div style={{ display:'flex', alignItems:'center', gap:8, background:'#F0F2F5', borderRadius:10, padding:'8px 12px', marginBottom:8 }}>
+            {mediaType === 'audio' ? <HiMusicNote color="#FF2D8D" /> : <HiVideoCamera color="#FF2D8D" />}
+            <p style={{ fontSize:13, flex:1, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{mediaFile.name}</p>
+            <button onClick={() => { setMediaFile(null); setMediaType(''); }} style={{ background:'none', border:'none', cursor:'pointer', color:'#65676B' }}><HiX size={16}/></button>
+          </div>
+        )}
+        {thumbPreview && <img src={thumbPreview} alt="" style={{ width:80, height:80, borderRadius:10, objectFit:'cover', marginBottom:10 }} />}
+
+        {/* Champs du titre */}
+        <input className="input" placeholder="Titre du morceau *" value={songTitle} onChange={e => setSongTitle(e.target.value)} style={{ marginBottom:8 }} maxLength={120} />
+        <select value={genre} onChange={e => setGenre(e.target.value)} className="input" style={{ marginBottom:8 }}>
+          {GENRES.map(g => <option key={g} value={g}>{g}</option>)}
+        </select>
+        <input className="input" placeholder="A/C — Auteur / Compositeur" value={songAC} onChange={e => setSongAC(e.target.value)} style={{ marginBottom:8 }} maxLength={160} />
+        <input className="input" placeholder="Label" value={songLabel} onChange={e => setSongLabel(e.target.value)} style={{ marginBottom:8 }} maxLength={120} />
+        <input className="input" placeholder="Studio" value={songStudio} onChange={e => setSongStudio(e.target.value)} style={{ marginBottom:8 }} maxLength={120} />
+        <input className="input" placeholder="Équipe (musiciens, réalisateur…)" value={songTeam} onChange={e => setSongTeam(e.target.value)} style={{ marginBottom:8 }} maxLength={250} />
+        <input className="input" placeholder="Direction artistique / Art" value={songArt} onChange={e => setSongArt(e.target.value)} style={{ marginBottom:8 }} maxLength={160} />
+        <textarea className="input" placeholder="Description..." value={content} onChange={e => setContent(e.target.value)} rows={3} style={{ resize:'none', marginBottom:12 }} maxLength={500} />
+
+        {/* Choix : publier dans ma page artiste OU dans des groupes */}
+        <div style={{ border:'1px solid #E4E6EB', borderRadius:12, overflow:'hidden', marginBottom:8 }}>
+          <button onClick={() => chooseTarget('page')}
+            style={{ width:'100%', display:'flex', alignItems:'center', gap:10, padding:'13px 16px', background: publishTarget==='page' ? '#E7F0FE' : 'none', border:'none', borderBottom:'1px solid #F0F2F5', cursor:'pointer', textAlign:'left', fontFamily:'Poppins', fontSize:14, fontWeight:700, color:'#050505' }}>
+            <span style={{ width:18, height:18, borderRadius:'50%', border:'2px solid #1877F2', display:'inline-flex', alignItems:'center', justifyContent:'center' }}>{publishTarget==='page' && <span style={{ width:9, height:9, borderRadius:'50%', background:'#1877F2' }}/>}</span>
+            Publier dans ma page artiste
+          </button>
+          <button onClick={() => chooseTarget('groups')}
+            style={{ width:'100%', display:'flex', alignItems:'center', gap:10, padding:'13px 16px', background: publishTarget==='groups' ? '#E7F0FE' : 'none', border:'none', cursor:'pointer', textAlign:'left', fontFamily:'Poppins', fontSize:14, fontWeight:700, color:'#050505' }}>
+            <span style={{ width:18, height:18, borderRadius:'50%', border:'2px solid #1877F2', display:'inline-flex', alignItems:'center', justifyContent:'center' }}>{publishTarget==='groups' && <span style={{ width:9, height:9, borderRadius:'50%', background:'#1877F2' }}/>}</span>
+            Publier dans des groupes
+          </button>
+        </div>
+
+        {/* Liste des groupes (si "dans groupes") */}
+        {publishTarget === 'groups' && (
+          <div style={{ border:'1px solid #E4E6EB', borderRadius:12, overflow:'hidden', marginBottom:8 }}>
+            {myGroups.length === 0 && <p style={{ padding:16, textAlign:'center', fontSize:13, color:'#65676B' }}>Aucun groupe accessible.</p>}
+            {myGroups.map(g => (
+              <button key={g.id} onClick={() => setSongGroupSel(p => ({ ...p, [g.id]: !p[g.id] }))}
+                style={{ width:'100%', display:'flex', alignItems:'center', gap:10, padding:'11px 16px', background:'none', border:'none', borderTop:'1px solid #F0F2F5', cursor:'pointer', textAlign:'left', fontFamily:'Poppins', fontSize:14, color:'#050505' }}>
+                <span style={{ width:20, height:20, borderRadius:5, border:'2px solid #1877F2', background: songGroupSel[g.id] ? '#1877F2' : 'transparent', display:'inline-flex', alignItems:'center', justifyContent:'center', color:'white', fontSize:13 }}>{songGroupSel[g.id] && '✓'}</span>
+                {g.name}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+      </div>
       )}
 
       {tracks.length === 0 && <p style={{ padding:30, textAlign:'center', color:'#65676B', fontSize:14 }}>Aucun titre publié pour le moment.</p>}
@@ -240,10 +344,19 @@ export default function ArtistDetail() {
               {!t.thumbURL && <NeonMic color="white" size={22}/>}
             </div>
             <div style={{ flex:1, minWidth:0 }}>
-              <p style={{ fontWeight:700, fontSize:14 }}>{t.content || t.genre} <span style={{ fontSize:11, fontWeight:700, color: GENRE_COLORS[t.genre]||'#FF2D8D' }}>· {t.genre}</span></p>
+              <p style={{ fontWeight:700, fontSize:14 }}>{t.songTitle || t.content || t.genre} <span style={{ fontSize:11, fontWeight:700, color: GENRE_COLORS[t.genre]||'#FF2D8D' }}>· {t.genre}</span></p>
+              {t.songAuthorComposer && <p style={{ fontSize:11, color:'#65676B', marginTop:2 }}>A/C : {t.songAuthorComposer}</p>}
+              {(t.songLabel || t.songStudio) && <p style={{ fontSize:11, color:'#65676B' }}>{[t.songLabel, t.songStudio].filter(Boolean).join(' · ')}</p>}
               <p style={{ fontSize:11, color:'#65676B', marginTop:2 }}>{t.createdAt ? timeAgo(t.createdAt) : ''}</p>
             </div>
           </div>
+          {t.content && t.songTitle && <p style={{ fontSize:13, color:'#050505', padding:'0 12px 8px', lineHeight:1.5 }}>{t.content}</p>}
+          {(t.songTeam || t.songArt) && (
+            <div style={{ padding:'0 12px 8px', display:'flex', flexWrap:'wrap', gap:6 }}>
+              {t.songTeam && <span style={{ fontSize:11, background:'#F0F2F5', borderRadius:12, padding:'3px 10px', color:'#65676B' }}>👥 {t.songTeam}</span>}
+              {t.songArt && <span style={{ fontSize:11, background:'#FFE9F2', color:'#FF2D8D', borderRadius:12, padding:'3px 10px', fontWeight:600 }}>🎨 {t.songArt}</span>}
+            </div>
+          )}
           {t.mediaType === 'audio'
             ? <audio src={t.mediaURL} controls style={{ width:'100%', padding:'0 12px 12px' }} />
             : <video src={t.mediaURL} controls poster={t.thumbURL || undefined} style={{ width:'100%', maxHeight:340, background:'#000' }} />}

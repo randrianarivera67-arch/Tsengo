@@ -76,6 +76,8 @@ export default function Home() {
   const [audience, setAudience] = useState('public');   // 'public' | 'friends' | 'me'
   const [audienceMenuOpen, setAudienceMenuOpen] = useState(false);
   const [composerMoreOpen, setComposerMoreOpen] = useState(false);
+  const [publishFullOpen, setPublishFullOpen] = useState(false);
+  const [isDecree, setIsDecree] = useState(false);
   const [postLocation, setPostLocation] = useState('');
   const [postMood, setPostMood] = useState('');
   const [allowMessages, setAllowMessages] = useState(true);
@@ -230,6 +232,7 @@ export default function Home() {
       contact: isSale ? contact.trim() : '', lieu: isSale ? lieu.trim() : '', saleCategory: isSale ? saleCategory : '',
       audience,
       location: postLocation.trim(), mood: postMood, allowMessages,
+      isDecree,
       taggedUids: Object.keys(composerTagSel).filter(k => composerTagSel[k]),
       taggedNames: composerTagList.filter(f => composerTagSel[f.uid]).map(f => f.fullName),
     };
@@ -286,7 +289,7 @@ export default function Home() {
           }));
           await batch.commit();
         }
-        setContent(''); removeMedia(); setIsSale(false); setPrice(''); setContact(''); setLieu(''); setAudience('public'); setPostLocation(''); setPostMood(''); setAllowMessages(true); setComposerTagSel({});
+        setContent(''); removeMedia(); setIsSale(false); setPrice(''); setContact(''); setLieu(''); setAudience('public'); setPostLocation(''); setPostMood(''); setAllowMessages(true); setComposerTagSel({}); setPublishFullOpen(false); setIsDecree(false);
       } catch (err) { console.error(err); alert('Erreur lors de la publication'); }
       setPosting(false); setUploadPct(0);
       return;
@@ -299,7 +302,7 @@ export default function Home() {
       });
       setPosting(false); setUploadPct(0);
       if (started) {
-        setContent(''); removeMedia(); setIsSale(false); setPrice(''); setContact(''); setLieu(''); setAudience('public'); setPostLocation(''); setPostMood(''); setAllowMessages(true); setComposerTagSel({});
+        setContent(''); removeMedia(); setIsSale(false); setPrice(''); setContact(''); setLieu(''); setAudience('public'); setPostLocation(''); setPostMood(''); setAllowMessages(true); setComposerTagSel({}); setPublishFullOpen(false); setIsDecree(false);
       }
       return;
     }
@@ -311,7 +314,7 @@ export default function Home() {
         mediaURL = r.url; finalMT = r.type === 'video' ? 'video' : 'image';
       }
       await publishPost(mediaURL, finalMT);
-      setContent(''); removeMedia(); setIsSale(false); setPrice(''); setContact(''); setLieu(''); setAudience('public'); setPostLocation(''); setPostMood(''); setAllowMessages(true); setComposerTagSel({});
+      setContent(''); removeMedia(); setIsSale(false); setPrice(''); setContact(''); setLieu(''); setAudience('public'); setPostLocation(''); setPostMood(''); setAllowMessages(true); setComposerTagSel({}); setPublishFullOpen(false); setIsDecree(false);
     } catch (err) { console.error(err); alert('Erreur lors de la publication'); }
     setPosting(false); setUploadPct(0);
   }
@@ -981,12 +984,52 @@ export default function Home() {
         );
       })()}
 
-      {/* Create post */}
-      <div className="card post-card" style={{ padding:16, marginBottom:8 }}>
+      {/* Create post — barre kely (icône fotsiny, clic = page feno) */}
+      <div className="card post-card" style={{ padding:12, marginBottom:8 }}>
+        <div style={{ display:'flex', gap:10, alignItems:'center' }}>
+          <img src={userProfile?.photoURL||`https://ui-avatars.com/api/?name=${encodeURIComponent(userProfile?.fullName||'U')}&background=1877F2&color=fff`} alt="" className="avatar" style={{ width:40, height:40, flexShrink:0 }}/>
+          <button onClick={() => setPublishFullOpen(true)}
+            style={{ flex:1, textAlign:'left', background:'#F0F2F5', border:'none', borderRadius:22, padding:'10px 16px', color:'#65676B', fontSize:14.5, fontFamily:'Poppins', cursor:'pointer' }}>
+            {t('whatsOnMind')}
+          </button>
+        </div>
+        <div style={{ display:'flex', alignItems:'center', marginTop:10, paddingTop:8, borderTop:'1px solid #E4E6EB' }}>
+          {/* Icônes fotsiny (tsy labelle) — Photo, Vidéo, Vente + "Plus" */}
+          <button onClick={() => { setPublishFullOpen(true); setTimeout(() => photoRef.current?.click(), 60); }} title="Photo"
+            style={{ flex:1, display:'flex', justifyContent:'center', alignItems:'center', gap:6, background:'none', border:'none', cursor:'pointer', padding:'6px 0' }}>
+            <HiPhotograph size={22} color="#45BD62" />
+          </button>
+          <button onClick={() => { setPublishFullOpen(true); setTimeout(() => videoRef.current?.click(), 60); }} title="Vidéo"
+            style={{ flex:1, display:'flex', justifyContent:'center', alignItems:'center', gap:6, background:'none', border:'none', cursor:'pointer', padding:'6px 0', borderLeft:'1px solid #E4E6EB' }}>
+            <HiVideoCamera size={22} color="#F3425F" />
+          </button>
+          <button onClick={() => { setPublishFullOpen(true); setIsSale(true); }} title="Vente"
+            style={{ flex:1, display:'flex', justifyContent:'center', alignItems:'center', gap:6, background:'none', border:'none', cursor:'pointer', padding:'6px 0', borderLeft:'1px solid #E4E6EB' }}>
+            <HiTag size={22} color="#F5C518" />
+          </button>
+          <button onClick={() => setPublishFullOpen(true)} title="Plus"
+            style={{ flex:1, display:'flex', justifyContent:'center', alignItems:'center', gap:5, background:'none', border:'none', cursor:'pointer', padding:'6px 0', borderLeft:'1px solid #E4E6EB', color:'#1877F2', fontWeight:700, fontSize:13, fontFamily:'Poppins' }}>
+            <span style={{ fontSize:18 }}>＋</span> Publié
+          </button>
+        </div>
+      </div>
+
+      {/* ── PAGE FENO : Créer une publication (accueil, format Facebook) ── */}
+      {publishFullOpen && (
+      <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,.35)', zIndex:350, display:'flex', alignItems:'flex-start', justifyContent:'center', overflowY:'auto' }}>
+      <div className="card post-card" style={{ padding:16, marginBottom:8, width:'100%', maxWidth:600, minHeight:'100vh', borderRadius:0 }}>
+        {/* Header page */}
+        <div style={{ display:'flex', alignItems:'center', gap:12, marginBottom:14, paddingBottom:12, borderBottom:'1px solid #E4E6EB' }}>
+          <button onClick={() => setPublishFullOpen(false)} style={{ background:'none', border:'none', cursor:'pointer', padding:4 }}><HiX size={24} color="#050505"/></button>
+          <h3 style={{ fontWeight:800, fontSize:18, flex:1 }}>Créer une publication</h3>
+          <button className="btn-primary" onClick={() => { createPost(); }} disabled={posting||(!content.trim()&&!mediaFile&&multiPhotos.length===0)||content.length>MAX_POST} style={{ padding:'7px 20px', fontSize:14 }}>
+            {posting?'...':t('publishPost')}
+          </button>
+        </div>
         <div style={{ display:'flex', gap:10, alignItems:'flex-start' }}>
           <img src={userProfile?.photoURL||`https://ui-avatars.com/api/?name=${encodeURIComponent(userProfile?.fullName||'U')}&background=1877F2&color=fff`} alt="" className="avatar" style={{ width:42, height:42, flexShrink:0 }}/>
           <div style={{ flex:1 }}>
-            <textarea className="input" placeholder={t('whatsOnMind')} value={content} onChange={e => setContent(e.target.value)} rows={2} style={{ resize:'none', width:'100%' }} maxLength={MAX_POST}/>
+            <textarea className="input" placeholder={t('whatsOnMind')} value={content} onChange={e => setContent(e.target.value)} rows={3} style={{ resize:'none', width:'100%', border:'none', fontSize:17 }} maxLength={MAX_POST} autoFocus/>
             {content.length > 0 && <p style={{ fontSize:11, color:charColor, textAlign:'right', marginTop:2 }}>{rem} restants</p>}
           </div>
         </div>
@@ -1087,18 +1130,30 @@ export default function Home() {
           </div>
         )}
 
-        <div style={{ display:'flex', alignItems:'center', gap:8, marginTop:12, flexWrap:'wrap' }}>
+        {/* Options importation — icône + labelle (format Facebook, page feno) */}
+        <div style={{ marginTop:16, border:'1px solid #E4E6EB', borderRadius:12, overflow:'hidden' }}>
           <input ref={photoRef} type="file" multiple accept="image/jpeg,image/png,image/gif,image/webp" onChange={e => handleMedia(e,'image')} style={{ display:'none' }}/>
           <input ref={videoRef} type="file" accept="video/mp4,video/webm,video/quicktime"       onChange={e => handleMedia(e,'video')} style={{ display:'none' }}/>
-          <button onClick={() => photoRef.current.click()} className="btn-blue" style={{ display:'flex', alignItems:'center', gap:5, borderRadius:20, padding:'6px 12px', fontSize:13 }}><HiPhotograph size={16}/>{t('addPhoto')}</button>
-          <button onClick={() => videoRef.current.click()} className="btn-primary" style={{ display:'flex', alignItems:'center', gap:5, borderRadius:20, padding:'6px 12px', fontSize:13 }}><HiVideoCamera size={16}/>{t('addVideo')}</button>
-          <button onClick={() => setIsSale(p=>!p)} className="btn-gold" style={{ display:'flex', alignItems:'center', gap:5, borderRadius:20, padding:'6px 12px', fontSize:13, opacity:isSale?1:.85, outline:isSale?'2px solid #F2B300':'none' }}><HiTag size={16}/>{t('sell')}</button>
-          <button onClick={() => setComposerMoreOpen(true)} className="btn-secondary" style={{ display:'flex', alignItems:'center', gap:5, borderRadius:20, padding:'6px 12px', fontSize:13 }}>⋯ Plus</button>
-          <button className="btn-primary" onClick={createPost} disabled={posting||(!content.trim()&&!mediaFile&&multiPhotos.length===0)||content.length>MAX_POST} style={{ marginLeft:'auto', padding:'6px 20px', fontSize:13 }}>
-            {posting?'...':t('publishPost')}
-          </button>
+          {[
+            { icon:<HiPhotograph size={22} color="#45BD62"/>, label:'Photo / Vidéo', action:() => photoRef.current?.click() },
+            { icon:<HiVideoCamera size={22} color="#F3425F"/>, label:'Vidéo',        action:() => videoRef.current?.click() },
+            { icon:<HiTag size={22} color="#F5C518"/>,         label:'Vente',        action:() => setIsSale(p=>!p), active:isSale },
+            { icon:<HiUserAdd size={22} color="#1877F2"/>,     label:'Identifier des personnes', action:() => openComposerTagModal() },
+            { icon:<NeonLocation size={22}/>,                  label: postLocation ? `Lieu : ${postLocation}` : 'Ajouter un lieu', action:() => setLocationPromptOpen(true) },
+            { icon:<span style={{ fontSize:22 }}>😊</span>,     label: postMood || 'Humeur / Activité', action:() => setMoodPickerOpen(true) },
+            { icon:<HiPaperAirplane size={22} color="#1877F2"/>, label: allowMessages ? 'Recevoir des messages : Activé' : 'Recevoir des messages : Désactivé', action:() => setAllowMessages(p=>!p) },
+            { icon:<HiCalendar size={22} color="#3DD9C4"/>,    label:'Créer un événement', action:() => navigate('/events') },
+            { icon:<HiLightningBolt size={22} color="#FF7A00"/>, label:'Lancer un décret', action:() => setIsDecree(p=>!p), active:isDecree },
+          ].map((opt, i) => (
+            <button key={i} onClick={opt.action}
+              style={{ width:'100%', display:'flex', alignItems:'center', gap:14, padding:'13px 16px', background: opt.active ? '#E7F0FE' : 'none', border:'none', borderTop: i>0?'1px solid #F0F2F5':'none', cursor:'pointer', textAlign:'left', fontFamily:'Poppins', fontSize:15, fontWeight:600, color:'#050505' }}>
+              {opt.icon} {opt.label}
+            </button>
+          ))}
         </div>
       </div>
+      </div>
+      )}
 
       {/* Edit post modal */}
       {/* ── Menu : Copier le texte (appui long sur une publication) ── */}
