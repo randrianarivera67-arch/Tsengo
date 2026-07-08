@@ -42,6 +42,64 @@ function VIPBadge() {
   return <img src='/vip-badge.png' style={{ width:32, height:32, marginLeft:5, verticalAlign:'middle', display:'inline-block', flexShrink:0, objectFit:'contain' }} alt='VIP'/>;
 }
 
+// Video ao amin'ny fil d'actualités — milalao ho azy rehefa hita ~60% amin'ny écran
+// (raha tsy activé ny "Économiser données"), ary mijanona rehefa scroll mivoaka.
+function FeedVideo({ src, poster, dataSaver, style, onOpenReels }) {
+  const vidRef = useRef(null);
+  const wrapRef = useRef(null);
+  const [playing, setPlaying] = useState(false);
+  const [muted, setMuted] = useState(true);
+
+  useEffect(() => {
+    if (dataSaver) { setPlaying(false); return; }
+    const el = wrapRef.current;
+    if (!el) return;
+    const io = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting && entry.intersectionRatio >= 0.6) {
+          vidRef.current?.play?.().catch(() => {});
+          setPlaying(true);
+        } else {
+          vidRef.current?.pause?.();
+          setPlaying(false);
+        }
+      },
+      { threshold: [0, 0.6, 1] }
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, [dataSaver]);
+
+  return (
+    <div ref={wrapRef} style={{ position: 'relative', cursor: 'pointer' }} onClick={() => {
+      if (playing) { setMuted(m => !m); } else { onOpenReels?.(); }
+    }}>
+      <video
+        ref={vidRef}
+        src={src}
+        poster={poster || undefined}
+        preload={(dataSaver || poster) ? 'none' : 'metadata'}
+        style={style}
+        muted={muted}
+        loop
+        playsInline
+      />
+      {!playing && (
+        <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ width: 50, height: 50, background: 'rgba(0,0,0,0.5)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <span style={{ color: 'white', fontSize: 20 }}>▶</span>
+          </div>
+        </div>
+      )}
+      {playing && (
+        <div style={{ position: 'absolute', bottom: 10, right: 10, width: 30, height: 30, background: 'rgba(0,0,0,0.5)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <span style={{ color: 'white', fontSize: 14 }}>{muted ? '🔇' : '🔊'}</span>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function Home() {
   const { currentUser, userProfile, setUserProfile } = useAuth();
   const activeStoryUids = useActiveStoryUids();
@@ -1439,7 +1497,7 @@ export default function Home() {
                 </div>
               ) : post.mediaURL && (
                 <div style={{ marginTop:8, marginLeft:-16, marginRight:-16 }}>
-                  {post.mediaType==='image' ? <img src={post.mediaURL} alt="" style={{ width:'100%', borderRadius:0, maxHeight:520, objectFit:'cover', display:'block' }}/> : <div onClick={()=>navigate('/reels',{state:{startId:post.id}})} style={{ position:'relative', cursor:'pointer' }}><video src={post.mediaURL} poster={post.thumbURL || undefined} preload={(dataSaver || post.thumbURL) ? 'none' : 'metadata'} style={{ width:'100%', borderRadius:0, maxHeight:520, objectFit:'cover', display:'block', background:'#000' }} muted playsInline/><div style={{ position:'absolute', inset:0, display:'flex', alignItems:'center', justifyContent:'center' }}><div style={{ width:50, height:50, background:'rgba(0,0,0,0.5)', borderRadius:' 50%', display:'flex', alignItems:'center', justifyContent:'center' }}><span style={{ color:'white', fontSize:20 }}>▶</span></div></div></div>}
+                  {post.mediaType==='image' ? <img src={post.mediaURL} alt="" style={{ width:'100%', borderRadius:0, maxHeight:520, objectFit:'cover', display:'block' }}/> : <FeedVideo src={post.mediaURL} poster={post.thumbURL} dataSaver={dataSaver} onOpenReels={()=>navigate('/reels',{state:{startId:post.id}})} style={{ width:'100%', borderRadius:0, maxHeight:520, objectFit:'cover', display:'block', background:'#000' }} />}
                 </div>
               )}
             </div>
