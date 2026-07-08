@@ -14,12 +14,14 @@ export function isDataSaverOn() {
   }
 }
 
-export function setDataSaverOn(value) {
+export function setDataSaver(value) {
   try {
     localStorage.setItem(KEY, value ? '1' : '0');
   } catch {}
   listeners.forEach(cb => cb(!!value));
 }
+// Alias — ampiasan'ny AppearanceSettings.jsx patch
+export const setDataSaverOn = setDataSaver;
 
 // Ampiasan'ny page rehetra (Home, Reels, Profile, GroupPage) mba ho voamarina
 // ny state raha ovana ao amin'ny Paramètres na amin'ny tab hafa.
