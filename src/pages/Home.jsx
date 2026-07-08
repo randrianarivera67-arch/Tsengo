@@ -126,22 +126,22 @@ function MusicCard({ track, index, playing, onToggle, onArtist }) {
   }, [track.mediaURL]);
 
   return (
-    <div style={{ flex: '0 0 300px', background: '#0c0c12', borderRadius: 16, overflow: 'hidden', position: 'relative' }}>
-      <div style={{ position: 'relative', height: 150, display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+    <div style={{ flex: '0 0 180px', background: '#0c0c12', borderRadius: 16, overflow: 'hidden', position: 'relative' }}>
+      <div style={{ position: 'relative', height: 110, display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
         {/* Avatar artiste (clic → page artiste) */}
-        <div onClick={() => onArtist?.(track.artistId)} style={{ position: 'absolute', top: 12, left: 12, width: 44, height: 44, borderRadius: '50%', overflow: 'hidden', border: '2px solid rgba(255,255,255,.85)', zIndex: 3, cursor: 'pointer', background: 'linear-gradient(145deg,#FF6FA5,#FF2D8D)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div onClick={() => onArtist?.(track.artistId)} style={{ position: 'absolute', top: 8, left: 8, width: 34, height: 34, borderRadius: '50%', overflow: 'hidden', border: '2px solid rgba(255,255,255,.85)', zIndex: 3, cursor: 'pointer', background: 'linear-gradient(145deg,#FF6FA5,#FF2D8D)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           {track.artistPhoto ? <img src={track.artistPhoto} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <span style={{ color: '#fff', fontWeight: 800, fontSize: 15 }}>{(track.artistName || '?')[0]}</span>}
         </div>
         {/* Menu (⋮) */}
         <div onClick={() => setMenuOpen(o => !o)} style={{ position: 'absolute', top: 12, right: 12, zIndex: 4, color: 'rgba(255,255,255,.9)', cursor: 'pointer', fontSize: 22, lineHeight: 1, padding: '0 4px' }}>⋮</div>
         {/* Onde musicale */}
-        <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 2.5, padding: '0 16px' }}>
+        <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 2, padding: '0 10px' }}>
           {bars.current.map((h, i) => (
             <div key={i} style={{ width: 3, height: h, borderRadius: 3, background: i / bars.current.length < 0.5 ? grad[0] : grad[1], opacity: playing ? 0.9 : 0.6 }} />
           ))}
         </div>
         {/* Play / Pause */}
-        <div onClick={() => onToggle?.(track)} style={{ position: 'relative', zIndex: 2, width: 52, height: 52, borderRadius: '50%', background: 'rgba(0,0,0,.5)', border: '2px solid rgba(255,255,255,.92)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', boxShadow: '0 4px 14px rgba(0,0,0,.4)' }}>
+        <div onClick={() => onToggle?.(track)} style={{ position: 'relative', zIndex: 2, width: 42, height: 42, borderRadius: '50%', background: 'rgba(0,0,0,.5)', border: '2px solid rgba(255,255,255,.92)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', boxShadow: '0 4px 14px rgba(0,0,0,.4)' }}>
           {playing
             ? <svg width="18" height="20" viewBox="0 0 24 24" fill="#fff"><rect x="6" y="4" width="4" height="16" rx="1.5" /><rect x="14" y="4" width="4" height="16" rx="1.5" /></svg>
             : <svg width="18" height="20" viewBox="0 0 24 24" fill="#fff" style={{ marginLeft: 3 }}><path d="M6 4l14 8-14 8z" /></svg>}
@@ -157,10 +157,10 @@ function MusicCard({ track, index, playing, onToggle, onArtist }) {
         )}
       </div>
       {/* Pied : titre + artiste + durée */}
-      <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', padding: '10px 14px 12px', background: '#0c0c12' }}>
+      <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', padding: '8px 10px 10px', background: '#0c0c12' }}>
         <div style={{ minWidth: 0 }}>
-          <div style={{ fontWeight: 800, fontSize: 15, color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{track.songTitle || track.content || 'Sans titre'}</div>
-          <div style={{ fontSize: 12, color: '#b9b9c2' }}>{track.artistName}</div>
+          <div style={{ fontWeight: 800, fontSize: 13, color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{track.songTitle || track.content || 'Sans titre'}</div>
+          <div style={{ fontSize: 11, color: '#b9b9c2', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{track.artistName}</div>
         </div>
         {dur && <div style={{ fontSize: 12, color: '#e6e6ea', fontWeight: 600, flexShrink: 0, marginLeft: 8 }}>{dur}</div>}
       </div>
