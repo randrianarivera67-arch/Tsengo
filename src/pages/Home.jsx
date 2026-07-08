@@ -100,6 +100,90 @@ function FeedVideo({ src, poster, dataSaver, style, onOpenReels }) {
   );
 }
 
+// ── Barres d'onde déterministes (stables par piste) ──
+function waveBars(seed, n = 56) {
+  let s = 0; for (let i = 0; i < seed.length; i++) s = (s * 31 + seed.charCodeAt(i)) % 100000;
+  const rnd = () => { s = (s * 9301 + 49297) % 233280; return s / 233280; };
+  return Array.from({ length: n }, (_, i) => 9 + Math.abs(Math.sin(i * 0.4 + s)) * 44 + rnd() * 16);
+}
+
+const MUSIC_GRADS = [['#FF6FA5', '#FF2D8D'], ['#A66BFF', '#7A2DFF'], ['#3DBEFF', '#1877F2']];
+
+function MusicCard({ track, index, playing, onToggle, onArtist }) {
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [dur, setDur] = useState('');
+  const bars = useRef(waveBars(track.id || String(index)));
+  const grad = MUSIC_GRADS[index % 3];
+
+  useEffect(() => {
+    if (!track.mediaURL) return;
+    const a = new Audio();
+    a.preload = 'metadata';
+    a.src = track.mediaURL;
+    const on = () => { const d = a.duration; if (d && isFinite(d)) { const m = Math.floor(d / 60), s = Math.floor(d % 60); setDur(`${m}:${String(s).padStart(2, '0')}`); } };
+    a.addEventListener('loadedmetadata', on);
+    return () => { a.removeEventListener('loadedmetadata', on); a.src = ''; };
+  }, [track.mediaURL]);
+
+  return (
+    <div style={{ flex: '0 0 300px', background: '#0c0c12', borderRadius: 16, overflow: 'hidden', position: 'relative' }}>
+      <div style={{ position: 'relative', height: 150, display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+        {/* Avatar artiste (clic → page artiste) */}
+        <div onClick={() => onArtist?.(track.artistId)} style={{ position: 'absolute', top: 12, left: 12, width: 44, height: 44, borderRadius: '50%', overflow: 'hidden', border: '2px solid rgba(255,255,255,.85)', zIndex: 3, cursor: 'pointer', background: 'linear-gradient(145deg,#FF6FA5,#FF2D8D)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          {track.artistPhoto ? <img src={track.artistPhoto} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <span style={{ color: '#fff', fontWeight: 800, fontSize: 15 }}>{(track.artistName || '?')[0]}</span>}
+        </div>
+        {/* Menu (⋮) */}
+        <div onClick={() => setMenuOpen(o => !o)} style={{ position: 'absolute', top: 12, right: 12, zIndex: 4, color: 'rgba(255,255,255,.9)', cursor: 'pointer', fontSize: 22, lineHeight: 1, padding: '0 4px' }}>⋮</div>
+        {/* Onde musicale */}
+        <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 2.5, padding: '0 16px' }}>
+          {bars.current.map((h, i) => (
+            <div key={i} style={{ width: 3, height: h, borderRadius: 3, background: i / bars.current.length < 0.5 ? grad[0] : grad[1], opacity: playing ? 0.9 : 0.6 }} />
+          ))}
+        </div>
+        {/* Play / Pause */}
+        <div onClick={() => onToggle?.(track)} style={{ position: 'relative', zIndex: 2, width: 52, height: 52, borderRadius: '50%', background: 'rgba(0,0,0,.5)', border: '2px solid rgba(255,255,255,.92)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', boxShadow: '0 4px 14px rgba(0,0,0,.4)' }}>
+          {playing
+            ? <svg width="18" height="20" viewBox="0 0 24 24" fill="#fff"><rect x="6" y="4" width="4" height="16" rx="1.5" /><rect x="14" y="4" width="4" height="16" rx="1.5" /></svg>
+            : <svg width="18" height="20" viewBox="0 0 24 24" fill="#fff" style={{ marginLeft: 3 }}><path d="M6 4l14 8-14 8z" /></svg>}
+        </div>
+        {/* Menu déroulant */}
+        {menuOpen && (
+          <div style={{ position: 'absolute', top: 44, right: 12, zIndex: 6, background: '#fff', borderRadius: 12, boxShadow: '0 8px 24px rgba(0,0,0,.25)', overflow: 'hidden', width: 172 }}>
+            <div onClick={() => { setMenuOpen(false); onArtist?.(track.artistId); }} style={{ padding: '11px 14px', fontSize: 13.5, color: '#050505', cursor: 'pointer' }}>ℹ️ Informations</div>
+            <div onClick={() => { setMenuOpen(false); if (track.mediaURL) window.open(track.mediaURL, '_blank'); }} style={{ padding: '11px 14px', fontSize: 13.5, color: '#050505', cursor: 'pointer', borderTop: '1px solid #F0F2F5' }}>⬇️ Télécharger</div>
+            <div onClick={() => setMenuOpen(false)} style={{ padding: '11px 14px', fontSize: 13.5, color: '#050505', cursor: 'pointer', borderTop: '1px solid #F0F2F5' }}>🔖 Enregistré</div>
+            <div onClick={() => setMenuOpen(false)} style={{ padding: '11px 14px', fontSize: 13.5, color: '#050505', cursor: 'pointer', borderTop: '1px solid #F0F2F5' }}>🚫 Bloqué</div>
+          </div>
+        )}
+      </div>
+      {/* Pied : titre + artiste + durée */}
+      <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', padding: '10px 14px 12px', background: '#0c0c12' }}>
+        <div style={{ minWidth: 0 }}>
+          <div style={{ fontWeight: 800, fontSize: 15, color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{track.songTitle || track.content || 'Sans titre'}</div>
+          <div style={{ fontSize: 12, color: '#b9b9c2' }}>{track.artistName}</div>
+        </div>
+        {dur && <div style={{ fontSize: 12, color: '#e6e6ea', fontWeight: 600, flexShrink: 0, marginLeft: 8 }}>{dur}</div>}
+      </div>
+    </div>
+  );
+}
+
+function MusicRow({ tracks, playingId, onToggle, onArtist }) {
+  if (!tracks || tracks.length === 0) return null;
+  return (
+    <div className="card" style={{ marginBottom: 14, padding: '12px 0 6px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 14px 10px' }}>
+        <span style={{ fontWeight: 800, fontSize: 17, color: '#050505' }}>Suggestions musicales pour vous</span>
+      </div>
+      <div style={{ display: 'flex', gap: 12, overflowX: 'auto', padding: '2px 14px 8px', WebkitOverflowScrolling: 'touch' }}>
+        {tracks.map((t, i) => (
+          <MusicCard key={t.id} track={t} index={i} playing={playingId === t.id} onToggle={onToggle} onArtist={onArtist} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export default function Home() {
   const { currentUser, userProfile, setUserProfile } = useAuth();
   const activeStoryUids = useActiveStoryUids();
@@ -155,6 +239,19 @@ export default function Home() {
   const lpFired = useRef(false);
 
   const [posts, setPosts]           = useState([]);
+  // ── Lecture audio du fil (une seule piste à la fois) ──
+  const musicAudioRef = useRef(null);
+  const [playingTrackId, setPlayingTrackId] = useState(null);
+  function toggleMusic(track) {
+    if (!track?.mediaURL) return;
+    if (!musicAudioRef.current) musicAudioRef.current = new Audio();
+    const a = musicAudioRef.current;
+    if (playingTrackId === track.id) { a.pause(); setPlayingTrackId(null); return; }
+    a.src = track.mediaURL;
+    a.onended = () => setPlayingTrackId(null);
+    a.play().catch(() => {});
+    setPlayingTrackId(track.id);
+  }
   const [reelPosts, setReelPosts]   = useState([]);
   const [openCmt, setOpenCmt]       = useState({});
   const [cmtText, setCmtText]       = useState({});
@@ -1300,6 +1397,14 @@ export default function Home() {
 
         return (
           <div key={post.id}>
+          {pIdx > 0 && pIdx % 5 === 0 && (
+            <MusicRow
+              tracks={posts.filter(p => p.mediaType === 'audio' && p.isMusic)}
+              playingId={playingTrackId}
+              onToggle={toggleMusic}
+              onArtist={aid => aid && navigate(`/artists/${aid}`)}
+            />
+          )}
           <div className="card post-card animate-fade" style={{ marginBottom:14, border:boosted?'1px solid #a855f755':undefined }}>
             {boosted && (
               <div style={{ background:'linear-gradient(135deg,#7c3aed18,#a855f718)', borderBottom:'1px solid #a855f733', padding:'5px 14px' }}>
