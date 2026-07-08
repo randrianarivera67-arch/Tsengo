@@ -72,7 +72,7 @@ function FeedVideo({ src, poster, dataSaver, style, onOpenReels }) {
 
   return (
     <div ref={wrapRef} style={{ position: 'relative', cursor: 'pointer' }} onClick={() => {
-      if (playing) { setMuted(m => !m); } else { onOpenReels?.(); }
+      onOpenReels?.();
     }}>
       <video
         ref={vidRef}

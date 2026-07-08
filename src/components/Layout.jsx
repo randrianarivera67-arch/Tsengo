@@ -19,38 +19,81 @@ import {
   HiMicrophone, HiIdentification, HiDocumentText,
 } from 'react-icons/hi';
 
-// Icône "Revy" — cristal rose rond, cerclé or, texte + lecture intégrés (style bijou)
-function RevyGem({ size = 50 }) {
+// Icône "JEJO" — wordmark rose clay 3D + étoiles + smiley (style bijou)
+function JejoIcon({ w = 90 }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 100 100" style={{ display: 'block', filter: 'drop-shadow(0 4px 8px rgba(255,29,126,.5))' }}>
+    <svg width={w} height={w * 0.5} viewBox="0 0 130 64" style={{ display: 'block' }}>
       <defs>
-        <radialGradient id="revyGemBg" cx="38%" cy="32%" r="75%">
-          <stop offset="0"   stopColor="#FFC1E0"/>
-          <stop offset="45%" stopColor="#FF5DA6"/>
-          <stop offset="100%" stopColor="#D4145A"/>
+        <linearGradient id="jejoTxt" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stopColor="#FF7DC0"/><stop offset="45%" stopColor="#FF2E8E"/><stop offset="100%" stopColor="#DA0F68"/>
+        </linearGradient>
+        <radialGradient id="jejoSm" cx="36%" cy="30%" r="80%">
+          <stop offset="0" stopColor="#FFA6D2"/><stop offset="50%" stopColor="#FF3D95"/><stop offset="100%" stopColor="#D80F6C"/>
         </radialGradient>
-        <linearGradient id="revyGemRim" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0"   stopColor="#FFE9B0"/>
-          <stop offset="0.5" stopColor="#E8B923"/>
-          <stop offset="1"   stopColor="#B8860B"/>
+        <linearGradient id="jejoStar" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stopColor="#FFC0E2"/><stop offset="1" stopColor="#FF2D8D"/>
         </linearGradient>
-        <linearGradient id="revyGemPlay" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0" stopColor="#FFFFFF"/>
-          <stop offset="1" stopColor="#C9D2DC"/>
-        </linearGradient>
-        <clipPath id="revyGemClip"><circle cx="50" cy="50" r="45"/></clipPath>
+        <filter id="jejoSh" x="-30%" y="-30%" width="160%" height="170%">
+          <feDropShadow dx="0" dy="3" stdDeviation="2.4" floodColor="#C60E62" floodOpacity="0.45"/>
+        </filter>
       </defs>
-      <circle cx="50" cy="50" r="47" fill="url(#revyGemRim)"/>
-      <circle cx="50" cy="50" r="43" fill="url(#revyGemBg)"/>
-      <g clipPath="url(#revyGemClip)" opacity="0.35" stroke="#FFFFFF" strokeWidth="1.2">
-        <line x1="20" y1="10" x2="55" y2="95"/>
-        <line x1="45" y1="5"  x2="85" y2="80"/>
-        <line x1="5"  y1="55" x2="70" y2="15"/>
-        <line x1="10" y1="80" x2="90" y2="45"/>
+      <path d="M10 32 C12.5 32 13.5 25 14 22.5 C14.5 25 15.5 32 18 32 C15.5 32 14.5 39 14 41.5 C13.5 39 12.5 32 10 32 Z" fill="url(#jejoStar)"/>
+      <path d="M106 14 C107.8 14 108.5 9.5 109 7.8 C109.5 9.5 110.2 14 112 14 C110.2 14 109.5 18.5 109 20.2 C108.5 18.5 107.8 14 106 14 Z" fill="url(#jejoStar)"/>
+      <g filter="url(#jejoSh)">
+        <text x="20" y="45" fontFamily="Poppins, Arial, sans-serif" fontWeight="900" fontSize="38" fill="url(#jejoTxt)" letterSpacing="-1.5">JEJO</text>
       </g>
-      <circle cx="50" cy="50" r="43" fill="none" stroke="rgba(255,255,255,.5)" strokeWidth="1.5"/>
-      <text x="50" y="47" textAnchor="middle" fontFamily="Poppins, 'Segoe UI', sans-serif" fontWeight="700" fontStyle="italic" fontSize="21" fill="white">Revy</text>
-      <path d="M45 58 L45 70 L57 64 Z" fill="url(#revyGemPlay)"/>
+      <text x="20" y="45" fontFamily="Poppins, Arial, sans-serif" fontWeight="900" fontSize="38" fill="#fff" letterSpacing="-1.5" style={{ opacity: 0.28, clipPath: 'inset(0 0 55% 0)' }}>JEJO</text>
+      <g transform="translate(110,40)" filter="url(#jejoSh)">
+        <circle r="12" fill="url(#jejoSm)"/>
+        <ellipse cx="-3.6" cy="-4.6" rx="4" ry="2.6" fill="#fff" opacity="0.5"/>
+        <circle cx="-4" cy="-1" r="1.7" fill="#800a45"/><circle cx="4" cy="-1" r="1.7" fill="#800a45"/>
+        <path d="M-5 4 Q0 8.5 5 4" stroke="#800a45" strokeWidth="1.9" fill="none" strokeLinecap="round"/>
+      </g>
+    </svg>
+  );
+}
+
+// Icône navbar claymorphism 3D (état NON sélectionné — icône couleur, sans fond)
+function ClayNavIcon({ type, color = '#1877F2', size = 38 }) {
+  const blue = color === '#1877F2';
+  const l = blue ? '#7CB8FF' : '#FFE08A';
+  const m = blue ? '#2E8BFF' : '#F5C518';
+  const d = blue ? '#1667D8' : '#D69A00';
+  const gid = 'clayG_' + type, shid = 'clayS_' + type;
+  return (
+    <svg width={size} height={size} viewBox="0 0 64 64">
+      <defs>
+        <radialGradient id={gid} cx="35%" cy="28%" r="90%">
+          <stop offset="0" stopColor={l}/><stop offset="45%" stopColor={m}/><stop offset="100%" stopColor={d}/>
+        </radialGradient>
+        <filter id={shid} x="-40%" y="-40%" width="180%" height="180%">
+          <feDropShadow dx="0" dy="3.5" stdDeviation="2.8" floodColor={d} floodOpacity="0.4"/>
+        </filter>
+      </defs>
+      <g filter={'url(#' + shid + ')'}>
+        {type === 'home' && <>
+          <path d="M32 12 C33.4 12 34.5 12.7 35.6 13.6 L54 28 C55.4 29.2 56 30.6 56 32.4 L56 47 C56 50 54 52 51 52 L13 52 C10 52 8 50 8 47 L8 32.4 C8 30.6 8.6 29.2 10 28 L28.4 13.6 C29.5 12.7 30.6 12 32 12 Z" fill={'url(#' + gid + ')'}/>
+          <rect x="26" y="38" width="12" height="14" rx="4" fill={d} opacity="0.5"/>
+          <ellipse cx="24" cy="24" rx="7" ry="4" fill="#fff" opacity="0.28" transform="rotate(-32 24 24)"/>
+        </>}
+        {type === 'amis' && <>
+          <circle cx="42" cy="21" r="8" fill={'url(#' + gid + ')'}/>
+          <path d="M30 50 C30 41 35 36 42 36 C49 36 54 41 54 50 C54 52 52.5 53 51 53 L33 53 C31.5 53 30 52 30 50 Z" fill={'url(#' + gid + ')'}/>
+          <circle cx="24" cy="23" r="9.5" fill={'url(#' + gid + ')'}/>
+          <path d="M9 53 C9 43 15 37 24 37 C33 37 39 43 39 53 C39 55 37.5 56 36 56 L12 56 C10.5 56 9 55 9 53 Z" fill={'url(#' + gid + ')'}/>
+          <ellipse cx="20" cy="20" rx="4.5" ry="3" fill="#fff" opacity="0.4" transform="rotate(-30 20 20)"/>
+        </>}
+        {type === 'plane' && <>
+          <path d="M52 14 C54 13.2 55.5 15 54.7 17 L44 48 C43.3 50 40.7 50.4 39.4 48.7 L32 39 L46 22 L26 35 L14.5 30.5 C12.6 29.7 12.5 27 14.4 26.2 Z" fill={'url(#' + gid + ')'}/>
+          <path d="M32 39 L32 50 C32 51.6 34 52.3 35 51 L39.4 45.5 Z" fill={d} opacity="0.6"/>
+          <ellipse cx="30" cy="24" rx="6" ry="2.4" fill="#fff" opacity="0.4" transform="rotate(-30 30 24)"/>
+        </>}
+        {type === 'profil' && <>
+          <circle cx="32" cy="22" r="11" fill={'url(#' + gid + ')'}/>
+          <path d="M12 52 C12 40 21 33 32 33 C43 33 52 40 52 52 C52 54.5 50 56 47.5 56 L16.5 56 C14 56 12 54.5 12 52 Z" fill={'url(#' + gid + ')'}/>
+          <ellipse cx="27" cy="18" rx="5" ry="3.2" fill="#fff" opacity="0.4" transform="rotate(-30 27 18)"/>
+        </>}
+      </g>
     </svg>
   );
 }
@@ -96,12 +139,12 @@ export default function Layout({ children }) {
   // Dock flottant style Telegram — icônes remplies, couleur par couleur
   // Dock flottant — 3 couleurs du logo uniquement : bleu / rose / doré
   // Notifications afindra any amin'ny top bar — ny "Revy" (Reels) no centré eto
-  const bottomNav = [
-    { path: '/',                            AIcon: HiHome,          color: '#1877F2', color2: '#1877F2', label: 'Accueil' },
-    { path: '/friends',                     AIcon: HiUserGroup,     color: '#E8B923', color2: '#B8860B', label: 'Amis' },
-    { path: '/reels',                       isRevy: true,           color: '#FF1D7E', label: 'Revy' },
-    { path: '/messages',                    AIcon: HiPaperAirplane, color: '#E8B923', color2: '#B8860B', label: 'Messages', badge: msgCount },
-    { path: `/profile/${currentUser?.uid}`, AIcon: HiUser,          color: '#1877F2', color2: '#1877F2', label: 'Profil' },
+    const bottomNav = [
+    { path: '/',                            icon: 'home',   color: '#1877F2', label: 'Accueil' },
+    { path: '/friends',                     icon: 'amis',   color: '#F5C518', label: 'Amis' },
+    { path: '/reels',                       isJejo: true,   label: 'JEJO' },
+    { path: '/messages',                    icon: 'plane',  color: '#F5C518', label: 'Messages', badge: msgCount },
+    { path: `/profile/${currentUser?.uid}`, icon: 'profil', color: '#1877F2', label: 'Profil' },
   ];
 
   const isActive = p => {
@@ -449,30 +492,33 @@ export default function Layout({ children }) {
         </div>
       )}
 
-      {/* ── Dock flottant (style Telegram) ─────────────────────── */}
+      {/* ── Dock flottant — clay 3D, JEJO au centre ────────────── */}
       <nav className="floating-dock">
-        {bottomNav.map(({ path, AIcon, badge, color, color2, isRevy, label }) => {
+        {bottomNav.map(({ path, icon, badge, color, isJejo, label }) => {
           const active = isActive(path);
+          const FilledIcon = icon === 'home' ? HiHome : icon === 'amis' ? HiUserGroup : icon === 'plane' ? HiPaperAirplane : HiUser;
           return (
             <button key={path} className={`dock-item ${active ? 'active' : ''}`} onClick={() => navigate(path)}
-              style={{ color, '--dock-glow': color + '77', position: 'relative' }}>
-              {isRevy ? (
-                <span className="dock-icon" style={{ position:'relative', width:50, height:50, background:'none', boxShadow:'none', overflow:'visible', marginTop:-8 }}>
-                  <RevyGem size={50} />
+              style={{ background: 'none', border: 'none', cursor: 'pointer', position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5, flex: 1, padding: '4px 0' }}>
+              {isJejo ? (
+                <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 46, transform: active ? 'scale(1.06)' : 'scale(1)', transition: 'transform .2s' }}>
+                  <JejoIcon w={90} />
+                </span>
+              ) : active ? (
+                <span style={{
+                  width: 46, height: 46, borderRadius: 15, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  background: `linear-gradient(150deg, ${color === '#1877F2' ? '#4E9BFF' : '#FFD84D'}, ${color === '#1877F2' ? '#1667D8' : '#D69A00'})`,
+                  boxShadow: `0 5px 12px ${color}66, inset 0 1.5px 2px rgba(255,255,255,.5), inset 0 -3px 5px rgba(0,0,0,.18)`,
+                }}>
+                  <FilledIcon size={24} color="#fff" />
                 </span>
               ) : (
-                <span className="dock-icon" style={{
-                  background: `linear-gradient(155deg, ${color}, ${color2 || color})`,
-                  width: 42, height: 42,
-                  boxShadow: `0 3px 8px ${color}55, inset 0 1px 2px rgba(255,255,255,.6), inset 0 -3px 6px rgba(0,0,0,.22)`,
-                  opacity: active ? 1 : 0.82,
-                }}>
-                  <AIcon size={22} color="white" />
+                <span style={{ width: 46, height: 46, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <ClayNavIcon type={icon} color={color} size={38} />
                 </span>
               )}
-              {/* Badge — ivelan'ny dock-icon (overflow:hidden), mba tsy ho voatapaka na hikorana */}
               {badge > 0 && <span className="notif-badge" style={{ top: 2, right: 'calc(50% - 26px)' }}>{badge > 9 ? '9+' : badge}</span>}
-              {!isRevy && <span className="dock-label">{label}</span>}
+              {!isJejo && <span className="dock-label" style={{ color: active ? '#111' : '#8A8F98', fontWeight: active ? 800 : 600 }}>{label}</span>}
             </button>
           );
         })}
