@@ -90,7 +90,7 @@ export default function AdminPanel() {
       await addDoc(collection(db, 'notifications'), {
         toUid: post.uid,
         fromUid: currentUser.uid,
-        fromName: 'Traingo Admin',
+        fromName: 'Trengo Admin',
         fromPhoto: '',
         type: 'boost',
         postId: post.id,

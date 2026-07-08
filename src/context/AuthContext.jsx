@@ -28,7 +28,14 @@ export function AuthProvider({ children }) {
       fullName,
       username: username.toLowerCase(),
       photoURL: '',
+      coverURL: '',
       bio: '',
+      work: '',
+      study: '',
+      phone: '',
+      website: '',
+      currentCity: '',
+      hometown: '',
       friends: [],
       friendRequests: [],
       sentRequests: [],
@@ -77,7 +84,7 @@ export function AuthProvider({ children }) {
 
   return (
     <AuthContext.Provider value={{ currentUser, userProfile, setUserProfile, register, login, logout, fetchUserProfile, loading }}>
-      {loading ? (<div style={{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",background:"#FFFFFF"}}><style>{`@keyframes dot{0%,80%,100%{opacity:0}40%{opacity:1}}`}</style><div style={{textAlign:"center"}}><div style={{fontWeight:900,fontSize:38,color:"#1877F2",letterSpacing:-1}}>Traingo<span style={{animation:"dot 1.4s infinite",animationDelay:"0s"}}>.</span><span style={{animation:"dot 1.4s infinite",animationDelay:"0.2s"}}>.</span><span style={{animation:"dot 1.4s infinite",animationDelay:"0.4s"}}>.</span></div></div></div>) : children}
+      {loading ? (<div style={{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",background:"#FFFFFF"}}><style>{`@keyframes dot{0%,80%,100%{opacity:0}40%{opacity:1}}`}</style><div style={{textAlign:"center"}}><div style={{fontWeight:900,fontSize:38,color:"#1877F2",letterSpacing:-1}}>Trengo<span style={{animation:"dot 1.4s infinite",animationDelay:"0s"}}>.</span><span style={{animation:"dot 1.4s infinite",animationDelay:"0.2s"}}>.</span><span style={{animation:"dot 1.4s infinite",animationDelay:"0.4s"}}>.</span></div></div></div>) : children}
     </AuthContext.Provider>
   );
 }

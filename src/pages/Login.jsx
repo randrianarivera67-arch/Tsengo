@@ -48,19 +48,20 @@ export default function Login() {
   return (
     <div style={{
       minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center',
-      background: 'linear-gradient(160deg, #E4E6EB 0%, #F0F2F5 50%, #E4E6EB 100%)',
+      backgroundImage: 'linear-gradient(rgba(8, 30, 63, 0.35), rgba(8, 30, 63, 0.45)), url(/login-bg.jpg)',
+      backgroundSize: 'cover', backgroundPosition: 'center', backgroundRepeat: 'no-repeat',
       padding: 20
     }}>
       <div style={{ width: '100%', maxWidth: 400 }}>
         {/* Logo */}
         <div style={{ textAlign: 'center', marginBottom: 40 }}>
-          <img src="/tsengo-logo.png" alt="Traingo" style={{ width:96, height:96, objectFit:"contain", margin:"0 auto 12px", display:"block" }}/>
-          <h1 style={{ fontSize: 32, fontWeight: 800, color: '#1877F2', letterSpacing: -1 }}>Traingo</h1>
-          <p style={{ color: '#65676B', marginTop: 4, fontSize: 14 }}>{t('welcomeTo')} Traingo</p>
+          <img src="/trengo-logo.png" alt="Trengo" style={{ width:96, height:96, objectFit:"contain", margin:"0 auto 12px", display:"block", filter:'drop-shadow(0 4px 14px rgba(0,0,0,0.35))' }}/>
+          <h1 style={{ fontSize: 32, fontWeight: 800, color: '#FFFFFF', letterSpacing: -1, textShadow: '0 2px 12px rgba(0,0,0,0.45)' }}>Trengo</h1>
+          <p style={{ color: '#F0F2F5', marginTop: 4, fontSize: 14, textShadow: '0 1px 8px rgba(0,0,0,0.5)' }}>{t('welcomeTo')} Trengo</p>
         </div>
 
         {!showReset ? (
-          <div className="card" style={{ padding: 32 }}>
+          <div className="card" style={{ padding: 32, background: 'rgba(255,255,255,0.92)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)', boxShadow: '0 8px 32px rgba(0,0,0,0.25)' }}>
             <h2 style={{ fontSize: 20, fontWeight: 700, marginBottom: 24, color: '#050505' }}>{t('login')}</h2>
 
             {error && (
@@ -122,7 +123,7 @@ export default function Login() {
           </div>
         ) : (
           /* ✅ NEW: Reset password form */
-          <div className="card" style={{ padding: 32 }}>
+          <div className="card" style={{ padding: 32, background: 'rgba(255,255,255,0.92)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)', boxShadow: '0 8px 32px rgba(0,0,0,0.25)' }}>
             <h2 style={{ fontSize: 20, fontWeight: 700, marginBottom: 8, color: '#050505' }}>Hamerina teny miafina</h2>
             <p style={{ fontSize: 13, color: '#65676B', marginBottom: 20 }}>
               Ampidiro ny email-nao ary handefa lien famerenana izahay.

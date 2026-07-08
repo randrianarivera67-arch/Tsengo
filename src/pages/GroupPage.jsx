@@ -170,7 +170,7 @@ export default function GroupPage() {
 
   function copyInviteLink() {
     const url = `${window.location.origin}/groups/${groupId}`;
-    if (navigator.share) { navigator.share({ title: group.name, text: `Rejoignez le groupe ${group.name} sur Traingo !`, url }).catch(() => {}); }
+    if (navigator.share) { navigator.share({ title: group.name, text: `Rejoignez le groupe ${group.name} sur Trengo !`, url }).catch(() => {}); }
     else { navigator.clipboard?.writeText(url); alert('Lien du groupe copié !'); }
   }
 

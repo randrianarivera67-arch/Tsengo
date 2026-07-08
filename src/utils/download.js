@@ -8,7 +8,7 @@ const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'https://tsengo-backend.
 
 export function downloadMedia(url, mediaType = 'image', filename) {
   if (!url) return;
-  const name = (filename || `traingo_${mediaType}_${Date.now()}`).replace(/\.[a-zA-Z0-9]+$/, '');
+  const name = (filename || `trengo_${mediaType}_${Date.now()}`).replace(/\.[a-zA-Z0-9]+$/, '');
   const dlUrl = `${BACKEND_URL}/download?url=${encodeURIComponent(url)}&type=${encodeURIComponent(mediaType)}&name=${encodeURIComponent(name)}`;
 
   // Lien réel avec attribut download — déclenche le téléchargement natif du navigateur

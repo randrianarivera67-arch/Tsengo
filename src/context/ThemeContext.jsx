@@ -4,12 +4,12 @@ import { createContext, useContext, useState } from 'react';
 const ThemeContext = createContext();
 
 export function ThemeProvider({ children }) {
-  const [theme, setTheme] = useState(localStorage.getItem('tsengo_theme') || 'light');
+  const [theme, setTheme] = useState(localStorage.getItem('trengo_theme') || localStorage.getItem('tsengo_theme') || 'light');
 
   const toggleTheme = (t) => {
     const newTheme = t || (theme === 'light' ? 'dark' : 'light');
     setTheme(newTheme);
-    localStorage.setItem('tsengo_theme', newTheme);
+    localStorage.setItem('trengo_theme', newTheme);
   };
 
   return (

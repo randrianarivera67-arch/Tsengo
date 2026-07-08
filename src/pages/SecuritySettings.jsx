@@ -140,7 +140,7 @@ export default function SecuritySettings() {
         <div className="card" style={{ padding: 20 }}>
           <h3 style={{ fontWeight: 700, fontSize: 16, marginBottom: 16, color: '#1877F2' }}>Aide & Support</h3>
           <p style={{ fontSize: 14, color: '#65676B', lineHeight: 1.7, marginBottom: 20 }}>
-            Misy olana ve ianao na manana fanontaniana momba ny Traingo?<br/>
+            Misy olana ve ianao na manana fanontaniana momba ny Trengo?<br/>
             Mifandraisa aminay amin'ny alalan'ny e-mail eto ambany.
           </p>
           <a

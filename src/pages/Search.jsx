@@ -78,7 +78,7 @@ export default function Search() {
         </button>
         <div style={{ position: 'relative', flex: 1 }}>
           <HiSearch style={{ position: 'absolute', left: 13, top: '50%', transform: 'translateY(-50%)', color: '#65676B' }} />
-          <input ref={inputRef} className="input" placeholder="Rechercher sur Traingo" value={term}
+          <input ref={inputRef} className="input" placeholder="Rechercher sur Trengo" value={term}
             onChange={e => { setTerm(e.target.value); if (submitted) setSubmitted(''); }}
             onKeyDown={e => { if (e.key === 'Enter') submitSearch(); }}
             enterKeyHint="search"

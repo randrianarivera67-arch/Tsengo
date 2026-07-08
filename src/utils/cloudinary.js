@@ -10,11 +10,11 @@ const UPLOAD_PRESET = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET;
 /**
  * Upload file (image na video) any amin'ny Cloudinary
  * @param {File} file - ilay file hoentina
- * @param {string} folder - toerana ao amin'ny Cloudinary (ex: 'tsengo/posts')
+ * @param {string} folder - toerana ao amin'ny Cloudinary (ex: 'trengo/posts')
  * @param {function} onProgress - callback progress (0-100)
  * @returns {Promise<{url: string, publicId: string, type: string}>}
  */
-export async function uploadToCloudinary(file, folder = 'tsengo', onProgress = null) {
+export async function uploadToCloudinary(file, folder = 'trengo', onProgress = null) {
   const formData = new FormData();
   formData.append('file', file);
   formData.append('upload_preset', UPLOAD_PRESET);
@@ -67,7 +67,7 @@ export async function uploadToCloudinary(file, folder = 'tsengo', onProgress = n
  * @param {function} onProgress - callback progress (0-100)
  * @returns {Promise<{url: string, publicId: string}>}
  */
-export async function uploadAudioToCloudinary(blob, folder = 'tsengo/audio', onProgress = null) {
+export async function uploadAudioToCloudinary(blob, folder = 'trengo/audio', onProgress = null) {
   const formData = new FormData();
   formData.append('file', blob, 'voice.webm');
   formData.append('upload_preset', UPLOAD_PRESET);

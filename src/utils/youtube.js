@@ -1,5 +1,5 @@
 // src/utils/youtube.js
-// ✅ YouTube storage ho an'ny VIDEO — OAuth2 (Google Cloud "Traingo" client)
+// ✅ YouTube storage ho an'ny VIDEO — OAuth2 (Google Cloud "Trengo" client)
 // Photo mijanona amin'ny Telegram (telegram.js)
 
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
@@ -54,7 +54,7 @@ export async function exchangeCodeForToken(code) {
 }
 
 // ─── 4. Upload video mankany YouTube (unlisted) ────────────────────────────
-export async function uploadToYouTube(file, title = 'Traingo Video', onProgress) {
+export async function uploadToYouTube(file, title = 'Trengo Video', onProgress) {
   let token = null; // Foana foana — backend fotsiny
 
   // Mivantana amin'ny backend (server-side OAuth)
@@ -89,7 +89,7 @@ async function resumableUpload(file, title, token, onProgress) {
         'X-Upload-Content-Length': file.size,
       },
       body: JSON.stringify({
-        snippet: { title, description: 'Partagé via Traingo', categoryId: '22' },
+        snippet: { title, description: 'Partagé via Trengo', categoryId: '22' },
         status:  { privacyStatus: 'unlisted' }, // unlisted = hita fa tsy public
       }),
     }

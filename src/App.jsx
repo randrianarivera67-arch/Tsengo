@@ -59,7 +59,8 @@ function AppRoutes() {
     <Suspense fallback={<Loader />}>
       <Routes>
         <Route path="/login"          element={<PublicRoute><Login /></PublicRoute>} />
-        <Route path="/register"       element={<PublicRoute><Register /></PublicRoute>} />
+        {/* Register gère lui-même la redirection (onboarding multi-étapes après création du compte) */}
+        <Route path="/register"       element={<Register />} />
         <Route path="/oauth/callback" element={<OAuthCallback />} />
         <Route path="/"               element={<PrivateRoute><Layout><Home /></Layout></PrivateRoute>} />
         <Route path="/profile/:uid?"  element={<PrivateRoute><Layout><Profile /></Layout></PrivateRoute>} />

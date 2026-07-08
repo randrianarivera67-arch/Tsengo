@@ -53,7 +53,7 @@ export default function Artists() {
           <HiPlus size={16} /> Créer
         </button>
       </div>
-      <p style={{ fontSize: 12, color: '#65676B', margin: '10px 0 14px' }}>Découvrez les canaux musique/vidéo des créateurs de Traingo</p>
+      <p style={{ fontSize: 12, color: '#65676B', margin: '10px 0 14px' }}>Découvrez les canaux musique/vidéo des créateurs de Trengo</p>
 
       {artists.length === 0 && (
         <div className="card" style={{ padding: 30, textAlign: 'center' }}>

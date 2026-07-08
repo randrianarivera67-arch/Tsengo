@@ -36,7 +36,7 @@ export default function AppearanceSettings() {
       </div>
 
       <p style={{ fontSize: 13, color: '#65676B', marginBottom: 20 }}>
-        Safidio ny endrika maha-hita ny Traingo.
+        Safidio ny endrika maha-hita ny Trengo.
       </p>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
@@ -80,7 +80,7 @@ export default function AppearanceSettings() {
 
       <div style={{ marginTop: 20, borderRadius: 16, overflow: 'hidden', height: 70, background: 'linear-gradient(135deg,#1877F2,#63A9FF,#FFB3D9)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <div style={{ width: 38, height: 38, background: 'white', borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: 20, color: '#1877F2' }}>T</div>
-        <span style={{ color: 'white', fontWeight: 800, fontSize: 22, marginLeft: 10 }}>Traingo</span>
+        <span style={{ color: 'white', fontWeight: 800, fontSize: 22, marginLeft: 10 }}>Trengo</span>
       </div>
     </div>
   );

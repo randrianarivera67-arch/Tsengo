@@ -23,7 +23,7 @@ export default function LanguageSettings() {
       </div>
 
       <p style={{ fontSize: 13, color: '#65676B', marginBottom: 20 }}>
-        Misafidy ny fiteny ampiasaina ao amin'ny Traingo.
+        Misafidy ny fiteny ampiasaina ao amin'ny Trengo.
       </p>
 
       <div className="card" style={{ overflow: 'hidden' }}>

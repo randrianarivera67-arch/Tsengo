@@ -92,7 +92,7 @@ export default function Reels() {
   async function sharePost(post) {
     const url = `${window.location.origin}/post/${post.id}`;
     if (navigator.share) {
-      try { await navigator.share({ title: 'Tsengo Reel', text: post.content, url }); } catch {}
+      try { await navigator.share({ title: 'Trengo Reel', text: post.content, url }); } catch {}
     } else {
       navigator.clipboard?.writeText(url);
     }

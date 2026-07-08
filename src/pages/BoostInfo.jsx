@@ -48,13 +48,13 @@ export default function BoostInfo() {
       <div className="card" style={{ padding: 20, marginBottom: 20 }}>
         <h4 style={{ fontWeight: 700, fontSize: 16, marginBottom: 12, color: '#1877F2' }}>📩 Comment booster ?</h4>
         <p style={{ fontSize: 14, color: '#65676B', lineHeight: 1.7, marginBottom: 14 }}>
-          Envoyez un email à l'administrateur Traingo pour booster votre post. Précisez :<br/>
+          Envoyez un email à l'administrateur Trengo pour booster votre post. Précisez :<br/>
           • Le lien ou l'identifiant de votre post<br/>
           • La durée souhaitée du boost<br/>
-          • Votre username Traingo
+          • Votre username Trengo
         </p>
         <a
-          href="mailto:randrianarivera67@gmail.com?subject=Demande boost post Traingo"
+          href="mailto:randrianarivera67@gmail.com?subject=Demande boost post Trengo"
           style={{
             display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
             background: 'linear-gradient(135deg,#7c3aed,#a855f7)',

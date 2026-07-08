@@ -77,7 +77,7 @@ export default function ShareModal({ post, onClose }) {
 
   function copyLink() {
     const url = `${window.location.origin}/post/${post.id}`;
-    if (navigator.share) { navigator.share({ title: 'Traingo', text: post.content || '', url }).catch(() => {}); }
+    if (navigator.share) { navigator.share({ title: 'Trengo', text: post.content || '', url }).catch(() => {}); }
     else { navigator.clipboard?.writeText(url); alert('Lien copié !'); }
     onClose();
   }
@@ -121,7 +121,7 @@ export default function ShareModal({ post, onClose }) {
               <div style={{ width: 42, height: 42, borderRadius: '50%', background: '#F0F2F5', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><HiLink size={20} color="#65676B" /></div>
               <div style={{ flex: 1 }}>
                 <p style={{ fontWeight: 700, fontSize: 14 }}>Copier / envoyer le lien</p>
-                <p style={{ fontSize: 12, color: '#65676B' }}>Partager en dehors de Traingo</p>
+                <p style={{ fontSize: 12, color: '#65676B' }}>Partager en dehors de Trengo</p>
               </div>
               <HiChevronRight size={18} color="#65676B" />
             </div>

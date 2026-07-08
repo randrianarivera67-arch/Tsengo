@@ -79,7 +79,7 @@ export default function Profile() {
     if (file.size > 10 * 1024 * 1024) { alert('Sary max 10MB'); return; }
     setUploadingCover(true); setCoverProgress(0);
     try {
-      const result = await uploadToCloudinary(file, 'tsengo/covers', p => setCoverProgress(p));
+      const result = await uploadToCloudinary(file, 'trengo/covers', p => setCoverProgress(p));
       await updateDoc(doc(db, 'users', currentUser.uid), { coverURL: result.url });
       setProfile(p => ({ ...p, coverURL: result.url }));
       setUserProfile(p => ({ ...p, coverURL: result.url }));
@@ -95,7 +95,7 @@ export default function Profile() {
     if (file.size > 5 * 1024 * 1024) { alert('Sary max 5MB'); return; }
     setUploadingPhoto(true); setUploadProgress(0);
     try {
-      const result = await uploadToCloudinary(file, 'tsengo/avatars', p => setUploadProgress(p));
+      const result = await uploadToCloudinary(file, 'trengo/avatars', p => setUploadProgress(p));
       await updateDoc(doc(db, 'users', currentUser.uid), { photoURL: result.url });
       setProfile(p => ({ ...p, photoURL: result.url }));
       setUserProfile(p => ({ ...p, photoURL: result.url }));

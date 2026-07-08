@@ -1,6 +1,6 @@
 // src/utils/onesignal.js — ⚠️ Migré vers FCM (Firebase Cloud Messaging)
 // Ny anaran'ny fichier sy ny exports dia notazonina mba tsy hanova ny call sites rehetra.
-// Push : Traingo → Render (/notify, firebase-admin) → FCM (Google) → Téléphone
+// Push : Trengo → Render (/notify, firebase-admin) → FCM (Google) → Téléphone
 import { getMessaging, getToken, onMessage, isSupported } from 'firebase/messaging';
 import { doc, updateDoc, arrayUnion, arrayRemove } from 'firebase/firestore';
 import app, { db } from '../firebase';
@@ -49,7 +49,7 @@ async function initFCM(uid) {
           const actions = d.canReply === '1'
             ? [{ action: 'reply', type: 'text', title: 'Répondre', placeholder: 'Votre message...', icon: '/notif-reply.png' }, { action: 'close', title: 'Fermer', icon: '/notif-close.png' }]
             : [{ action: 'open', title: 'Voir', icon: '/notif-open.png' }, { action: 'close', title: 'Fermer', icon: '/notif-close.png' }];
-          reg.showNotification(d.title || 'Traingo', {
+          reg.showNotification(d.title || 'Trengo', {
             body: d.body || '',
             icon: d.icon || '/icon-192.png',
             badge: '/icon-96.png',

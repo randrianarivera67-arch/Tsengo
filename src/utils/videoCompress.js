@@ -88,7 +88,7 @@ export function compressVideo(file, onPct) {
               const blob = new Blob(chunks, { type: mime.split(';')[0] });
               if (!blob.size) return finish(null);
               const ext = mime.startsWith('video/mp4') ? 'mp4' : 'webm';
-              finish(new File([blob], (file.name || 'video').replace(/\.\w+$/, '') + `_traingo.${ext}`, { type: blob.type }));
+              finish(new File([blob], (file.name || 'video').replace(/\.\w+$/, '') + `_trengo.${ext}`, { type: blob.type }));
             } catch { finish(null); }
           };
 

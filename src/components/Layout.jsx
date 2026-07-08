@@ -232,7 +232,7 @@ export default function Layout({ children }) {
         {/* Header */}
         <div style={{ padding: '18px 16px 14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <img src='/tsengo-logo.png' alt="Traingo" style={{ width:44, height:44, objectFit:"contain" }}/>
+            <img src='/trengo-logo.png' alt="Trengo" style={{ width:44, height:44, objectFit:"contain" }}/>
             <span style={{ fontWeight: 900, fontSize: 18 }}><span style={{ color:'#1877F2' }}>trai</span><span style={{ color:'#FF2D8D' }}>ngo</span></span>
           </div>
           <button onClick={() => setDrawerOpen(false)} style={{ background: isDark ? '#232733' : '#F0F2F5', border: 'none', borderRadius: '50%', width: 36, height: 36, cursor: 'pointer', color: '#65676B', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><HiX size={20} /></button>
@@ -368,7 +368,7 @@ export default function Layout({ children }) {
             </div>
             <h3 style={{ fontWeight: 800, fontSize: 17, marginBottom: 8 }}>Le Live arrive bientôt</h3>
             <p style={{ fontSize: 13, color: '#65676B', lineHeight: 1.6, marginBottom: 16 }}>
-              La diffusion en direct demande une infrastructure vidéo spécifique, pas encore mise en place sur Traingo.
+              La diffusion en direct demande une infrastructure vidéo spécifique, pas encore mise en place sur Trengo.
               En attendant, vous pouvez partager vos moments avec une <strong>Story</strong> ou un <strong>Reel</strong>.
             </p>
             <button onClick={() => setLiveInfoOpen(false)} className="btn-blue" style={{ padding: '10px 28px', fontSize: 14, borderRadius: 20 }}>Compris</button>
@@ -386,7 +386,7 @@ export default function Layout({ children }) {
           </button>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', flex: 1, minWidth: 0 }} onClick={() => navigate('/')}>
-            <img src='/tsengo-logo.png' alt="Traingo" style={{ width: 44, height: 44, objectFit: 'contain', flexShrink: 0 }} />
+            <img src='/trengo-logo.png' alt="Trengo" style={{ width: 44, height: 44, objectFit: 'contain', flexShrink: 0 }} />
             <span style={{ fontWeight: 900, fontSize: 21, letterSpacing: -1, whiteSpace: 'nowrap' }}>
               <span style={{ color: '#1877F2' }}>trai</span><span style={{ color: '#FF2D8D' }}>ngo</span>
             </span>

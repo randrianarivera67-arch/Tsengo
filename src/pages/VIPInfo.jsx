@@ -30,7 +30,7 @@ export default function VIPInfo() {
         </div>
         <h3 style={{ color: 'white', fontWeight: 800, fontSize: 24, marginBottom: 8 }}>Devenir VIP</h3>
         <p style={{ color: 'rgba(255,255,255,0.85)', fontSize: 14, lineHeight: 1.6 }}>
-          Obtenez un badge rose 🌸 et des avantages exclusifs sur Traingo.
+          Obtenez un badge rose 🌸 et des avantages exclusifs sur Trengo.
         </p>
       </div>
 
@@ -50,12 +50,12 @@ export default function VIPInfo() {
         <h4 style={{ fontWeight: 700, fontSize: 16, marginBottom: 12, color: '#1877F2' }}>📋 Comment obtenir le VIP ?</h4>
         <p style={{ fontSize: 14, color: '#65676B', lineHeight: 1.7, marginBottom: 14 }}>
           Pour activer le compte VIP, envoyez un email à notre administrateur avec :<br/>
-          • Votre nom d'utilisateur Traingo<br/>
+          • Votre nom d'utilisateur Trengo<br/>
           • Votre demande d'activation VIP<br/><br/>
           L'activation se fait dans les 24h ouvrables.
         </p>
         <a
-          href="mailto:randrianarivera67@gmail.com?subject=Demande activation compte VIP Traingo"
+          href="mailto:randrianarivera67@gmail.com?subject=Demande activation compte VIP Trengo"
           style={{
             display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
             background: 'linear-gradient(135deg,#FF2D8D,#FF7AB8)',

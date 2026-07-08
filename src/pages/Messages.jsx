@@ -486,7 +486,7 @@ export default function Messages() {
   function copyGroupInviteLink() {
     if (!activeGroup) return;
     const url = `${window.location.origin}/messages/group_${activeGroup.id}`;
-    if (navigator.share) { navigator.share({ title: activeGroup.name, text: `Rejoignez la discussion "${activeGroup.name}" sur Traingo !`, url }).catch(() => {}); }
+    if (navigator.share) { navigator.share({ title: activeGroup.name, text: `Rejoignez la discussion "${activeGroup.name}" sur Trengo !`, url }).catch(() => {}); }
     else { navigator.clipboard?.writeText(url); alert('Lien copié !'); }
   }
 
@@ -1159,7 +1159,7 @@ export default function Messages() {
             </div>
             <h3 style={{ fontWeight:800, fontSize:16, marginBottom:8 }}>Bientôt disponible</h3>
             <p style={{ fontSize:13, color:'#65676B', lineHeight:1.6, marginBottom:16 }}>
-              Les appels vocaux, vidéo et vidéoconférence de groupe arrivent prochainement sur Traingo.
+              Les appels vocaux, vidéo et vidéoconférence de groupe arrivent prochainement sur Trengo.
             </p>
             <button onClick={() => setCallInfoOpen(false)} className="btn-blue" style={{ padding:'10px 28px', fontSize:14, borderRadius:20 }}>Compris</button>
           </div>

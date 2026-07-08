@@ -3,12 +3,13 @@
 // ary mampahafantatra ny composant rehetra mampiasa azy (Home, Reels, Profile, GroupPage)
 // rehefa miova ny valiny (na dia tsy mamerina fanontàna ny page aza).
 
-const KEY = 'tsengo_data_saver';
+const KEY = 'trengo_data_saver';
+const OLD_KEY = 'tsengo_data_saver';
 const listeners = new Set();
 
 export function isDataSaverOn() {
   try {
-    return localStorage.getItem(KEY) === '1';
+    return (localStorage.getItem(KEY) ?? localStorage.getItem(OLD_KEY)) === '1';
   } catch {
     return false;
   }

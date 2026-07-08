@@ -93,7 +93,7 @@ export default function PostDetail() {
 
   async function sharePost() {
     const url = window.location.href;
-    if (navigator.share) { try { await navigator.share({title:'Tsengo',url}); } catch {} }
+    if (navigator.share) { try { await navigator.share({title:'Trengo',url}); } catch {} }
     else { navigator.clipboard?.writeText(url); alert('Lien copié !'); }
   }
 

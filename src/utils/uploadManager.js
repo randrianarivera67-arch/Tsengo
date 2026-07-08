@@ -1,6 +1,6 @@
 // src/utils/uploadManager.js
 // Gestionnaire d'envoi en ARRIÈRE-PLAN : ny upload dia mitohy na dia
-// mifindra page hafa ao anaty Traingo aza ianao (module singleton,
+// mifindra page hafa ao anaty Trengo aza ianao (module singleton,
 // tsy miankina amin'ny composant React). Misy indicateur global ao amin'ny Layout.
 import { uploadToTelegram } from './telegram';
 

@@ -1,4 +1,4 @@
-// src/utils/sound.js — Sonerie manokana ho an'i Traingo
+// src/utils/sound.js — Sonerie manokana ho an'i Trengo
 
 export function playMessageSound() {
   try {

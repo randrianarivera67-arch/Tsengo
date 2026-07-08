@@ -81,9 +81,9 @@ const LanguageContext = createContext();
 
 export function LanguageProvider({ children }) {
   // ✅ Langue par défaut : français
-  const [lang, setLang] = useState(localStorage.getItem('tsengo_lang') || 'fr');
+  const [lang, setLang] = useState(localStorage.getItem('trengo_lang') || localStorage.getItem('tsengo_lang') || 'fr');
 
-  const changeLang = l => { setLang(l); localStorage.setItem('tsengo_lang', l); };
+  const changeLang = l => { setLang(l); localStorage.setItem('trengo_lang', l); };
   const t = key => translations[lang]?.[key] || translations['fr'][key] || key;
 
   return (

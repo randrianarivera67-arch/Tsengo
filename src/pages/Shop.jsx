@@ -55,7 +55,7 @@ export default function Shop() {
           <HiPlus size={16} /> Créer
         </button>
       </div>
-      <p style={{ fontSize: 12, color: '#65676B', margin: '10px 0 14px' }}>Boutiques professionnelles de la communauté Traingo</p>
+      <p style={{ fontSize: 12, color: '#65676B', margin: '10px 0 14px' }}>Boutiques professionnelles de la communauté Trengo</p>
 
       {shops.length === 0 && (
         <div className="card" style={{ padding: 30, textAlign: 'center' }}>

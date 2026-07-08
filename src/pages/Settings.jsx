@@ -136,10 +136,10 @@ export default function Settings() {
       <div className="card" style={{ padding: 16, marginBottom: 16 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
           <HiInformationCircle color="#1877F2" size={20} />
-          <h3 style={{ fontWeight: 700, fontSize: 15 }}>Momba Traingo</h3>
+          <h3 style={{ fontWeight: 700, fontSize: 15 }}>Momba Trengo</h3>
         </div>
         <p style={{ fontSize: 13, color: '#65676B', lineHeight: 1.6 }}>
-          Traingo dia tambajotra sosialy malagasy — ahazoanao mizara, mivarotra ary miresaka amin'ny namanao.
+          Trengo dia tambajotra sosialy malagasy — ahazoanao mizara, mivarotra ary miresaka amin'ny namanao.
         </p>
         <p style={{ fontSize: 12, color: '#65676B', marginTop: 8 }}>Version 2.0.0</p>
       </div>
