@@ -6,6 +6,7 @@ import { doc, getDoc, addDoc, collection, serverTimestamp, query, where, onSnaps
 import { rtdb, db } from '../firebase';
 import { useActiveStoryUids } from '../hooks/useActiveStoryUids';
 import { useAuth } from '../context/AuthContext';
+import Linkify from '../components/Linkify';
 import { useLang } from '../context/LanguageContext';
 import { uploadToTelegram } from '../utils/telegram';
 import { getChatId } from '../utils/chat';
@@ -811,7 +812,7 @@ export default function Messages() {
                         onClick={e => { e.stopPropagation(); setMsgAction(isActived ? null : msg.id); }}
                         onContextMenu={e => { e.preventDefault(); setBottomSheet({msg, isMe}); }}
                       >
-                        {msg.text && <p>{msg.text}</p>}
+                        {msg.text && <p><Linkify text={msg.text} color={isMe ? '#DDEBFF' : '#1877F2'} /></p>}
                         {msg.edited && <span style={{ fontSize: 9, opacity: 0.6, marginLeft: 4 }}>modifié</span>}
                         {msg.mediaURL && (
                           <div style={{ marginTop: msg.text ? 6 : 0 }}>

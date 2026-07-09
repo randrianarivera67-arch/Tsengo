@@ -4,6 +4,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { collection, query, onSnapshot, orderBy, limit, doc, updateDoc, arrayUnion, arrayRemove } from 'firebase/firestore';
 import { db } from '../firebase';
 import { useAuth } from '../context/AuthContext';
+import { parseAppLink } from '../utils/appLink';
 import { NeonMic } from '../components/NeonIcons';
 import { HiArrowLeft, HiSearch, HiX, HiCheck, HiCheckCircle } from 'react-icons/hi';
 
@@ -124,7 +125,7 @@ export default function ArtistsAll() {
 
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: '#fff', border: '1px solid #E4E6EB', borderRadius: 22, padding: '10px 14px', marginBottom: 14 }}>
         <HiSearch size={18} color="#65676B" />
-        <input value={q} onChange={e => setQ(e.target.value)} placeholder="Rechercher…"
+        <input value={q} onChange={e => { const l = parseAppLink(e.target.value); if (l) { setQ(''); navigate(l); return; } setQ(e.target.value); }} placeholder="Rechercher… ou coller un lien"
           style={{ flex: 1, border: 'none', outline: 'none', fontSize: 14, background: 'transparent', color: '#050505' }} />
         {q && <button onClick={() => setQ('')} style={{ background: '#F0F2F5', border: 'none', borderRadius: '50%', width: 24, height: 24, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#65676B' }}><HiX size={14} /></button>}
       </div>

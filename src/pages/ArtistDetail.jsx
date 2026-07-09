@@ -13,6 +13,7 @@ import { timeAgo } from '../utils/timeAgo';
 import { NeonMic, NeonGlobe, NeonPhone, NeonLocation } from '../components/NeonIcons';
 import FollowListModal from '../components/FollowListModal';
 import { downloadMedia } from '../utils/download';
+import { parseAppLink } from '../utils/appLink';
 import {
   HiCamera, HiArrowLeft, HiPencil, HiX, HiTrash, HiDotsVertical, HiPaperAirplane,
   HiMusicNote, HiVideoCamera, HiPhotograph, HiCog, HiBan, HiFlag,
@@ -477,7 +478,7 @@ export default function ArtistDetail() {
           <div style={{ padding:'0 12px 10px' }}>
             <div style={{ display:'flex', alignItems:'center', gap:8, background:'#F0F2F5', borderRadius:20, padding:'8px 13px' }}>
               <HiSearch size={16} color="#65676B"/>
-              <input value={trackQ} onChange={e => setTrackQ(e.target.value)} placeholder="Rechercher une chanson…"
+              <input value={trackQ} onChange={e => { const l = parseAppLink(e.target.value); if (l) { setTrackQ(''); navigate(l); return; } setTrackQ(e.target.value); }} placeholder="Rechercher une chanson… ou coller un lien"
                 style={{ flex:1, border:'none', outline:'none', fontSize:13.5, background:'transparent', color:'#050505', minWidth:0 }} />
               {trackQ && <button onClick={() => setTrackQ('')} style={{ background:'#fff', border:'none', borderRadius:'50%', width:21, height:21, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', color:'#65676B', flexShrink:0 }}><HiX size={12}/></button>}
             </div>

@@ -8,6 +8,7 @@ import { useAuth } from '../context/AuthContext';
 import { sendPushNotification } from '../utils/onesignal';
 import { uploadToTelegram } from '../utils/telegram';
 import { NeonMic } from '../components/NeonIcons';
+import Linkify from '../components/Linkify';
 import { HiArrowLeft, HiPaperAirplane, HiChevronRight, HiPhotograph, HiVideoCamera, HiPaperClip, HiMicrophone, HiDotsVertical, HiBan, HiTrash, HiCollection, HiX, HiSearch } from 'react-icons/hi';
 
 const REACT_EMOJIS = ['❤️', '😂', '😮', '😢', '😡', '👍'];
@@ -254,7 +255,7 @@ export default function ArtistMessages() {
                   {m.mediaType === 'video' && <video src={m.mediaURL} controls style={{ width: 230, borderRadius: 14, display: 'block' }} />}
                   {m.mediaType === 'audio' && <audio src={m.mediaURL} controls style={{ width: 230, display: 'block' }} />}
                   {m.mediaURL && m.mediaType !== 'video' && m.mediaType !== 'audio' && <img src={m.mediaURL} alt="" style={{ width: 230, borderRadius: 14, display: 'block' }} />}
-                  {m.text && <div style={{ fontSize: 15, lineHeight: 1.35, wordBreak: 'break-word', padding: m.mediaURL ? '7px 9px 3px' : 0 }}>{m.text}</div>}
+                  {m.text && <div style={{ fontSize: 15, lineHeight: 1.35, wordBreak: 'break-word', padding: m.mediaURL ? '7px 9px 3px' : 0 }}><Linkify text={m.text} color={mine ? '#DDEBFF' : '#1877F2'} /></div>}
                 </div>
                 <div style={{ fontSize: 10.5, color: '#65676B', marginTop: 3, textAlign: mine ? 'right' : 'left', paddingInline: 4 }}>
                   {fmtTime(m.ts)}{seen && <span style={{ color: '#1877F2', fontWeight: 700 }}> · ✓✓ Vu</span>}

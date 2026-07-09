@@ -9,6 +9,7 @@ import { useMessages }       from '../hooks/useMessages';
 import { collection, getDocs, query, orderBy, limit, where, onSnapshot } from 'firebase/firestore';
 import { ref, set, onDisconnect, onValue } from 'firebase/database';
 import { db, rtdb } from '../firebase';
+import { parseAppLink } from '../utils/appLink';
 import { subscribeUpload } from '../utils/uploadManager';
 import {
   HiHome, HiOutlineHome, HiUser, HiOutlineUser,
@@ -155,6 +156,9 @@ export default function Layout({ children }) {
 
   async function handleSearch(val) {
     setSearch(val);
+    // Lien Trengo collé → ouvrir directement la page
+    const link = parseAppLink(val);
+    if (link) { setSearch(''); setSearchOpen(false); setSearchBarOpen(false); navigate(link); return; }
     if (!val.trim()) { setSearchResults({ users: [], posts: [] }); setSearchOpen(false); return; }
     clearTimeout(searchTimer.current);
     searchTimer.current = setTimeout(async () => {
