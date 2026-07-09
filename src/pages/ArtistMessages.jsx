@@ -10,6 +10,8 @@ import { uploadToTelegram } from '../utils/telegram';
 import { NeonMic } from '../components/NeonIcons';
 import { HiArrowLeft, HiPaperAirplane, HiChevronRight, HiPhotograph, HiVideoCamera, HiPaperClip, HiMicrophone, HiDotsVertical, HiBan, HiTrash, HiCollection, HiX } from 'react-icons/hi';
 
+const REACT_EMOJIS = ['❤️', '😂', '😮', '😢', '😡', '👍'];
+
 const fmtTime = ts => ts ? new Date(ts).getHours() + ':' + String(new Date(ts).getMinutes()).padStart(2, '0') : '';
 
 export default function ArtistMessages() {
@@ -27,6 +29,7 @@ export default function ArtistMessages() {
   const [mediaOpen, setMediaOpen] = useState(false);
   const [online, setOnline] = useState(false);
   const [recording, setRecording] = useState(false);
+  const [reactFor, setReactFor] = useState(null);   // msgId dont on choisit la réaction
 
   const bottomRef = useRef(null);
   const photoRef = useRef(null);
@@ -96,6 +99,14 @@ export default function ArtistMessages() {
         sendPushNotification({ toExternalId: a, title: `${artist.name} 📩`, message: `${userProfile?.fullName || 'Quelqu\'un'} : ${label.slice(0, 60)}`, fromPhoto: userProfile?.photoURL || '', data: { type: 'artistMessage', artistId, visitorUid: currentUser.uid } });
       });
     }
+  }
+
+  async function toggleReaction(msgId, emoji) {
+    setReactFor(null);
+    if (!activeVisitor) return;
+    const p = `artistConversations/${artistId}/${activeVisitor}/messages/${msgId}/reactions/${currentUser.uid}`;
+    const cur = msgs.find(m => m.id === msgId)?.reactions?.[currentUser.uid];
+    try { await update(ref(rtdb, p.substring(0, p.lastIndexOf('/'))), { [currentUser.uid]: cur === emoji ? null : emoji }); } catch (e) { alert('Erreur : ' + (e?.message || e)); }
   }
 
   async function send() {
@@ -216,12 +227,26 @@ export default function ArtistMessages() {
             <div key={m.id} style={{ display: 'flex', alignItems: 'flex-end', gap: 7, justifyContent: mine ? 'flex-end' : 'flex-start', marginBottom: 10 }}>
               {!mine && <img src={m.fromPhoto || `https://ui-avatars.com/api/?name=${encodeURIComponent(m.fromName || 'U')}&background=1877F2&color=fff`} alt="" style={{ width: 30, height: 30, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} />}
               <div style={{ maxWidth: '74%' }}>
-                <div style={{ background: mine ? '#1877F2' : '#F0F2F5', color: mine ? '#fff' : '#050505', padding: m.mediaURL ? 4 : '10px 14px', borderRadius: 18, overflow: 'hidden' }}>
+                <div
+                  onDoubleClick={() => setReactFor(m.id)}
+                  onContextMenu={e => { e.preventDefault(); setReactFor(m.id); }}
+                  onTouchStart={e => { e.currentTarget._t = setTimeout(() => setReactFor(m.id), 450); }}
+                  onTouchEnd={e => clearTimeout(e.currentTarget._t)}
+                  onTouchMove={e => clearTimeout(e.currentTarget._t)}
+                  style={{ position: 'relative', background: mine ? '#1877F2' : '#F0F2F5', color: mine ? '#fff' : '#050505', padding: m.mediaURL ? 4 : '10px 14px', borderRadius: 18, overflow: 'visible', cursor: 'pointer', userSelect: 'none' }}>
                   {m.mediaType === 'video' && <video src={m.mediaURL} controls style={{ width: 230, borderRadius: 14, display: 'block' }} />}
                   {m.mediaType === 'audio' && <audio src={m.mediaURL} controls style={{ width: 230, display: 'block' }} />}
                   {m.mediaURL && m.mediaType !== 'video' && m.mediaType !== 'audio' && <img src={m.mediaURL} alt="" style={{ width: 230, borderRadius: 14, display: 'block' }} />}
                   {m.text && <div style={{ fontSize: 15, lineHeight: 1.35, wordBreak: 'break-word', padding: m.mediaURL ? '7px 9px 3px' : 0 }}>{m.text}</div>}
                 </div>
+                {m.reactions && Object.keys(m.reactions).length > 0 && (
+                  <div style={{ display: 'flex', gap: 3, marginTop: -8, marginLeft: mine ? 0 : 8, marginRight: mine ? 8 : 0, justifyContent: mine ? 'flex-end' : 'flex-start' }}>
+                    <span style={{ background: '#fff', border: '1px solid #E4E6EB', borderRadius: 12, padding: '1px 6px', fontSize: 13, boxShadow: '0 1px 3px rgba(0,0,0,.12)' }}>
+                      {[...new Set(Object.values(m.reactions))].join(' ')}
+                      {Object.keys(m.reactions).length > 1 && <span style={{ fontSize: 10.5, color: '#65676B', marginLeft: 3 }}>{Object.keys(m.reactions).length}</span>}
+                    </span>
+                  </div>
+                )}
                 <div style={{ fontSize: 10.5, color: '#65676B', marginTop: 3, textAlign: mine ? 'right' : 'left', paddingInline: 4 }}>
                   {fmtTime(m.ts)}{seen && <span style={{ color: '#1877F2', fontWeight: 700 }}> · ✓✓ Vu</span>}
                 </div>
@@ -254,6 +279,17 @@ export default function ArtistMessages() {
           <HiPaperAirplane size={20} style={{ transform: 'rotate(90deg)' }} />
         </button>
       </div>
+
+      {reactFor && (
+        <div onClick={() => setReactFor(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.35)', zIndex: 320, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div onClick={e => e.stopPropagation()} style={{ background: '#fff', borderRadius: 30, padding: '10px 14px', display: 'flex', gap: 6, boxShadow: '0 10px 34px rgba(0,0,0,.28)' }}>
+            {REACT_EMOJIS.map(em => (
+              <button key={em} onClick={() => toggleReaction(reactFor, em)}
+                style={{ background: 'none', border: 'none', fontSize: 28, cursor: 'pointer', padding: 4, lineHeight: 1 }}>{em}</button>
+            ))}
+          </div>
+        </div>
+      )}
 
       {mediaOpen && (
         <div onClick={() => setMediaOpen(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.6)', zIndex: 300, display: 'flex', alignItems: 'flex-end' }}>
