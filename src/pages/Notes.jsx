@@ -1,5 +1,5 @@
 // src/pages/Notes.jsx — Bloc-notes (texte tehirizina ho fichier ao amin'ny bot Telegram)
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { collection, query, where, orderBy, onSnapshot, addDoc, updateDoc, deleteDoc, doc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../firebase';
@@ -7,7 +7,7 @@ import { useAuth } from '../context/AuthContext';
 import { uploadToTelegram } from '../utils/telegram';
 import { timeAgo } from '../utils/timeAgo';
 import { NeonArchive } from '../components/NeonIcons';
-import { HiPlus, HiX, HiTrash, HiPencil, HiArrowLeft } from 'react-icons/hi';
+import { HiPlus, HiX, HiTrash, HiPencil, HiArrowLeft , HiPhotograph} from 'react-icons/hi';
 
 export default function Notes() {
   const { currentUser } = useAuth();
@@ -15,6 +15,7 @@ export default function Notes() {
   const [notes, setNotes] = useState([]);
   const [editing, setEditing] = useState(null);   // null | {id?, title, body}
   const [saving, setSaving] = useState(false);
+  const notePhotoRef = useRef(null);
 
   useEffect(() => {
     // ✅ Pas d'orderBy → évite l'index composite Firestore (sinon la liste reste vide)
@@ -125,7 +126,23 @@ export default function Notes() {
               {saving ? '...' : 'Enregistrer'}
             </button>
           </div>
-          <textarea value={editing.body} onChange={e => setEditing(p => ({ ...p, body: e.target.value }))}
+          <div style={{ marginBottom: 10 }}>
+              <input ref={notePhotoRef} type="file" accept="image/*"
+                onChange={e => { const f = e.target.files[0]; if (f) setEditing(p => ({ ...p, photoFile: f, photoPreview: URL.createObjectURL(f) })); }}
+                style={{ display: 'none' }} />
+              {(editing.photoPreview || editing.photoURL) && (
+                <div style={{ position: 'relative', marginBottom: 8 }}>
+                  <img src={editing.photoPreview || editing.photoURL} alt="" style={{ width: '100%', maxHeight: 190, objectFit: 'cover', borderRadius: 10, display: 'block' }} />
+                  <button onClick={() => setEditing(p => ({ ...p, photoFile: null, photoPreview: null, photoURL: '' }))}
+                    style={{ position: 'absolute', top: 6, right: 6, background: 'rgba(0,0,0,.6)', border: 'none', borderRadius: '50%', width: 28, height: 28, color: '#fff', cursor: 'pointer' }}>✕</button>
+                </div>
+              )}
+              <button onClick={() => notePhotoRef.current?.click()}
+                style={{ display: 'flex', alignItems: 'center', gap: 8, background: '#F0F2F5', border: 'none', borderRadius: 20, padding: '9px 15px', cursor: 'pointer', fontSize: 13.5, fontWeight: 600, color: '#050505', fontFamily: 'Poppins' }}>
+                <HiPhotograph size={18} color="#12A48D" /> {(editing.photoPreview || editing.photoURL) ? 'Changer la photo' : 'Ajouter une photo'}
+              </button>
+            </div>
+            <textarea value={editing.body} onChange={e => setEditing(p => ({ ...p, body: e.target.value }))}
             placeholder="Écrivez votre note..." style={{ flex: 1, border: 'none', outline: 'none', padding: 16, fontSize: 15, fontFamily: 'Poppins', resize: 'none' }} autoFocus />
         </div>
       )}

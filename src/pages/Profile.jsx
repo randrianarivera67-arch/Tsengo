@@ -60,6 +60,7 @@ export default function Profile() {
 
   const [profile,        setProfile]     = useState(null);
   const [posts,          setPosts]       = useState([]);
+  const [visibleCount,   setVisibleCount] = useState(10);
   const [activeTab,      setActiveTab]   = useState('posts');
   const [editing,        setEditing]     = useState(false);
   const [editForm,       setEditForm]    = useState({
@@ -114,7 +115,7 @@ export default function Profile() {
 
   useEffect(() => {
     if (!targetUid) return;
-    const q = query(collection(db,'posts'), where('uid','==',targetUid), orderBy('createdAt','desc'), limit(30));
+    const q = query(collection(db,'posts'), where('uid','==',targetUid), orderBy('createdAt','desc'), limit(60));
     // ✅ Les publications d'une page artiste restent sur la page (pas sur le profil perso)
     return onSnapshot(q, snap => setPosts(snap.docs.map(d=>({id:d.id,...d.data()})).filter(p => !p.artistId && !p.isMusic)));
   }, [targetUid]);
@@ -822,7 +823,13 @@ export default function Profile() {
         {(activeTab==='posts'||activeTab==='sales')&&(
           getTabContent().length===0
             ? <div style={{ textAlign:'center', padding:40, color:'#65676B' }}>Aucun contenu</div>
-            : getTabContent().map(post => renderPost(post))
+            : (<>
+                {getTabContent().slice(0, visibleCount).map(post => renderPost(post))}
+                {getTabContent().length > visibleCount && (
+                  <div ref={el => { if (!el) return; const io = new IntersectionObserver(es => { if (es[0].isIntersecting) setVisibleCount(c => c + 10); }, { rootMargin: '400px' }); io.observe(el); }}
+                    style={{ padding: 18, textAlign: 'center', color: '#65676B', fontSize: 13 }}>Chargement…</div>
+                )}
+              </>)
         )}
       </div>
 

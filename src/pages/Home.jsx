@@ -265,6 +265,7 @@ export default function Home() {
   const lpFired = useRef(false);
 
   const [posts, setPosts]           = useState([]);
+  const [visibleCount, setVisibleCount] = useState(10);   // affichage progressif
   const [expandedPosts, setExpandedPosts] = useState({});
   const [audienceEditPost, setAudienceEditPost] = useState(null);
   // ── Lecture audio du fil (une seule piste à la fois) ──
@@ -365,7 +366,7 @@ export default function Home() {
 
   // Load posts
   useEffect(() => {
-    const q = query(collection(db, 'posts'), orderBy('createdAt', 'desc'), limit(20));
+    const q = query(collection(db, 'posts'), orderBy('createdAt', 'desc'), limit(60));
     return onSnapshot(q, snap => {
       const blocked = userProfile?.blocked || [];
       const myFriends = userProfile?.friends || [];
@@ -1427,7 +1428,7 @@ export default function Home() {
       )}
 
       {/* Feed */}
-      {posts.filter(p => !(p.mediaType === 'audio' && p.isMusic)).map((post, pIdx) => {
+      {posts.filter(p => !(p.mediaType === 'audio' && p.isMusic)).slice(0, visibleCount).map((post, pIdx) => {
         const rc     = countReactions(post.reactions);
         const myR    = post.reactions?.[currentUser.uid];
         const total  = Object.keys(post.reactions||{}).length;
@@ -1884,6 +1885,17 @@ export default function Home() {
               </button>
             ))}
           </div>
+        </div>
+      )}
+
+
+      {posts.filter(p => !(p.mediaType === 'audio' && p.isMusic)).length > visibleCount && (
+        <div ref={el => {
+          if (!el) return;
+          const io = new IntersectionObserver(es => { if (es[0].isIntersecting) setVisibleCount(c => c + 10); }, { rootMargin: '400px' });
+          io.observe(el);
+        }} style={{ padding: 18, textAlign: 'center', color: '#65676B', fontSize: 13 }}>
+          Chargement…
         </div>
       )}
 

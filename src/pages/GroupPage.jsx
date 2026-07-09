@@ -32,6 +32,7 @@ export default function GroupPage() {
   const [notFound,   setNotFound]   = useState(false);
   const [members,    setMembers]    = useState([]);
   const [posts,      setPosts]      = useState([]);
+  const [visibleCount, setVisibleCount] = useState(10);
   const [content,    setContent]    = useState('');
   const [mediaFile,  setMediaFile]  = useState(null);
   const [mediaPreview, setMediaPreview] = useState(null);
@@ -584,7 +585,7 @@ export default function GroupPage() {
           Aucune publication dans ce groupe pour le moment.
         </div>
       )}
-      {posts.map(post => {
+      {posts.slice(0, visibleCount).map(post => {
         const rc = {}; Object.values(post.reactions || {}).forEach(e => { rc[e] = (rc[e] || 0) + 1; });
         const total = Object.keys(post.reactions || {}).length;
         const myR = post.reactions?.[currentUser.uid];
@@ -752,6 +753,10 @@ export default function GroupPage() {
             <button onClick={() => setGpTagOpen(false)} className="btn-primary" style={{ width:'100%', marginTop:14, padding:'11px 0', fontSize:14 }}>OK</button>
           </div>
         </div>
+      )}
+      {posts.length > visibleCount && (
+        <div ref={el => { if (!el) return; const io = new IntersectionObserver(es => { if (es[0].isIntersecting) setVisibleCount(c => c + 10); }, { rootMargin: '400px' }); io.observe(el); }}
+          style={{ padding: 18, textAlign: 'center', color: '#65676B', fontSize: 13 }}>Chargement…</div>
       )}
     </div>
   );
