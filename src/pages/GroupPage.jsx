@@ -6,6 +6,7 @@ import {
   addDoc, serverTimestamp, arrayUnion, arrayRemove, getDoc, writeBatch
 } from 'firebase/firestore';
 import { db } from '../firebase';
+import MusicPostCard from '../components/MusicPostCard';
 import { useAuth } from '../context/AuthContext';
 import { timeAgo } from '../utils/timeAgo';
 import { uploadToTelegram } from '../utils/telegram';
@@ -636,17 +637,21 @@ export default function GroupPage() {
                   </div>
                   {post.sharedFrom.content && <p style={{ padding: '0 12px 8px', fontSize: 13, color: '#050505' }}>{post.sharedFrom.content}</p>}
                   {post.sharedFrom.mediaURL && (
-                    post.sharedFrom.mediaType === 'image'
-                      ? <img src={post.sharedFrom.mediaURL} alt="" style={{ width: '100%', maxHeight: 320, objectFit: 'cover', display: 'block' }} />
-                      : <video src={post.sharedFrom.mediaURL} muted playsInline style={{ width: '100%', maxHeight: 320, objectFit: 'cover', display: 'block', background: '#000' }} />
+                    post.sharedFrom.isMusic
+                      ? <div style={{ padding: '0 10px 10px' }}><MusicPostCard post={post.sharedFrom} height={110} /></div>
+                      : post.sharedFrom.mediaType === 'image'
+                        ? <img src={post.sharedFrom.mediaURL} alt="" style={{ width: '100%', maxHeight: 320, objectFit: 'cover', display: 'block' }} />
+                        : <video src={post.sharedFrom.mediaURL} muted playsInline style={{ width: '100%', maxHeight: 320, objectFit: 'cover', display: 'block', background: '#000' }} />
                   )}
                 </div>
               )}
               {post.mediaURL && (
                 <div style={{ marginTop: 8, marginLeft: -16, marginRight: -16 }}>
-                  {post.mediaType === 'image'
-                    ? <img src={post.mediaURL} alt="" style={{ width: '100%', maxHeight: 520, objectFit: 'cover', display: 'block' }} />
-                    : <video src={post.mediaURL} controls playsInline poster={post.thumbURL || undefined} preload={dataSaver ? 'none' : 'metadata'} style={{ width: '100%', maxHeight: 520, display: 'block', background: '#000' }} />}
+                  {post.isMusic
+                    ? <MusicPostCard post={post} />
+                    : post.mediaType === 'image'
+                      ? <img src={post.mediaURL} alt="" style={{ width: '100%', maxHeight: 520, objectFit: 'cover', display: 'block' }} />
+                      : <video src={post.mediaURL} controls playsInline poster={post.thumbURL || undefined} preload={dataSaver ? 'none' : 'metadata'} style={{ width: '100%', maxHeight: 520, display: 'block', background: '#000' }} />}
                 </div>
               )}
             </div>

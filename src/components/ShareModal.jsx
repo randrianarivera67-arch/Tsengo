@@ -9,7 +9,7 @@ import { db } from '../firebase';
 import { useAuth } from '../context/AuthContext';
 import { HiX, HiUser, HiUserGroup, HiLink, HiChevronRight } from 'react-icons/hi';
 
-export default function ShareModal({ post, onClose }) {
+export default function ShareModal({ post, onClose, asPage = null }) {
   const { currentUser, userProfile } = useAuth();
   const navigate = useNavigate();
   const [step, setStep] = useState('choice');   // choice | profile | groups
@@ -34,7 +34,14 @@ export default function ShareModal({ post, onClose }) {
       content: post.content || '',
       mediaURL: post.mediaURL || '',
       mediaType: post.mediaType || '',
+      thumbURL: post.thumbURL || '',
       groupName: post.groupName || '',
+      isMusic: post.isMusic || false,
+      artistId: post.artistId || '',
+      artistName: post.artistName || '',
+      artistPhoto: post.artistPhoto || '',
+      songTitle: post.songTitle || '',
+      genre: post.genre || '',
     };
   }
 
@@ -43,10 +50,11 @@ export default function ShareModal({ post, onClose }) {
     try {
       const postRef = await addDoc(collection(db, 'posts'), {
         uid: currentUser.uid,
-        authorName: userProfile.fullName,
-        authorUsername: userProfile.username,
-        authorPhoto: userProfile.photoURL || '',
-        authorIsVip: userProfile.isVip || false,
+        authorName: asPage ? asPage.name : userProfile.fullName,
+        authorUsername: asPage ? '' : userProfile.username,
+        authorPhoto: asPage ? (asPage.photoURL || '') : (userProfile.photoURL || ''),
+        authorIsVip: asPage ? false : (userProfile.isVip || false),
+        ...(asPage ? { artistId: asPage.id, artistName: asPage.name, artistPhoto: asPage.photoURL || '', postedByArtist: true } : {}),
         content: caption.trim().slice(0, 2000),
         mediaURL: '', mediaType: '',
         isSale: false, price: '', contact: '', lieu: '',

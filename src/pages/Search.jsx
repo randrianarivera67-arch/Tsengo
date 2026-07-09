@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import { collection, getDocs, query, where, orderBy, limit } from 'firebase/firestore';
 import { db } from '../firebase';
 import { useAuth } from '../context/AuthContext';
+import { parseAppLink } from '../utils/appLink';
 import { HiArrowLeft, HiSearch, HiUserGroup, HiX, HiChevronRight } from 'react-icons/hi';
 
 export default function Search() {
@@ -79,7 +80,7 @@ export default function Search() {
         <div style={{ position: 'relative', flex: 1 }}>
           <HiSearch style={{ position: 'absolute', left: 13, top: '50%', transform: 'translateY(-50%)', color: '#65676B' }} />
           <input ref={inputRef} className="input" placeholder="Rechercher sur Trengo" value={term}
-            onChange={e => { setTerm(e.target.value); if (submitted) setSubmitted(''); }}
+            onChange={e => { const l = parseAppLink(e.target.value); if (l) { setTerm(''); navigate(l); return; } setTerm(e.target.value); if (submitted) setSubmitted(''); }}
             onKeyDown={e => { if (e.key === 'Enter') submitSearch(); }}
             enterKeyHint="search"
             style={{ paddingLeft: 36, paddingRight: 34, borderRadius: 30, fontSize: 14 }} />

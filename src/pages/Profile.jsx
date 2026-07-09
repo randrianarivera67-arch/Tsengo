@@ -115,7 +115,8 @@ export default function Profile() {
   useEffect(() => {
     if (!targetUid) return;
     const q = query(collection(db,'posts'), where('uid','==',targetUid), orderBy('createdAt','desc'), limit(30));
-    return onSnapshot(q, snap => setPosts(snap.docs.map(d=>({id:d.id,...d.data()}))));
+    // ✅ Les publications d'une page artiste restent sur la page (pas sur le profil perso)
+    return onSnapshot(q, snap => setPosts(snap.docs.map(d=>({id:d.id,...d.data()})).filter(p => !p.artistId && !p.isMusic)));
   }, [targetUid]);
 
   useEffect(() => {
