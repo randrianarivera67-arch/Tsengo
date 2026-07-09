@@ -13,7 +13,7 @@ import { timeAgo } from '../utils/timeAgo';
 import { NeonMic, NeonGlobe, NeonPhone, NeonLocation } from '../components/NeonIcons';
 import FollowListModal from '../components/FollowListModal';
 import {
-  HiCamera, HiArrowLeft, HiPencil, HiX, HiTrash, HiDotsVertical, HiChatAlt2,
+  HiCamera, HiArrowLeft, HiPencil, HiX, HiTrash, HiDotsVertical, HiPaperAirplane,
   HiMusicNote, HiVideoCamera, HiPhotograph
 } from 'react-icons/hi';
 
@@ -265,12 +265,14 @@ export default function ArtistDetail() {
               <span style={{ display:'inline-flex', alignItems:'center', gap:3, background:'linear-gradient(135deg,#FF6FA5,#FF2D8D)', color:'white', fontSize:10, fontWeight:800, borderRadius:8, padding:'2px 8px' }}><NeonMic size={10} color="white"/> ARTISTE</span>
             </h2>
             <p style={{ fontSize:12, color:'#65676B' }}>
-              <span onClick={() => (artist.followers||[]).length>0 && setFollowersOpen(true)} style={{ cursor:(artist.followers||[]).length>0?'pointer':'default', textDecoration:(artist.followers||[]).length>0?'underline':'none' }}>{(artist.followers||[]).length} abonnés</span>
+              <span onClick={() => (artist.followers||[]).length>0 && setFollowersOpen(true)} style={{ cursor:(artist.followers||[]).length>0?'pointer':'default', textDecoration:(artist.followers||[]).length>0?'underline':'none' }}><b style={{ fontWeight:800 }}>{(artist.followers||[]).length}</b> abonnés</span>
             </p>
           </div>
           <div style={{ position:'relative' }} onClick={e => e.stopPropagation()}>
-            <button onClick={() => navigate(`/artists/${artistId}/messages`)} title="Messages" style={{ background:'#F0F2F5', border:'none', borderRadius:'50%', width:34, height:34, cursor:'pointer', marginRight:6, display:'inline-flex', alignItems:'center', justifyContent:'center', color:'#1877F2' }}><HiChatAlt2 size={17}/></button>
-            <button onClick={() => setMenuOpen(p=>!p)} style={{ background:'#F0F2F5', border:'none', borderRadius:'50%', width:34, height:34, cursor:'pointer' }}><HiDotsVertical size={17}/></button>
+            <span style={{ display:'flex', alignItems:'center', gap:8 }}>
+              <button onClick={() => navigate(`/artists/${artistId}/messages`)} title="Messages" style={{ background:'linear-gradient(150deg,#FFD84D,#D69A00)', border:'none', borderRadius:12, width:42, height:42, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', color:'#fff', boxShadow:'0 4px 10px rgba(214,154,0,.4)' }}><HiPaperAirplane size={22} style={{ transform:'rotate(90deg)' }}/></button>
+              <button onClick={() => setMenuOpen(p=>!p)} style={{ background:'#F0F2F5', border:'none', borderRadius:'50%', width:42, height:42, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center' }}><HiDotsVertical size={20}/></button>
+            </span>
             {menuOpen && (
               <div style={{ position:'absolute', top:'100%', right:0, background:'white', border:'1px solid #E4E6EB', borderRadius:12, boxShadow:'0 4px 20px rgba(0,0,0,.14)', minWidth:180, zIndex:50, overflow:'hidden' }}>
                 {isAdmin && <button onClick={() => { setMenuOpen(false); openEdit(); }} style={{ width:'100%', display:'flex', alignItems:'center', gap:10, padding:'12px 16px', background:'none', border:'none', cursor:'pointer', fontSize:14, color:'#1877F2', borderBottom:'1px solid #F0F2F5' }}><HiPencil size={16}/> Modifier le canal</button>}
