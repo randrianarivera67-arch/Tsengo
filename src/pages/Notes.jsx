@@ -28,11 +28,12 @@ export default function Notes() {
   async function openExisting(note) {
     setEditing({ id: note.id, title: note.title, body: '...', loading: true });
     try {
+      if (!note.fileURL) { setEditing({ id: note.id, title: note.title, body: note.preview || '', photoURL: note.photoURL || '', fileURL: '' }); return; }
       const r = await fetch(note.fileURL);
       const text = await r.text();
-      setEditing({ id: note.id, title: note.title, body: text });
+      setEditing({ id: note.id, title: note.title, body: text, photoURL: note.photoURL || '', fileURL: note.fileURL });
     } catch {
-      setEditing({ id: note.id, title: note.title, body: note.preview || '' });
+      setEditing({ id: note.id, title: note.title, body: note.preview || '', photoURL: note.photoURL || '', fileURL: note.fileURL || '' });
     }
   }
 
@@ -40,18 +41,28 @@ export default function Notes() {
     if (!editing.title.trim() && !editing.body.trim()) { setEditing(null); return; }
     setSaving(true);
     try {
-      const blob = new Blob([editing.body], { type: 'text/plain' });
-      const file = new File([blob], `note_${Date.now()}.txt`, { type: 'text/plain' });
-      const r = await uploadToTelegram(file);
-      const preview = editing.body.trim().slice(0, 140);
+      // Le corps part sur Telegram en DOCUMENT (octet-stream), pas en texte brut
+      const preview = (editing.body || '').trim().slice(0, 140);
+      let fileURL = editing.fileURL || '';
+      if ((editing.body || '').trim()) {
+        const blob = new Blob([editing.body], { type: 'application/octet-stream' });
+        const file = new File([blob], `note_${Date.now()}.txt`, { type: 'application/octet-stream' });
+        try { const r = await uploadToTelegram(file); fileURL = r.url; }
+        catch (up) { console.warn('Upload note:', up?.message); }
+      }
+      let photoURL = editing.photoURL || '';
+      if (editing.photoFile) {
+        try { const rp = await uploadToTelegram(editing.photoFile); photoURL = rp.url; }
+        catch (up) { alert('Photo non envoyee : ' + (up?.message || up)); }
+      }
       if (editing.id) {
         await updateDoc(doc(db, 'notes', editing.id), {
-          title: editing.title.trim() || 'Sans titre', fileURL: r.url, preview, updatedAt: serverTimestamp(),
+          title: editing.title.trim() || 'Sans titre', fileURL, preview, photoURL, updatedAt: serverTimestamp(),
         });
       } else {
         await addDoc(collection(db, 'notes'), {
           uid: currentUser.uid, title: editing.title.trim() || 'Sans titre',
-          fileURL: r.url, preview, createdAt: serverTimestamp(), updatedAt: serverTimestamp(),
+          fileURL, preview, photoURL, createdAt: serverTimestamp(), updatedAt: serverTimestamp(),
         });
       }
       setEditing(null);
@@ -92,7 +103,10 @@ export default function Notes() {
             <p style={{ fontWeight: 800, fontSize: 15, flex: 1 }}>{n.title}</p>
             <button onClick={e => { e.stopPropagation(); removeNote(n.id); }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#FF2D8D', padding: 4 }}><HiTrash size={15} /></button>
           </div>
-          <p style={{ fontSize: 13, color: '#65676B', marginTop: 4, overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>{n.preview}</p>
+          <div style={{ display: 'flex', gap: 10, marginTop: 4 }}>
+            {n.photoURL && <img src={n.photoURL} alt="" style={{ width: 56, height: 56, borderRadius: 8, objectFit: 'cover', flexShrink: 0 }} />}
+            <p style={{ flex: 1, minWidth: 0, fontSize: 13, color: '#65676B', overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>{n.preview || '(note vide)'}</p>
+          </div>
           <p style={{ fontSize: 11, color: '#8A8D91', marginTop: 6 }}>{n.updatedAt ? timeAgo(n.updatedAt) : ''}</p>
         </div>
       ))}

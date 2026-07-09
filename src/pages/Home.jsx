@@ -30,7 +30,7 @@ import {
   HiPhotograph, HiVideoCamera, HiTag, HiOutlineHeart, HiChat,
   HiTrash, HiPencil, HiX, HiShare, HiFilm, HiOutlineChat,
   HiDotsVertical, HiDownload, HiLightningBolt, HiPhone, HiLocationMarker,
-  HiReply, HiUserAdd, HiUserGroup, HiBookmark, HiFlag, HiBan, HiPaperAirplane, HiIdentification, HiShoppingBag, HiCalendar, HiClipboardCopy, HiInformationCircle, HiCheck
+  HiReply, HiUserAdd, HiUserGroup, HiBookmark, HiFlag, HiBan, HiPaperAirplane, HiIdentification, HiShoppingBag, HiCalendar, HiClipboardCopy, HiInformationCircle, HiCheck, HiGlobeAlt
 } from 'react-icons/hi';
 
 const MAX_POST    = 2000;
@@ -265,6 +265,8 @@ export default function Home() {
   const lpFired = useRef(false);
 
   const [posts, setPosts]           = useState([]);
+  const [expandedPosts, setExpandedPosts] = useState({});
+  const [audienceEditPost, setAudienceEditPost] = useState(null);
   // ── Lecture audio du fil (une seule piste à la fois) ──
   const [followedArtists, setFollowedArtists] = useState([]);
   useEffect(() => {
@@ -1558,6 +1560,7 @@ export default function Home() {
                       {isOwn && <>
                         <button onClick={() => { setEditPost(post); setEditContent(post.content); setPostMenu(null); }} style={{ width:'100%', display:'flex', alignItems:'center', gap:12, padding:'13px 18px', background:'none', border:'none', cursor:'pointer', color:'#050505', fontSize:15, fontWeight:600, borderBottom:'1px solid #F0F2F5', fontFamily:'Poppins' }}><HiPencil size={17} color="#1877F2"/> Modifier</button>
                         {!post.groupId && !post.sharedFrom && <button onClick={() => { navigate('/boost'); setPostMenu(null); }} style={{ width:'100%', display:'flex', alignItems:'center', gap:12, padding:'13px 18px', background:'none', border:'none', cursor:'pointer', color:'#050505', fontSize:15, fontWeight:600, borderBottom:'1px solid #F0F2F5', fontFamily:'Poppins' }}><HiLightningBolt size={17} color="#a855f7"/> Booster</button>}
+                        {!post.groupId && <button onClick={() => { setAudienceEditPost(post); setPostMenu(null); }} style={{ width:'100%', display:'flex', alignItems:'center', gap:12, padding:'13px 18px', background:'none', border:'none', cursor:'pointer', color:'#050505', fontSize:15, fontWeight:600, borderBottom:'1px solid #F0F2F5', fontFamily:'Poppins' }}><HiGlobeAlt size={17} color="#1877F2"/> Modifier l'audience</button>}
                       </>}
                       <button onClick={() => { toggleSave(post.id); setPostMenu(null); }} style={{ width:'100%', display:'flex', alignItems:'center', gap:12, padding:'13px 18px', background:'none', border:'none', cursor:'pointer', color:'#050505', fontSize:15, fontWeight:600, borderBottom:'1px solid #F0F2F5', fontFamily:'Poppins' }}>
                         <HiBookmark size={17} color="#F2B300"/> {(userProfile?.saved||[]).includes(post.id) ? 'Retirer des enregistrements' : 'Enregistrer'}
@@ -1603,8 +1606,15 @@ export default function Home() {
                   onPointerDown={e => startTextPress(e, post)}
                   onPointerUp={endTextPress}
                   onPointerLeave={endTextPress}
-                  style={{ fontSize:15, lineHeight:1.6, wordBreak:'break-word', whiteSpace:'pre-wrap', userSelect:'text', WebkitUserSelect:'text', cursor:'text' }}
+                  style={{ fontSize:15, lineHeight:1.6, wordBreak:'break-word', whiteSpace:'pre-wrap', userSelect:'text', WebkitUserSelect:'text', cursor:'text',
+                    ...(expandedPosts[post.id] ? {} : { display:'-webkit-box', WebkitLineClamp:2, WebkitBoxOrient:'vertical', overflow:'hidden' }) }}
                 >{post.content}</p>
+              )}
+              {post.content && post.content.length > 90 && (
+                <button onClick={e => { e.stopPropagation(); setExpandedPosts(p => ({ ...p, [post.id]: !p[post.id] })); }}
+                  style={{ background:'none', border:'none', padding:'2px 0 0', cursor:'pointer', color:'#65676B', fontSize:14, fontWeight:600, fontFamily:'Poppins' }}>
+                  {expandedPosts[post.id] ? 'Voir moins' : 'Voir plus'}
+                </button>
               )}
               {post.isSale && (post.contact||post.lieu) && (
                 <div style={{ marginTop:8, display:'flex', flexWrap:'wrap', gap:8 }}>
@@ -1861,6 +1871,21 @@ export default function Home() {
           </div>
         );
       })}
+
+      {audienceEditPost && (
+        <div onClick={() => setAudienceEditPost(null)} style={{ position:'fixed', inset:0, background:'rgba(0,0,0,.5)', zIndex:320, display:'flex', alignItems:'flex-end', justifyContent:'center' }}>
+          <div onClick={e => e.stopPropagation()} style={{ background:'#fff', borderRadius:'18px 18px 0 0', width:'100%', maxWidth:480, overflow:'hidden', fontFamily:'Poppins' }}>
+            <p style={{ fontWeight:800, fontSize:16, padding:'16px 20px 8px' }}>Qui peut voir cette publication ?</p>
+            {[['public','🌍 Public'],['friends','👥 Amis'],['me','🔒 Moi uniquement']].map(([v,l]) => (
+              <button key={v} onClick={async () => { try { await updateDoc(doc(db,'posts',audienceEditPost.id), { audience: v }); } catch(e) { alert('Erreur : '+(e?.message||e)); } setAudienceEditPost(null); }}
+                style={{ width:'100%', display:'flex', alignItems:'center', justifyContent:'space-between', padding:'15px 20px', background:'none', border:'none', cursor:'pointer', fontSize:15, fontWeight:600, color:'#050505', borderTop:'1px solid #F0F2F5', fontFamily:'Poppins' }}>
+                <span>{l}</span>
+                {(audienceEditPost.audience || 'public') === v && <span style={{ color:'#1877F2', fontWeight:800 }}>✓</span>}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
       {shareModalPost && <ShareModal post={shareModalPost} onClose={() => setShareModalPost(null)} />}
 
