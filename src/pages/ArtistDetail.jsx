@@ -15,7 +15,8 @@ import FollowListModal from '../components/FollowListModal';
 import { downloadMedia } from '../utils/download';
 import {
   HiCamera, HiArrowLeft, HiPencil, HiX, HiTrash, HiDotsVertical, HiPaperAirplane,
-  HiMusicNote, HiVideoCamera, HiPhotograph
+  HiMusicNote, HiVideoCamera, HiPhotograph, HiCog, HiBan, HiFlag,
+  HiInformationCircle, HiDownload, HiLightningBolt
 } from 'react-icons/hi';
 
 const GENRES = ['Salegy', 'Tsapiky', 'Kawitry', 'Pop', 'Hip-Hop', 'Gospel', 'Reggae', 'Rock', 'Autre'];
