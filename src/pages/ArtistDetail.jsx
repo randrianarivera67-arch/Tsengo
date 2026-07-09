@@ -12,12 +12,13 @@ import { captureVideoThumb } from '../utils/videoThumb';
 import { timeAgo } from '../utils/timeAgo';
 import { NeonMic, NeonGlobe, NeonPhone, NeonLocation } from '../components/NeonIcons';
 import FollowListModal from '../components/FollowListModal';
+import ShareModal from '../components/ShareModal';
 import { downloadMedia } from '../utils/download';
 import { parseAppLink } from '../utils/appLink';
 import {
   HiCamera, HiArrowLeft, HiPencil, HiX, HiTrash, HiDotsVertical, HiPaperAirplane,
   HiMusicNote, HiVideoCamera, HiPhotograph, HiCog, HiBan, HiFlag,
-  HiInformationCircle, HiDownload, HiLightningBolt, HiSearch, HiLink
+  HiInformationCircle, HiDownload, HiLightningBolt, HiSearch, HiLink, HiShare
 } from 'react-icons/hi';
 
 const GENRES = ['Salegy', 'Tsapiky', 'Kawitry', 'Pop', 'Hip-Hop', 'Gospel', 'Reggae', 'Rock', 'Autre'];
@@ -62,7 +63,8 @@ export default function ArtistDetail() {
   const [playing, setPlaying] = useState(false);
   const [trackInfo, setTrackInfo] = useState(null);
   const [trackMenu, setTrackMenu] = useState(null);
-  const [trackQ, setTrackQ] = useState('');   // recherche de chansons dans la page   // piste dont le menu est ouvert
+  const [trackQ, setTrackQ] = useState('');
+  const [sharePost, setSharePost] = useState(null);   // recherche de chansons dans la page   // piste dont le menu est ouvert
   const [curTime, setCurTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const playerRef = useRef(null);
@@ -540,6 +542,8 @@ export default function ArtistDetail() {
           })}
 
       {/* ── Fiche titre (détails : équipe, art, studio…) ── */}
+      {sharePost && <ShareModal post={sharePost} onClose={() => setSharePost(null)} />}
+
       {trackMenu && (
         <div onClick={() => setTrackMenu(null)} style={{ position:'fixed', inset:0, background:'rgba(0,0,0,.5)', zIndex:300, display:'flex', alignItems:'flex-end', justifyContent:'center' }}>
           <div onClick={e => e.stopPropagation()} style={{ background:'#fff', borderRadius:'18px 18px 0 0', width:'100%', maxWidth:480, overflow:'hidden' }}>
@@ -547,10 +551,12 @@ export default function ArtistDetail() {
               <button onClick={() => { const t = trackMenu; setTrackMenu(null); setTrackInfo(t); }} style={{ width:'100%', display:'flex', alignItems:'center', gap:13, padding:'15px 20px', background:'none', border:'none', cursor:'pointer', fontSize:15, fontWeight:600, color:'#050505', borderBottom:'1px solid #F0F2F5' }}><HiPencil size={19} color="#1877F2"/> Modifier</button>
               <button onClick={() => { downloadMedia(trackMenu.mediaURL, trackMenu.mediaType || 'audio', trackMenu.songTitle || 'titre'); setTrackMenu(null); }} style={{ width:'100%', display:'flex', alignItems:'center', gap:13, padding:'15px 20px', background:'none', border:'none', cursor:'pointer', fontSize:15, fontWeight:600, color:'#050505', borderBottom:'1px solid #F0F2F5' }}><HiDownload size={19} color="#12A48D"/> Télécharger</button>
               <button onClick={() => { setTrackMenu(null); navigate('/boost'); }} style={{ width:'100%', display:'flex', alignItems:'center', gap:13, padding:'15px 20px', background:'none', border:'none', cursor:'pointer', fontSize:15, fontWeight:600, color:'#050505', borderBottom:'1px solid #F0F2F5' }}><HiLightningBolt size={19} color="#a855f7"/> Booster</button>
+              <button onClick={() => { const t = trackMenu; setTrackMenu(null); setSharePost(t); }} style={{ width:'100%', display:'flex', alignItems:'center', gap:13, padding:'15px 20px', background:'none', border:'none', cursor:'pointer', fontSize:15, fontWeight:600, color:'#050505', borderBottom:'1px solid #F0F2F5' }}><HiShare size={19} color="#7A2DFF"/> Partager</button>
               <button onClick={() => deleteTrack(trackMenu)} style={{ width:'100%', display:'flex', alignItems:'center', gap:13, padding:'15px 20px', background:'none', border:'none', cursor:'pointer', fontSize:15, fontWeight:600, color:'#FF2D8D' }}><HiTrash size={19}/> Supprimer</button>
             </>) : (<>
               <button onClick={() => { const t = trackMenu; setTrackMenu(null); setTrackInfo(t); }} style={{ width:'100%', display:'flex', alignItems:'center', gap:13, padding:'15px 20px', background:'none', border:'none', cursor:'pointer', fontSize:15, fontWeight:600, color:'#050505', borderBottom:'1px solid #F0F2F5' }}><HiInformationCircle size={19} color="#1877F2"/> Informations</button>
               <button onClick={() => { downloadMedia(trackMenu.mediaURL, trackMenu.mediaType || 'audio', trackMenu.songTitle || 'titre'); setTrackMenu(null); }} style={{ width:'100%', display:'flex', alignItems:'center', gap:13, padding:'15px 20px', background:'none', border:'none', cursor:'pointer', fontSize:15, fontWeight:600, color:'#050505', borderBottom:'1px solid #F0F2F5' }}><HiDownload size={19} color="#12A48D"/> Télécharger</button>
+              <button onClick={() => { const t = trackMenu; setTrackMenu(null); setSharePost(t); }} style={{ width:'100%', display:'flex', alignItems:'center', gap:13, padding:'15px 20px', background:'none', border:'none', cursor:'pointer', fontSize:15, fontWeight:600, color:'#050505', borderBottom:'1px solid #F0F2F5' }}><HiShare size={19} color="#7A2DFF"/> Partager</button>
               <button onClick={() => reportTrack(trackMenu)} style={{ width:'100%', display:'flex', alignItems:'center', gap:13, padding:'15px 20px', background:'none', border:'none', cursor:'pointer', fontSize:15, fontWeight:600, color:'#FF2D8D' }}><HiFlag size={19}/> Signaler aux admins</button>
             </>)}
           </div>

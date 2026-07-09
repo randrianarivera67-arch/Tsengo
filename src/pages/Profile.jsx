@@ -23,7 +23,7 @@ import {
   HiCamera, HiPencil, HiTag, HiChat, HiOutlineHeart,
   HiShare, HiStar, HiX, HiUserAdd, HiPhotograph, HiVideoCamera,
   HiDotsVertical, HiTrash, HiLightningBolt, HiDownload, HiPaperAirplane, HiFlag, HiBan,
-  HiReply, HiPhone, HiLocationMarker
+  HiReply, HiPhone, HiLocationMarker, HiLink
 } from 'react-icons/hi';
 
 const REACTIONS = ['❤️','😂','😮','😢','😡','👍'];
@@ -212,6 +212,13 @@ export default function Profile() {
       setUserProfile(p => ({ ...p, blocked: isBlockedByMe ? (p.blocked||[]).filter(u=>u!==targetUid) : [...(p.blocked||[]), targetUid] }));
       setOtherMenu(false);
     } catch (err) { alert('Erreur : ' + (err?.message || err)); }
+  }
+
+  function copyProfileLink() {
+    setProfMenu(false); setOtherMenu(false);
+    const url = `${window.location.origin}/profile/${targetUid}`;
+    if (navigator.clipboard?.writeText) navigator.clipboard.writeText(url).then(() => alert('Lien copié !'), () => alert(url));
+    else { const el = document.createElement('textarea'); el.value = url; document.body.appendChild(el); el.select(); document.execCommand('copy'); el.remove(); alert('Lien copié !'); }
   }
 
   async function reportUser() {
@@ -672,7 +679,8 @@ export default function Profile() {
                   {profMenu && (
                     <div style={{ position:'absolute', top:'110%', right:0, background:'white', border:'1px solid #E4E6EB', borderRadius:12, boxShadow:'0 4px 20px rgba(0,0,0,.14)', minWidth:210, zIndex:60, overflow:'hidden' }}>
                       <button onClick={openStoryArchive} style={{ width:'100%', display:'flex', alignItems:'center', gap:10, padding:'12px 16px', background:'none', border:'none', cursor:'pointer', fontFamily:'Poppins', fontSize:14, color:'#050505', borderBottom:'1px solid #F0F2F5' }}><NeonArchive/> Archive de votre story</button>
-                      <button onClick={openSouvenirs} style={{ width:'100%', display:'flex', alignItems:'center', gap:10, padding:'12px 16px', background:'none', border:'none', cursor:'pointer', fontFamily:'Poppins', fontSize:14, color:'#050505' }}><NeonClock/> Souvenirs</button>
+                      <button onClick={openSouvenirs} style={{ width:'100%', display:'flex', alignItems:'center', gap:10, padding:'12px 16px', background:'none', border:'none', cursor:'pointer', fontFamily:'Poppins', fontSize:14, color:'#050505', borderBottom:'1px solid #F0F2F5' }}><NeonClock/> Souvenirs</button>
+                      <button onClick={copyProfileLink} style={{ width:'100%', display:'flex', alignItems:'center', gap:10, padding:'12px 16px', background:'none', border:'none', cursor:'pointer', fontFamily:'Poppins', fontSize:14, color:'#050505' }}><HiLink size={16} color="#12A48D"/> Copier le lien</button>
                     </div>
                   )}
                 </div>
@@ -690,6 +698,7 @@ export default function Profile() {
                     <button onClick={() => setOtherMenu(p => !p)} style={{ width:36, height:36, borderRadius:'50%', background:'#F0F2F5', border:'none', cursor:'pointer', color:'#050505', display:'flex', alignItems:'center', justifyContent:'center' }}><HiDotsVertical size={17}/></button>
                     {otherMenu && (
                       <div style={{ position:'absolute', top:'110%', right:0, background:'white', border:'1px solid #E4E6EB', borderRadius:12, boxShadow:'0 4px 20px rgba(0,0,0,.14)', minWidth:210, zIndex:60, overflow:'hidden' }}>
+                        <button onClick={copyProfileLink} style={{ width:'100%', display:'flex', alignItems:'center', gap:10, padding:'12px 16px', background:'none', border:'none', cursor:'pointer', fontFamily:'Poppins', fontSize:14, color:'#050505', borderBottom:'1px solid #F0F2F5' }}><HiLink size={16} color="#12A48D"/> Copier le lien</button>
                         <button onClick={reportUser} style={{ width:'100%', display:'flex', alignItems:'center', gap:10, padding:'12px 16px', background:'none', border:'none', cursor:'pointer', fontFamily:'Poppins', fontSize:14, color:'#050505', borderBottom:'1px solid #F0F2F5' }}><HiFlag size={16} color="#F2B300"/> Signaler à l'admin</button>
                         <button onClick={toggleBlockUser} style={{ width:'100%', display:'flex', alignItems:'center', gap:10, padding:'12px 16px', background:'none', border:'none', cursor:'pointer', fontFamily:'Poppins', fontSize:14, color:'#FF2D8D' }}><HiBan size={16}/> {isBlockedByMe ? 'Débloquer' : 'Bloquer'} cette personne</button>
                       </div>

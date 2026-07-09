@@ -109,7 +109,7 @@ function waveBars(seed, n = 56) {
 
 const MUSIC_GRADS = [['#FF6FA5', '#FF2D8D'], ['#A66BFF', '#7A2DFF'], ['#3DBEFF', '#1877F2']];
 
-function MusicCard({ track, index, playing, onToggle, onArtist, onSave, onBlock, isSaved, isBlocked, onFollow, onMessage, isFollowing }) {
+function MusicCard({ track, index, playing, onToggle, onArtist, onSave, onBlock, isSaved, isBlocked, onFollow, onMessage, isFollowing, onShare }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [infoOpen, setInfoOpen] = useState(false);
   const [dur, setDur] = useState('');
@@ -161,6 +161,7 @@ function MusicCard({ track, index, playing, onToggle, onArtist, onSave, onBlock,
           <div onClick={e => e.stopPropagation()} style={{ background: '#fff', borderRadius: '18px 18px 0 0', width: '100%', maxWidth: 480, overflow: 'hidden', fontFamily: 'Poppins' }}>
             <Item icon={<HiInformationCircle size={20} color="#1877F2" />} label="Informations" onClick={() => { setMenuOpen(false); setInfoOpen(true); }} />
             <Item icon={<HiDownload size={20} color="#12A48D" />} label="Télécharger" onClick={() => { setMenuOpen(false); downloadMedia(track.mediaURL, 'audio', track.songTitle || 'audio'); }} />
+            <Item icon={<HiShare size={20} color="#7A2DFF" />} label="Partager" onClick={() => { setMenuOpen(false); onShare?.(track); }} />
             <Item icon={<HiBookmark size={20} color="#F2B300" />} label={isSaved ? 'Retirer des enregistrements' : 'Enregistrer'} onClick={() => { setMenuOpen(false); onSave?.(track.id); }} />
             <Item icon={<HiBan size={20} color="#FF2D8D" />} label={isBlocked ? 'Débloquer' : 'Bloquer'} danger onClick={() => { setMenuOpen(false); onBlock?.(track); }} />
           </div>
@@ -192,7 +193,7 @@ function MusicCard({ track, index, playing, onToggle, onArtist, onSave, onBlock,
   );
 }
 
-function MusicRow({ tracks, playingId, onToggle, onArtist, onSave, onBlock, savedIds = [], blockedIds = [], onFollow, onMessage, followedArtists = [] }) {
+function MusicRow({ tracks, playingId, onToggle, onArtist, onSave, onBlock, savedIds = [], blockedIds = [], onFollow, onMessage, followedArtists = [], onShare }) {
   if (!tracks || tracks.length === 0) return null;
   return (
     <div className="card" style={{ marginBottom: 14, padding: '12px 0 6px' }}>
@@ -201,7 +202,7 @@ function MusicRow({ tracks, playingId, onToggle, onArtist, onSave, onBlock, save
       </div>
       <div style={{ display: 'flex', gap: 12, overflowX: 'auto', padding: '2px 14px 8px', WebkitOverflowScrolling: 'touch' }}>
         {tracks.map((t, i) => (
-          <MusicCard key={t.id} track={t} index={i} playing={playingId === t.id} onToggle={onToggle} onArtist={onArtist} onSave={onSave} onBlock={onBlock} isSaved={savedIds.includes(t.id)} isBlocked={blockedIds.includes(t.uid)} onFollow={onFollow} onMessage={onMessage} isFollowing={followedArtists.includes(t.artistId)} />
+          <MusicCard key={t.id} track={t} index={i} playing={playingId === t.id} onToggle={onToggle} onArtist={onArtist} onSave={onSave} onBlock={onBlock} isSaved={savedIds.includes(t.id)} isBlocked={blockedIds.includes(t.uid)} onFollow={onFollow} onMessage={onMessage} isFollowing={followedArtists.includes(t.artistId)} onShare={onShare} />
         ))}
       </div>
     </div>
@@ -1440,6 +1441,7 @@ export default function Home() {
               playingId={playingTrackId}
               onToggle={toggleMusic}
               onArtist={aid => aid && navigate(`/artists/${aid}`)}
+              onShare={setShareModalPost}
               onFollow={toggleFollowArtist}
               onMessage={aid => aid && navigate(`/artists/${aid}/messages`)}
               followedArtists={followedArtists}
