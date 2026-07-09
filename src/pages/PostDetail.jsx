@@ -18,9 +18,10 @@ import { getChatId } from '../utils/chat';
 import { v4 as uuidv4 } from 'uuid';
 import {
   HiArrowLeft, HiOutlineHeart, HiChat, HiShare, HiUserGroup, HiIdentification, HiShoppingBag,
-  HiPhotograph, HiVideoCamera, HiTag, HiX, HiPhone,
+  HiPhotograph, HiVideoCamera, HiTag, HiX, HiPhone, HiShoppingCart,
   HiLocationMarker, HiPencil, HiTrash, HiReply, HiUserAdd, HiDownload, HiPaperAirplane
 } from 'react-icons/hi';
+import { addToCart } from '../utils/cart';
 
 const REACTIONS = ['❤️','😂','😮','😢','😡','👍'];
 function VIPBadge() {
@@ -220,6 +221,44 @@ export default function PostDetail() {
         </div>
 
         {/* Content */}
+        {post.shopId && post.isSale ? (
+          // ── Article boutique (sary 3) : sary lehibe ambony, informations ambany ──
+          <>
+            {post.mediaURL && (
+              <div className="post-media" style={{ position:'relative' }}>
+                <img src={post.mediaURL} alt=""/>
+                <button onClick={() => downloadMedia(post.mediaURL, 'image')}
+                  style={{ position:'absolute', top:8, right:8, width:34, height:34, borderRadius:'50%', background:'rgba(0,0,0,.5)', border:'none', cursor:'pointer', color:'white', display:'flex', alignItems:'center', justifyContent:'center' }}>
+                  <HiDownload size={16}/>
+                </button>
+              </div>
+            )}
+            <div style={{ padding:'14px 16px' }}>
+              <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:10 }}>
+                <span style={{ fontWeight:800, fontSize:22, color:'#FF2D8D' }}>{post.price ? `${Number(post.price).toLocaleString()} Ar` : 'À discuter'}</span>
+                <button onClick={() => navigate(`/shop/${post.shopId}/messages`)}
+                  style={{ display:'flex', alignItems:'center', gap:5, background:'#fff', border:'1.5px solid #FF2D8D', borderRadius:20, padding:'8px 18px', fontSize:13.5, fontWeight:700, color:'#FF2D8D', cursor:'pointer', flexShrink:0 }}>
+                  <HiChat size={16}/> Message
+                </button>
+              </div>
+              {Number(post.oldPrice) > Number(post.price) && (
+                <p style={{ fontSize:13, color:'#8A8D91', textDecoration:'line-through', marginTop:2 }}>{Number(post.oldPrice).toLocaleString()} Ar</p>
+              )}
+              {(post.lieu || post.contact) && (
+                <div style={{ display:'flex', flexWrap:'wrap', gap:8, marginTop:10 }}>
+                  {post.lieu && <span style={{ display:'flex', alignItems:'center', gap:5, background:'#F0F2F5', borderRadius:20, padding:'5px 12px', color:'#65676B', fontSize:13 }}><HiLocationMarker size={13} color="#1877F2"/>{post.lieu}</span>}
+                  {post.contact && <a href={`tel:${String(post.contact).split(/[\/,;|]/)[0].trim()}`} style={{ display:'flex', alignItems:'center', gap:5, background:'#E4E6EB', borderRadius:20, padding:'5px 12px', color:'#1877F2', fontSize:13, fontWeight:600, textDecoration:'none' }}><HiPhone size={13}/>{post.contact}</a>}
+                  {post.saleCategory && <span style={{ display:'flex', alignItems:'center', gap:5, background:'#FFE3EF', borderRadius:20, padding:'5px 12px', color:'#FF2D8D', fontSize:13, fontWeight:600 }}><HiTag size={12}/>{post.saleCategory}</span>}
+                </div>
+              )}
+              {post.content && <p style={{ fontSize:15, lineHeight:1.7, wordBreak:'break-word', marginTop:12 }}>{post.content}</p>}
+              <button onClick={() => { const ok = addToCart(post); alert(ok ? 'Article ajouté au panier 🛒' : 'Cet article est déjà dans votre panier'); }}
+                style={{ width:'100%', display:'flex', alignItems:'center', justifyContent:'center', gap:8, background:'linear-gradient(145deg,#FF6FA5,#FF2D8D)', border:'none', borderRadius:22, padding:'12px 0', marginTop:14, fontSize:15, fontWeight:800, color:'#fff', cursor:'pointer', fontFamily:'Poppins' }}>
+                <HiShoppingCart size={18}/> Ajouter au panier
+              </button>
+            </div>
+          </>
+        ) : (
         <div style={{ padding:'12px 16px' }}>
           {post.isSale&&<div style={{ display:'flex', gap:10, alignItems:'center', marginBottom:10 }}><span className="sale-badge"><HiTag size={12} style={{ display:'inline' }}/> Vente</span><span className="price-tag">{post.price} Ar</span></div>}
           {post.isSale&&(post.contact||post.lieu)&&(
@@ -263,6 +302,7 @@ export default function PostDetail() {
             </div>
           )}
         </div>
+        )}
 
         {/* Reaction count */}
         {total>0&&(

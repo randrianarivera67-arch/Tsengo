@@ -30,8 +30,9 @@ import {
   HiPhotograph, HiVideoCamera, HiTag, HiOutlineHeart, HiChat,
   HiTrash, HiPencil, HiX, HiShare, HiFilm, HiOutlineChat,
   HiDotsVertical, HiDownload, HiLightningBolt, HiPhone, HiLocationMarker,
-  HiReply, HiUserAdd, HiUserGroup, HiBookmark, HiFlag, HiBan, HiPaperAirplane, HiIdentification, HiShoppingBag, HiCalendar, HiClipboardCopy, HiInformationCircle, HiCheck, HiGlobeAlt
+  HiReply, HiUserAdd, HiUserGroup, HiBookmark, HiFlag, HiBan, HiPaperAirplane, HiIdentification, HiShoppingBag, HiShoppingCart, HiCalendar, HiClipboardCopy, HiInformationCircle, HiCheck, HiGlobeAlt
 } from 'react-icons/hi';
+import { addToCart } from '../utils/cart';
 
 const MAX_POST    = 2000;
 const MAX_COMMENT = 500;
@@ -1538,7 +1539,7 @@ export default function Home() {
               )}
 
               <div style={{ display:'flex', alignItems:'center', gap:6, flexShrink:0 }}>
-                {post.isSale && <div style={{ textAlign:'right' }}><span className="sale-badge">{t('sale')}</span><p className="price-tag" style={{ marginTop:2, fontSize:13 }}>{post.price} Ar</p></div>}
+                {post.isSale && !post.shopId && <div style={{ textAlign:'right' }}><span className="sale-badge">{t('sale')}</span><p className="price-tag" style={{ marginTop:2, fontSize:13 }}>{post.price} Ar</p></div>}
                 {!isOwn && (
                   <button onClick={() => toggleFollowAuthor(post.uid, post.authorName)}
                     style={{ background: isFollowingUid(post.uid) ? '#F0F2F5' : 'linear-gradient(135deg,#FFE066,#F2B300)', border:'none', borderRadius:20, padding:'5px 12px', cursor:'pointer', color: isFollowingUid(post.uid) ? '#65676B' : '#4A3400', fontSize:12, fontWeight:700, display:'flex', alignItems:'center', gap:4 }}>
@@ -1617,7 +1618,7 @@ export default function Home() {
                   {expandedPosts[post.id] ? 'Voir moins' : 'Voir plus'}
                 </button>
               )}
-              {post.isSale && (post.contact||post.lieu) && (
+              {post.isSale && !post.shopId && (post.contact||post.lieu) && (
                 <div style={{ marginTop:8, display:'flex', flexWrap:'wrap', gap:8 }}>
                   {post.contact && <a href={`tel:${post.contact}`} onClick={e=>e.stopPropagation()} style={{ display:'flex', alignItems:'center', gap:5, background:'#E4E6EB', borderRadius:20, padding:'5px 12px', color:'#1877F2', fontSize:13, fontWeight:600, textDecoration:'none' }}><HiPhone size={13}/>{post.contact}</a>}
                   {post.lieu   && <span style={{ display:'flex', alignItems:'center', gap:5, background:'#F0F2F5', borderRadius:20, padding:'5px 12px', color:'#65676B', fontSize:13 }}><HiLocationMarker size={13} color="#1877F2"/>{post.lieu}</span>}
@@ -1663,6 +1664,28 @@ export default function Home() {
               ) : post.mediaURL && (
                 <div style={{ marginTop:8, marginLeft:-16, marginRight:-16 }}>
                   {post.isMusic ? <MusicPostCard post={post} height={140}/> : post.mediaType==='image' ? <img src={post.mediaURL} alt="" style={{ width:'100%', borderRadius:0, maxHeight:520, objectFit:'cover', display:'block' }}/> : <FeedVideo src={post.mediaURL} poster={post.thumbURL} dataSaver={dataSaver} onOpenReels={()=>navigate('/reels',{state:{startId:post.id}})} style={{ width:'100%', borderRadius:0, maxHeight:520, objectFit:'cover', display:'block', background:'#000' }} />}
+                </div>
+              )}
+              {/* ── Article boutique : informations ambanin'ny sary (sary 3) ── */}
+              {post.shopId && post.isSale && (
+                <div onClick={e => e.stopPropagation()} style={{ marginTop:10 }}>
+                  <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:10 }}>
+                    <span style={{ fontWeight:800, fontSize:20, color:'#FF2D8D' }}>{post.price ? `${Number(post.price).toLocaleString()} Ar` : 'À discuter'}</span>
+                    <button onClick={() => navigate(`/shop/${post.shopId}/messages`)}
+                      style={{ display:'flex', alignItems:'center', gap:5, background:'#fff', border:'1.5px solid #FF2D8D', borderRadius:20, padding:'7px 16px', fontSize:13, fontWeight:700, color:'#FF2D8D', cursor:'pointer', flexShrink:0 }}>
+                      <HiOutlineChat size={15}/> Message
+                    </button>
+                  </div>
+                  {(post.lieu || post.contact) && (
+                    <div style={{ display:'flex', alignItems:'center', flexWrap:'wrap', gap:8, marginTop:8, paddingTop:8, borderTop:'1px solid #F0F2F5' }}>
+                      {post.lieu && <span style={{ display:'flex', alignItems:'center', gap:5, background:'#F0F2F5', borderRadius:20, padding:'5px 12px', color:'#65676B', fontSize:13 }}><HiLocationMarker size={13} color="#1877F2"/>{post.lieu}</span>}
+                      {post.contact && <a href={`tel:${String(post.contact).split(/[\/,;|]/)[0].trim()}`} style={{ display:'flex', alignItems:'center', gap:5, background:'#E4E6EB', borderRadius:20, padding:'5px 12px', color:'#1877F2', fontSize:13, fontWeight:600, textDecoration:'none' }}><HiPhone size={13}/>{post.contact}</a>}
+                    </div>
+                  )}
+                  <button onClick={() => { const ok = addToCart(post); alert(ok ? 'Article ajouté au panier 🛒' : 'Cet article est déjà dans votre panier'); }}
+                    style={{ width:'100%', display:'flex', alignItems:'center', justifyContent:'center', gap:7, background:'linear-gradient(145deg,#FF6FA5,#FF2D8D)', border:'none', borderRadius:20, padding:'10px 0', marginTop:10, fontSize:14, fontWeight:800, color:'#fff', cursor:'pointer', fontFamily:'Poppins' }}>
+                    <HiShoppingCart size={17}/> Ajouter au panier
+                  </button>
                 </div>
               )}
             </div>

@@ -18,8 +18,9 @@ import ShareModal from '../components/ShareModal';
 import {
   HiUserGroup, HiCamera, HiArrowLeft, HiPlus, HiCheck, HiTrash,
   HiPhotograph, HiVideoCamera, HiChat, HiShare, HiX, HiUserAdd, HiDotsVertical,
-  HiDownload, HiSearch
+  HiDownload, HiSearch, HiShoppingBag, HiShoppingCart, HiPhone, HiLocationMarker, HiOutlineChat
 } from 'react-icons/hi';
+import { addToCart } from '../utils/cart';
 
 const REACTIONS = ['❤️','😂','😮','😢','😡','👍'];
 
@@ -593,9 +594,9 @@ export default function GroupPage() {
           <div key={post.id} className="card post-card animate-fade" style={{ marginBottom: 8 }}>
             <div style={{ padding: '12px 16px 0', display: 'flex', alignItems: 'center', gap: 10 }}>
               <img src={post.authorPhoto || `https://ui-avatars.com/api/?name=${encodeURIComponent(post.authorName || 'U')}&background=1877F2&color=fff`}
-                alt="" className="avatar" style={{ width: 40, height: 40, cursor: 'pointer' }} onClick={() => navigate(`/profile/${post.uid}`)} />
+                alt="" className="avatar" style={{ width: 40, height: 40, cursor: 'pointer' }} onClick={() => post.shopId ? navigate(`/shop/${post.shopId}`) : post.artistId ? navigate(`/artists/${post.artistId}`) : navigate(`/profile/${post.uid}`)} />
               <div style={{ flex: 1, minWidth: 0 }}>
-                <p style={{ fontWeight: 700, fontSize: 14 }}>{post.authorName}</p>
+                <p style={{ fontWeight: 700, fontSize: 14, cursor: 'pointer' }} onClick={() => post.shopId ? navigate(`/shop/${post.shopId}`) : post.artistId ? navigate(`/artists/${post.artistId}`) : navigate(`/profile/${post.uid}`)}>{post.authorName}{post.shopId ? ' 🏪' : ''}</p>
                 <p style={{ fontSize: 12, color: '#65676B' }}>{post.createdAt ? timeAgo(post.createdAt) : "À l'instant"}</p>
                 {post.taggedNames?.length > 0 && <p style={{ fontSize:12, color:'#65676B' }}>avec {post.taggedNames.join(', ')}</p>}
                 {(post.mood || post.location) && (
@@ -653,6 +654,28 @@ export default function GroupPage() {
                     : post.mediaType === 'image'
                       ? <img src={post.mediaURL} alt="" style={{ width: '100%', maxHeight: 520, objectFit: 'cover', display: 'block' }} />
                       : <video src={post.mediaURL} controls playsInline poster={post.thumbURL || undefined} preload={dataSaver ? 'none' : 'metadata'} style={{ width: '100%', maxHeight: 520, display: 'block', background: '#000' }} />}
+                </div>
+              )}
+              {/* ── Article boutique : informations ambanin'ny sary (sary 3) ── */}
+              {post.shopId && post.isSale && (
+                <div onClick={e => e.stopPropagation()} style={{ marginTop: 10 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
+                    <span style={{ fontWeight: 800, fontSize: 20, color: '#FF2D8D' }}>{post.price ? `${Number(post.price).toLocaleString()} Ar` : 'À discuter'}</span>
+                    <button onClick={() => navigate(`/shop/${post.shopId}/messages`)}
+                      style={{ display: 'flex', alignItems: 'center', gap: 5, background: '#fff', border: '1.5px solid #FF2D8D', borderRadius: 20, padding: '7px 16px', fontSize: 13, fontWeight: 700, color: '#FF2D8D', cursor: 'pointer', flexShrink: 0 }}>
+                      <HiOutlineChat size={15}/> Message
+                    </button>
+                  </div>
+                  {(post.lieu || post.contact) && (
+                    <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 8, marginTop: 8, paddingTop: 8, borderTop: '1px solid #F0F2F5' }}>
+                      {post.lieu && <span style={{ display: 'flex', alignItems: 'center', gap: 5, background: '#F0F2F5', borderRadius: 20, padding: '5px 12px', color: '#65676B', fontSize: 13 }}><HiLocationMarker size={13} color="#1877F2"/>{post.lieu}</span>}
+                      {post.contact && <a href={`tel:${String(post.contact).split(/[\/,;|]/)[0].trim()}`} style={{ display: 'flex', alignItems: 'center', gap: 5, background: '#E4E6EB', borderRadius: 20, padding: '5px 12px', color: '#1877F2', fontSize: 13, fontWeight: 600, textDecoration: 'none' }}><HiPhone size={13}/>{post.contact}</a>}
+                    </div>
+                  )}
+                  <button onClick={() => { const ok = addToCart(post); alert(ok ? 'Article ajouté au panier 🛒' : 'Cet article est déjà dans votre panier'); }}
+                    style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, background: 'linear-gradient(145deg,#FF6FA5,#FF2D8D)', border: 'none', borderRadius: 20, padding: '10px 0', marginTop: 10, fontSize: 14, fontWeight: 800, color: '#fff', cursor: 'pointer', fontFamily: 'Poppins' }}>
+                    <HiShoppingCart size={17}/> Ajouter au panier
+                  </button>
                 </div>
               )}
             </div>

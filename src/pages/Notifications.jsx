@@ -47,6 +47,9 @@ export default function Notifications() {
       case 'artistMessage':
         navigate(notif.artistId ? `/artists/${notif.artistId}/messages` + (notif.visitorUid && notif.fromUid !== currentUser.uid ? `/${notif.visitorUid}` : '') : '/');
         break;
+      case 'shopMessage':
+        navigate(notif.shopId ? `/shop/${notif.shopId}/messages` + (notif.visitorUid && notif.fromUid !== currentUser.uid ? `/${notif.visitorUid}` : '') : '/');
+        break;
       case 'comment': case 'reaction': case 'post': case 'boost':
         navigate(notif.postId?`/post/${notif.postId}`:'/');
         break;
