@@ -58,9 +58,15 @@ export default function Saved() {
             onClick={() => navigate(`/post/${p.id}`)}>
             {/* Miniature */}
             {p.mediaURL ? (
-              p.mediaType === 'video'
-                ? <video src={p.mediaURL} muted playsInline preload="metadata" style={{ width: 64, height: 64, borderRadius: 10, objectFit: 'cover', flexShrink: 0, background: '#000' }} />
-                : <img src={p.mediaURL} alt="" style={{ width: 64, height: 64, borderRadius: 10, objectFit: 'cover', flexShrink: 0 }} />
+              p.isMusic
+                ? <div style={{ width: 64, height: 64, borderRadius: 10, flexShrink: 0, overflow: 'hidden', position: 'relative', background: p.thumbURL ? `url(${p.thumbURL}) center/cover` : 'linear-gradient(145deg,#FF6FA5,#0c0c12)' }}>
+                    <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1.5, background: p.thumbURL ? 'rgba(0,0,0,.45)' : 'transparent' }}>
+                      {[9, 17, 12, 24, 15, 28, 13, 20, 10].map((h, i) => <div key={i} style={{ width: 2.5, height: h, borderRadius: 2, background: i < 5 ? '#FF6FA5' : '#FF2D8D' }} />)}
+                    </div>
+                  </div>
+                : p.mediaType === 'video'
+                  ? <video src={p.mediaURL} muted playsInline preload="metadata" style={{ width: 64, height: 64, borderRadius: 10, objectFit: 'cover', flexShrink: 0, background: '#000' }} />
+                  : <img src={p.mediaURL} alt="" style={{ width: 64, height: 64, borderRadius: 10, objectFit: 'cover', flexShrink: 0 }} />
             ) : (
               <div style={{ width: 64, height: 64, borderRadius: 10, background: '#E7F0FE', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: 24 }}>📝</div>
             )}
@@ -70,10 +76,10 @@ export default function Saved() {
                 {p.groupName && <span style={{ color: '#65676B', fontWeight: 500 }}> · <HiUserGroup size={11} style={{ verticalAlign: '-1px' }} /> {p.groupName}</span>}
               </p>
               <p style={{ fontSize: 13, color: '#050505', overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
-                {p.content || (p.mediaType === 'video' ? '🎬 Vidéo' : '📷 Photo')}
+                {p.isMusic ? (p.songTitle || 'Musique') : (p.content || (p.mediaType === 'video' ? '🎬 Vidéo' : '📷 Photo'))}
               </p>
               <p style={{ fontSize: 11, color: '#65676B', marginTop: 2 }}>
-                {p.mediaType === 'video' ? 'Vidéo enregistrée' : 'Publication enregistrée'}
+                {p.isMusic ? (p.mediaType === 'video' ? 'Clip enregistré' : 'Musique enregistrée') : p.mediaType === 'video' ? 'Vidéo enregistrée' : 'Publication enregistrée'}
               </p>
             </div>
             <HiChevronRight size={18} color="#65676B" style={{ flexShrink: 0 }} />

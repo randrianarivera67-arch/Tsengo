@@ -7,7 +7,7 @@ import { useNavigate } from 'react-router-dom';
 import { collection, query, where, onSnapshot, addDoc, serverTimestamp, doc, writeBatch } from 'firebase/firestore';
 import { db } from '../firebase';
 import { useAuth } from '../context/AuthContext';
-import { HiX, HiUser, HiUserGroup, HiLink, HiChevronRight } from 'react-icons/hi';
+import { HiX, HiUser, HiUserGroup, HiLink, HiChevronRight, HiSearch } from 'react-icons/hi';
 
 export default function ShareModal({ post, onClose, asPage = null }) {
   const { currentUser, userProfile } = useAuth();
@@ -16,6 +16,7 @@ export default function ShareModal({ post, onClose, asPage = null }) {
   const [caption, setCaption] = useState('');
   const [groups, setGroups] = useState([]);
   const [posting, setPosting] = useState(false);
+  const [groupQ, setGroupQ] = useState('');
   const [done, setDone] = useState(null);        // { where: 'profile' | groupName }
 
   useEffect(() => {
@@ -156,12 +157,20 @@ export default function ShareModal({ post, onClose, asPage = null }) {
               <h3 style={{ fontWeight: 800, fontSize: 16, flex: 1 }}>Choisir un groupe</h3>
               <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#65676B' }}><HiX size={20} /></button>
             </div>
+            <div style={{ marginBottom: 12 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: '#F0F2F5', borderRadius: 20, padding: '9px 13px' }}>
+                <HiSearch size={16} color="#65676B" />
+                <input value={groupQ} onChange={e => setGroupQ(e.target.value)} placeholder="Rechercher un groupe…"
+                  style={{ flex: 1, border: 'none', outline: 'none', fontSize: 13.5, background: 'transparent', color: '#050505', minWidth: 0 }} />
+                {groupQ && <button onClick={() => setGroupQ('')} style={{ background: '#fff', border: 'none', borderRadius: '50%', width: 21, height: 21, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#65676B', flexShrink: 0 }}><HiX size={12} /></button>}
+              </div>
+            </div>
             {groups.length === 0 && (
               <p style={{ fontSize: 13, color: '#65676B', textAlign: 'center', padding: '20px 0' }}>
                 Vous n'êtes membre d'aucun groupe public. Rejoignez-en un depuis « Groupes ».
               </p>
             )}
-            {groups.map(g => (
+            {groups.filter(g => !groupQ.trim() || (g.name || '').toLowerCase().includes(groupQ.trim().toLowerCase())).map(g => (
               <div key={g.id} onClick={() => !posting && shareTo(g)} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '11px 6px', cursor: 'pointer', borderBottom: '1px solid #F0F2F5', opacity: posting ? .6 : 1 }}>
                 <div style={{ width: 42, height: 42, borderRadius: 12, background: 'linear-gradient(135deg,#1B84FF,#1877F2)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', flexShrink: 0 }}>
                   {g.photoURL ? <img src={g.photoURL} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <HiUserGroup size={20} color="white" />}
