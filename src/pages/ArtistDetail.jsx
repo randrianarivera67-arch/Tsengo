@@ -12,6 +12,7 @@ import { captureVideoThumb } from '../utils/videoThumb';
 import { timeAgo } from '../utils/timeAgo';
 import { NeonMic, NeonGlobe, NeonPhone, NeonLocation } from '../components/NeonIcons';
 import FollowListModal from '../components/FollowListModal';
+import { downloadMedia } from '../utils/download';
 import {
   HiCamera, HiArrowLeft, HiPencil, HiX, HiTrash, HiDotsVertical, HiPaperAirplane,
   HiMusicNote, HiVideoCamera, HiPhotograph
@@ -25,7 +26,7 @@ const GENRE_COLORS = {
 
 export default function ArtistDetail() {
   const { artistId } = useParams();
-  const { currentUser } = useAuth();
+  const { currentUser, userProfile } = useAuth();
   const navigate = useNavigate();
 
   const [artist, setArtist] = useState(null);
@@ -58,6 +59,7 @@ export default function ArtistDetail() {
   const [currentTrack, setCurrentTrack] = useState(null);
   const [playing, setPlaying] = useState(false);
   const [trackInfo, setTrackInfo] = useState(null);
+  const [trackMenu, setTrackMenu] = useState(null);   // piste dont le menu est ouvert
   const [curTime, setCurTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const playerRef = useRef(null);
@@ -116,6 +118,46 @@ export default function ArtistDetail() {
     try { await updateDoc(doc(db, 'artists', artistId), { ...editForm, name: editForm.name.trim() }); setEditOpen(false); }
     catch (err) { alert('Erreur : ' + (err?.message || err)); }
   }
+  async function reportArtist() {
+    setMenuOpen(false);
+    if (!window.confirm('Signaler cette page aux administrateurs ?')) return;
+    try {
+      await addDoc(collection(db, 'reports'), {
+        type: 'artist', targetId: artistId, targetUid: artist.createdBy || '', targetAuthor: artist.name,
+        reportedBy: currentUser.uid, reportedByName: userProfile?.fullName || '',
+        createdAt: serverTimestamp(), status: 'pending',
+      });
+      alert('Signalement envoyé. Merci.');
+    } catch (err) { alert('Erreur : ' + (err?.message || err)); }
+  }
+
+  async function blockArtist() {
+    setMenuOpen(false);
+    if (!window.confirm(`Bloquer la page "${artist.name}" ?`)) return;
+    try { await updateDoc(doc(db, 'users', currentUser.uid), { blocked: arrayUnion(artistId) }); alert('Page bloquée.'); navigate('/artists'); }
+    catch (err) { alert('Erreur : ' + (err?.message || err)); }
+  }
+
+  async function reportTrack(t) {
+    setTrackMenu(null);
+    if (!window.confirm('Signaler ce contenu aux administrateurs ?')) return;
+    try {
+      await addDoc(collection(db, 'reports'), {
+        type: 'post', targetId: t.id, targetUid: t.uid || '', targetAuthor: artist.name,
+        reportedBy: currentUser.uid, reportedByName: userProfile?.fullName || '',
+        createdAt: serverTimestamp(), status: 'pending',
+      });
+      alert('Signalement envoyé. Merci.');
+    } catch (err) { alert('Erreur : ' + (err?.message || err)); }
+  }
+
+  async function deleteTrack(t) {
+    setTrackMenu(null);
+    if (!window.confirm(`Supprimer "${t.songTitle || 'ce titre'}" ?`)) return;
+    try { await deleteDoc(doc(db, 'posts', t.id)); }
+    catch (err) { alert('Erreur : ' + (err?.message || err)); }
+  }
+
   async function deleteArtist() {
     if (!window.confirm(`Supprimer définitivement le canal "${artist.name}" ?`)) return;
     try { await deleteDoc(doc(db, 'artists', artistId)); navigate('/artists'); }
@@ -271,12 +313,17 @@ export default function ArtistDetail() {
           <div style={{ position:'relative' }} onClick={e => e.stopPropagation()}>
             <span style={{ display:'flex', alignItems:'center', gap:8 }}>
               <button onClick={() => navigate(`/artists/${artistId}/messages`)} title="Messages" style={{ background:'linear-gradient(150deg,#FFD84D,#D69A00)', border:'none', borderRadius:12, width:42, height:42, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', color:'#fff', boxShadow:'0 4px 10px rgba(214,154,0,.4)' }}><HiPaperAirplane size={22} style={{ transform:'rotate(90deg)' }}/></button>
-              <button onClick={() => setMenuOpen(p=>!p)} style={{ background:'#F0F2F5', border:'none', borderRadius:'50%', width:42, height:42, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center' }}><HiDotsVertical size={20}/></button>
+              <button onClick={() => setMenuOpen(p=>!p)} title={isAdmin ? 'Paramètres' : 'Options'} style={{ background:'#F0F2F5', border:'none', borderRadius:'50%', width:42, height:42, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', color:'#050505' }}>{isAdmin ? <HiCog size={21}/> : <HiDotsVertical size={20}/>}</button>
             </span>
             {menuOpen && (
               <div style={{ position:'absolute', top:'100%', right:0, background:'white', border:'1px solid #E4E6EB', borderRadius:12, boxShadow:'0 4px 20px rgba(0,0,0,.14)', minWidth:180, zIndex:50, overflow:'hidden' }}>
-                {isAdmin && <button onClick={() => { setMenuOpen(false); openEdit(); }} style={{ width:'100%', display:'flex', alignItems:'center', gap:10, padding:'12px 16px', background:'none', border:'none', cursor:'pointer', fontSize:14, color:'#1877F2', borderBottom:'1px solid #F0F2F5' }}><HiPencil size={16}/> Modifier le canal</button>}
-                {isAdmin && <button onClick={() => { setMenuOpen(false); deleteArtist(); }} style={{ width:'100%', display:'flex', alignItems:'center', gap:10, padding:'12px 16px', background:'none', border:'none', cursor:'pointer', fontSize:14, color:'#FF2D8D' }}><HiTrash size={16}/> Supprimer le canal</button>}
+                {isAdmin ? (<>
+                  <button onClick={() => { setMenuOpen(false); openEdit(); }} style={{ width:'100%', display:'flex', alignItems:'center', gap:12, padding:'14px 18px', background:'none', border:'none', cursor:'pointer', fontSize:14.5, fontWeight:600, color:'#050505', borderBottom:'1px solid #F0F2F5' }}><HiPencil size={18} color="#1877F2"/> Modifier la page</button>
+                  <button onClick={() => { setMenuOpen(false); deleteArtist(); }} style={{ width:'100%', display:'flex', alignItems:'center', gap:12, padding:'14px 18px', background:'none', border:'none', cursor:'pointer', fontSize:14.5, fontWeight:600, color:'#FF2D8D' }}><HiTrash size={18}/> Supprimer la page</button>
+                </>) : (<>
+                  <button onClick={reportArtist} style={{ width:'100%', display:'flex', alignItems:'center', gap:12, padding:'14px 18px', background:'none', border:'none', cursor:'pointer', fontSize:14.5, fontWeight:600, color:'#050505', borderBottom:'1px solid #F0F2F5' }}><HiFlag size={18} color="#F2B300"/> Signaler aux admins</button>
+                  <button onClick={blockArtist} style={{ width:'100%', display:'flex', alignItems:'center', gap:12, padding:'14px 18px', background:'none', border:'none', cursor:'pointer', fontSize:14.5, fontWeight:600, color:'#FF2D8D' }}><HiBan size={18}/> Bloquer cette page</button>
+                </>)}
               </div>
             )}
           </div>
@@ -413,7 +460,7 @@ export default function ArtistDetail() {
                   </p>
                 </div>
                 {/* Menu / détails */}
-                <button onClick={e => { e.stopPropagation(); setTrackInfo(t); }} style={{ background:'none', border:'none', cursor:'pointer', color:'#65676B', flexShrink:0 }}><HiDotsVertical size={18}/></button>
+                <button onClick={e => { e.stopPropagation(); setTrackMenu(t); }} style={{ background:'none', border:'none', cursor:'pointer', color:'#65676B', flexShrink:0 }}><HiDotsVertical size={18}/></button>
               </div>
             );
           })}
@@ -421,6 +468,23 @@ export default function ArtistDetail() {
       )}
 
       {/* ── Fiche titre (détails : équipe, art, studio…) ── */}
+      {trackMenu && (
+        <div onClick={() => setTrackMenu(null)} style={{ position:'fixed', inset:0, background:'rgba(0,0,0,.5)', zIndex:300, display:'flex', alignItems:'flex-end', justifyContent:'center' }}>
+          <div onClick={e => e.stopPropagation()} style={{ background:'#fff', borderRadius:'18px 18px 0 0', width:'100%', maxWidth:480, overflow:'hidden' }}>
+            {isAdmin ? (<>
+              <button onClick={() => { const t = trackMenu; setTrackMenu(null); setTrackInfo(t); }} style={{ width:'100%', display:'flex', alignItems:'center', gap:13, padding:'15px 20px', background:'none', border:'none', cursor:'pointer', fontSize:15, fontWeight:600, color:'#050505', borderBottom:'1px solid #F0F2F5' }}><HiPencil size={19} color="#1877F2"/> Modifier</button>
+              <button onClick={() => { downloadMedia(trackMenu.mediaURL, trackMenu.mediaType || 'audio', trackMenu.songTitle || 'titre'); setTrackMenu(null); }} style={{ width:'100%', display:'flex', alignItems:'center', gap:13, padding:'15px 20px', background:'none', border:'none', cursor:'pointer', fontSize:15, fontWeight:600, color:'#050505', borderBottom:'1px solid #F0F2F5' }}><HiDownload size={19} color="#12A48D"/> Télécharger</button>
+              <button onClick={() => { setTrackMenu(null); navigate('/boost'); }} style={{ width:'100%', display:'flex', alignItems:'center', gap:13, padding:'15px 20px', background:'none', border:'none', cursor:'pointer', fontSize:15, fontWeight:600, color:'#050505', borderBottom:'1px solid #F0F2F5' }}><HiLightningBolt size={19} color="#a855f7"/> Booster</button>
+              <button onClick={() => deleteTrack(trackMenu)} style={{ width:'100%', display:'flex', alignItems:'center', gap:13, padding:'15px 20px', background:'none', border:'none', cursor:'pointer', fontSize:15, fontWeight:600, color:'#FF2D8D' }}><HiTrash size={19}/> Supprimer</button>
+            </>) : (<>
+              <button onClick={() => { const t = trackMenu; setTrackMenu(null); setTrackInfo(t); }} style={{ width:'100%', display:'flex', alignItems:'center', gap:13, padding:'15px 20px', background:'none', border:'none', cursor:'pointer', fontSize:15, fontWeight:600, color:'#050505', borderBottom:'1px solid #F0F2F5' }}><HiInformationCircle size={19} color="#1877F2"/> Informations</button>
+              <button onClick={() => { downloadMedia(trackMenu.mediaURL, trackMenu.mediaType || 'audio', trackMenu.songTitle || 'titre'); setTrackMenu(null); }} style={{ width:'100%', display:'flex', alignItems:'center', gap:13, padding:'15px 20px', background:'none', border:'none', cursor:'pointer', fontSize:15, fontWeight:600, color:'#050505', borderBottom:'1px solid #F0F2F5' }}><HiDownload size={19} color="#12A48D"/> Télécharger</button>
+              <button onClick={() => reportTrack(trackMenu)} style={{ width:'100%', display:'flex', alignItems:'center', gap:13, padding:'15px 20px', background:'none', border:'none', cursor:'pointer', fontSize:15, fontWeight:600, color:'#FF2D8D' }}><HiFlag size={19}/> Signaler aux admins</button>
+            </>)}
+          </div>
+        </div>
+      )}
+
       {trackInfo && (
         <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,.5)', zIndex:400, display:'flex', alignItems:'flex-end', justifyContent:'center' }} onClick={() => setTrackInfo(null)}>
           <div onClick={e=>e.stopPropagation()} style={{ background:'white', borderRadius:'20px 20px 0 0', padding:'10px 0 22px', width:'100%', maxWidth:480, maxHeight:'80vh', overflowY:'auto' }}>
