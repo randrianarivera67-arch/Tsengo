@@ -19,6 +19,7 @@ const Settings           = lazy(() => import('./pages/Settings'));
 const Reels              = lazy(() => import('./pages/Reels'));
 const PostDetail         = lazy(() => import('./pages/PostDetail'));
 const ArtistMessages     = lazy(() => import('./pages/ArtistMessages'));
+const ArtistsAll         = lazy(() => import('./pages/ArtistsAll'));
 const LanguageSettings   = lazy(() => import('./pages/LanguageSettings'));
 const SecuritySettings   = lazy(() => import('./pages/SecuritySettings'));
 const AppearanceSettings = lazy(() => import('./pages/AppearanceSettings'));
@@ -74,6 +75,7 @@ function AppRoutes() {
         <Route path="/announcements"  element={<PrivateRoute><Layout><Announcements /></Layout></PrivateRoute>} />
         <Route path="/shop"           element={<PrivateRoute><Layout><Shop /></Layout></PrivateRoute>} />
         <Route path="/artists"        element={<PrivateRoute><Layout><Artists /></Layout></PrivateRoute>} />
+        <Route path="/artists/all/:type" element={<PrivateRoute><Layout><ArtistsAll /></Layout></PrivateRoute>} />
         <Route path="/artists/:artistId" element={<PrivateRoute><Layout><ArtistDetail /></Layout></PrivateRoute>} />
         <Route path="/artists/:artistId/messages" element={<PrivateRoute><ArtistMessages /></PrivateRoute>} />
         <Route path="/artists/:artistId/messages/:visitorUid" element={<PrivateRoute><ArtistMessages /></PrivateRoute>} />

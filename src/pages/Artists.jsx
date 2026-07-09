@@ -132,10 +132,15 @@ export default function Artists() {
   }
 
   const rowStyle = { display: 'flex', gap: 10, overflowX: 'auto', padding: '2px 0 10px', WebkitOverflowScrolling: 'touch' };
-  const secHd = (title, count) => (
+  const secHd = (title, count, type) => (
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 0 8px' }}>
       <span style={{ fontWeight: 800, fontSize: 17, color: '#050505' }}>{title}</span>
-      {count > 3 && <span style={{ color: '#FF2D8D', fontWeight: 700, fontSize: 13, display: 'flex', alignItems: 'center' }}>Voir tout <HiChevronRight size={15} /></span>}
+      {count > 0 && (
+        <button onClick={() => navigate(`/artists/all/${type}`)}
+          style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#FF2D8D', fontWeight: 700, fontSize: 13, display: 'flex', alignItems: 'center', padding: 0 }}>
+          Voir tout <HiChevronRight size={15} />
+        </button>
+      )}
     </div>
   );
 
@@ -192,7 +197,7 @@ export default function Artists() {
       {/* Suggestions d'artistes */}
       {fArtists.length > 0 && (
         <>
-          {secHd(low ? 'Artistes' : "Suggestions d'artistes", fArtists.length)}
+          {secHd(low ? 'Artistes' : "Suggestions d'artistes", fArtists.length, 'artists')}
           <div style={rowStyle}>
             {fArtists.map(a => (
               <div key={a.id} className="card" style={{ flex: '0 0 150px', borderRadius: 14, padding: 12, textAlign: 'center' }}>
@@ -223,7 +228,7 @@ export default function Artists() {
       {/* Musiques pour vous */}
       {fTracks.length > 0 && (
         <>
-          {secHd('Musiques pour vous', fTracks.length)}
+          {secHd('Musiques pour vous', fTracks.length, 'music')}
           <div style={rowStyle}>
             {fTracks.map((t, i) => (
               <TrackCard key={t.id} track={t} index={i} playing={playingId === t.id} onToggle={toggleTrack} onArtist={aid => aid && navigate(`/artists/${aid}`)} />
@@ -235,7 +240,7 @@ export default function Artists() {
       {/* Vidéos / Clips */}
       {fVideos.length > 0 && (
         <>
-          {secHd('Vidéos / Clips / Articles', fVideos.length)}
+          {secHd('Vidéos / Clips / Articles', fVideos.length, 'videos')}
           <div style={{ display: 'grid', gridAutoFlow: 'column', gridTemplateRows: fVideos.length > 1 ? '1fr 1fr' : '1fr', gap: 10, overflowX: 'auto', padding: '2px 0 12px', WebkitOverflowScrolling: 'touch' }}>
             {fVideos.map(v => (
               <div key={v.id} onClick={() => navigate(`/post/${v.id}`)} style={{ width: 230, cursor: 'pointer' }}>
