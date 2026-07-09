@@ -1,14 +1,14 @@
 // src/pages/ArtistMessages.jsx — Messagerie dédiée à une page artiste
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ref, push, onValue, update } from 'firebase/database';
-import { doc, getDoc, addDoc, collection, serverTimestamp } from 'firebase/firestore';
+import { ref, push, onValue, update, remove } from 'firebase/database';
+import { doc, getDoc, addDoc, updateDoc, arrayUnion, collection, serverTimestamp } from 'firebase/firestore';
 import { db, rtdb } from '../firebase';
 import { useAuth } from '../context/AuthContext';
 import { sendPushNotification } from '../utils/onesignal';
 import { uploadToTelegram } from '../utils/telegram';
 import { NeonMic } from '../components/NeonIcons';
-import { HiArrowLeft, HiPaperAirplane, HiChevronRight, HiPhotograph, HiX } from 'react-icons/hi';
+import { HiArrowLeft, HiPaperAirplane, HiChevronRight, HiPhotograph, HiVideoCamera, HiPaperClip, HiMicrophone, HiDotsVertical, HiBan, HiTrash, HiCollection, HiX } from 'react-icons/hi';
 
 const fmtTime = ts => ts ? new Date(ts).getHours() + ':' + String(new Date(ts).getMinutes()).padStart(2, '0') : '';
 
@@ -23,11 +23,20 @@ export default function ArtistMessages() {
   const [text, setText] = useState('');
   const [file, setFile] = useState(null);
   const [sending, setSending] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [mediaOpen, setMediaOpen] = useState(false);
+  const [online, setOnline] = useState(false);
+  const [recording, setRecording] = useState(false);
+
   const bottomRef = useRef(null);
+  const photoRef = useRef(null);
+  const videoRef = useRef(null);
   const fileRef = useRef(null);
+  const recRef = useRef(null);
 
   const isAdmin = !!artist?.admins?.includes(currentUser?.uid);
   const activeVisitor = isAdmin ? paramVisitor : currentUser?.uid;
+  const conv = convs.find(c => c.uid === paramVisitor);
 
   useEffect(() => { getDoc(doc(db, 'artists', artistId)).then(s => s.exists() && setArtist({ id: s.id, ...s.data() })); }, [artistId]);
 
@@ -41,6 +50,11 @@ export default function ArtistMessages() {
       }).sort((a, b) => (b.last?.ts || 0) - (a.last?.ts || 0)));
     });
   }, [artist, isAdmin, artistId, currentUser]);
+
+  useEffect(() => {
+    if (!isAdmin || !paramVisitor) return;
+    return onValue(ref(rtdb, `online/${paramVisitor}`), s => setOnline(!!s.val()));
+  }, [isAdmin, paramVisitor]);
 
   useEffect(() => {
     if (!activeVisitor || !artist) return;
@@ -59,6 +73,31 @@ export default function ArtistMessages() {
     });
   }, [activeVisitor, artist, artistId, isAdmin, currentUser]);
 
+  async function sendPayload(mediaURL = '', mediaType = '', body = '') {
+    const base = `artistConversations/${artistId}/${activeVisitor}`;
+    await push(ref(rtdb, `${base}/messages`), {
+      fromUid: currentUser.uid, fromArtist: isAdmin,
+      fromName: isAdmin ? artist.name : (userProfile?.fullName || 'Utilisateur'),
+      fromPhoto: isAdmin ? (artist.photoURL || '') : (userProfile?.photoURL || ''),
+      text: body, mediaURL, mediaType, ts: Date.now(),
+      readByAdmin: isAdmin, readByVisitor: !isAdmin,
+    });
+    const label = body || (mediaType === 'video' ? '🎬 Vidéo' : mediaType === 'audio' ? '🎤 Vocal' : '📎 Média');
+    const meta = { lastMessage: label, lastTs: Date.now() };
+    if (!isAdmin) { meta.visitorName = userProfile?.fullName || ''; meta.visitorPhoto = userProfile?.photoURL || ''; }
+    await update(ref(rtdb, `${base}/meta`), meta);
+
+    if (isAdmin) {
+      addDoc(collection(db, 'notifications'), { toUid: activeVisitor, fromUid: currentUser.uid, fromName: artist.name, fromPhoto: artist.photoURL || '', type: 'artistMessage', artistId, visitorUid: activeVisitor, message: `${artist.name} vous a répondu : ${label.slice(0, 60)}`, read: false, createdAt: serverTimestamp() }).catch(() => {});
+      sendPushNotification({ toExternalId: activeVisitor, title: `${artist.name} 📩`, message: label.slice(0, 80), fromPhoto: artist.photoURL || '', data: { type: 'artistMessage', artistId, visitorUid: activeVisitor } });
+    } else {
+      (artist.admins || []).forEach(a => {
+        addDoc(collection(db, 'notifications'), { toUid: a, fromUid: currentUser.uid, fromName: userProfile?.fullName || 'Utilisateur', fromPhoto: userProfile?.photoURL || '', type: 'artistMessage', artistId, visitorUid: currentUser.uid, message: `${userProfile?.fullName || 'Quelqu\'un'} veut vous envoyer un message sur ${artist.name}`, read: false, createdAt: serverTimestamp() }).catch(() => {});
+        sendPushNotification({ toExternalId: a, title: `${artist.name} 📩`, message: `${userProfile?.fullName || 'Quelqu\'un'} : ${label.slice(0, 60)}`, fromPhoto: userProfile?.photoURL || '', data: { type: 'artistMessage', artistId, visitorUid: currentUser.uid } });
+      });
+    }
+  }
+
   async function send() {
     if ((!text.trim() && !file) || !activeVisitor || sending) return;
     setSending(true);
@@ -68,67 +107,63 @@ export default function ArtistMessages() {
     try {
       let mediaURL = '', mediaType = '';
       if (f) { const r = await uploadToTelegram(f); mediaURL = r.url; mediaType = r.type; }
-      const base = `artistConversations/${artistId}/${activeVisitor}`;
-      await push(ref(rtdb, `${base}/messages`), {
-        fromUid: currentUser.uid, fromArtist: isAdmin,
-        fromName: isAdmin ? artist.name : (userProfile?.fullName || 'Utilisateur'),
-        fromPhoto: isAdmin ? (artist.photoURL || '') : (userProfile?.photoURL || ''),
-        text: body, mediaURL, mediaType, ts: Date.now(),
-        readByAdmin: isAdmin, readByVisitor: !isAdmin,
-      });
-      const meta = { lastMessage: body || (mediaType === 'video' ? '🎬 Vidéo' : '📎 Média'), lastTs: Date.now() };
-      if (!isAdmin) { meta.visitorName = userProfile?.fullName || ''; meta.visitorPhoto = userProfile?.photoURL || ''; }
-      await update(ref(rtdb, `${base}/meta`), meta);
-
-      const preview = body || (mediaType === 'video' ? 'a envoyé une vidéo' : 'a envoyé un fichier');
-      if (isAdmin) {
-        addDoc(collection(db, 'notifications'), {
-          toUid: activeVisitor, fromUid: currentUser.uid, fromName: artist.name, fromPhoto: artist.photoURL || '',
-          type: 'artistMessage', artistId, visitorUid: activeVisitor,
-          message: `${artist.name} vous a répondu : ${preview.slice(0, 60)}`, read: false, createdAt: serverTimestamp(),
-        }).catch(() => {});
-        sendPushNotification({ toExternalId: activeVisitor, title: `${artist.name} 📩`, message: preview.slice(0, 80), fromPhoto: artist.photoURL || '', data: { type: 'artistMessage', artistId, visitorUid: activeVisitor } });
-      } else {
-        (artist.admins || []).forEach(adminUid => {
-          addDoc(collection(db, 'notifications'), {
-            toUid: adminUid, fromUid: currentUser.uid, fromName: userProfile?.fullName || 'Utilisateur', fromPhoto: userProfile?.photoURL || '',
-            type: 'artistMessage', artistId, visitorUid: currentUser.uid,
-            message: `${userProfile?.fullName || 'Quelqu\'un'} veut vous envoyer un message sur ${artist.name}`, read: false, createdAt: serverTimestamp(),
-          }).catch(() => {});
-          sendPushNotification({ toExternalId: adminUid, title: `${artist.name} 📩`, message: `${userProfile?.fullName || 'Quelqu\'un'} : ${preview.slice(0, 60)}`, fromPhoto: userProfile?.photoURL || '', data: { type: 'artistMessage', artistId, visitorUid: currentUser.uid } });
-        });
-      }
+      await sendPayload(mediaURL, mediaType, body);
     } catch (e) { alert('Erreur : ' + (e?.message || e)); }
     setSending(false);
   }
 
-  if (!artist) return <div style={{ padding: 30, textAlign: 'center', color: '#65676B' }}>Chargement…</div>;
+  async function toggleRecord() {
+    if (recording) { recRef.current?.stop(); return; }
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mr = new MediaRecorder(stream);
+      const chunks = [];
+      mr.ondataavailable = e => chunks.push(e.data);
+      mr.onstop = async () => {
+        stream.getTracks().forEach(t => t.stop());
+        setRecording(false);
+        try {
+          const blob = new Blob(chunks, { type: 'audio/webm' });
+          const f = new File([blob], 'vocal.webm', { type: 'audio/webm' });
+          const r = await uploadToTelegram(f);
+          await sendPayload(r.url, 'audio', '');
+        } catch (e) { alert('Erreur vocal : ' + (e?.message || e)); }
+      };
+      recRef.current = mr; mr.start(); setRecording(true);
+    } catch { alert('Micro non autorisé'); }
+  }
 
-  const headerBar = (title, sub, onBack, onProfile) => (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px', borderBottom: '1px solid #E4E6EB', background: '#fff', position: 'sticky', top: 0, zIndex: 10 }}>
-      <button onClick={onBack} style={{ background: '#F0F2F5', border: 'none', borderRadius: '50%', width: 36, height: 36, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><HiArrowLeft size={19} /></button>
-      <div onClick={onProfile} style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: onProfile ? 'pointer' : 'default', flex: 1, minWidth: 0 }}>
-        <div style={{ width: 40, height: 40, borderRadius: '50%', overflow: 'hidden', background: 'linear-gradient(145deg,#FF6FA5,#FF2D8D)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-          {artist.photoURL ? <img src={artist.photoURL} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <NeonMic size={18} color="white" />}
-        </div>
-        <div style={{ minWidth: 0 }}>
-          <div style={{ fontWeight: 800, fontSize: 15.5, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{title}</div>
-          <div style={{ fontSize: 11.5, color: '#65676B' }}>{sub}</div>
-        </div>
-      </div>
-    </div>
-  );
+  async function blockOther() {
+    setMenuOpen(false);
+    const target = isAdmin ? paramVisitor : artistId;
+    if (!confirm(isAdmin ? 'Bloquer cette personne ?' : 'Bloquer cette page ?')) return;
+    try { await updateDoc(doc(db, 'users', currentUser.uid), { blocked: arrayUnion(target) }); alert('Bloqué'); } catch (e) { alert('Erreur : ' + (e?.message || e)); }
+  }
+
+  async function deleteConv() {
+    setMenuOpen(false);
+    if (!confirm('Supprimer cette conversation ?')) return;
+    try { await remove(ref(rtdb, `artistConversations/${artistId}/${activeVisitor}`)); navigate(isAdmin ? `/artists/${artistId}/messages` : `/artists/${artistId}`); } catch (e) { alert('Erreur : ' + (e?.message || e)); }
+  }
+
+  if (!artist) return <div style={{ padding: 30, textAlign: 'center', color: '#65676B' }}>Chargement…</div>;
 
   if (isAdmin && !paramVisitor) {
     return (
       <div style={{ minHeight: '100vh', background: '#fff' }}>
-        {headerBar(artist.name, 'Messages de la page', () => navigate(`/artists/${artistId}`), () => navigate(`/artists/${artistId}`))}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: 12, borderBottom: '1px solid #E4E6EB', position: 'sticky', top: 0, background: '#fff', zIndex: 10 }}>
+          <button onClick={() => navigate(`/artists/${artistId}`)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#1877F2' }}><HiArrowLeft size={22} /></button>
+          <div style={{ width: 40, height: 40, borderRadius: '50%', overflow: 'hidden', background: 'linear-gradient(145deg,#FF6FA5,#FF2D8D)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            {artist.photoURL ? <img src={artist.photoURL} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <NeonMic size={18} color="white" />}
+          </div>
+          <div><div style={{ fontWeight: 800, fontSize: 16 }}>{artist.name}</div><div style={{ fontSize: 11.5, color: '#65676B' }}>Messages de la page</div></div>
+        </div>
         {convs.length === 0 && <div style={{ padding: 40, textAlign: 'center', color: '#65676B', fontSize: 14 }}>Aucun message pour le moment</div>}
         {convs.map(c => (
           <div key={c.uid} onClick={() => navigate(`/artists/${artistId}/messages/${c.uid}`)} style={{ display: 'flex', alignItems: 'center', gap: 11, padding: '12px 14px', borderBottom: '1px solid #F0F2F5', cursor: 'pointer' }}>
-            <img src={c.meta.visitorPhoto || `https://ui-avatars.com/api/?name=${encodeURIComponent(c.meta.visitorName || 'U')}&background=1877F2&color=fff`} alt="" style={{ width: 46, height: 46, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} />
+            <img src={c.meta.visitorPhoto || `https://ui-avatars.com/api/?name=${encodeURIComponent(c.meta.visitorName || 'U')}&background=1877F2&color=fff`} alt="" style={{ width: 48, height: 48, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} />
             <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontWeight: c.unread ? 800 : 600, fontSize: 14.5, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.meta.visitorName || 'Utilisateur'}</div>
+              <div style={{ fontWeight: c.unread ? 800 : 600, fontSize: 15, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.meta.visitorName || 'Utilisateur'}</div>
               <div style={{ fontSize: 12.5, color: c.unread ? '#050505' : '#65676B', fontWeight: c.unread ? 700 : 400, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.meta.lastMessage || ''}</div>
             </div>
             {c.unread > 0 && <span style={{ background: '#FF2D8D', color: '#fff', fontSize: 11, fontWeight: 700, borderRadius: 10, minWidth: 20, height: 20, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 5px' }}>{c.unread > 9 ? '9+' : c.unread}</span>}
@@ -139,26 +174,57 @@ export default function ArtistMessages() {
     );
   }
 
-  const convTitle = isAdmin ? (convs.find(c => c.uid === paramVisitor)?.meta.visitorName || 'Utilisateur') : artist.name;
-  const onProfile = isAdmin ? () => navigate(`/profile/${paramVisitor}`) : () => navigate(`/artists/${artistId}`);
+  const otherName = isAdmin ? (conv?.meta.visitorName || 'Utilisateur') : artist.name;
+  const otherPhoto = isAdmin ? conv?.meta.visitorPhoto : artist.photoURL;
+  const otherSub = isAdmin ? (online ? 'En ligne' : 'Hors ligne') : 'Page artiste';
+  const onProfile = () => isAdmin ? navigate(`/profile/${paramVisitor}`) : navigate(`/artists/${artistId}`);
+  const medias = msgs.filter(m => m.mediaURL);
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', background: '#fff' }}>
-      {headerBar(convTitle, isAdmin ? `via ${artist.name}` : 'Page artiste', () => isAdmin ? navigate(`/artists/${artistId}/messages`) : navigate(`/artists/${artistId}`), onProfile)}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderBottom: '1px solid #E4E6EB', background: '#fff', position: 'sticky', top: 0, zIndex: 20 }}>
+        <button onClick={() => isAdmin ? navigate(`/artists/${artistId}/messages`) : navigate(`/artists/${artistId}`)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#1877F2', display: 'flex' }}><HiArrowLeft size={24} /></button>
+        <div onClick={onProfile} style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', flex: 1, minWidth: 0 }}>
+          <div style={{ position: 'relative', flexShrink: 0 }}>
+            <img src={otherPhoto || `https://ui-avatars.com/api/?name=${encodeURIComponent(otherName)}&background=1877F2&color=fff`} alt="" style={{ width: 44, height: 44, borderRadius: '50%', objectFit: 'cover' }} />
+            {isAdmin && <span style={{ position: 'absolute', bottom: 1, right: 1, width: 11, height: 11, borderRadius: '50%', background: online ? '#31A24C' : '#BCC0C4', border: '2px solid #fff' }} />}
+          </div>
+          <div style={{ minWidth: 0 }}>
+            <div style={{ fontWeight: 800, fontSize: 16.5, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{otherName}</div>
+            <div style={{ fontSize: 12, color: '#65676B' }}>{otherSub}</div>
+          </div>
+        </div>
+        <button onClick={() => setMenuOpen(o => !o)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#65676B', display: 'flex' }}><HiDotsVertical size={22} /></button>
+        {menuOpen && (
+          <>
+            <div onClick={() => setMenuOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 25 }} />
+            <div style={{ position: 'absolute', top: 56, right: 8, zIndex: 30, background: '#fff', borderRadius: 14, boxShadow: '0 8px 28px rgba(0,0,0,.2)', overflow: 'hidden', minWidth: 230 }}>
+              <button onClick={() => { setMenuOpen(false); setMediaOpen(true); }} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 13, padding: '15px 18px', background: 'none', border: 'none', cursor: 'pointer', fontSize: 15, fontWeight: 600, borderBottom: '1px solid #F0F2F5' }}><HiCollection size={20} color="#1877F2" /> Médias partagés</button>
+              <button onClick={blockOther} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 13, padding: '15px 18px', background: 'none', border: 'none', cursor: 'pointer', fontSize: 15, fontWeight: 600, color: '#FF2D8D', borderBottom: '1px solid #F0F2F5' }}><HiBan size={20} /> {isAdmin ? 'Bloquer cette personne' : 'Bloquer cette page'}</button>
+              <button onClick={deleteConv} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 13, padding: '15px 18px', background: 'none', border: 'none', cursor: 'pointer', fontSize: 15, fontWeight: 600, color: '#E41E3F' }}><HiTrash size={20} /> Supprimer</button>
+            </div>
+          </>
+        )}
+      </div>
 
-      <div style={{ flex: 1, overflowY: 'auto', padding: '14px 12px', background: '#F7F8FA' }}>
+      <div style={{ flex: 1, overflowY: 'auto', padding: '14px 10px', background: '#fff' }}>
         {msgs.length === 0 && <div style={{ textAlign: 'center', color: '#65676B', fontSize: 13.5, marginTop: 30 }}>{isAdmin ? 'Aucun message' : `Envoyez un message à ${artist.name}`}</div>}
         {msgs.map(m => {
           const mine = m.fromUid === currentUser.uid;
+          const seen = mine && (isAdmin ? m.readByVisitor : m.readByAdmin);
           return (
-            <div key={m.id} style={{ display: 'flex', justifyContent: mine ? 'flex-end' : 'flex-start', marginBottom: 8 }}>
-              <div style={{ maxWidth: '76%', background: mine ? 'linear-gradient(145deg,#FF6FA5,#FF2D8D)' : '#fff', color: mine ? '#fff' : '#050505', padding: m.mediaURL ? 5 : '9px 13px', borderRadius: mine ? '16px 16px 4px 16px' : '16px 16px 16px 4px', boxShadow: '0 1px 2px rgba(0,0,0,.08)' }}>
-                {!mine && !m.mediaURL && <div style={{ fontSize: 11, fontWeight: 700, color: '#FF2D8D', marginBottom: 2 }}>{m.fromName}</div>}
-                {m.mediaURL && (m.mediaType === 'video'
-                  ? <video src={m.mediaURL} controls style={{ width: 220, borderRadius: 12, display: 'block' }} />
-                  : <img src={m.mediaURL} alt="" style={{ width: 220, borderRadius: 12, display: 'block' }} />)}
-                {m.text && <div style={{ fontSize: 14.5, lineHeight: 1.35, wordBreak: 'break-word', padding: m.mediaURL ? '6px 8px 0' : 0 }}>{m.text}</div>}
-                <div style={{ fontSize: 10, opacity: .7, textAlign: 'right', marginTop: 3, padding: m.mediaURL ? '0 8px 4px' : 0 }}>{fmtTime(m.ts)}</div>
+            <div key={m.id} style={{ display: 'flex', alignItems: 'flex-end', gap: 7, justifyContent: mine ? 'flex-end' : 'flex-start', marginBottom: 10 }}>
+              {!mine && <img src={m.fromPhoto || `https://ui-avatars.com/api/?name=${encodeURIComponent(m.fromName || 'U')}&background=1877F2&color=fff`} alt="" style={{ width: 30, height: 30, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} />}
+              <div style={{ maxWidth: '74%' }}>
+                <div style={{ background: mine ? '#1877F2' : '#F0F2F5', color: mine ? '#fff' : '#050505', padding: m.mediaURL ? 4 : '10px 14px', borderRadius: 18, overflow: 'hidden' }}>
+                  {m.mediaType === 'video' && <video src={m.mediaURL} controls style={{ width: 230, borderRadius: 14, display: 'block' }} />}
+                  {m.mediaType === 'audio' && <audio src={m.mediaURL} controls style={{ width: 230, display: 'block' }} />}
+                  {m.mediaURL && m.mediaType !== 'video' && m.mediaType !== 'audio' && <img src={m.mediaURL} alt="" style={{ width: 230, borderRadius: 14, display: 'block' }} />}
+                  {m.text && <div style={{ fontSize: 15, lineHeight: 1.35, wordBreak: 'break-word', padding: m.mediaURL ? '7px 9px 3px' : 0 }}>{m.text}</div>}
+                </div>
+                <div style={{ fontSize: 10.5, color: '#65676B', marginTop: 3, textAlign: mine ? 'right' : 'left', paddingInline: 4 }}>
+                  {fmtTime(m.ts)}{seen && <span style={{ color: '#1877F2', fontWeight: 700 }}> · ✓✓ Vu</span>}
+                </div>
               </div>
             </div>
           );
@@ -173,16 +239,40 @@ export default function ArtistMessages() {
         </div>
       )}
 
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 12px', borderTop: '1px solid #E4E6EB', background: '#fff' }}>
-        <input ref={fileRef} type="file" accept="image/*,video/*" onChange={e => e.target.files[0] && setFile(e.target.files[0])} style={{ display: 'none' }} />
-        <button onClick={() => fileRef.current?.click()} style={{ background: '#F0F2F5', border: 'none', borderRadius: '50%', width: 40, height: 40, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#1877F2', flexShrink: 0 }}><HiPhotograph size={20} /></button>
-        <input value={text} onChange={e => setText(e.target.value)} onKeyDown={e => e.key === 'Enter' && !e.shiftKey && send()} placeholder="Écrire un message…"
-          style={{ flex: 1, border: '1px solid #E4E6EB', borderRadius: 22, padding: '11px 16px', fontSize: 14.5, outline: 'none' }} />
+      <div style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '9px 10px', borderTop: '1px solid #E4E6EB', background: '#fff' }}>
+        <input ref={photoRef} type="file" accept="image/*" onChange={e => e.target.files[0] && setFile(e.target.files[0])} style={{ display: 'none' }} />
+        <input ref={videoRef} type="file" accept="video/*" onChange={e => e.target.files[0] && setFile(e.target.files[0])} style={{ display: 'none' }} />
+        <input ref={fileRef} type="file" onChange={e => e.target.files[0] && setFile(e.target.files[0])} style={{ display: 'none' }} />
+        <button onClick={() => photoRef.current?.click()} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#050505', padding: 5, display: 'flex' }}><HiPhotograph size={23} /></button>
+        <button onClick={() => videoRef.current?.click()} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#050505', padding: 5, display: 'flex' }}><HiVideoCamera size={23} /></button>
+        <button onClick={() => fileRef.current?.click()} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#050505', padding: 5, display: 'flex' }}><HiPaperClip size={22} /></button>
+        <button onClick={toggleRecord} style={{ background: recording ? '#FFE3EF' : 'none', border: 'none', borderRadius: '50%', cursor: 'pointer', color: recording ? '#FF2D8D' : '#050505', padding: 5, display: 'flex' }}><HiMicrophone size={22} /></button>
+        <input value={text} onChange={e => setText(e.target.value)} onKeyDown={e => e.key === 'Enter' && !e.shiftKey && send()} placeholder="Écrivez un message…"
+          style={{ flex: 1, border: 'none', background: '#F0F2F5', borderRadius: 22, padding: '11px 16px', fontSize: 15, outline: 'none', minWidth: 0 }} />
         <button onClick={send} disabled={(!text.trim() && !file) || sending}
-          style={{ background: (text.trim() || file) ? 'linear-gradient(145deg,#FF6FA5,#FF2D8D)' : '#E4E6EB', border: 'none', borderRadius: '50%', width: 42, height: 42, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: (text.trim() || file) ? 'pointer' : 'default', color: '#fff', flexShrink: 0 }}>
-          <HiPaperAirplane size={19} style={{ transform: 'rotate(90deg)' }} />
+          style={{ background: (text.trim() || file) ? '#FF2D8D' : '#F7C4DC', border: 'none', borderRadius: '50%', width: 44, height: 44, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#fff', flexShrink: 0 }}>
+          <HiPaperAirplane size={20} style={{ transform: 'rotate(90deg)' }} />
         </button>
       </div>
+
+      {mediaOpen && (
+        <div onClick={() => setMediaOpen(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.6)', zIndex: 300, display: 'flex', alignItems: 'flex-end' }}>
+          <div onClick={e => e.stopPropagation()} style={{ background: '#fff', borderRadius: '18px 18px 0 0', width: '100%', maxHeight: '75vh', overflowY: 'auto', padding: '16px 16px 26px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+              <span style={{ fontWeight: 800, fontSize: 17 }}>Médias partagés</span>
+              <button onClick={() => setMediaOpen(false)} style={{ background: '#F0F2F5', border: 'none', borderRadius: '50%', width: 34, height: 34, cursor: 'pointer' }}><HiX size={18} /></button>
+            </div>
+            {medias.length === 0 ? <p style={{ color: '#65676B', fontSize: 14, textAlign: 'center', padding: 20 }}>Aucun média</p>
+              : <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 6 }}>
+                  {medias.map(m => <div key={m.id} style={{ aspectRatio: '1', borderRadius: 10, overflow: 'hidden', background: '#F0F2F5' }}>
+                    {m.mediaType === 'video' ? <video src={m.mediaURL} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                      : m.mediaType === 'audio' ? <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}><HiMicrophone size={26} color="#FF2D8D" /></div>
+                      : <img src={m.mediaURL} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />}
+                  </div>)}
+                </div>}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
