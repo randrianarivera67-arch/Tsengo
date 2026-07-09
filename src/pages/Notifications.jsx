@@ -44,6 +44,9 @@ export default function Notifications() {
       case 'message':
         navigate(notif.conversationId?`/messages/${notif.conversationId}`:notif.fromUid?`/messages/${getChatId(currentUser.uid,notif.fromUid)}`:'/messages');
         break;
+      case 'artistMessage':
+        navigate(notif.artistId ? `/artists/${notif.artistId}/messages` + (notif.visitorUid && notif.fromUid !== currentUser.uid ? `/${notif.visitorUid}` : '') : '/');
+        break;
       case 'comment': case 'reaction': case 'post': case 'boost':
         navigate(notif.postId?`/post/${notif.postId}`:'/');
         break;

@@ -13,7 +13,7 @@ import { timeAgo } from '../utils/timeAgo';
 import { NeonMic, NeonGlobe, NeonPhone, NeonLocation } from '../components/NeonIcons';
 import FollowListModal from '../components/FollowListModal';
 import {
-  HiCamera, HiArrowLeft, HiPencil, HiX, HiTrash, HiDotsVertical,
+  HiCamera, HiArrowLeft, HiPencil, HiX, HiTrash, HiDotsVertical, HiChatAlt2,
   HiMusicNote, HiVideoCamera, HiPhotograph
 } from 'react-icons/hi';
 
@@ -269,6 +269,7 @@ export default function ArtistDetail() {
             </p>
           </div>
           <div style={{ position:'relative' }} onClick={e => e.stopPropagation()}>
+            <button onClick={() => navigate(`/artists/${artistId}/messages`)} title="Messages" style={{ background:'#F0F2F5', border:'none', borderRadius:'50%', width:34, height:34, cursor:'pointer', marginRight:6, display:'inline-flex', alignItems:'center', justifyContent:'center', color:'#1877F2' }}><HiChatAlt2 size={17}/></button>
             <button onClick={() => setMenuOpen(p=>!p)} style={{ background:'#F0F2F5', border:'none', borderRadius:'50%', width:34, height:34, cursor:'pointer' }}><HiDotsVertical size={17}/></button>
             {menuOpen && (
               <div style={{ position:'absolute', top:'100%', right:0, background:'white', border:'1px solid #E4E6EB', borderRadius:12, boxShadow:'0 4px 20px rgba(0,0,0,.14)', minWidth:180, zIndex:50, overflow:'hidden' }}>
