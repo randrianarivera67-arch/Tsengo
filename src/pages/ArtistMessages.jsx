@@ -8,7 +8,7 @@ import { useAuth } from '../context/AuthContext';
 import { sendPushNotification } from '../utils/onesignal';
 import { uploadToTelegram } from '../utils/telegram';
 import { NeonMic } from '../components/NeonIcons';
-import { HiArrowLeft, HiPaperAirplane, HiChevronRight, HiPhotograph, HiVideoCamera, HiPaperClip, HiMicrophone, HiDotsVertical, HiBan, HiTrash, HiCollection, HiX } from 'react-icons/hi';
+import { HiArrowLeft, HiPaperAirplane, HiChevronRight, HiPhotograph, HiVideoCamera, HiPaperClip, HiMicrophone, HiDotsVertical, HiBan, HiTrash, HiCollection, HiX, HiSearch } from 'react-icons/hi';
 
 const REACT_EMOJIS = ['❤️', '😂', '😮', '😢', '😡', '👍'];
 
@@ -29,7 +29,8 @@ export default function ArtistMessages() {
   const [mediaOpen, setMediaOpen] = useState(false);
   const [online, setOnline] = useState(false);
   const [recording, setRecording] = useState(false);
-  const [reactFor, setReactFor] = useState(null);   // msgId dont on choisit la réaction
+  const [reactFor, setReactFor] = useState(null);
+  const [convQ, setConvQ] = useState('');   // recherche de personnes   // msgId dont on choisit la réaction
 
   const bottomRef = useRef(null);
   const photoRef = useRef(null);
@@ -169,8 +170,16 @@ export default function ArtistMessages() {
           </div>
           <div><div style={{ fontWeight: 800, fontSize: 16 }}>{artist.name}</div><div style={{ fontSize: 11.5, color: '#65676B' }}>Messages de la page</div></div>
         </div>
+        <div style={{ padding: '10px 12px 6px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: '#F0F2F5', borderRadius: 22, padding: '9px 14px' }}>
+            <HiSearch size={17} color="#65676B" />
+            <input value={convQ} onChange={e => setConvQ(e.target.value)} placeholder="Rechercher une personne…"
+              style={{ flex: 1, border: 'none', outline: 'none', fontSize: 14, background: 'transparent', color: '#050505', minWidth: 0 }} />
+            {convQ && <button onClick={() => setConvQ('')} style={{ background: '#fff', border: 'none', borderRadius: '50%', width: 22, height: 22, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#65676B', flexShrink: 0 }}><HiX size={13} /></button>}
+          </div>
+        </div>
         {convs.length === 0 && <div style={{ padding: 40, textAlign: 'center', color: '#65676B', fontSize: 14 }}>Aucun message pour le moment</div>}
-        {convs.map(c => (
+        {convs.filter(c => !convQ.trim() || (c.meta.visitorName || '').toLowerCase().includes(convQ.trim().toLowerCase())).map(c => (
           <div key={c.uid} onClick={() => navigate(`/artists/${artistId}/messages/${c.uid}`)} style={{ display: 'flex', alignItems: 'center', gap: 11, padding: '12px 14px', borderBottom: '1px solid #F0F2F5', cursor: 'pointer' }}>
             <img src={c.meta.visitorPhoto || `https://ui-avatars.com/api/?name=${encodeURIComponent(c.meta.visitorName || 'U')}&background=1877F2&color=fff`} alt="" style={{ width: 48, height: 48, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} />
             <div style={{ flex: 1, minWidth: 0 }}>
@@ -227,6 +236,14 @@ export default function ArtistMessages() {
             <div key={m.id} style={{ display: 'flex', alignItems: 'flex-end', gap: 7, justifyContent: mine ? 'flex-end' : 'flex-start', marginBottom: 10 }}>
               {!mine && <img src={m.fromPhoto || `https://ui-avatars.com/api/?name=${encodeURIComponent(m.fromName || 'U')}&background=1877F2&color=fff`} alt="" style={{ width: 30, height: 30, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} />}
               <div style={{ maxWidth: '74%' }}>
+                {m.reactions && Object.keys(m.reactions).length > 0 && (
+                  <div style={{ display: 'flex', marginBottom: 3, justifyContent: mine ? 'flex-end' : 'flex-start' }}>
+                    <span style={{ background: '#fff', border: '1px solid #E4E6EB', borderRadius: 12, padding: '2px 7px', fontSize: 13, boxShadow: '0 1px 4px rgba(0,0,0,.14)', lineHeight: 1.2 }}>
+                      {[...new Set(Object.values(m.reactions))].join(' ')}
+                      {Object.keys(m.reactions).length > 1 && <span style={{ fontSize: 10.5, color: '#65676B', marginLeft: 3, fontWeight: 700 }}>{Object.keys(m.reactions).length}</span>}
+                    </span>
+                  </div>
+                )}
                 <div
                   onDoubleClick={() => setReactFor(m.id)}
                   onContextMenu={e => { e.preventDefault(); setReactFor(m.id); }}
@@ -239,14 +256,6 @@ export default function ArtistMessages() {
                   {m.mediaURL && m.mediaType !== 'video' && m.mediaType !== 'audio' && <img src={m.mediaURL} alt="" style={{ width: 230, borderRadius: 14, display: 'block' }} />}
                   {m.text && <div style={{ fontSize: 15, lineHeight: 1.35, wordBreak: 'break-word', padding: m.mediaURL ? '7px 9px 3px' : 0 }}>{m.text}</div>}
                 </div>
-                {m.reactions && Object.keys(m.reactions).length > 0 && (
-                  <div style={{ display: 'flex', gap: 3, marginTop: -8, marginLeft: mine ? 0 : 8, marginRight: mine ? 8 : 0, justifyContent: mine ? 'flex-end' : 'flex-start' }}>
-                    <span style={{ background: '#fff', border: '1px solid #E4E6EB', borderRadius: 12, padding: '1px 6px', fontSize: 13, boxShadow: '0 1px 3px rgba(0,0,0,.12)' }}>
-                      {[...new Set(Object.values(m.reactions))].join(' ')}
-                      {Object.keys(m.reactions).length > 1 && <span style={{ fontSize: 10.5, color: '#65676B', marginLeft: 3 }}>{Object.keys(m.reactions).length}</span>}
-                    </span>
-                  </div>
-                )}
                 <div style={{ fontSize: 10.5, color: '#65676B', marginTop: 3, textAlign: mine ? 'right' : 'left', paddingInline: 4 }}>
                   {fmtTime(m.ts)}{seen && <span style={{ color: '#1877F2', fontWeight: 700 }}> · ✓✓ Vu</span>}
                 </div>
