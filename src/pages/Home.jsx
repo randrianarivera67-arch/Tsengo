@@ -29,7 +29,7 @@ import {
   HiPhotograph, HiVideoCamera, HiTag, HiOutlineHeart, HiChat,
   HiTrash, HiPencil, HiX, HiShare, HiFilm, HiOutlineChat,
   HiDotsVertical, HiDownload, HiLightningBolt, HiPhone, HiLocationMarker,
-  HiReply, HiUserAdd, HiUserGroup, HiBookmark, HiFlag, HiBan, HiPaperAirplane, HiIdentification, HiShoppingBag, HiCalendar, HiClipboardCopy, HiInformationCircle
+  HiReply, HiUserAdd, HiUserGroup, HiBookmark, HiFlag, HiBan, HiPaperAirplane, HiIdentification, HiShoppingBag, HiCalendar, HiClipboardCopy, HiInformationCircle, HiCheck
 } from 'react-icons/hi';
 
 const MAX_POST    = 2000;
@@ -109,7 +109,7 @@ function waveBars(seed, n = 56) {
 
 const MUSIC_GRADS = [['#FF6FA5', '#FF2D8D'], ['#A66BFF', '#7A2DFF'], ['#3DBEFF', '#1877F2']];
 
-function MusicCard({ track, index, playing, onToggle, onArtist, onSave, onBlock, isSaved, isBlocked }) {
+function MusicCard({ track, index, playing, onToggle, onArtist, onSave, onBlock, isSaved, isBlocked, onFollow, onMessage, isFollowing }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [infoOpen, setInfoOpen] = useState(false);
   const [dur, setDur] = useState('');
@@ -133,19 +133,28 @@ function MusicCard({ track, index, playing, onToggle, onArtist, onSave, onBlock,
           {track.artistPhoto ? <img src={track.artistPhoto} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <span style={{ color: '#fff', fontWeight: 800, fontSize: 14 }}>{(track.artistName || '?')[0]}</span>}
         </div>
         <button onClick={() => setMenuOpen(true)} style={{ position: 'absolute', top: 8, right: 8, zIndex: 4, background: 'rgba(0,0,0,.35)', border: 'none', borderRadius: '50%', width: 26, height: 26, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', cursor: 'pointer' }}><HiDotsVertical size={16} /></button>
-        <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 2, padding: '0 10px' }}>
-          {bars.current.map((h, i) => (<div key={i} style={{ width: 3, height: h, borderRadius: 3, background: i / bars.current.length < 0.5 ? grad[0] : grad[1], opacity: playing ? 0.9 : 0.6 }} />))}
+        {track.thumbURL && <div style={{ position: 'absolute', inset: 0, backgroundImage: 'url(' + track.thumbURL + ')', backgroundSize: 'cover', backgroundPosition: 'center', filter: 'brightness(.45)', zIndex: 0 }} />}
+        <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 2, padding: '0 10px', zIndex: 1 }}>
+          {bars.current.map((h, i) => (<div key={i} style={{ width: 3, height: h, borderRadius: 3, background: i / bars.current.length < 0.5 ? grad[0] : grad[1], opacity: playing ? 0.95 : 0.7 }} />))}
         </div>
         <div onClick={() => onToggle?.(track)} style={{ position: 'relative', zIndex: 2, width: 42, height: 42, borderRadius: '50%', background: 'rgba(0,0,0,.5)', border: '2px solid rgba(255,255,255,.92)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', boxShadow: '0 4px 14px rgba(0,0,0,.4)' }}>
           {playing ? <svg width="16" height="18" viewBox="0 0 24 24" fill="#fff"><rect x="6" y="4" width="4" height="16" rx="1.5" /><rect x="14" y="4" width="4" height="16" rx="1.5" /></svg> : <svg width="16" height="18" viewBox="0 0 24 24" fill="#fff" style={{ marginLeft: 3 }}><path d="M6 4l14 8-14 8z" /></svg>}
         </div>
       </div>
-      <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', padding: '8px 10px 10px', background: '#0c0c12' }}>
-        <div style={{ minWidth: 0 }}>
-          <div style={{ fontWeight: 800, fontSize: 13, color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{track.songTitle || track.content || 'Sans titre'}</div>
-          <div style={{ fontSize: 11, color: '#b9b9c2', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{track.artistName}</div>
+      <div style={{ padding: '8px 10px 10px', background: '#0c0c12' }}>
+        <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between' }}>
+          <div style={{ minWidth: 0 }}>
+            <div style={{ fontWeight: 800, fontSize: 13, color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{track.songTitle || track.content || 'Sans titre'}</div>
+            <div style={{ fontSize: 11, color: '#b9b9c2', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{track.artistName}</div>
+          </div>
+          {dur && <div style={{ fontSize: 11, color: '#e6e6ea', fontWeight: 600, flexShrink: 0, marginLeft: 6 }}>{dur}</div>}
         </div>
-        {dur && <div style={{ fontSize: 11, color: '#e6e6ea', fontWeight: 600, flexShrink: 0, marginLeft: 6 }}>{dur}</div>}
+        <div style={{ display: 'flex', gap: 6, marginTop: 8 }}>
+          <button onClick={() => onFollow?.(track.artistId)} style={{ flex: 1, background: isFollowing ? 'rgba(255,255,255,.14)' : 'linear-gradient(145deg,#FF6FA5,#FF2D8D)', color: '#fff', border: 'none', borderRadius: 14, padding: '5px 0', fontSize: 11.5, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 3 }}>
+            {isFollowing ? <><HiCheck size={12} /> Abonné</> : 'Suivre'}
+          </button>
+          <button onClick={() => onMessage?.(track.artistId)} style={{ flex: 1, background: 'rgba(255,255,255,.14)', color: '#fff', border: 'none', borderRadius: 14, padding: '5px 0', fontSize: 11.5, fontWeight: 600, cursor: 'pointer' }}>Message</button>
+        </div>
       </div>
       {menuOpen && (
         <div onClick={() => setMenuOpen(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.5)', zIndex: 300, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
@@ -183,7 +192,7 @@ function MusicCard({ track, index, playing, onToggle, onArtist, onSave, onBlock,
   );
 }
 
-function MusicRow({ tracks, playingId, onToggle, onArtist, onSave, onBlock, savedIds = [], blockedIds = [] }) {
+function MusicRow({ tracks, playingId, onToggle, onArtist, onSave, onBlock, savedIds = [], blockedIds = [], onFollow, onMessage, followedArtists = [] }) {
   if (!tracks || tracks.length === 0) return null;
   return (
     <div className="card" style={{ marginBottom: 14, padding: '12px 0 6px' }}>
@@ -192,7 +201,7 @@ function MusicRow({ tracks, playingId, onToggle, onArtist, onSave, onBlock, save
       </div>
       <div style={{ display: 'flex', gap: 12, overflowX: 'auto', padding: '2px 14px 8px', WebkitOverflowScrolling: 'touch' }}>
         {tracks.map((t, i) => (
-          <MusicCard key={t.id} track={t} index={i} playing={playingId === t.id} onToggle={onToggle} onArtist={onArtist} onSave={onSave} onBlock={onBlock} isSaved={savedIds.includes(t.id)} isBlocked={blockedIds.includes(t.uid)} />
+          <MusicCard key={t.id} track={t} index={i} playing={playingId === t.id} onToggle={onToggle} onArtist={onArtist} onSave={onSave} onBlock={onBlock} isSaved={savedIds.includes(t.id)} isBlocked={blockedIds.includes(t.uid)} onFollow={onFollow} onMessage={onMessage} isFollowing={followedArtists.includes(t.artistId)} />
         ))}
       </div>
     </div>
@@ -255,6 +264,19 @@ export default function Home() {
 
   const [posts, setPosts]           = useState([]);
   // ── Lecture audio du fil (une seule piste à la fois) ──
+  const [followedArtists, setFollowedArtists] = useState([]);
+  useEffect(() => {
+    if (!currentUser) return;
+    const unsub = onSnapshot(collection(db, 'artists'), snap => {
+      setFollowedArtists(snap.docs.filter(d => (d.data().followers || []).includes(currentUser.uid)).map(d => d.id));
+    }, () => {});
+    return () => unsub();
+  }, [currentUser]);
+  async function toggleFollowArtist(artistId) {
+    if (!artistId || !currentUser) return;
+    const on = followedArtists.includes(artistId);
+    try { await updateDoc(doc(db, 'artists', artistId), { followers: on ? arrayRemove(currentUser.uid) : arrayUnion(currentUser.uid) }); } catch {}
+  }
   const musicAudioRef = useRef(null);
   const [playingTrackId, setPlayingTrackId] = useState(null);
   function toggleMusic(track) {
@@ -1418,6 +1440,9 @@ export default function Home() {
               playingId={playingTrackId}
               onToggle={toggleMusic}
               onArtist={aid => aid && navigate(`/artists/${aid}`)}
+              onFollow={toggleFollowArtist}
+              onMessage={aid => aid && navigate(`/artists/${aid}/messages`)}
+              followedArtists={followedArtists}
               onSave={toggleSave}
               onBlock={toggleBlockAuthor}
               savedIds={userProfile?.saved || []}

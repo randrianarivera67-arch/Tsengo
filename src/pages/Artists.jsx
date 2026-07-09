@@ -1,11 +1,11 @@
 // src/pages/Artists.jsx — Canaux Artiste : recherche live, mes pages, musiques, clips
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { collection, query, onSnapshot, addDoc, serverTimestamp, orderBy, limit } from 'firebase/firestore';
+import { collection, query, onSnapshot, addDoc, serverTimestamp, orderBy, limit, doc, updateDoc, arrayUnion, arrayRemove } from 'firebase/firestore';
 import { db } from '../firebase';
 import { useAuth } from '../context/AuthContext';
 import { NeonMic } from '../components/NeonIcons';
-import { HiPlus, HiX, HiChevronRight, HiArrowLeft, HiSearch, HiDotsVertical, HiCheckCircle } from 'react-icons/hi';
+import { HiPlus, HiX, HiChevronRight, HiArrowLeft, HiSearch, HiDotsVertical, HiCheckCircle, HiCheck } from 'react-icons/hi';
 
 const GRADS = [['#FF6FA5', '#FF2D8D'], ['#A66BFF', '#7A2DFF'], ['#3DBEFF', '#1877F2']];
 
@@ -38,8 +38,9 @@ function TrackCard({ track, index, playing, onToggle, onArtist }) {
         <div onClick={() => onArtist?.(track.artistId)} style={{ position: 'absolute', top: 8, left: 8, width: 34, height: 34, borderRadius: '50%', overflow: 'hidden', border: '2px solid rgba(255,255,255,.85)', zIndex: 3, cursor: 'pointer', background: 'linear-gradient(145deg,#FF6FA5,#FF2D8D)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           {track.artistPhoto ? <img src={track.artistPhoto} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <NeonMic size={16} color="white" />}
         </div>
-        <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 2, padding: '0 10px' }}>
-          {bars.current.map((h, i) => <div key={i} style={{ width: 3, height: h, borderRadius: 3, background: i / bars.current.length < 0.5 ? grad[0] : grad[1], opacity: playing ? 0.9 : 0.6 }} />)}
+        {track.thumbURL && <div style={{ position: 'absolute', inset: 0, backgroundImage: 'url(' + track.thumbURL + ')', backgroundSize: 'cover', backgroundPosition: 'center', filter: 'brightness(.45)', zIndex: 0 }} />}
+        <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 2, padding: '0 10px', zIndex: 1 }}>
+          {bars.current.map((h, i) => <div key={i} style={{ width: 3, height: h, borderRadius: 3, background: i / bars.current.length < 0.5 ? grad[0] : grad[1], opacity: playing ? 0.95 : 0.7 }} />)}
         </div>
         <div onClick={() => onToggle?.(track)} style={{ position: 'relative', zIndex: 2, width: 42, height: 42, borderRadius: '50%', background: 'rgba(0,0,0,.5)', border: '2px solid rgba(255,255,255,.92)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
           {playing ? <svg width="16" height="18" viewBox="0 0 24 24" fill="#fff"><rect x="6" y="4" width="4" height="16" rx="1.5" /><rect x="14" y="4" width="4" height="16" rx="1.5" /></svg>
@@ -107,6 +108,13 @@ export default function Artists() {
     const v = media.filter(m => m.mediaType === 'video');
     return !low ? v : v.filter(m => m.songTitle?.toLowerCase().includes(low) || m.artistName?.toLowerCase().includes(low) || m.content?.toLowerCase().includes(low));
   }, [media, low]);
+
+  async function toggleFollowArtist(artistId) {
+    if (!artistId || !currentUser) return;
+    const a = artists.find(x => x.id === artistId);
+    const on = (a?.followers || []).includes(currentUser.uid);
+    try { await updateDoc(doc(db, 'artists', artistId), { followers: on ? arrayRemove(currentUser.uid) : arrayUnion(currentUser.uid) }); } catch (e) { alert('Erreur : ' + (e?.message || e)); }
+  }
 
   async function createArtist() {
     if (!name.trim()) { alert('Donnez un nom à votre canal artiste'); return; }
@@ -196,8 +204,15 @@ export default function Artists() {
                 </div>
                 <div style={{ fontSize: 11, color: '#65676B', margin: '1px 0 9px' }}>{(a.followers || []).length} abonnés</div>
                 <div style={{ display: 'flex', gap: 6 }}>
-                  <button onClick={() => navigate(`/artists/${a.id}`)} className="btn-primary" style={{ flex: 1, borderRadius: 16, padding: '6px 0', fontSize: 12, fontWeight: 700 }}>Suivre</button>
-                  <button onClick={() => navigate(`/artists/${a.id}`)} style={{ flex: 1, background: '#F0F2F5', color: '#050505', border: 'none', borderRadius: 16, padding: '6px 0', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>Message</button>
+                  {(() => { const on = (a.followers || []).includes(currentUser?.uid);
+                    return (
+                      <button onClick={() => toggleFollowArtist(a.id)} className={on ? '' : 'btn-primary'}
+                        style={{ flex: 1, borderRadius: 16, padding: '6px 0', fontSize: 12, fontWeight: 700, cursor: 'pointer', border: 'none',
+                          ...(on ? { background: '#F0F2F5', color: '#050505', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 3 } : {}) }}>
+                        {on ? <><HiCheck size={13} /> Abonné</> : 'Suivre'}
+                      </button>
+                    ); })()}
+                  <button onClick={() => navigate(`/artists/${a.id}/messages`)} style={{ flex: 1, background: '#F0F2F5', color: '#050505', border: 'none', borderRadius: 16, padding: '6px 0', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>Message</button>
                 </div>
               </div>
             ))}
