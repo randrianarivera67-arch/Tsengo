@@ -47,12 +47,17 @@ export default function ArtistMessages() {
 
   useEffect(() => {
     if (!artist || !isAdmin) return;
-    return onValue(ref(rtdb, `artistConversations/${artistId}`), snap => {
+    const prefix = `artist_${artistId}_`;
+    return onValue(ref(rtdb, 'conversations'), snap => {
       const data = snap.val() || {};
-      setConvs(Object.entries(data).map(([uid, c]) => {
-        const m = c.messages ? Object.values(c.messages) : [];
-        return { uid, last: m[m.length - 1], unread: m.filter(x => x.fromUid !== currentUser.uid && !x.readByAdmin).length, meta: c.meta || {} };
-      }).sort((a, b) => (b.last?.ts || 0) - (a.last?.ts || 0)));
+      setConvs(Object.entries(data)
+        .filter(([k]) => k.startsWith(prefix))
+        .map(([k, c]) => {
+          const uid = k.slice(prefix.length);
+          const m = c.messages ? Object.values(c.messages) : [];
+          return { uid, last: m[m.length - 1], unread: m.filter(x => x.fromUid !== currentUser.uid && !x.readByAdmin).length, meta: c.meta || {} };
+        })
+        .sort((a, b) => (b.last?.ts || 0) - (a.last?.ts || 0)));
     });
   }, [artist, isAdmin, artistId, currentUser]);
 
@@ -63,7 +68,7 @@ export default function ArtistMessages() {
 
   useEffect(() => {
     if (!activeVisitor || !artist) return;
-    const r = ref(rtdb, `artistConversations/${artistId}/${activeVisitor}/messages`);
+    const r = ref(rtdb, `conversations/artist_${artistId}_${activeVisitor}/messages`);
     return onValue(r, snap => {
       const data = snap.val() || {};
       const list = Object.entries(data).map(([id, m]) => ({ id, ...m })).sort((a, b) => a.ts - b.ts);
@@ -79,16 +84,17 @@ export default function ArtistMessages() {
   }, [activeVisitor, artist, artistId, isAdmin, currentUser]);
 
   async function sendPayload(mediaURL = '', mediaType = '', body = '') {
-    const base = `artistConversations/${artistId}/${activeVisitor}`;
+    const base = `conversations/artist_${artistId}_${activeVisitor}`;
     await push(ref(rtdb, `${base}/messages`), {
       fromUid: currentUser.uid, fromArtist: isAdmin,
+      toUid: isAdmin ? activeVisitor : '',
       fromName: isAdmin ? artist.name : (userProfile?.fullName || 'Utilisateur'),
       fromPhoto: isAdmin ? (artist.photoURL || '') : (userProfile?.photoURL || ''),
       text: body, mediaURL, mediaType, ts: Date.now(),
       readByAdmin: isAdmin, readByVisitor: !isAdmin,
     });
     const label = body || (mediaType === 'video' ? '🎬 Vidéo' : mediaType === 'audio' ? '🎤 Vocal' : '📎 Média');
-    const meta = { lastMessage: label, lastTs: Date.now() };
+    const meta = { lastMessage: label, lastTs: Date.now(), artistId, artistName: artist.name, artistPhoto: artist.photoURL || '' };
     if (!isAdmin) { meta.visitorName = userProfile?.fullName || ''; meta.visitorPhoto = userProfile?.photoURL || ''; }
     await update(ref(rtdb, `${base}/meta`), meta);
 
@@ -106,7 +112,7 @@ export default function ArtistMessages() {
   async function toggleReaction(msgId, emoji) {
     setReactFor(null);
     if (!activeVisitor) return;
-    const p = `artistConversations/${artistId}/${activeVisitor}/messages/${msgId}/reactions/${currentUser.uid}`;
+    const p = `conversations/artist_${artistId}_${activeVisitor}/messages/${msgId}/reactions/${currentUser.uid}`;
     const cur = msgs.find(m => m.id === msgId)?.reactions?.[currentUser.uid];
     try { await update(ref(rtdb, p.substring(0, p.lastIndexOf('/'))), { [currentUser.uid]: cur === emoji ? null : emoji }); } catch (e) { alert('Erreur : ' + (e?.message || e)); }
   }
@@ -156,7 +162,7 @@ export default function ArtistMessages() {
   async function deleteConv() {
     setMenuOpen(false);
     if (!confirm('Supprimer cette conversation ?')) return;
-    try { await remove(ref(rtdb, `artistConversations/${artistId}/${activeVisitor}`)); navigate(isAdmin ? `/artists/${artistId}/messages` : `/artists/${artistId}`); } catch (e) { alert('Erreur : ' + (e?.message || e)); }
+    try { await remove(ref(rtdb, `conversations/artist_${artistId}_${activeVisitor}`)); navigate(isAdmin ? `/artists/${artistId}/messages` : `/artists/${artistId}`); } catch (e) { alert('Erreur : ' + (e?.message || e)); }
   }
 
   if (!artist) return <div style={{ padding: 30, textAlign: 'center', color: '#65676B' }}>Chargement…</div>;
