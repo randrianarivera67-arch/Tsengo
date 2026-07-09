@@ -6,6 +6,7 @@ import {
   arrayUnion, arrayRemove, collection, getDoc
 } from 'firebase/firestore';
 import { db } from '../firebase';
+import MusicPostCard from '../components/MusicPostCard';
 import { useAuth } from '../context/AuthContext';
 import { timeAgo } from '../utils/timeAgo';
 import { downloadMedia } from '../utils/download';
@@ -18,7 +19,7 @@ import { v4 as uuidv4 } from 'uuid';
 import {
   HiArrowLeft, HiOutlineHeart, HiChat, HiShare, HiUserGroup, HiIdentification, HiShoppingBag,
   HiPhotograph, HiVideoCamera, HiTag, HiX, HiPhone,
-  HiLocationMarker, HiPencil, HiTrash, HiReply, HiUserAdd, HiDownload
+  HiLocationMarker, HiPencil, HiTrash, HiReply, HiUserAdd, HiDownload, HiPaperAirplane
 } from 'react-icons/hi';
 
 const REACTIONS = ['❤️','😂','😮','😢','😡','👍'];
@@ -207,7 +208,7 @@ export default function PostDetail() {
           )}
           {!post.groupName && !post.pageId && !post.artistId && !post.shopId && (
             <div style={{ display:'flex', gap:6, flexShrink:0 }}>
-              {post.uid!==currentUser.uid&&<button onClick={() => navigate(`/messages/${getChatId(currentUser.uid,post.uid)}`)} style={{ background:'#E4E6EB', border:'none', borderRadius:20, padding:'6px 12px', cursor:'pointer', color:'#1877F2', fontSize:12, fontWeight:600 }}>💬 Message</button>}
+              {post.uid!==currentUser.uid&&<button onClick={() => navigate(`/messages/${getChatId(currentUser.uid,post.uid)}`)} style={{ background:'#E4E6EB', border:'none', borderRadius:20, padding:'6px 12px', cursor:'pointer', color:'#1877F2', fontSize:12, fontWeight:600 }}><HiPaperAirplane size={13} style={{ transform:'rotate(90deg)', display:'inline', marginRight:4 }}/>Message</button>}
               {post.uid!==currentUser.uid&&!isFriend(post.uid)&&!(userProfile?.sentRequests||[]).includes(post.uid)&&(
                 <button onClick={async()=>{
                   await addDoc(collection(db,'friendRequests'),{fromUid:currentUser.uid,toUid:post.uid,fromName:userProfile.fullName,fromPhoto:userProfile.photoURL||'',status:'pending',createdAt:serverTimestamp()});
@@ -250,7 +251,11 @@ export default function PostDetail() {
             </div>
           ) : post.mediaURL&&(
             <div className="post-media" style={{ position:'relative' }}>
-              {post.mediaType==='image'?<img src={post.mediaURL} alt=""/>:<video src={post.mediaURL} poster={post.thumbURL || undefined} controls/>}
+              {post.isMusic
+                ? <MusicPostCard post={post} height={150}/>
+                : post.mediaType==='image'
+                  ? <img src={post.mediaURL} alt=""/>
+                  : <video src={post.mediaURL} poster={post.thumbURL || undefined} controls/>}
               <button onClick={() => downloadMedia(post.mediaURL, post.mediaType)}
                 style={{ position:'absolute', top:8, right:8, width:34, height:34, borderRadius:'50%', background:'rgba(0,0,0,.5)', border:'none', cursor:'pointer', color:'white', display:'flex', alignItems:'center', justifyContent:'center' }}>
                 <HiDownload size={16}/>

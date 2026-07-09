@@ -17,8 +17,12 @@ export default function Notes() {
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    const q = query(collection(db, 'notes'), where('uid', '==', currentUser.uid), orderBy('updatedAt', 'desc'));
-    const unsub = onSnapshot(q, snap => setNotes(snap.docs.map(d => ({ id: d.id, ...d.data() }))),
+    // ✅ Pas d'orderBy → évite l'index composite Firestore (sinon la liste reste vide)
+    const q = query(collection(db, 'notes'), where('uid', '==', currentUser.uid));
+    const unsub = onSnapshot(q, snap => setNotes(
+        snap.docs.map(d => ({ id: d.id, ...d.data() }))
+          .sort((a, b) => (b.updatedAt?.seconds || 0) - (a.updatedAt?.seconds || 0))
+      ),
       err => console.error('Notes:', err?.message || err));
     return () => unsub();
   }, [currentUser]);

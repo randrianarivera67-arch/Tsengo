@@ -148,7 +148,7 @@ export default function Messages() {
           if (vUid !== currentUser.uid) continue;
           const msgs2 = conv.messages ? Object.values(conv.messages) : [];
           const last2 = msgs2[msgs2.length - 1];
-          const unread2 = msgs2.filter(m => m.fromArtist && !m.readByVisitor).length;
+          const unread2 = msgs2.filter(m => m.toUid === currentUser.uid && !m.read).length;
           list.push({
             chatId, artistId: aId, isArtist: true,
             user: { fullName: conv.meta?.artistName || 'Page artiste', photoURL: conv.meta?.artistPhoto || '' },

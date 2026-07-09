@@ -77,7 +77,7 @@ export default function ArtistMessages() {
       const upd = {};
       list.forEach(m => {
         if (isAdmin && m.fromUid !== currentUser.uid && !m.readByAdmin) upd[`${m.id}/readByAdmin`] = true;
-        if (!isAdmin && m.fromArtist && !m.readByVisitor) upd[`${m.id}/readByVisitor`] = true;
+        if (!isAdmin && m.fromArtist && !m.readByVisitor) { upd[`${m.id}/readByVisitor`] = true; upd[`${m.id}/read`] = true; }
       });
       if (Object.keys(upd).length) update(r, upd).catch(() => {});
     });
@@ -88,6 +88,7 @@ export default function ArtistMessages() {
     await push(ref(rtdb, `${base}/messages`), {
       fromUid: currentUser.uid, fromArtist: isAdmin,
       toUid: isAdmin ? activeVisitor : '',
+      read: false,
       fromName: isAdmin ? artist.name : (userProfile?.fullName || 'Utilisateur'),
       fromPhoto: isAdmin ? (artist.photoURL || '') : (userProfile?.photoURL || ''),
       text: body, mediaURL, mediaType, ts: Date.now(),
