@@ -111,3 +111,89 @@ export function NeonLock({ size = 16, color = '#65676B' }) {
     </svg>
   );
 }
+
+// ── Icônes vaovao (flow pro) ──────────────────────────────────────────────
+
+// Paper plane volamena — mitovy amin'ny icône Messages amin'ny navbar
+export function NeonPlane({ size = 16 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 64 64">
+      <defs>
+        <radialGradient id="npl_g" cx="35%" cy="28%" r="90%">
+          <stop offset="0" stopColor="#FFE08A"/><stop offset="45%" stopColor="#F5C518"/><stop offset="100%" stopColor="#D69A00"/>
+        </radialGradient>
+      </defs>
+      <path d="M52 14 C54 13.2 55.5 15 54.7 17 L44 48 C43.3 50 40.7 50.4 39.4 48.7 L32 39 L46 22 L26 35 L14.5 30.5 C12.6 29.7 12.5 27 14.4 26.2 Z" fill="url(#npl_g)"/>
+      <path d="M32 39 L32 50 C32 51.6 34 52.3 35 51 L39.4 45.5 Z" fill="#D69A00" opacity="0.7"/>
+      <ellipse cx="30" cy="24" rx="6" ry="2.4" fill="#fff" opacity="0.4" transform="rotate(-30 30 24)"/>
+    </svg>
+  );
+}
+
+// Paper plane fotsy (ho an'ny bokotra misy fond miloko)
+export function NeonPlaneWhite({ size = 16 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 64 64">
+      <path d="M52 14 C54 13.2 55.5 15 54.7 17 L44 48 C43.3 50 40.7 50.4 39.4 48.7 L32 39 L46 22 L26 35 L14.5 30.5 C12.6 29.7 12.5 27 14.4 26.2 Z" fill="#fff"/>
+      <path d="M32 39 L32 50 C32 51.6 34 52.3 35 51 L39.4 45.5 Z" fill="#fff" opacity="0.75"/>
+    </svg>
+  );
+}
+
+// Pouce "J'aime" (format Facebook)
+export function NeonLike({ size = 18, color = '#65676B' }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M7 11 L7 21 M7 11 L11.2 3.4 C11.6 2.6 12.6 2.3 13.4 2.8 C14.2 3.3 14.6 4.2 14.4 5.1 L13.4 9 L19.2 9 C20.4 9 21.3 10.1 21 11.3 L19.3 19.1 C19 20.2 18 21 16.8 21 L7 21 M7 11 L3.8 11 C3.3 11 3 11.3 3 11.8 L3 20.2 C3 20.7 3.3 21 3.8 21 L7 21"/>
+    </svg>
+  );
+}
+
+// Bulle commentaire (format Facebook)
+export function NeonComment({ size = 18, color = '#65676B' }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M21 12 C21 16.4 17 20 12 20 C10.6 20 9.3 19.7 8.1 19.2 L3.5 20.4 L4.9 16.8 C3.7 15.5 3 13.8 3 12 C3 7.6 7 4 12 4 C17 4 21 7.6 21 12 Z"/>
+    </svg>
+  );
+}
+
+// Partage (format Facebook)
+export function NeonShare({ size = 18, color = '#65676B' }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M13.5 5.5 L20.5 11.5 C20.9 11.8 20.9 12.3 20.5 12.6 L13.5 18.6 C13 19 12.2 18.7 12.2 18 L12.2 15 C7.5 15 4.8 16.6 3.2 19.4 C3.5 13.6 6.6 9.6 12.2 9 L12.2 6.1 C12.2 5.4 13 5.1 13.5 5.5 Z"/>
+    </svg>
+  );
+}
+
+// Étoile "Suivre" — hita maso tsara na amin'ny fond volamena aza
+export function NeonStar({ size = 14, color = '#4A3400' }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill={color}>
+      <path d="M12 2.5 L14.8 8.4 L21.2 9.2 L16.5 13.6 L17.7 20 L12 16.8 L6.3 20 L7.5 13.6 L2.8 9.2 L9.2 8.4 Z"/>
+    </svg>
+  );
+}
+
+// Statistiques (barres neon)
+export function NeonChart({ size = 16, color = '#12A48D' }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2.1" strokeLinecap="round">
+      <path d="M4 20 L20 20"/>
+      <path d="M7 20 L7 13" stroke="#1877F2"/>
+      <path d="M12 20 L12 7" stroke="#F2B300"/>
+      <path d="M17 20 L17 10" stroke="#FF2D8D"/>
+    </svg>
+  );
+}
+
+// Maso (vues)
+export function NeonEye({ size = 15, color = '#8A8D91' }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M2.5 12 C4.5 7.5 8 5 12 5 C16 5 19.5 7.5 21.5 12 C19.5 16.5 16 19 12 19 C8 19 4.5 16.5 2.5 12 Z"/>
+      <circle cx="12" cy="12" r="3"/>
+    </svg>
+  );
+}

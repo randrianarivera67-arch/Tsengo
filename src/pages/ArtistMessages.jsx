@@ -99,11 +99,11 @@ export default function ArtistMessages() {
     if (!isAdmin) { meta.visitorName = userProfile?.fullName || ''; meta.visitorPhoto = userProfile?.photoURL || ''; }
     await update(ref(rtdb, `${base}/meta`), meta);
 
-    if (isAdmin) {
+    if (isAdmin && activeVisitor !== currentUser.uid) {
       addDoc(collection(db, 'notifications'), { toUid: activeVisitor, fromUid: currentUser.uid, fromName: artist.name, fromPhoto: artist.photoURL || '', type: 'artistMessage', artistId, visitorUid: activeVisitor, message: `${artist.name} vous a répondu : ${label.slice(0, 60)}`, read: false, createdAt: serverTimestamp() }).catch(() => {});
       sendPushNotification({ toExternalId: activeVisitor, title: `${artist.name} 📩`, message: label.slice(0, 80), fromPhoto: artist.photoURL || '', data: { type: 'artistMessage', artistId, visitorUid: activeVisitor } });
     } else {
-      (artist.admins || []).forEach(a => {
+      (artist.admins || []).filter(a => a !== currentUser.uid).forEach(a => {
         addDoc(collection(db, 'notifications'), { toUid: a, fromUid: currentUser.uid, fromName: userProfile?.fullName || 'Utilisateur', fromPhoto: userProfile?.photoURL || '', type: 'artistMessage', artistId, visitorUid: currentUser.uid, message: `${userProfile?.fullName || 'Quelqu\'un'} veut vous envoyer un message sur ${artist.name}`, read: false, createdAt: serverTimestamp() }).catch(() => {});
         sendPushNotification({ toExternalId: a, title: `${artist.name} 📩`, message: `${userProfile?.fullName || 'Quelqu\'un'} : ${label.slice(0, 60)}`, fromPhoto: userProfile?.photoURL || '', data: { type: 'artistMessage', artistId, visitorUid: currentUser.uid } });
       });

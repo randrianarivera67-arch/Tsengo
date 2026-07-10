@@ -3,19 +3,22 @@
 // recherche live, follow/abonné, message dédié, Voir tout, ary fanampiny :
 // panier (localStorage) misy Appel/Message/Supprimer, avatar boutique eo anoloan'ny prix.
 import { useState, useEffect, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import {
   collection, query, onSnapshot, addDoc, serverTimestamp, orderBy, limit,
-  doc, updateDoc, arrayUnion, arrayRemove, writeBatch, increment, deleteField
+  doc, updateDoc, arrayUnion, arrayRemove, writeBatch, increment, deleteField, deleteDoc
 } from 'firebase/firestore';
 import { db } from '../firebase';
 import { useAuth } from '../context/AuthContext';
 import { parseAppLink } from '../utils/appLink';
-import { NeonLocation } from '../components/NeonIcons';
+import { NeonLocation, NeonPlane, NeonPlaneWhite } from '../components/NeonIcons';
+import ShareModal from '../components/ShareModal';
+import { downloadMedia } from '../utils/download';
 import { getCart, addToCart, removeFromCart, subscribeCart, firstPhone } from '../utils/cart';
 import {
   HiShoppingBag, HiShoppingCart, HiPlus, HiX, HiChevronRight, HiArrowLeft, HiSearch,
-  HiCheck, HiCheckCircle, HiHeart, HiOutlineHeart, HiChat, HiPhone, HiTrash
+  HiCheck, HiCheckCircle, HiHeart, HiOutlineHeart, HiChat, HiPhone, HiTrash,
+  HiDotsVertical, HiInformationCircle, HiDownload, HiShare, HiFlag
 } from 'react-icons/hi';
 
 const CATEGORIES = ['Vêtements', 'Robes', 'Hauts', 'Pantalons', 'Chaussures', 'Accessoires', 'Électronique', 'Déco & Maison', 'Véhicules', 'Alimentation', 'Beauté', 'Autre'];
@@ -28,6 +31,12 @@ const viewedThisSession = new Set();
 export default function Shop() {
   const { currentUser } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+
+  // Sokafana ho azy ny panier raha avy amin'ny icône topbar
+  useEffect(() => {
+    if (location.state?.openCart) setCartOpen(true);
+  }, [location.state]);
   const [shops, setShops] = useState([]);
   const [saleItems, setSaleItems] = useState([]);
   const [open, setOpen] = useState(false);
@@ -38,6 +47,16 @@ export default function Shop() {
   const [catFilter, setCatFilter] = useState('Tout');
   const [showAllShops, setShowAllShops] = useState(false);
   const [cartOpen, setCartOpen] = useState(false);
+  const [cardMenu, setCardMenu] = useState(null);
+  const [shareItem, setShareItem] = useState(null);
+
+  // Menus mikatona rehefa scroll na clic ivelany
+  useEffect(() => {
+    const close = () => setCardMenu(null);
+    window.addEventListener('scroll', close, true);
+    document.addEventListener('click', close);
+    return () => { window.removeEventListener('scroll', close, true); document.removeEventListener('click', close); };
+  }, []);
   const [cart, setCart] = useState(getCart());
 
   useEffect(() => subscribeCart(setCart), []);
@@ -144,7 +163,7 @@ export default function Shop() {
               ...(on ? { background: '#fff', color: '#FF2D8D', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 3 } : {}) }}>
             {on ? <><HiCheck size={13} /> Abonné</> : 'Suivre'}
           </button>
-          <button onClick={() => navigate(`/shop/${s.id}/messages`)} style={{ flex: 1, background: '#F0F2F5', color: '#050505', border: 'none', borderRadius: 16, padding: '6px 0', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>Message</button>
+          <button onClick={() => navigate(`/shop/${s.id}/messages`)} style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5, background: '#F0F2F5', color: '#050505', border: 'none', borderRadius: 16, padding: '6px 0', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}><NeonPlane size={14} /> Message</button>
         </div>
       </div>
     );
@@ -254,6 +273,22 @@ export default function Shop() {
                     <button onClick={e => toggleHeart(e, p)} style={{ position: 'absolute', top: 8, right: 8, width: 32, height: 32, borderRadius: '50%', background: 'rgba(255,255,255,.95)', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 1px 5px rgba(0,0,0,.15)' }}>
                       {myHeart ? <HiHeart size={18} color="#FF2D8D" /> : <HiOutlineHeart size={18} color="#050505" />}
                     </button>
+                    <div style={{ position: 'absolute', top: 8, left: 8 }} onClick={e => e.stopPropagation()}>
+                      <button onClick={() => setCardMenu(cardMenu === p.id ? null : p.id)}
+                        style={{ width: 32, height: 32, borderRadius: '50%', background: 'rgba(255,255,255,.95)', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 1px 5px rgba(0,0,0,.15)', color: '#050505' }}>
+                        <HiDotsVertical size={16} />
+                      </button>
+                      {cardMenu === p.id && (
+                        <div style={{ position: 'absolute', top: '110%', left: 0, background: 'white', border: '1px solid #E4E6EB', borderRadius: 12, boxShadow: '0 6px 22px rgba(0,0,0,.16)', minWidth: 165, zIndex: 60, overflow: 'hidden' }}>
+                          <button onClick={() => { setCardMenu(null); navigate(`/post/${p.id}`); }} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: '11px 14px', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'Poppins', fontSize: 13.5, fontWeight: 400, color: '#050505', borderBottom: '1px solid #F0F2F5' }}><HiInformationCircle size={16} color="#1877F2" /> Informations</button>
+                          {p.mediaURL && <button onClick={() => { setCardMenu(null); downloadMedia(p.mediaURL, p.mediaType || 'image', p.content || 'article'); }} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: '11px 14px', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'Poppins', fontSize: 13.5, fontWeight: 400, color: '#050505', borderBottom: '1px solid #F0F2F5' }}><HiDownload size={16} color="#12A48D" /> Télécharger</button>}
+                          <button onClick={() => { setCardMenu(null); setShareItem(p); }} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: '11px 14px', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'Poppins', fontSize: 13.5, fontWeight: 400, color: '#050505', borderBottom: '1px solid #F0F2F5' }}><HiShare size={16} color="#7A2DFF" /> Partager</button>
+                          {p.uid === currentUser?.uid
+                            ? <button onClick={async () => { setCardMenu(null); if (window.confirm('Supprimer cet article ?')) { try { await deleteDoc(doc(db, 'posts', p.id)); } catch (e) { alert('Erreur : ' + (e?.message || e)); } } }} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: '11px 14px', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'Poppins', fontSize: 13.5, fontWeight: 400, color: '#FF2D8D' }}><HiTrash size={16} /> Supprimer</button>
+                            : <button onClick={async () => { setCardMenu(null); if (!window.confirm('Signaler cet article aux administrateurs ?')) return; try { await addDoc(collection(db, 'reports'), { type: 'post', targetId: p.id, targetUid: p.uid, targetAuthor: p.shopName || p.authorName || '', reportedBy: currentUser.uid, createdAt: serverTimestamp(), status: 'pending' }); alert('Signalement envoyé. Merci.'); } catch (e) { alert('Erreur : ' + (e?.message || e)); } }} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: '11px 14px', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'Poppins', fontSize: 13.5, fontWeight: 400, color: '#050505' }}><HiFlag size={16} color="#F2B300" /> Signaler</button>}
+                        </div>
+                      )}
+                    </div>
                   </div>
                   <div style={{ padding: '9px 10px 11px', display: 'flex', flexDirection: 'column', flex: 1 }}>
                     <p style={{ fontSize: 13, fontWeight: 700, lineHeight: 1.35, overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>{p.content}</p>
@@ -269,7 +304,7 @@ export default function Shop() {
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 'auto', paddingTop: 8 }}>
                       <button onClick={e => { e.stopPropagation(); navigate(`/shop/${p.shopId}/messages`); }}
                         style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5, background: 'linear-gradient(145deg,#FF6FA5,#FF2D8D)', border: 'none', borderRadius: 18, padding: '8px 0', fontSize: 12.5, fontWeight: 700, color: '#fff', cursor: 'pointer' }}>
-                        <HiChat size={14} /> Message
+                        <NeonPlaneWhite size={14} /> Message
                       </button>
                       <button onClick={e => { e.stopPropagation(); const ok = addToCart(p); alert(ok ? 'Article ajouté au panier 🛒' : 'Cet article est déjà dans votre panier'); }}
                         title="Ajouter au panier"
@@ -367,6 +402,7 @@ export default function Shop() {
           </div>
         </div>
       )}
+      {shareItem && <ShareModal post={shareItem} onClose={() => setShareItem(null)} />}
     </div>
   );
 }

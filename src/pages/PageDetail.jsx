@@ -9,11 +9,13 @@ import { db } from '../firebase';
 import { useAuth } from '../context/AuthContext';
 import { uploadToTelegram } from '../utils/telegram';
 import { timeAgo } from '../utils/timeAgo';
-import { NeonGlobe, NeonPhone, NeonLocation } from '../components/NeonIcons';
+import { NeonGlobe, NeonPhone, NeonLocation, NeonPlane, NeonPlaneWhite, NeonChart, NeonEye } from '../components/NeonIcons';
+import { getIdentity, setIdentity } from '../utils/identity';
 import FollowListModal from '../components/FollowListModal';
 import {
   HiIdentification, HiCamera, HiArrowLeft, HiPencil, HiX, HiTrash,
-  HiPhotograph, HiVideoCamera, HiChat, HiShare, HiDotsVertical
+  HiPhotograph, HiVideoCamera, HiChat, HiShare, HiDotsVertical,
+  HiLink, HiFlag, HiBan, HiMail, HiSwitchHorizontal
 } from 'react-icons/hi';
 
 const REACTIONS = ['❤️','😂','😮','😢','😡','👍'];
@@ -38,9 +40,10 @@ export default function PageDetail() {
   const [pgGroupSel, setPgGroupSel] = useState({});
   const [menuOpen, setMenuOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
-  const [editForm, setEditForm] = useState({ name:'', description:'', website:'', phone:'', location:'', team:'', hobbies:'' });
+  const [editForm, setEditForm] = useState({ name:'', description:'', website:'', phone:'', location:'', email:'', team:'', hobbies:'' });
   const [showReact, setShowReact] = useState({});
   const [followersOpen, setFollowersOpen] = useState(false);
+  const [statsOpen, setStatsOpen] = useState(false);
 
   const coverRef = useRef(); const photoRef = useRef();
   const postPhotoRef = useRef(); const postVideoRef = useRef();
@@ -66,7 +69,7 @@ export default function PageDetail() {
     return () => unsub();
   }, [pageId]);
 
-  useEffect(() => { const fn = () => setMenuOpen(false); document.addEventListener('click', fn); return () => document.removeEventListener('click', fn); }, []);
+  useEffect(() => { const fn = () => setMenuOpen(false); document.addEventListener('click', fn); window.addEventListener('scroll', fn, true); return () => { document.removeEventListener('click', fn); window.removeEventListener('scroll', fn, true); }; }, []);
 
   async function changeImage(e, field) {
     const file = e.target.files[0]; if (!file) return;
@@ -82,7 +85,7 @@ export default function PageDetail() {
   }
 
   function openEdit() {
-    setEditForm({ name: pg.name||'', description: pg.description||'', website: pg.website||'', phone: pg.phone||'', location: pg.location||'', team: pg.team||'', hobbies: pg.hobbies||'' });
+    setEditForm({ name: pg.name||'', description: pg.description||'', website: pg.website||'', phone: pg.phone||'', location: pg.location||'', email: pg.email||'', team: pg.team||'', hobbies: pg.hobbies||'' });
     setEditOpen(true);
   }
   async function saveEdit() {
@@ -90,6 +93,37 @@ export default function PageDetail() {
     try { await updateDoc(doc(db, 'pages', pageId), { ...editForm, name: editForm.name.trim() }); setEditOpen(false); }
     catch (err) { alert('Erreur : ' + (err?.message || err)); }
   }
+  function copyPageLink() {
+    setMenuOpen(false);
+    const url = `${window.location.origin}/pages/${pageId}`;
+    if (navigator.clipboard?.writeText) navigator.clipboard.writeText(url).then(() => alert('Lien copié !'), () => alert(url));
+    else { const el = document.createElement('textarea'); el.value = url; document.body.appendChild(el); el.select(); document.execCommand('copy'); el.remove(); alert('Lien copié !'); }
+  }
+  async function reportPage() {
+    setMenuOpen(false);
+    if (!window.confirm('Signaler cette page aux administrateurs ?')) return;
+    try {
+      await addDoc(collection(db, 'reports'), {
+        type: 'page', targetId: pageId, targetUid: pg.createdBy || '', targetAuthor: pg.name,
+        reportedBy: currentUser.uid, reportedByName: userProfile?.fullName || '',
+        createdAt: serverTimestamp(), status: 'pending',
+      });
+      alert('Signalement envoyé. Merci.');
+    } catch (err) { alert('Erreur : ' + (err?.message || err)); }
+  }
+  async function blockPage() {
+    setMenuOpen(false);
+    if (!window.confirm(`Bloquer la page "${pg.name}" ?`)) return;
+    try { await updateDoc(doc(db, 'users', currentUser.uid), { blocked: arrayUnion(pageId) }); alert('Page bloquée.'); navigate('/pages'); }
+    catch (err) { alert('Erreur : ' + (err?.message || err)); }
+  }
+  function switchToPage() {
+    setMenuOpen(false);
+    const cur = getIdentity();
+    if (cur.type === 'page' && cur.id === pageId) { setIdentity({ type: 'user' }); alert('Vous utilisez à nouveau votre compte personnel.'); }
+    else { setIdentity({ type: 'page', id: pageId, name: pg.name, photoURL: pg.photoURL || '' }); alert(`Vous utilisez Trengo en tant que "${pg.name}". Vos publications seront faites au nom de la page.`); }
+  }
+
   async function deletePage() {
     if (!window.confirm(`Supprimer définitivement la page "${pg.name}" ?`)) return;
     try { await deleteDoc(doc(db, 'pages', pageId)); navigate('/pages'); }
@@ -196,15 +230,32 @@ export default function PageDetail() {
       <div style={{ padding:'40px 16px 0' }}>
         <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start' }}>
           <div style={{ minWidth:0 }}>
-            <h2 style={{ fontWeight:800, fontSize:19 }}>{pg.name}</h2>
-            <p style={{ fontSize:12, color:'#65676B' }}>{pg.category} · <span onClick={() => (pg.followers||[]).length>0 && setFollowersOpen(true)} style={{ cursor: (pg.followers||[]).length>0?'pointer':'default', textDecoration: (pg.followers||[]).length>0?'underline':'none' }}>{(pg.followers||[]).length} abonnés</span></p>
+            <h2 style={{ fontWeight:800, fontSize:19, display:'flex', alignItems:'center', gap:6, flexWrap:'wrap' }}>
+              {pg.name}
+              {isAdmin && <span style={{ fontSize:10, fontWeight:800, color:'#F2B300', background:'#FFF6DB', borderRadius:8, padding:'2px 8px' }}>ADMIN</span>}
+            </h2>
+            <p style={{ fontSize:12, color:'#65676B' }}>{pg.category} · <span onClick={() => (pg.followers||[]).length>0 && setFollowersOpen(true)} style={{ cursor: (pg.followers||[]).length>0?'pointer':'default', textDecoration: (pg.followers||[]).length>0?'underline':'none' }}><b style={{ fontWeight:800 }}>{(pg.followers||[]).length}</b> abonnés</span> · {posts.length} publication{posts.length>1?'s':''}</p>
           </div>
           <div style={{ position:'relative' }} onClick={e => e.stopPropagation()}>
-            <button onClick={() => setMenuOpen(p=>!p)} style={{ background:'#F0F2F5', border:'none', borderRadius:'50%', width:34, height:34, cursor:'pointer' }}><HiDotsVertical size={17}/></button>
+            <span style={{ display:'flex', alignItems:'center', gap:8 }}>
+              {isAdmin && (
+                <button onClick={() => setStatsOpen(true)} title="Statistiques" style={{ background:'linear-gradient(145deg,#3DD9C4,#12A48D)', border:'none', borderRadius:12, width:42, height:42, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', boxShadow:'0 4px 10px rgba(18,164,141,.35)' }}><NeonChart size={20} color="#fff"/></button>
+              )}
+              <button onClick={() => navigate(`/pages/${pageId}/messages`)} title="Messages" style={{ background:'linear-gradient(150deg,#FFD84D,#D69A00)', border:'none', borderRadius:12, width:42, height:42, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', boxShadow:'0 4px 10px rgba(214,154,0,.4)' }}><NeonPlaneWhite size={22}/></button>
+              <button onClick={() => setMenuOpen(p=>!p)} style={{ background:'#F0F2F5', border:'none', borderRadius:'50%', width:42, height:42, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center' }}><HiDotsVertical size={19}/></button>
+            </span>
             {menuOpen && (
-              <div style={{ position:'absolute', top:'100%', right:0, background:'white', border:'1px solid #E4E6EB', borderRadius:12, boxShadow:'0 4px 20px rgba(0,0,0,.14)', minWidth:180, zIndex:50, overflow:'hidden' }}>
-                {isAdmin && <button onClick={() => { setMenuOpen(false); openEdit(); }} style={{ width:'100%', display:'flex', alignItems:'center', gap:10, padding:'12px 16px', background:'none', border:'none', cursor:'pointer', fontSize:14, color:'#1877F2', borderBottom:'1px solid #F0F2F5' }}><HiPencil size={16}/> Modifier la page</button>}
-                {isAdmin && <button onClick={() => { setMenuOpen(false); deletePage(); }} style={{ width:'100%', display:'flex', alignItems:'center', gap:10, padding:'12px 16px', background:'none', border:'none', cursor:'pointer', fontSize:14, color:'#FF2D8D' }}><HiTrash size={16}/> Supprimer la page</button>}
+              <div style={{ position:'absolute', top:'100%', right:0, background:'white', border:'1px solid #E4E6EB', borderRadius:12, boxShadow:'0 4px 20px rgba(0,0,0,.14)', minWidth:190, zIndex:50, overflow:'hidden' }}>
+                {isAdmin ? (<>
+                  <button onClick={() => { setMenuOpen(false); openEdit(); }} style={{ width:'100%', display:'flex', alignItems:'center', gap:11, padding:'13px 16px', background:'none', border:'none', cursor:'pointer', fontSize:14, color:'#050505', borderBottom:'1px solid #F0F2F5', fontFamily:'Poppins' }}><HiPencil size={16} color="#1877F2"/> Modifier</button>
+                  <button onClick={switchToPage} style={{ width:'100%', display:'flex', alignItems:'center', gap:11, padding:'13px 16px', background:'none', border:'none', cursor:'pointer', fontSize:14, color:'#050505', borderBottom:'1px solid #F0F2F5', fontFamily:'Poppins' }}><HiSwitchHorizontal size={16} color="#12A48D"/> {getIdentity().id === pageId ? 'Repasser en personnel' : 'Utiliser en tant que page'}</button>
+                  <button onClick={copyPageLink} style={{ width:'100%', display:'flex', alignItems:'center', gap:11, padding:'13px 16px', background:'none', border:'none', cursor:'pointer', fontSize:14, color:'#050505', borderBottom:'1px solid #F0F2F5', fontFamily:'Poppins' }}><HiLink size={16} color="#12A48D"/> Copier le lien</button>
+                  <button onClick={() => { setMenuOpen(false); deletePage(); }} style={{ width:'100%', display:'flex', alignItems:'center', gap:11, padding:'13px 16px', background:'none', border:'none', cursor:'pointer', fontSize:14, color:'#FF2D8D', fontFamily:'Poppins' }}><HiTrash size={16}/> Supprimer</button>
+                </>) : (<>
+                  <button onClick={copyPageLink} style={{ width:'100%', display:'flex', alignItems:'center', gap:11, padding:'13px 16px', background:'none', border:'none', cursor:'pointer', fontSize:14, color:'#050505', borderBottom:'1px solid #F0F2F5', fontFamily:'Poppins' }}><HiLink size={16} color="#12A48D"/> Copier le lien</button>
+                  <button onClick={reportPage} style={{ width:'100%', display:'flex', alignItems:'center', gap:11, padding:'13px 16px', background:'none', border:'none', cursor:'pointer', fontSize:14, color:'#050505', borderBottom:'1px solid #F0F2F5', fontFamily:'Poppins' }}><HiFlag size={16} color="#F2B300"/> Signaler</button>
+                  <button onClick={blockPage} style={{ width:'100%', display:'flex', alignItems:'center', gap:11, padding:'13px 16px', background:'none', border:'none', cursor:'pointer', fontSize:14, color:'#FF2D8D', fontFamily:'Poppins' }}><HiBan size={16}/> Bloquer</button>
+                </>)}
               </div>
             )}
           </div>
@@ -215,6 +266,7 @@ export default function PageDetail() {
           {pg.location && <p style={{ fontSize:13, display:'flex', alignItems:'center', gap:8 }}><NeonLocation size={15}/> {pg.location}</p>}
           {pg.phone && <p style={{ fontSize:13, display:'flex', alignItems:'center', gap:8 }}><NeonPhone size={15}/> {pg.phone}</p>}
           {pg.website && <p style={{ fontSize:13, display:'flex', alignItems:'center', gap:8 }}><NeonGlobe size={15}/> <a href={pg.website.startsWith('http')?pg.website:`https://${pg.website}`} target="_blank" rel="noreferrer" style={{ color:'#1877F2' }}>{pg.website}</a></p>}
+          {pg.email && <p style={{ fontSize:13, display:'flex', alignItems:'center', gap:8 }}><HiMail size={15} color="#FF7A00"/> <a href={`mailto:${pg.email}`} style={{ color:'#1877F2', textDecoration:'none' }}>{pg.email}</a></p>}
           {pg.team && <p style={{ fontSize:13, color:'#65676B' }}>👥 Équipe : {pg.team}</p>}
           {pg.hobbies && <p style={{ fontSize:13, color:'#65676B' }}>🎯 {pg.hobbies}</p>}
         </div>
@@ -343,6 +395,7 @@ export default function PageDetail() {
             <textarea className="input" value={editForm.description} onChange={e=>setEditForm(p=>({...p,description:e.target.value}))} placeholder="Description" rows={3} style={{ resize:'none', marginBottom:10 }}/>
             <input className="input" value={editForm.location} onChange={e=>setEditForm(p=>({...p,location:e.target.value}))} placeholder="Lieu (point exact)" style={{ marginBottom:10 }}/>
             <input className="input" value={editForm.phone} onChange={e=>setEditForm(p=>({...p,phone:e.target.value}))} placeholder="Téléphone" style={{ marginBottom:10 }}/>
+            <input className="input" value={editForm.email} onChange={e=>setEditForm(p=>({...p,email:e.target.value}))} placeholder="E-mail professionnel" style={{ marginBottom:10 }}/>
             <input className="input" value={editForm.website} onChange={e=>setEditForm(p=>({...p,website:e.target.value}))} placeholder="Site web" style={{ marginBottom:10 }}/>
             <input className="input" value={editForm.team} onChange={e=>setEditForm(p=>({...p,team:e.target.value}))} placeholder="Équipe (personnes qui gèrent la page)" style={{ marginBottom:10 }}/>
             <input className="input" value={editForm.hobbies} onChange={e=>setEditForm(p=>({...p,hobbies:e.target.value}))} placeholder="Loisirs / activités" style={{ marginBottom:14 }}/>
@@ -351,6 +404,32 @@ export default function PageDetail() {
         </div>
       )}
       {followersOpen && <FollowListModal uids={pg.followers||[]} title="Abonnés" onClose={() => setFollowersOpen(false)} />}
+      {/* ── Statistiques (admin) : mifanaraka amin'ny page Sera ── */}
+      {statsOpen && (() => {
+        let reactions = 0, views = 0, comments = 0;
+        posts.forEach(pp => { reactions += Object.keys(pp.reactions||{}).length; views += pp.views || 0; comments += (pp.comments||[]).length; });
+        const Row = ({ icon, label, value, c }) => (
+          <div style={{ display:'flex', alignItems:'center', gap:12, padding:'11px 4px', borderBottom:'1px solid #F0F2F5' }}>
+            <span style={{ width:38, height:38, borderRadius:11, background:c, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>{icon}</span>
+            <span style={{ flex:1, fontSize:13.5, color:'#65676B' }}>{label}</span>
+            <span style={{ fontWeight:800, fontSize:17 }}>{Number(value).toLocaleString()}</span>
+          </div>
+        );
+        return (
+          <div onClick={() => setStatsOpen(false)} style={{ position:'fixed', inset:0, background:'rgba(0,0,0,.55)', zIndex:400, display:'flex', alignItems:'flex-end', justifyContent:'center' }}>
+            <div onClick={e => e.stopPropagation()} style={{ background:'#fff', borderRadius:'20px 20px 0 0', width:'100%', maxWidth:520, maxHeight:'80vh', overflowY:'auto', padding:'14px 16px 26px' }}>
+              <div style={{ width:40, height:4, borderRadius:2, background:'#CED0D4', margin:'0 auto 12px' }} />
+              <h3 style={{ fontWeight:800, fontSize:16, display:'flex', alignItems:'center', gap:8, marginBottom:6 }}><NeonChart size={18}/> Statistiques — {pg.name}</h3>
+              <p style={{ fontSize:11.5, color:'#65676B', marginBottom:8 }}>Page Sera : abonnés, publications et interactions</p>
+              <Row icon={<span style={{ color:'#fff', fontSize:16 }}>👥</span>} label="Abonnés" value={(pg.followers||[]).length} c="linear-gradient(145deg,#63A9FF,#1877F2)" />
+              <Row icon={<span style={{ color:'#fff', fontSize:15 }}>📝</span>} label="Publications" value={posts.length} c="linear-gradient(145deg,#FF6FA5,#FF2D8D)" />
+              <Row icon={<span style={{ color:'#fff', fontSize:15 }}>❤</span>} label="Réactions reçues" value={reactions} c="linear-gradient(145deg,#FF9A5A,#FF7A00)" />
+              <Row icon={<NeonEye size={16} color="#fff"/>} label="Vues des publications" value={views} c="linear-gradient(145deg,#8F7BFF,#5E4BDB)" />
+              <Row icon={<span style={{ color:'#fff', fontSize:15 }}>💬</span>} label="Commentaires" value={comments} c="linear-gradient(145deg,#3DD9C4,#12A48D)" />
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 }

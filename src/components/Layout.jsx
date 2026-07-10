@@ -10,6 +10,9 @@ import { collection, getDocs, query, orderBy, limit, where, onSnapshot } from 'f
 import { ref, set, onDisconnect, onValue } from 'firebase/database';
 import { db, rtdb } from '../firebase';
 import { parseAppLink } from '../utils/appLink';
+import { getIdentity, setIdentity, subscribeIdentity } from '../utils/identity';
+import { getCart, subscribeCart } from '../utils/cart';
+import { NeonChart } from './NeonIcons';
 import { subscribeUpload } from '../utils/uploadManager';
 import {
   HiHome, HiOutlineHome, HiUser, HiOutlineUser,
@@ -17,7 +20,7 @@ import {
   HiBell, HiOutlineBell, HiMenu, HiX, HiSearch, HiLogout, HiCog,
   HiOutlineCog, HiTag, HiFilm, HiPhotograph,
   HiBookmark, HiOutlineBookmark, HiCalendar, HiSpeakerphone, HiShoppingBag, HiChevronRight,
-  HiMicrophone, HiIdentification, HiDocumentText,
+  HiMicrophone, HiIdentification, HiDocumentText, HiChartBar, HiSwitchHorizontal, HiCheck, HiShoppingCart,
 } from 'react-icons/hi';
 
 // Icône "JEJO" — wordmark rose clay 3D + étoiles + smiley (style bijou)
@@ -107,6 +110,31 @@ export default function Layout({ children }) {
   const { theme } = useTheme();
   const { unreadCount: notifCount } = useNotifications();
   const { unreadCount: msgCount }   = useMessages();
+  const [identity, setIdentityState] = useState(getIdentity());
+  const [cartCount, setCartCount] = useState(() => { try { return getCart().length; } catch { return 0; } });
+  useEffect(() => subscribeCart(items => setCartCount(items.length)), []);
+  const [myPagesList, setMyPagesList] = useState([]);
+
+  useEffect(() => subscribeIdentity(setIdentityState), []);
+
+  // Mes pages Sera (ho an'ny "Changer de profil")
+  useEffect(() => {
+    if (!currentUser) return;
+    const q = query(collection(db, 'pages'), where('admins', 'array-contains', currentUser.uid));
+    const unsub = onSnapshot(q, snap => setMyPagesList(snap.docs.map(d => ({ id: d.id, ...d.data() }))), () => {});
+    return () => unsub();
+  }, [currentUser]);
+
+  // ── Lecture tokana : rehefa misy audio/vidéo miainga dia ajanona ny hafa rehetra ──
+  useEffect(() => {
+    const onPlay = e => {
+      const el = e.target;
+      if (!(el instanceof HTMLMediaElement)) return;
+      document.querySelectorAll('audio, video').forEach(m => { if (m !== el && !m.paused) { try { m.pause(); } catch {} } });
+    };
+    document.addEventListener('play', onPlay, true);
+    return () => document.removeEventListener('play', onPlay, true);
+  }, []);
 
   const [drawerOpen,    setDrawerOpen]    = useState(false);
   const [search,        setSearch]        = useState('');
@@ -220,6 +248,7 @@ export default function Layout({ children }) {
     { path: '/announcements',               AIcon: HiSpeakerphone,  label: 'Annonces',         sub: 'Petites annonces',     color1:'#FF9A5A', color2:'#FF7A00' },
     { path: '/shop',                        AIcon: HiShoppingBag,   label: 'Boutique',         sub: 'Achetez, vendez',      color1:'#FF6FA5', color2:'#FF2D8D' },
     { path: '/saved',                       AIcon: HiBookmark,      label: 'Enregistrements',  sub: 'Vos posts sauvegardés',color1:'#FFD84D', color2:'#F5C518' },
+    { path: '/stats',                       AIcon: HiChartBar,      label: 'Statistiques',     sub: 'Abonnés, vues, réactions', color1:'#3DD9C4', color2:'#12A48D' },
   ];
 
   const bg   = isDark ? '#050505' : 'white';
@@ -363,6 +392,40 @@ export default function Layout({ children }) {
           </button>
         </nav>
 
+        {/* Changer de profil (compte ↔ page Sera, toy ny Facebook) */}
+        {myPagesList.length > 0 && (
+          <div style={{ padding: '0 14px 14px' }}>
+            <div style={{ background: isDark ? '#15181F' : 'white', border: `1.5px solid ${bdr}`, borderRadius: 16, overflow: 'hidden' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '11px 14px 7px' }}>
+                <HiSwitchHorizontal size={16} color="#12A48D" />
+                <span style={{ fontWeight: 700, fontSize: 13, color: text }}>Changer de profil</span>
+              </div>
+              <button onClick={() => { setIdentity({ type: 'user' }); }}
+                style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: '9px 14px', background: identity.type === 'user' ? (isDark ? '#10131A' : '#F0F7FF') : 'none', border: 'none', cursor: 'pointer', textAlign: 'left' }}>
+                <img src={userProfile?.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(userProfile?.fullName || 'U')}&background=1877F2&color=fff`} alt="" style={{ width: 34, height: 34, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} />
+                <span style={{ flex: 1, minWidth: 0 }}>
+                  <span style={{ display: 'block', fontWeight: 700, fontSize: 13, color: text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{userProfile?.fullName || 'Moi'}</span>
+                  <span style={{ display: 'block', fontSize: 10.5, color: '#65676B' }}>Compte personnel</span>
+                </span>
+                {identity.type === 'user' && <HiCheck size={17} color="#1877F2" style={{ flexShrink: 0 }} />}
+              </button>
+              {myPagesList.map(pg => (
+                <button key={pg.id} onClick={() => { setIdentity({ type: 'page', id: pg.id, name: pg.name, photoURL: pg.photoURL || '' }); }}
+                  style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: '9px 14px', background: identity.type === 'page' && identity.id === pg.id ? (isDark ? '#10131A' : '#F0F7FF') : 'none', border: 'none', borderTop: `1px solid ${bdr}`, cursor: 'pointer', textAlign: 'left' }}>
+                  <span style={{ width: 34, height: 34, borderRadius: 10, overflow: 'hidden', background: 'linear-gradient(145deg,#63A9FF,#1877F2)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    {pg.photoURL ? <img src={pg.photoURL} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <HiIdentification size={17} color="white" />}
+                  </span>
+                  <span style={{ flex: 1, minWidth: 0 }}>
+                    <span style={{ display: 'block', fontWeight: 700, fontSize: 13, color: text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{pg.name}</span>
+                    <span style={{ display: 'block', fontSize: 10.5, color: '#65676B' }}>Page Sera</span>
+                  </span>
+                  {identity.type === 'page' && identity.id === pg.id && <HiCheck size={17} color="#1877F2" style={{ flexShrink: 0 }} />}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Sera (Pages) et Bloc-notes */}
         <div style={{ padding: '0 14px 14px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
           <button onClick={() => { navigate('/pages'); setDrawerOpen(false); }}
@@ -438,6 +501,18 @@ export default function Layout({ children }) {
               <span style={{ color: '#1877F2' }}>tre</span><span style={{ color: '#FF2D8D' }}>ngo</span>
             </span>
           </div>
+
+          {/* Panier — bouton rond, mitovy amin'ny icônes topbar hafa */}
+          <button onClick={() => navigate('/shop', { state: { openCart: true } })}
+            title="Panier"
+            style={{ position: 'relative', width: 40, height: 40, borderRadius: '50%', background: '#F0F2F5', border: 'none', cursor: 'pointer', color: '#050505', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <HiShoppingCart size={20} />
+            {cartCount > 0 && (
+              <span style={{ position: 'absolute', top: -2, right: -2, background: '#FF2D8D', color: 'white', borderRadius: '50%', minWidth: 17, height: 17, fontSize: 10, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 2px', border: '2px solid white' }}>
+                {cartCount > 9 ? '9+' : cartCount}
+              </span>
+            )}
+          </button>
 
           {/* Recherche — bouton rond (format Facebook), à gauche du bouton messages */}
           <button onClick={() => navigate('/search')}

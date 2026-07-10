@@ -50,6 +50,12 @@ export default function Notifications() {
       case 'shopMessage':
         navigate(notif.shopId ? `/shop/${notif.shopId}/messages` + (notif.visitorUid && notif.fromUid !== currentUser.uid ? `/${notif.visitorUid}` : '') : '/');
         break;
+      case 'pageMessage':
+        navigate(notif.pageId ? `/pages/${notif.pageId}/messages` + (notif.visitorUid && notif.fromUid !== currentUser.uid ? `/${notif.visitorUid}` : '') : '/');
+        break;
+      case 'mention': case 'share':
+        navigate(notif.postId ? `/post/${notif.postId}` : '/');
+        break;
       case 'comment': case 'reaction': case 'post': case 'boost':
         navigate(notif.postId?`/post/${notif.postId}`:'/');
         break;
@@ -73,7 +79,34 @@ export default function Notifications() {
 
       {notifications.length===0
         ? <div style={{ textAlign:'center', padding:60 }}><HiBell size={52} color="#E4E6EB" style={{ margin:'0 auto 12px', display:'block' }}/><p style={{ color:'#65676B' }}>{t('noNotifications')}</p></div>
-        : notifications.map(notif => {
+        : (() => {
+          // ── Regroupement (format Facebook) : réactions/commentaires mitovy post ──
+          const grouped = [];
+          const byKey = {};
+          for (const n of notifications) {
+            const groupable = (n.type === 'reaction' || n.type === 'comment') && n.postId;
+            const key = groupable ? `${n.type}_${n.postId}` : null;
+            if (key && byKey[key]) {
+              const g = byKey[key];
+              if (!g.others.some(o => o.fromUid === n.fromUid) && n.fromUid !== g.fromUid) g.others.push({ fromUid: n.fromUid, fromName: n.fromName });
+              g.read = g.read && n.read;
+              g.ids.push(n.id);
+              continue;
+            }
+            const item = { ...n, others: [], ids: [n.id] };
+            if (key) byKey[key] = item;
+            grouped.push(item);
+          }
+          return grouped.map(notif => {
+            const nOthers = notif.others.length;
+            const detail = nOthers > 0
+              ? (notif.type === 'reaction'
+                  ? `et ${nOthers} autre${nOthers>1?'s':''} personne${nOthers>1?'s':''} ont réagi à votre publication`
+                  : `et ${nOthers} autre${nOthers>1?'s':''} personne${nOthers>1?'s':''} ont commenté votre publication`)
+              : (notif.message?.replace(notif.fromName,'').trim());
+            notif._detail = detail;
+            return notif;
+          }).map(notif => {
           const cfg = ICONS[notif.type]||{icon:HiBell,color:'#1877F2'};
           const Icon = cfg.icon;
           return (
@@ -88,18 +121,19 @@ export default function Notifications() {
                   </div>
                 </div>
                 <div style={{ flex:1 }}>
-                  <p style={{ fontSize:14, lineHeight:1.4 }}><strong>{notif.fromName}</strong> {notif.message?.replace(notif.fromName,'').trim()}</p>
+                  <p style={{ fontSize:14, lineHeight:1.4 }}><strong>{notif.fromName}</strong> {notif._detail || notif.message?.replace(notif.fromName,'').trim()}{notif.others?.length > 0 && <span style={{ color:'#1877F2', fontWeight:600 }}> · détails</span>}</p>
                   <p style={{ fontSize:11, color:'#65676B', marginTop:3 }}>{timeSince(notif.createdAt)}</p>
                 </div>
                 {!notif.read&&<div style={{ width:9, height:9, background:'#1877F2', borderRadius:'50%', flexShrink:0 }}/>}
               </div>
               <div style={{ display:'flex', flexDirection:'column', gap:6, flexShrink:0, alignItems:'flex-end' }}>
                 <button onClick={e=>{ e.stopPropagation(); handleClick(notif); }} style={{ background:'#1877F2', border:'none', borderRadius:20, padding:'5px 14px', color:'white', fontSize:12, fontWeight:600, cursor:'pointer', fontFamily:'Poppins' }}>Voir</button>
-                <button onClick={e=>{ e.stopPropagation(); deleteNotification(notif.id); }} style={{ background:'none', border:'none', cursor:'pointer', color:'#1877F2', fontSize:11, fontWeight:600, fontFamily:'Poppins' }}>Fermer</button>
+                <button onClick={e=>{ e.stopPropagation(); (notif.ids || [notif.id]).forEach(id => deleteNotification(id)); }} style={{ background:'none', border:'none', cursor:'pointer', color:'#1877F2', fontSize:11, fontWeight:600, fontFamily:'Poppins' }}>Fermer</button>
               </div>
             </div>
           );
-        })
+        });
+        })()
       }
     </div>
   );

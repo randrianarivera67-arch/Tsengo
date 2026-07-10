@@ -1,4 +1,4 @@
-// src/pages/ShopMessages.jsx — Messagerie dédiée à une page boutique
+// src/pages/PageMessages.jsx — Messagerie dédiée à une page Sera
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ref, push, onValue, update, remove } from 'firebase/database';
@@ -7,7 +7,7 @@ import { db, rtdb } from '../firebase';
 import { useAuth } from '../context/AuthContext';
 import { sendPushNotification } from '../utils/onesignal';
 import { uploadToTelegram } from '../utils/telegram';
-import { HiShoppingBag } from 'react-icons/hi';
+import { HiIdentification } from 'react-icons/hi';
 import Linkify from '../components/Linkify';
 import { HiArrowLeft, HiPaperAirplane, HiChevronRight, HiPhotograph, HiVideoCamera, HiPaperClip, HiMicrophone, HiDotsVertical, HiBan, HiTrash, HiCollection, HiX, HiSearch } from 'react-icons/hi';
 
@@ -15,12 +15,12 @@ const REACT_EMOJIS = ['❤️', '😂', '😮', '😢', '😡', '👍'];
 
 const fmtTime = ts => ts ? new Date(ts).getHours() + ':' + String(new Date(ts).getMinutes()).padStart(2, '0') : '';
 
-export default function ShopMessages() {
-  const { shopId, visitorUid: paramVisitor } = useParams();
+export default function PageMessages() {
+  const { pageId, visitorUid: paramVisitor } = useParams();
   const { currentUser, userProfile } = useAuth();
   const navigate = useNavigate();
 
-  const [shop, setShop] = useState(null);
+  const [pg, setPg] = useState(null);
   const [convs, setConvs] = useState([]);
   const [msgs, setMsgs] = useState([]);
   const [text, setText] = useState('');
@@ -39,15 +39,15 @@ export default function ShopMessages() {
   const fileRef = useRef(null);
   const recRef = useRef(null);
 
-  const isAdmin = !!shop?.admins?.includes(currentUser?.uid);
+  const isAdmin = !!pg?.admins?.includes(currentUser?.uid);
   const activeVisitor = isAdmin ? paramVisitor : currentUser?.uid;
   const conv = convs.find(c => c.uid === paramVisitor);
 
-  useEffect(() => { getDoc(doc(db, 'shops', shopId)).then(s => s.exists() && setShop({ id: s.id, ...s.data() })); }, [shopId]);
+  useEffect(() => { getDoc(doc(db, 'pages', pageId)).then(s => s.exists() && setPg({ id: s.id, ...s.data() })); }, [pageId]);
 
   useEffect(() => {
-    if (!shop || !isAdmin) return;
-    const prefix = `shop_${shopId}_`;
+    if (!pg || !isAdmin) return;
+    const prefix = `page_${pageId}_`;
     return onValue(ref(rtdb, 'conversations'), snap => {
       const data = snap.val() || {};
       setConvs(Object.entries(data)
@@ -59,7 +59,7 @@ export default function ShopMessages() {
         })
         .sort((a, b) => (b.last?.ts || 0) - (a.last?.ts || 0)));
     });
-  }, [shop, isAdmin, shopId, currentUser]);
+  }, [pg, isAdmin, pageId, currentUser]);
 
   useEffect(() => {
     if (!isAdmin || !paramVisitor) return;
@@ -67,8 +67,8 @@ export default function ShopMessages() {
   }, [isAdmin, paramVisitor]);
 
   useEffect(() => {
-    if (!activeVisitor || !shop) return;
-    const r = ref(rtdb, `conversations/shop_${shopId}_${activeVisitor}/messages`);
+    if (!activeVisitor || !pg) return;
+    const r = ref(rtdb, `conversations/page_${pageId}_${activeVisitor}/messages`);
     return onValue(r, snap => {
       const data = snap.val() || {};
       const list = Object.entries(data).map(([id, m]) => ({ id, ...m })).sort((a, b) => a.ts - b.ts);
@@ -77,35 +77,35 @@ export default function ShopMessages() {
       const upd = {};
       list.forEach(m => {
         if (isAdmin && m.fromUid !== currentUser.uid && !m.readByAdmin) upd[`${m.id}/readByAdmin`] = true;
-        if (!isAdmin && m.fromShop && !m.readByVisitor) { upd[`${m.id}/readByVisitor`] = true; upd[`${m.id}/read`] = true; }
+        if (!isAdmin && m.fromPage && !m.readByVisitor) { upd[`${m.id}/readByVisitor`] = true; upd[`${m.id}/read`] = true; }
       });
       if (Object.keys(upd).length) update(r, upd).catch(() => {});
     });
-  }, [activeVisitor, shop, shopId, isAdmin, currentUser]);
+  }, [activeVisitor, pg, pageId, isAdmin, currentUser]);
 
   async function sendPayload(mediaURL = '', mediaType = '', body = '') {
-    const base = `conversations/shop_${shopId}_${activeVisitor}`;
+    const base = `conversations/page_${pageId}_${activeVisitor}`;
     await push(ref(rtdb, `${base}/messages`), {
-      fromUid: currentUser.uid, fromShop: isAdmin,
+      fromUid: currentUser.uid, fromPage: isAdmin,
       toUid: isAdmin ? activeVisitor : '',
       read: false,
-      fromName: isAdmin ? shop.name : (userProfile?.fullName || 'Utilisateur'),
-      fromPhoto: isAdmin ? (shop.photoURL || '') : (userProfile?.photoURL || ''),
+      fromName: isAdmin ? pg.name : (userProfile?.fullName || 'Utilisateur'),
+      fromPhoto: isAdmin ? (pg.photoURL || '') : (userProfile?.photoURL || ''),
       text: body, mediaURL, mediaType, ts: Date.now(),
       readByAdmin: isAdmin, readByVisitor: !isAdmin,
     });
     const label = body || (mediaType === 'video' ? '🎬 Vidéo' : mediaType === 'audio' ? '🎤 Vocal' : '📎 Média');
-    const meta = { lastMessage: label, lastTs: Date.now(), shopId, shopName: shop.name, shopPhoto: shop.photoURL || '' };
+    const meta = { lastMessage: label, lastTs: Date.now(), pageId, pageName: pg.name, pagePhoto: pg.photoURL || '' };
     if (!isAdmin) { meta.visitorName = userProfile?.fullName || ''; meta.visitorPhoto = userProfile?.photoURL || ''; }
     await update(ref(rtdb, `${base}/meta`), meta);
 
     if (isAdmin && activeVisitor !== currentUser.uid) {
-      addDoc(collection(db, 'notifications'), { toUid: activeVisitor, fromUid: currentUser.uid, fromName: shop.name, fromPhoto: shop.photoURL || '', type: 'shopMessage', shopId, visitorUid: activeVisitor, message: `${shop.name} vous a répondu : ${label.slice(0, 60)}`, read: false, createdAt: serverTimestamp() }).catch(() => {});
-      sendPushNotification({ toExternalId: activeVisitor, title: `${shop.name} 📩`, message: label.slice(0, 80), fromPhoto: shop.photoURL || '', data: { type: 'shopMessage', shopId, visitorUid: activeVisitor } });
+      addDoc(collection(db, 'notifications'), { toUid: activeVisitor, fromUid: currentUser.uid, fromName: pg.name, fromPhoto: pg.photoURL || '', type: 'pageMessage', pageId, visitorUid: activeVisitor, message: `${pg.name} vous a répondu : ${label.slice(0, 60)}`, read: false, createdAt: serverTimestamp() }).catch(() => {});
+      sendPushNotification({ toExternalId: activeVisitor, title: `${pg.name} 📩`, message: label.slice(0, 80), fromPhoto: pg.photoURL || '', data: { type: 'pageMessage', pageId, visitorUid: activeVisitor } });
     } else {
-      (shop.admins || []).filter(a => a !== currentUser.uid).forEach(a => {
-        addDoc(collection(db, 'notifications'), { toUid: a, fromUid: currentUser.uid, fromName: userProfile?.fullName || 'Utilisateur', fromPhoto: userProfile?.photoURL || '', type: 'shopMessage', shopId, visitorUid: currentUser.uid, message: `${userProfile?.fullName || 'Quelqu\'un'} veut vous envoyer un message sur ${shop.name}`, read: false, createdAt: serverTimestamp() }).catch(() => {});
-        sendPushNotification({ toExternalId: a, title: `${shop.name} 📩`, message: `${userProfile?.fullName || 'Quelqu\'un'} : ${label.slice(0, 60)}`, fromPhoto: userProfile?.photoURL || '', data: { type: 'shopMessage', shopId, visitorUid: currentUser.uid } });
+      (pg.admins || []).filter(a => a !== currentUser.uid).forEach(a => {
+        addDoc(collection(db, 'notifications'), { toUid: a, fromUid: currentUser.uid, fromName: userProfile?.fullName || 'Utilisateur', fromPhoto: userProfile?.photoURL || '', type: 'pageMessage', pageId, visitorUid: currentUser.uid, message: `${userProfile?.fullName || 'Quelqu\'un'} veut vous envoyer un message sur ${pg.name}`, read: false, createdAt: serverTimestamp() }).catch(() => {});
+        sendPushNotification({ toExternalId: a, title: `${pg.name} 📩`, message: `${userProfile?.fullName || 'Quelqu\'un'} : ${label.slice(0, 60)}`, fromPhoto: userProfile?.photoURL || '', data: { type: 'pageMessage', pageId, visitorUid: currentUser.uid } });
       });
     }
   }
@@ -113,7 +113,7 @@ export default function ShopMessages() {
   async function toggleReaction(msgId, emoji) {
     setReactFor(null);
     if (!activeVisitor) return;
-    const p = `conversations/shop_${shopId}_${activeVisitor}/messages/${msgId}/reactions/${currentUser.uid}`;
+    const p = `conversations/page_${pageId}_${activeVisitor}/messages/${msgId}/reactions/${currentUser.uid}`;
     const cur = msgs.find(m => m.id === msgId)?.reactions?.[currentUser.uid];
     try { await update(ref(rtdb, p.substring(0, p.lastIndexOf('/'))), { [currentUser.uid]: cur === emoji ? null : emoji }); } catch (e) { alert('Erreur : ' + (e?.message || e)); }
   }
@@ -155,7 +155,7 @@ export default function ShopMessages() {
 
   async function blockOther() {
     setMenuOpen(false);
-    const target = isAdmin ? paramVisitor : shopId;
+    const target = isAdmin ? paramVisitor : pageId;
     if (!confirm(isAdmin ? 'Bloquer cette personne ?' : 'Bloquer cette page ?')) return;
     try { await updateDoc(doc(db, 'users', currentUser.uid), { blocked: arrayUnion(target) }); alert('Bloqué'); } catch (e) { alert('Erreur : ' + (e?.message || e)); }
   }
@@ -163,20 +163,20 @@ export default function ShopMessages() {
   async function deleteConv() {
     setMenuOpen(false);
     if (!confirm('Supprimer cette conversation ?')) return;
-    try { await remove(ref(rtdb, `conversations/shop_${shopId}_${activeVisitor}`)); navigate(isAdmin ? `/shop/${shopId}/messages` : `/shop/${shopId}`); } catch (e) { alert('Erreur : ' + (e?.message || e)); }
+    try { await remove(ref(rtdb, `conversations/page_${pageId}_${activeVisitor}`)); navigate(isAdmin ? `/pg/${pageId}/messages` : `/pg/${pageId}`); } catch (e) { alert('Erreur : ' + (e?.message || e)); }
   }
 
-  if (!shop) return <div style={{ padding: 30, textAlign: 'center', color: '#65676B' }}>Chargement…</div>;
+  if (!pg) return <div style={{ padding: 30, textAlign: 'center', color: '#65676B' }}>Chargement…</div>;
 
   if (isAdmin && !paramVisitor) {
     return (
       <div style={{ minHeight: '100vh', background: '#fff' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: 12, borderBottom: '1px solid #E4E6EB', position: 'sticky', top: 0, background: '#fff', zIndex: 10 }}>
-          <button onClick={() => navigate(`/shop/${shopId}`)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#1877F2' }}><HiArrowLeft size={22} /></button>
+          <button onClick={() => navigate(`/pg/${pageId}`)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#1877F2' }}><HiArrowLeft size={22} /></button>
           <div style={{ width: 40, height: 40, borderRadius: '50%', overflow: 'hidden', background: 'linear-gradient(145deg,#FF6FA5,#FF2D8D)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-            {shop.photoURL ? <img src={shop.photoURL} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <HiShoppingBag size={18} color="white" />}
+            {pg.photoURL ? <img src={pg.photoURL} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <HiIdentification size={18} color="white" />}
           </div>
-          <div><div style={{ fontWeight: 800, fontSize: 16 }}>{shop.name}</div><div style={{ fontSize: 11.5, color: '#65676B' }}>Messages de la page</div></div>
+          <div><div style={{ fontWeight: 800, fontSize: 16 }}>{pg.name}</div><div style={{ fontSize: 11.5, color: '#65676B' }}>Messages de la page</div></div>
         </div>
         <div style={{ padding: '10px 12px 6px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: '#F0F2F5', borderRadius: 22, padding: '9px 14px' }}>
@@ -188,7 +188,7 @@ export default function ShopMessages() {
         </div>
         {convs.length === 0 && <div style={{ padding: 40, textAlign: 'center', color: '#65676B', fontSize: 14 }}>Aucun message pour le moment</div>}
         {convs.filter(c => !convQ.trim() || (c.meta.visitorName || '').toLowerCase().includes(convQ.trim().toLowerCase())).map(c => (
-          <div key={c.uid} onClick={() => navigate(`/shop/${shopId}/messages/${c.uid}`)} style={{ display: 'flex', alignItems: 'center', gap: 11, padding: '12px 14px', borderBottom: '1px solid #F0F2F5', cursor: 'pointer' }}>
+          <div key={c.uid} onClick={() => navigate(`/pg/${pageId}/messages/${c.uid}`)} style={{ display: 'flex', alignItems: 'center', gap: 11, padding: '12px 14px', borderBottom: '1px solid #F0F2F5', cursor: 'pointer' }}>
             <img src={c.meta.visitorPhoto || `https://ui-avatars.com/api/?name=${encodeURIComponent(c.meta.visitorName || 'U')}&background=1877F2&color=fff`} alt="" style={{ width: 48, height: 48, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} />
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontWeight: c.unread ? 800 : 600, fontSize: 15, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.meta.visitorName || 'Utilisateur'}</div>
@@ -202,16 +202,16 @@ export default function ShopMessages() {
     );
   }
 
-  const otherName = isAdmin ? (conv?.meta.visitorName || 'Utilisateur') : shop.name;
-  const otherPhoto = isAdmin ? conv?.meta.visitorPhoto : shop.photoURL;
-  const otherSub = isAdmin ? (online ? 'En ligne' : 'Hors ligne') : 'Boutique';
-  const onProfile = () => isAdmin ? navigate(`/profile/${paramVisitor}`) : navigate(`/shop/${shopId}`);
+  const otherName = isAdmin ? (conv?.meta.visitorName || 'Utilisateur') : pg.name;
+  const otherPhoto = isAdmin ? conv?.meta.visitorPhoto : pg.photoURL;
+  const otherSub = isAdmin ? (online ? 'En ligne' : 'Hors ligne') : 'Sera';
+  const onProfile = () => isAdmin ? navigate(`/profile/${paramVisitor}`) : navigate(`/pg/${pageId}`);
   const medias = msgs.filter(m => m.mediaURL);
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', background: '#fff' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderBottom: '1px solid #E4E6EB', background: '#fff', position: 'sticky', top: 0, zIndex: 20 }}>
-        <button onClick={() => isAdmin ? navigate(`/shop/${shopId}/messages`) : navigate(`/shop/${shopId}`)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#1877F2', display: 'flex' }}><HiArrowLeft size={24} /></button>
+        <button onClick={() => isAdmin ? navigate(`/pg/${pageId}/messages`) : navigate(`/pg/${pageId}`)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#1877F2', display: 'flex' }}><HiArrowLeft size={24} /></button>
         <div onClick={onProfile} style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', flex: 1, minWidth: 0 }}>
           <div style={{ position: 'relative', flexShrink: 0 }}>
             <img src={otherPhoto || `https://ui-avatars.com/api/?name=${encodeURIComponent(otherName)}&background=1877F2&color=fff`} alt="" style={{ width: 44, height: 44, borderRadius: '50%', objectFit: 'cover' }} />
@@ -236,7 +236,7 @@ export default function ShopMessages() {
       </div>
 
       <div style={{ flex: 1, overflowY: 'auto', padding: '14px 10px', background: '#fff' }}>
-        {msgs.length === 0 && <div style={{ textAlign: 'center', color: '#65676B', fontSize: 13.5, marginTop: 30 }}>{isAdmin ? 'Aucun message' : `Envoyez un message à ${shop.name}`}</div>}
+        {msgs.length === 0 && <div style={{ textAlign: 'center', color: '#65676B', fontSize: 13.5, marginTop: 30 }}>{isAdmin ? 'Aucun message' : `Envoyez un message à ${pg.name}`}</div>}
         {msgs.map(m => {
           const mine = m.fromUid === currentUser.uid;
           const seen = mine && (isAdmin ? m.readByVisitor : m.readByAdmin);

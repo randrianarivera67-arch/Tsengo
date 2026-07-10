@@ -6,6 +6,7 @@ import {
   addDoc, serverTimestamp, arrayUnion, arrayRemove, getDoc, writeBatch
 } from 'firebase/firestore';
 import { db } from '../firebase';
+import { NeonPlaneWhite } from '../components/NeonIcons';
 import MusicPostCard from '../components/MusicPostCard';
 import { useAuth } from '../context/AuthContext';
 import { timeAgo } from '../utils/timeAgo';
@@ -663,7 +664,7 @@ export default function GroupPage() {
                     <span style={{ fontWeight: 800, fontSize: 20, color: '#FF2D8D' }}>{post.price ? `${Number(post.price).toLocaleString()} Ar` : 'À discuter'}</span>
                     <button onClick={() => navigate(`/shop/${post.shopId}/messages`)}
                       style={{ display: 'flex', alignItems: 'center', gap: 5, background: '#fff', border: '1.5px solid #FF2D8D', borderRadius: 20, padding: '7px 16px', fontSize: 13, fontWeight: 700, color: '#FF2D8D', cursor: 'pointer', flexShrink: 0 }}>
-                      <HiOutlineChat size={15}/> Message
+                      <NeonPlaneWhite size={15}/> Message
                     </button>
                   </div>
                   {(post.lieu || post.contact) && (

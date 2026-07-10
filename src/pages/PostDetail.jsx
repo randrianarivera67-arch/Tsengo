@@ -6,6 +6,7 @@ import {
   arrayUnion, arrayRemove, collection, getDoc
 } from 'firebase/firestore';
 import { db } from '../firebase';
+import { NeonPlaneWhite } from '../components/NeonIcons';
 import MusicPostCard from '../components/MusicPostCard';
 import { useAuth } from '../context/AuthContext';
 import { timeAgo } from '../utils/timeAgo';
@@ -238,7 +239,7 @@ export default function PostDetail() {
                 <span style={{ fontWeight:800, fontSize:22, color:'#FF2D8D' }}>{post.price ? `${Number(post.price).toLocaleString()} Ar` : 'À discuter'}</span>
                 <button onClick={() => navigate(`/shop/${post.shopId}/messages`)}
                   style={{ display:'flex', alignItems:'center', gap:5, background:'#fff', border:'1.5px solid #FF2D8D', borderRadius:20, padding:'8px 18px', fontSize:13.5, fontWeight:700, color:'#FF2D8D', cursor:'pointer', flexShrink:0 }}>
-                  <HiChat size={16}/> Message
+                  <NeonPlaneWhite size={16}/> Message
                 </button>
               </div>
               {Number(post.oldPrice) > Number(post.price) && (

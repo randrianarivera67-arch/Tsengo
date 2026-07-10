@@ -74,6 +74,8 @@ export default function Messages() {
   const [creatingGroup,   setCreatingGroup]   = useState(false);
   const isGroupChat = !!activeChatId?.startsWith('group_');
   const isArtistChat = !!activeChatId?.startsWith('artist_');
+  const isShopChat   = !!activeChatId?.startsWith('shop_');
+  const isPageChat   = !!activeChatId?.startsWith('page_');
   const activeGroup = isGroupChat ? groups.find(g => `group_${g.id}` === activeChatId) : null;
   const isGroupAdmin = !!activeGroup?.admins?.includes(currentUser?.uid);
 
@@ -140,6 +142,38 @@ export default function Messages() {
           gMetas[chatId.slice(6)] = last ? { text: last.text || (last.mediaType === 'audio' ? '🎤 Vocal' : last.mediaURL ? '📎 Média' : ''), from: last.fromName, ts: last.ts } : null;
           continue;
         }
+        // ── Conversation avec une BOUTIQUE : shop_{shopId}_{visitorUid} ──
+        if (chatId.startsWith('shop_')) {
+          const rest = chatId.slice(5);
+          const sep = rest.lastIndexOf('_');
+          const sId = rest.slice(0, sep), vUid = rest.slice(sep + 1);
+          if (vUid !== currentUser.uid) continue;
+          const msgsS = conv.messages ? Object.values(conv.messages) : [];
+          const lastS = msgsS[msgsS.length - 1];
+          const unreadS = msgsS.filter(m => m.toUid === currentUser.uid && !m.read).length;
+          list.push({
+            chatId, shopId: sId, isShop: true,
+            user: { fullName: conv.meta?.shopName || 'Boutique', photoURL: conv.meta?.shopPhoto || '' },
+            lastMsg: lastS, unread: unreadS,
+          });
+          continue;
+        }
+        // ── Conversation avec une PAGE SERA : page_{pageId}_{visitorUid} ──
+        if (chatId.startsWith('page_')) {
+          const rest = chatId.slice(5);
+          const sep = rest.lastIndexOf('_');
+          const pId = rest.slice(0, sep), vUid = rest.slice(sep + 1);
+          if (vUid !== currentUser.uid) continue;
+          const msgsP = conv.messages ? Object.values(conv.messages) : [];
+          const lastP = msgsP[msgsP.length - 1];
+          const unreadP = msgsP.filter(m => m.toUid === currentUser.uid && !m.read).length;
+          list.push({
+            chatId, pageId: pId, isPage: true,
+            user: { fullName: conv.meta?.pageName || 'Page Sera', photoURL: conv.meta?.pagePhoto || '' },
+            lastMsg: lastP, unread: unreadP,
+          });
+          continue;
+        }
         // ── Conversation avec une PAGE ARTISTE : artist_{artistId}_{visitorUid}
         if (chatId.startsWith('artist_')) {
           const rest = chatId.slice(7);
@@ -165,20 +199,21 @@ export default function Messages() {
         const last  = msgs[msgs.length - 1];
         const unread = msgs.filter(m => m.toUid === currentUser.uid && !m.read).length;
 
-        // ✅ Marquer "lu" avy hatrany — ALOHAN'ny fakana ny profil, ka na conversation
-        // misy compte voafafa/tsy hita aza dia voamarika (io no namela ny badge nijanona)
-        if (unread > 0) {
-          const upd = {};
-          msgEntries.forEach(([mid, m]) => {
-            if (m.toUid === currentUser.uid && !m.read) upd[`${mid}/read`] = true;
-          });
-          update(ref(rtdb, `conversations/${chatId}/messages`), upd)
-            .catch(e => console.error('Marquage lu refusé pour', chatId, ':', e?.message || e));
-        }
-
+        // ✅ DISCIPLINE : ny hafatra dia "lu" rehefa SOKAFANA ny discussion ihany
+        // (jereo ny useEffect activeChatId etsy ambany). Eto dia ny badge fantôme
+        // an'ny compte voafafa ihany no diovina.
         try {
           const s = await getDoc(doc(db, 'users', otherUid));
-          if (!s.exists()) continue;
+          if (!s.exists()) {
+            if (unread > 0) {
+              const upd = {};
+              msgEntries.forEach(([mid, m]) => {
+                if (m.toUid === currentUser.uid && !m.read) upd[`${mid}/read`] = true;
+              });
+              update(ref(rtdb, `conversations/${chatId}/messages`), upd).catch(() => {});
+            }
+            continue;
+          }
           list.push({ chatId, otherUid, user: s.data(), lastMsg: last, unread });
         } catch {}
       }
@@ -201,9 +236,10 @@ export default function Messages() {
       const r = {};
       msgs.forEach(m => { if (m.reactions) r[m.id]=m.reactions; });
       setMsgReactions(r);
+      const isBiz = activeChatId.startsWith('shop_') || activeChatId.startsWith('page_') || activeChatId.startsWith('artist_');
       msgs.forEach(m => {
         if (m.toUid === currentUser.uid && !m.read) {
-          update(ref(rtdb, `conversations/${activeChatId}/messages/${m.id}`), { read: true }).catch(() => {});
+          update(ref(rtdb, `conversations/${activeChatId}/messages/${m.id}`), { read: true, ...(isBiz ? { readByVisitor: true } : {}) }).catch(() => {});
         }
       });
     }, err => {
@@ -317,7 +353,7 @@ export default function Messages() {
       let mediaURL = '', finalMT = '';
       atBottomRef.current = true;
       if (mediaFile) { const r = await uploadToTelegram(mediaFile); mediaURL = r.url; finalMT = r.type; }
-      const otherUid = (isGroupChat || isArtistChat) ? null : activeChatId.split('_').find(p => p !== currentUser.uid);
+      const otherUid = (isGroupChat || isArtistChat || isShopChat || isPageChat) ? null : activeChatId.split('_').find(p => p !== currentUser.uid);
 
       if (editingMsgId) {
         // ── Mode édition : modifier le message existant ─────
@@ -339,6 +375,8 @@ export default function Messages() {
           ts: Date.now(),
           read: false,
           ...(isArtistChat ? { fromArtist: false, readByVisitor: true, readByAdmin: false } : {}),
+          ...(isShopChat ? { fromShop: false, readByVisitor: true, readByAdmin: false } : {}),
+          ...(isPageChat ? { fromPage: false, readByVisitor: true, readByAdmin: false } : {}),
           ...(replyTo ? { replyTo: { id: replyTo.id, text: replyTo.text, fromName: replyTo.fromName } } : {}),
         };
         await push(ref(rtdb, `conversations/${activeChatId}/messages`), msgData);

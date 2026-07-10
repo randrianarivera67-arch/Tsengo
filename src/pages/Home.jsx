@@ -20,7 +20,7 @@ import MusicPostCard from '../components/MusicPostCard';
 import PhotoCarousel from '../components/PhotoCarousel';
 import StoryRing from '../components/StoryRing';
 import { useActiveStoryUids } from '../hooks/useActiveStoryUids';
-import { NeonGlobe, NeonPeople, NeonLock, NeonMic, NeonLocation } from '../components/NeonIcons';
+import { NeonGlobe, NeonPeople, NeonLock, NeonMic, NeonLocation, NeonLike, NeonComment, NeonShare, NeonPlaneWhite, NeonEye, NeonStar } from '../components/NeonIcons';
 import { getChatId } from '../utils/chat';
 import { ref as dbRef, push as dbPush, update as dbUpdate } from 'firebase/database';
 import { rtdb } from '../firebase';
@@ -30,9 +30,11 @@ import {
   HiPhotograph, HiVideoCamera, HiTag, HiOutlineHeart, HiChat,
   HiTrash, HiPencil, HiX, HiShare, HiFilm, HiOutlineChat,
   HiDotsVertical, HiDownload, HiLightningBolt, HiPhone, HiLocationMarker,
-  HiReply, HiUserAdd, HiUserGroup, HiBookmark, HiFlag, HiBan, HiPaperAirplane, HiIdentification, HiShoppingBag, HiShoppingCart, HiCalendar, HiClipboardCopy, HiInformationCircle, HiCheck, HiGlobeAlt
+  HiReply, HiUserAdd, HiUserGroup, HiBookmark, HiFlag, HiBan, HiPaperAirplane, HiIdentification, HiShoppingBag, HiShoppingCart, HiCalendar, HiClipboardCopy, HiInformationCircle, HiCheck, HiGlobeAlt, HiStar, HiAtSymbol
 } from 'react-icons/hi';
 import { addToCart } from '../utils/cart';
+import { getIdentity } from '../utils/identity';
+import { increment } from 'firebase/firestore';
 
 const MAX_POST    = 2000;
 const MAX_COMMENT = 500;
@@ -94,9 +96,11 @@ function FeedVideo({ src, poster, dataSaver, style, onOpenReels }) {
         </div>
       )}
       {playing && (
-        <div style={{ position: 'absolute', bottom: 10, right: 10, width: 30, height: 30, background: 'rgba(0,0,0,0.5)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <span style={{ color: 'white', fontSize: 14 }}>{muted ? '🔇' : '🔊'}</span>
-        </div>
+        <button
+          onClick={e => { e.stopPropagation(); setMuted(m => { const nx = !m; if (vidRef.current) { vidRef.current.muted = nx; if (!nx) vidRef.current.play?.().catch(() => {}); } return nx; }); }}
+          style={{ position: 'absolute', bottom: 10, right: 10, width: 34, height: 34, background: 'rgba(0,0,0,0.55)', border: 'none', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+          <span style={{ color: 'white', fontSize: 15 }}>{muted ? '🔇' : '🔊'}</span>
+        </button>
       )}
     </div>
   );
@@ -268,6 +272,61 @@ export default function Home() {
   const [posts, setPosts]           = useState([]);
   const [visibleCount, setVisibleCount] = useState(10);   // affichage progressif
   const [expandedPosts, setExpandedPosts] = useState({});
+  const [reactorNames, setReactorNames] = useState({});   // uid → prenom (ho an'ny "X et N autres")
+  const [mentionQuery, setMentionQuery] = useState(null); // { postId, q } rehefa manoratra @
+  const [mentionFriends, setMentionFriends] = useState([]);
+  const activeIdentity = getIdentity();                    // compte na page Sera
+
+  // ── Menus mikatona rehefa scroll na clic ivelany ──
+  useEffect(() => {
+    const close = () => { setPostMenu(null); setAudienceMenuOpen(false); setShowReact({}); setCmtReactionPicker(null); setMentionQuery(null); };
+    window.addEventListener('scroll', close, true);
+    return () => window.removeEventListener('scroll', close, true);
+  }, []);
+
+  // ── Anaran'ny mpandray anjara réaction voalohany (format Facebook : "X et N autres") ──
+  useEffect(() => {
+    const need = [];
+    posts.forEach(pp => {
+      const uids = Object.keys(pp.reactions || {});
+      if (uids.length > 0) {
+        const first = uids.find(u => u !== currentUser?.uid) || uids[0];
+        if (first && reactorNames[first] === undefined) need.push(first);
+      }
+    });
+    const batch = [...new Set(need)].slice(0, 20);
+    if (!batch.length) return;
+    setReactorNames(prev => { const nx = { ...prev }; batch.forEach(u => { nx[u] = null; }); return nx; });
+    batch.forEach(u => {
+      getDoc(doc(db, 'users', u)).then(sn => {
+        const nm = sn.exists() ? (sn.data().fullName || '').split(' ')[0] : '';
+        setReactorNames(prev => ({ ...prev, [u]: nm }));
+      }).catch(() => {});
+    });
+  }, [posts]); // eslint-disable-line
+
+  // ── Compteur vues (indray mandeha isaky ny session, publication rehetra) ──
+  useEffect(() => {
+    if (!posts.length || !currentUser) return;
+    let vs; try { vs = JSON.parse(sessionStorage.getItem('viewedPosts') || '[]'); } catch { vs = []; }
+    const seen = new Set(vs);
+    const fresh = posts.filter(pp => !seen.has(pp.id)).slice(0, 60);
+    if (!fresh.length) return;
+    fresh.forEach(pp => seen.add(pp.id));
+    try { sessionStorage.setItem('viewedPosts', JSON.stringify([...seen])); } catch {}
+    const b = writeBatch(db);
+    fresh.forEach(pp => b.update(doc(db, 'posts', pp.id), { views: increment(1) }));
+    b.commit().catch(() => {});
+  }, [posts.length]); // eslint-disable-line
+
+  // ── Namana ho an'ny mention @ ──
+  async function loadMentionFriends() {
+    if (mentionFriends.length || !userProfile?.friends?.length) return;
+    const list = await Promise.all(userProfile.friends.slice(0, 60).map(uid =>
+      getDoc(doc(db, 'users', uid)).then(sn => sn.exists() ? { uid, fullName: sn.data().fullName || '' } : null).catch(() => null)
+    ));
+    setMentionFriends(list.filter(Boolean));
+  }
   const [audienceEditPost, setAudienceEditPost] = useState(null);
   // ── Lecture audio du fil (une seule piste à la fois) ──
   const [followedArtists, setFollowedArtists] = useState([]);
@@ -421,10 +480,15 @@ export default function Home() {
     setPosting(true); setUploadPct(0);
 
     // Sary raikitra ny votoaty (snapshot) — ilaina amin'ny arrière-plan
+    const _idn = getIdentity();
+    const asPage = _idn.type === 'page';
     const fields = {
-      uid: currentUser.uid, authorName: userProfile.fullName,
-      authorUsername: userProfile.username, authorPhoto: userProfile.photoURL || '',
-      authorIsVip: userProfile.isVip || false,
+      uid: currentUser.uid,
+      authorName: asPage ? _idn.name : userProfile.fullName,
+      authorUsername: asPage ? '' : userProfile.username,
+      authorPhoto: asPage ? (_idn.photoURL || '') : (userProfile.photoURL || ''),
+      ...(asPage ? { pageId: _idn.id, pageName: _idn.name, pagePhoto: _idn.photoURL || '', postedByPage: true } : {}),
+      authorIsVip: asPage ? false : (userProfile.isVip || false),
       content: content.trim().slice(0, MAX_POST),
       isSale, price: isSale ? parseFloat(price) : '',
       contact: isSale ? contact.trim() : '', lieu: isSale ? lieu.trim() : '', saleCategory: isSale ? saleCategory : '',
@@ -598,6 +662,24 @@ export default function Home() {
       });
       sendPushNotification({ toExternalId: post.uid, title: userProfile.fullName, message: text?`a commenté : "${text.slice(0,50)}"`:' a commenté', data: { type:'comment', postId } });
     }
+    // ── Mentions @ : mampandre ny namana voatonona ──
+    if (text.includes('@') && mentionFriends.length) {
+      const low = text.toLowerCase();
+      const mentioned = mentionFriends.filter(f => {
+        const first = (f.fullName.split(' ')[0] || '').toLowerCase();
+        return first && low.includes('@' + first);
+      }).filter(f => f.uid !== currentUser.uid && f.uid !== post?.uid);
+      mentioned.slice(0, 10).forEach(f => {
+        addDoc(collection(db,'notifications'), {
+          toUid: f.uid, fromUid: currentUser.uid,
+          fromName: userProfile.fullName, fromPhoto: userProfile.photoURL || '',
+          type: 'mention', postId,
+          message: `${userProfile.fullName} vous a mentionné dans un commentaire`,
+          read: false, createdAt: serverTimestamp(),
+        }).catch(() => {});
+        sendPushNotification({ toExternalId: f.uid, title: userProfile.fullName, message: 'vous a mentionné dans un commentaire 💬', data: { type:'mention', postId } });
+      });
+    }
   }
 
   async function deleteCmt(postId, cmt) {
@@ -696,9 +778,13 @@ export default function Home() {
     catch (err) { alert('Erreur : ' + (err?.message || err)); }
   }
 
+  const [editAudience, setEditAudience] = useState('public');
+  useEffect(() => { if (editPost) setEditAudience(editPost.audience || 'public'); }, [editPost]);
   async function saveEditPost() {
     if (!editContent.trim() || !editPost || editPost.uid !== currentUser.uid) return;
-    await updateDoc(doc(db,'posts',editPost.id), { content: editContent.trim().slice(0,MAX_POST) });
+    const upd = { content: editContent.trim().slice(0,MAX_POST) };
+    if (!editPost.groupId) upd.audience = editAudience;
+    await updateDoc(doc(db,'posts',editPost.id), upd);
     setEditPost(null);
   }
 
@@ -1224,8 +1310,14 @@ export default function Home() {
             {posting?'...':t('publishPost')}
           </button>
         </div>
+        {activeIdentity.type === 'page' && (
+          <div style={{ display:'flex', alignItems:'center', gap:8, background:'#E7F0FE', borderRadius:12, padding:'8px 12px', marginBottom:10 }}>
+            <HiIdentification size={15} color="#1877F2"/>
+            <span style={{ fontSize:12.5, fontWeight:700, color:'#1877F2' }}>Publier en tant que {activeIdentity.name}</span>
+          </div>
+        )}
         <div style={{ display:'flex', gap:10, alignItems:'flex-start' }}>
-          <img src={userProfile?.photoURL||`https://ui-avatars.com/api/?name=${encodeURIComponent(userProfile?.fullName||'U')}&background=1877F2&color=fff`} alt="" className="avatar" style={{ width:42, height:42, flexShrink:0 }}/>
+          <img src={(activeIdentity.type==='page' ? activeIdentity.photoURL : userProfile?.photoURL)||`https://ui-avatars.com/api/?name=${encodeURIComponent((activeIdentity.type==='page'?activeIdentity.name:userProfile?.fullName)||'U')}&background=1877F2&color=fff`} alt="" className="avatar" style={{ width:42, height:42, flexShrink:0 }}/>
           <div style={{ flex:1 }}>
             <textarea className="input" placeholder={t('whatsOnMind')} value={content} onChange={e => setContent(e.target.value)} rows={3} style={{ resize:'none', width:'100%', border:'none', fontSize:17 }} maxLength={MAX_POST} autoFocus/>
             {content.length > 0 && <p style={{ fontSize:11, color:charColor, textAlign:'right', marginTop:2 }}>{rem} restants</p>}
@@ -1383,6 +1475,24 @@ export default function Home() {
           <div className="card" style={{ width:'100%', maxWidth:400, padding:20 }}>
             <h3 style={{ marginBottom:12 }}>Modifier la publication</h3>
             <textarea className="input" rows={4} value={editContent} onChange={e => setEditContent(e.target.value)} style={{ resize:'none' }} maxLength={MAX_POST}/>
+            {!editPost.groupId && (
+              <div style={{ marginTop:12 }}>
+                <p style={{ fontSize:12.5, fontWeight:700, color:'#65676B', marginBottom:7 }}>Audience</p>
+                <div style={{ display:'flex', gap:8 }}>
+                  {[['public','Public',<NeonGlobe key="g" size={14}/>],['friends','Amis',<NeonPeople key="p" size={14}/>],['me','Moi',<NeonLock key="l" size={14}/>]].map(([v,lb,ic]) => (
+                    <button key={v} onClick={() => setEditAudience(v)}
+                      style={{ flex:1, display:'flex', alignItems:'center', justifyContent:'center', gap:5, padding:'8px 0', borderRadius:12, cursor:'pointer', fontFamily:'Poppins', fontSize:12.5, fontWeight:600,
+                        border: editAudience===v ? '1.5px solid #1877F2' : '1.5px solid #E4E6EB',
+                        background: editAudience===v ? '#E7F0FE' : '#fff', color: editAudience===v ? '#1877F2' : '#050505' }}>
+                      {ic} {lb}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+            <button onClick={() => { openTagModal(editPost); }} style={{ width:'100%', marginTop:10, display:'flex', alignItems:'center', justifyContent:'center', gap:7, padding:'9px 0', borderRadius:12, border:'1.5px solid #E4E6EB', background:'#fff', cursor:'pointer', fontFamily:'Poppins', fontSize:13, fontWeight:600, color:'#1877F2' }}>
+              <HiUserAdd size={16}/> Identifier des amis
+            </button>
             <div style={{ display:'flex', gap:10, marginTop:12 }}>
               <button className="btn-secondary" onClick={() => setEditPost(null)} style={{ flex:1 }}>{t('cancel')}</button>
               <button className="btn-primary"   onClick={saveEditPost}            style={{ flex:1 }}>{t('save')}</button>
@@ -1543,7 +1653,7 @@ export default function Home() {
                 {!isOwn && (
                   <button onClick={() => toggleFollowAuthor(post.uid, post.authorName)}
                     style={{ background: isFollowingUid(post.uid) ? '#F0F2F5' : 'linear-gradient(135deg,#FFE066,#F2B300)', border:'none', borderRadius:20, padding:'5px 12px', cursor:'pointer', color: isFollowingUid(post.uid) ? '#65676B' : '#4A3400', fontSize:12, fontWeight:700, display:'flex', alignItems:'center', gap:4 }}>
-                    {isFollowingUid(post.uid) ? '✓ Suivi' : '⭐ Suivre'}
+                    {isFollowingUid(post.uid) ? <><HiCheck size={13}/> Suivi</> : <><NeonStar size={13} color="#4A3400"/> Suivre</>}
                   </button>
                 )}
                 {!isOwn && !isMyFriend && !sentReq && (
@@ -1560,33 +1670,29 @@ export default function Home() {
                   {postMenu === post.id && (
                     <div style={{ position:'absolute', top:'100%', right:0, background:'white', border:'1px solid #E4E6EB', borderRadius:14, boxShadow:'0 6px 24px rgba(0,0,0,.16)', minWidth:220, zIndex:50, overflow:'hidden' }}>
                       {isOwn && <>
-                        <button onClick={() => { setEditPost(post); setEditContent(post.content); setPostMenu(null); }} style={{ width:'100%', display:'flex', alignItems:'center', gap:12, padding:'13px 18px', background:'none', border:'none', cursor:'pointer', color:'#050505', fontSize:15, fontWeight:600, borderBottom:'1px solid #F0F2F5', fontFamily:'Poppins' }}><HiPencil size={17} color="#1877F2"/> Modifier</button>
-                        {!post.groupId && !post.sharedFrom && <button onClick={() => { navigate('/boost'); setPostMenu(null); }} style={{ width:'100%', display:'flex', alignItems:'center', gap:12, padding:'13px 18px', background:'none', border:'none', cursor:'pointer', color:'#050505', fontSize:15, fontWeight:600, borderBottom:'1px solid #F0F2F5', fontFamily:'Poppins' }}><HiLightningBolt size={17} color="#a855f7"/> Booster</button>}
-                        {!post.groupId && <button onClick={() => { setAudienceEditPost(post); setPostMenu(null); }} style={{ width:'100%', display:'flex', alignItems:'center', gap:12, padding:'13px 18px', background:'none', border:'none', cursor:'pointer', color:'#050505', fontSize:15, fontWeight:600, borderBottom:'1px solid #F0F2F5', fontFamily:'Poppins' }}><HiGlobeAlt size={17} color="#1877F2"/> Modifier l'audience</button>}
+                        <button onClick={() => { setEditPost(post); setEditContent(post.content); setPostMenu(null); }} style={{ width:'100%', display:'flex', alignItems:'center', gap:12, padding:'13px 18px', background:'none', border:'none', cursor:'pointer', color:'#050505', fontSize:14.5, fontWeight:400, borderBottom:'1px solid #F0F2F5', fontFamily:'Poppins' }}><HiPencil size={17} color="#1877F2"/> Modifier</button>
+                        {!post.groupId && !post.sharedFrom && <button onClick={() => { navigate('/boost'); setPostMenu(null); }} style={{ width:'100%', display:'flex', alignItems:'center', gap:12, padding:'13px 18px', background:'none', border:'none', cursor:'pointer', color:'#050505', fontSize:14.5, fontWeight:400, borderBottom:'1px solid #F0F2F5', fontFamily:'Poppins' }}><HiLightningBolt size={17} color="#a855f7"/> Booster</button>}
                       </>}
-                      <button onClick={() => { toggleSave(post.id); setPostMenu(null); }} style={{ width:'100%', display:'flex', alignItems:'center', gap:12, padding:'13px 18px', background:'none', border:'none', cursor:'pointer', color:'#050505', fontSize:15, fontWeight:600, borderBottom:'1px solid #F0F2F5', fontFamily:'Poppins' }}>
-                        <HiBookmark size={17} color="#F2B300"/> {(userProfile?.saved||[]).includes(post.id) ? 'Retirer des enregistrements' : 'Enregistrer'}
-                      </button>
-                      <button onClick={() => { showAudienceInfo(post); setPostMenu(null); }} style={{ width:'100%', display:'flex', alignItems:'center', gap:12, padding:'13px 18px', background:'none', border:'none', cursor:'pointer', color:'#050505', fontSize:15, fontWeight:600, borderBottom:'1px solid #F0F2F5', fontFamily:'Poppins' }}>
-                        {post.audience === 'friends' ? <NeonPeople size={17}/> : <NeonGlobe size={17}/>} Audience : {post.audience === 'friends' ? 'Amis' : 'Public'}
+                      <button onClick={() => { toggleSave(post.id); setPostMenu(null); }} style={{ width:'100%', display:'flex', alignItems:'center', gap:12, padding:'13px 18px', background:'none', border:'none', cursor:'pointer', color:'#050505', fontSize:14.5, fontWeight:400, borderBottom:'1px solid #F0F2F5', fontFamily:'Poppins' }}>
+                        <HiBookmark size={17} color="#F2B300"/> {(userProfile?.saved||[]).includes(post.id) ? 'Retirer' : 'Enregistrer'}
                       </button>
                       {isOwn && (
-                        <button onClick={() => { openTagModal(post); setPostMenu(null); }} style={{ width:'100%', display:'flex', alignItems:'center', gap:12, padding:'13px 18px', background:'none', border:'none', cursor:'pointer', color:'#050505', fontSize:15, fontWeight:600, fontFamily:'Poppins' }}>
-                          <HiUserAdd size={17} color="#1877F2"/> Identifier des amis
+                        <button onClick={() => { openTagModal(post); setPostMenu(null); }} style={{ width:'100%', display:'flex', alignItems:'center', gap:12, padding:'13px 18px', background:'none', border:'none', cursor:'pointer', color:'#050505', fontSize:14.5, fontWeight:400, fontFamily:'Poppins' }}>
+                          <HiUserAdd size={17} color="#1877F2"/> Identifier
                         </button>
                       )}
                       {isOwn && (
-                        <button onClick={() => { deletePost(post.id); setPostMenu(null); }} style={{ width:'100%', display:'flex', alignItems:'center', gap:12, padding:'13px 18px', background:'none', border:'none', cursor:'pointer', color:'#FF2D8D', fontSize:15, fontWeight:600, borderTop:'1px solid #F0F2F5', fontFamily:'Poppins' }}>
+                        <button onClick={() => { deletePost(post.id); setPostMenu(null); }} style={{ width:'100%', display:'flex', alignItems:'center', gap:12, padding:'13px 18px', background:'none', border:'none', cursor:'pointer', color:'#FF2D8D', fontSize:14.5, fontWeight:400, borderTop:'1px solid #F0F2F5', fontFamily:'Poppins' }}>
                           <HiTrash size={17}/> Supprimer
                         </button>
                       )}
                       {!isOwn && (
                         <>
-                          <button onClick={() => { reportPost(post); setPostMenu(null); }} style={{ width:'100%', display:'flex', alignItems:'center', gap:12, padding:'13px 18px', background:'none', border:'none', cursor:'pointer', color:'#050505', fontSize:15, fontWeight:600, borderBottom:'1px solid #F0F2F5', fontFamily:'Poppins' }}>
-                            <HiFlag size={17} color="#F2B300"/> Signaler à l'admin
+                          <button onClick={() => { reportPost(post); setPostMenu(null); }} style={{ width:'100%', display:'flex', alignItems:'center', gap:12, padding:'13px 18px', background:'none', border:'none', cursor:'pointer', color:'#050505', fontSize:14.5, fontWeight:400, borderBottom:'1px solid #F0F2F5', fontFamily:'Poppins' }}>
+                            <HiFlag size={17} color="#F2B300"/> Signaler
                           </button>
-                          <button onClick={() => { toggleBlockAuthor(post); setPostMenu(null); }} style={{ width:'100%', display:'flex', alignItems:'center', gap:12, padding:'13px 18px', background:'none', border:'none', cursor:'pointer', color:'#FF2D8D', fontSize:15, fontWeight:600, fontFamily:'Poppins' }}>
-                            <HiBan size={17}/> {(userProfile?.blocked||[]).includes(post.uid) ? 'Débloquer' : 'Bloquer'} cette personne
+                          <button onClick={() => { toggleBlockAuthor(post); setPostMenu(null); }} style={{ width:'100%', display:'flex', alignItems:'center', gap:12, padding:'13px 18px', background:'none', border:'none', cursor:'pointer', color:'#FF2D8D', fontSize:14.5, fontWeight:400, fontFamily:'Poppins' }}>
+                            <HiBan size={17}/> {(userProfile?.blocked||[]).includes(post.uid) ? 'Débloquer' : 'Bloquer'}
                           </button>
                         </>
                       )}
@@ -1673,7 +1779,7 @@ export default function Home() {
                     <span style={{ fontWeight:800, fontSize:20, color:'#FF2D8D' }}>{post.price ? `${Number(post.price).toLocaleString()} Ar` : 'À discuter'}</span>
                     <button onClick={() => navigate(`/shop/${post.shopId}/messages`)}
                       style={{ display:'flex', alignItems:'center', gap:5, background:'#fff', border:'1.5px solid #FF2D8D', borderRadius:20, padding:'7px 16px', fontSize:13, fontWeight:700, color:'#FF2D8D', cursor:'pointer', flexShrink:0 }}>
-                      <HiOutlineChat size={15}/> Message
+                      <NeonPlane size={15}/> Message
                     </button>
                   </div>
                   {(post.lieu || post.contact) && (
@@ -1691,22 +1797,40 @@ export default function Home() {
             </div>
 
             {/* Résumé réactions · commentaires (format Facebook) */}
-            {(total > 0 || post.comments?.length > 0) && (
-              <div style={{ padding:'8px 16px 6px', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
-                <div onClick={() => openReactionModal(post)} style={{ display:'flex', alignItems:'center', gap:4, cursor:'pointer', minHeight:18 }}>
-                  {total > 0 && <>
-                    <div style={{ display:'flex', gap:3 }}>
-                      {Object.entries(rc).slice(0,3).map(([e]) =>
-                        <span key={e} style={{ fontSize:14, background:'white', borderRadius:'50%', boxShadow:'0 0 0 1.5px white', lineHeight:1 }}>{e}</span>)}
-                    </div>
-                    <span style={{ fontSize:13, color:'#65676B' }}>{total}</span>
-                  </>}
+            {(total > 0 || post.comments?.length > 0 || (post.views||0) > 0) && (
+              <div style={{ padding:'8px 16px 6px', display:'flex', alignItems:'center', justifyContent:'space-between', gap:8 }}>
+                <div onClick={() => openReactionModal(post)} style={{ display:'flex', alignItems:'center', gap:4, cursor:'pointer', minHeight:18, minWidth:0, flex:1 }}>
+                  {total > 0 && (() => {
+                    const rUids = Object.keys(post.reactions||{});
+                    const firstUid = rUids.find(u => u !== currentUser?.uid) || rUids[0];
+                    const meIn = rUids.includes(currentUser?.uid);
+                    const firstName = meIn && firstUid === currentUser?.uid ? 'Vous' : (reactorNames[firstUid] || '');
+                    const rest = total - 1;
+                    return <>
+                      <div style={{ display:'flex', gap:3, flexShrink:0 }}>
+                        {Object.entries(rc).slice(0,3).map(([e]) =>
+                          <span key={e} style={{ fontSize:14, background:'white', borderRadius:'50%', boxShadow:'0 0 0 1.5px white', lineHeight:1 }}>{e}</span>)}
+                      </div>
+                      <span style={{ fontSize:12.5, color:'#65676B', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
+                        {firstName
+                          ? (rest > 0 ? `${firstName} et ${rest} autre${rest>1?'s':''} personne${rest>1?'s':''}` : firstName)
+                          : total}
+                      </span>
+                    </>;
+                  })()}
                 </div>
-                {post.comments?.length > 0 && (
-                  <span onClick={() => setOpenCmt(p=>({...p,[post.id]:!p[post.id]}))} style={{ fontSize:13, color:'#65676B', cursor:'pointer' }}>
-                    {post.comments.length} commentaire{post.comments.length>1?'s':''}
-                  </span>
-                )}
+                <div style={{ display:'flex', alignItems:'center', gap:10, flexShrink:0 }}>
+                  {(post.views||0) > 0 && (
+                    <span style={{ fontSize:12.5, color:'#8A8D91', display:'flex', alignItems:'center', gap:4 }}>
+                      <NeonEye size={14}/> {post.views > 999 ? (post.views/1000).toFixed(1)+' k' : post.views}
+                    </span>
+                  )}
+                  {post.comments?.length > 0 && (
+                    <span onClick={() => setOpenCmt(p=>({...p,[post.id]:!p[post.id]}))} style={{ fontSize:12.5, color:'#65676B', cursor:'pointer' }}>
+                      {post.comments.length} commentaire{post.comments.length>1?'s':''}
+                    </span>
+                  )}
+                </div>
               </div>
             )}
 
@@ -1719,7 +1843,7 @@ export default function Home() {
                   onMouseDown={() => startLongPress(post.id)} onMouseUp={endLongPress} onMouseLeave={endLongPress}
                   className={'post-action-btn'+(myR?' active':'')}
                   style={myR ? { color: myR === '👍' ? '#1877F2' : '#FF2D8D', fontWeight:700 } : {}}>
-                  <span style={{ fontSize:17 }}>{myR || '👍'}</span> J'aime
+                  {myR ? <span style={{ fontSize:17 }}>{myR}</span> : <NeonLike size={19}/>} J'aime
                 </button>
                 {showReact[post.id] && (
                   <div style={{ position:'absolute', bottom:'110%', left:8, background:'white', borderRadius:30, padding:'8px 12px', display:'flex', gap:6, boxShadow:'0 4px 20px rgba(0,0,0,.2)', zIndex:10, border:'1px solid #E4E6EB' }}>
@@ -1729,10 +1853,10 @@ export default function Home() {
                 )}
               </div>
               <button onClick={() => setOpenCmt(p=>({...p,[post.id]:!p[post.id]}))} className='post-action-btn'>
-                <HiChat size={18}/> Commenter
+                <NeonComment size={18}/> Commenter
               </button>
               <button onClick={() => sharePost(post)} className='post-action-btn'>
-                <HiShare size={18}/> Partager
+                <NeonShare size={18}/> Partager
               </button>
             </div>
 
@@ -1802,7 +1926,34 @@ export default function Home() {
                   <img src={userProfile?.photoURL||`https://ui-avatars.com/api/?name=${encodeURIComponent(userProfile?.fullName||'U')}&background=1877F2&color=fff`} alt="" className="avatar" style={{ width:30, height:30, flexShrink:0 }}/>
                   <input ref={el=>cPhotoRef.current[post.id]=el} type="file" accept="image/jpeg,image/png,image/gif,image/webp" style={{ display:'none' }} onChange={e=>{const f=e.target.files[0];if(f)setCmtMedia(p=>({...p,[post.id]:{file:f,type:'image',preview:URL.createObjectURL(f)}}));}}/>
                   <input ref={el=>cVideoRef.current[post.id]=el} type="file" accept="video/mp4,video/webm,video/quicktime" style={{ display:'none' }} onChange={e=>{const f=e.target.files[0];if(f)setCmtMedia(p=>({...p,[post.id]:{file:f,type:'video',preview:URL.createObjectURL(f)}}));}}/>
-                  <input className="input" placeholder={replyTo[post.id]?`Répondre à ${replyTo[post.id]}...`:t('writeComment')} value={cmtText[post.id]||''} onChange={e=>setCmtText(p=>({...p,[post.id]:e.target.value}))} onKeyDown={e=>e.key==='Enter'&&addComment(post.id)} style={{ flex:1, padding:'7px 12px', fontSize:13 }} maxLength={MAX_COMMENT}/>
+                  <div style={{ flex:1, position:'relative', minWidth:0 }}>
+                    <input className="input" placeholder={replyTo[post.id]?`Répondre à ${replyTo[post.id]}...`:t('writeComment')} value={cmtText[post.id]||''}
+                      onChange={e=>{
+                        const v = e.target.value;
+                        setCmtText(p=>({...p,[post.id]:v}));
+                        const mAt = v.match(/@([\p{L}0-9_-]*)$/u);
+                        if (mAt) { loadMentionFriends(); setMentionQuery({ postId: post.id, q: mAt[1].toLowerCase() }); }
+                        else setMentionQuery(null);
+                      }}
+                      onKeyDown={e=>e.key==='Enter'&&!mentionQuery&&addComment(post.id)} style={{ width:'100%', padding:'7px 12px', fontSize:13 }} maxLength={MAX_COMMENT}/>
+                    {mentionQuery?.postId === post.id && (() => {
+                      const opts = mentionFriends.filter(f => f.fullName.toLowerCase().includes(mentionQuery.q)).slice(0,5);
+                      if (!opts.length) return null;
+                      return (
+                        <div onClick={e=>e.stopPropagation()} style={{ position:'absolute', bottom:'110%', left:0, right:0, background:'white', border:'1px solid #E4E6EB', borderRadius:12, boxShadow:'0 6px 20px rgba(0,0,0,.15)', zIndex:60, overflow:'hidden' }}>
+                          {opts.map(f => (
+                            <button key={f.uid} onClick={() => {
+                                setCmtText(prev => ({ ...prev, [post.id]: (prev[post.id]||'').replace(/@([\p{L}0-9_-]*)$/u, '@'+f.fullName.split(' ')[0]+' ') }));
+                                setMentionQuery(null);
+                              }}
+                              style={{ width:'100%', display:'flex', alignItems:'center', gap:8, padding:'9px 12px', background:'none', border:'none', cursor:'pointer', fontFamily:'Poppins', fontSize:13, color:'#050505', borderBottom:'1px solid #F0F2F5', textAlign:'left' }}>
+                              <HiAtSymbol size={14} color="#1877F2"/> {f.fullName}
+                            </button>
+                          ))}
+                        </div>
+                      );
+                    })()}
+                  </div>
                   <button onClick={() => cPhotoRef.current[post.id]?.click()} style={{ background:'none', border:'none', cursor:'pointer', color:'#65676B', padding:4 }}><HiPhotograph size={18}/></button>
                   <button onClick={() => cVideoRef.current[post.id]?.click()} style={{ background:'none', border:'none', cursor:'pointer', color:'#65676B', padding:4 }}><HiVideoCamera size={18}/></button>
                   <button onClick={() => addComment(post.id)} style={{ background:'linear-gradient(135deg,#FF2D8D,#FF7AB8)', border:'none', borderRadius:'50%', width:32, height:32, cursor:'pointer', color:'white', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>➤</button>

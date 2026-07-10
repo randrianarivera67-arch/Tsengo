@@ -3,7 +3,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   doc, getDoc, updateDoc, collection, query, where,
-  onSnapshot, orderBy, addDoc, serverTimestamp, arrayUnion, arrayRemove, deleteDoc, limit
+  onSnapshot, orderBy, addDoc, serverTimestamp, arrayUnion, arrayRemove, deleteDoc, limit, increment
 } from 'firebase/firestore';
 import { db } from '../firebase';
 import { useAuth } from '../context/AuthContext';
@@ -14,7 +14,7 @@ import { downloadMedia } from '../utils/download';
 import ShareModal from '../components/ShareModal';
 import FollowListModal from '../components/FollowListModal';
 import { useActiveStoryUids } from '../hooks/useActiveStoryUids';
-import { NeonBriefcase, NeonGraduation, NeonPhone, NeonGlobe, NeonLocation, NeonHome, NeonMic, NeonArchive, NeonClock } from '../components/NeonIcons';
+import { NeonBriefcase, NeonGraduation, NeonPhone, NeonGlobe, NeonLocation, NeonHome, NeonMic, NeonArchive, NeonClock, NeonLike, NeonComment, NeonShare, NeonStar } from '../components/NeonIcons';
 import { uploadToTelegram } from '../utils/telegram';
 import { getChatId } from '../utils/chat';
 import { sendPushNotification } from '../utils/onesignal';
@@ -79,6 +79,24 @@ export default function Profile() {
   const [editPost,       setEditPost]    = useState(null);
   const [editContent,    setEditContent] = useState('');
   const [postMenu,       setPostMenu]    = useState(null);
+  const [expandedPosts,  setExpandedPosts] = useState({});
+
+  // ── Menus mikatona rehefa scroll ──
+  useEffect(() => {
+    const close = () => { setPostMenu(null); setShowReact({}); setCmtReactionPicker(null); setProfMenu(false); };
+    window.addEventListener('scroll', close, true);
+    return () => window.removeEventListener('scroll', close, true);
+  }, []);
+
+  // ── Compteur "Vues du profil" (indray mandeha isaky ny session, profil an'olon-kafa) ──
+  useEffect(() => {
+    if (!uid || !currentUser || uid === currentUser.uid) return;
+    const key = 'viewedProfiles';
+    let vs; try { vs = JSON.parse(sessionStorage.getItem(key) || '[]'); } catch { vs = []; }
+    if (vs.includes(uid)) return;
+    try { sessionStorage.setItem(key, JSON.stringify([...vs, uid])); } catch {}
+    updateDoc(doc(db, 'users', uid), { profileViews: increment(1) }).catch(() => {});
+  }, [uid, currentUser]);
   const [editCmt,        setEditCmt]     = useState(null);
   const [replyTo,        setReplyTo]     = useState({});
   const [friendsData,    setFriendsData] = useState([]);
@@ -117,7 +135,7 @@ export default function Profile() {
     if (!targetUid) return;
     const q = query(collection(db,'posts'), where('uid','==',targetUid), orderBy('createdAt','desc'), limit(60));
     // ✅ Les publications d'une page artiste restent sur la page (pas sur le profil perso)
-    return onSnapshot(q, snap => setPosts(snap.docs.map(d=>({id:d.id,...d.data()})).filter(p => !p.artistId && !p.isMusic && !p.shopId)));
+    return onSnapshot(q, snap => setPosts(snap.docs.map(d=>({id:d.id,...d.data()})).filter(p => !p.artistId && !p.isMusic && !p.shopId && !p.pageId)));
   }, [targetUid]);
 
   useEffect(() => {
@@ -437,7 +455,18 @@ export default function Profile() {
         </div>
 
         <div style={{ padding:'10px 16px', cursor:'pointer' }} onClick={() => navigate(`/post/${post.id}`)}>
-          {post.content && <p style={{ fontSize:15, lineHeight:1.6, wordBreak:'break-word' }}>{post.content}</p>}
+          {post.content && (<>
+            <p style={{ fontSize:15, lineHeight:1.6, wordBreak:'break-word',
+              ...(expandedPosts[post.id] ? {} : { display:'-webkit-box', WebkitLineClamp:2, WebkitBoxOrient:'vertical', overflow:'hidden' }) }}>
+              {post.content}
+            </p>
+            {post.content.length > 120 && (
+              <span onClick={e => { e.stopPropagation(); setExpandedPosts(pv => ({ ...pv, [post.id]: !pv[post.id] })); }}
+                style={{ fontSize:13, fontWeight:700, color:'#65676B', cursor:'pointer' }}>
+                {expandedPosts[post.id] ? 'Voir moins' : 'Voir plus'}
+              </span>
+            )}
+          </>)}
           {post.isSale && (post.contact||post.lieu) && (
             <div style={{ marginTop:8, display:'flex', flexWrap:'wrap', gap:8 }}>
               {post.contact && <a href={`tel:${post.contact}`} onClick={e=>e.stopPropagation()} style={{ display:'flex', alignItems:'center', gap:5, background:'#E4E6EB', borderRadius:20, padding:'5px 12px', color:'#1877F2', fontSize:13, fontWeight:600, textDecoration:'none' }}><HiPhone size={13}/>{post.contact}</a>}
@@ -489,7 +518,7 @@ export default function Profile() {
               onContextMenu={e => { e.preventDefault(); setShowReact(p=>({...p,[post.id]:!p[post.id]})); }}
               className={'post-action-btn'+(myR?' active':'')}
               style={myR ? { color: myR === '👍' ? '#1877F2' : '#FF2D8D', fontWeight:700 } : {}}>
-              <span style={{ fontSize:17 }}>{myR || '👍'}</span> J'aime
+              {myR ? <span style={{ fontSize:17 }}>{myR}</span> : <NeonLike size={19}/>} J'aime
             </button>
             {showReact[post.id] && (
               <div style={{ position:'absolute', bottom:'110%', left:8, background:'white', borderRadius:30, padding:'8px 12px', display:'flex', gap:6, boxShadow:'0 4px 20px rgba(0,0,0,.2)', zIndex:10, border:'1px solid #E4E6EB' }}>
@@ -498,10 +527,10 @@ export default function Profile() {
             )}
           </div>
           <button onClick={() => setOpenCmt(p=>({...p,[post.id]:!p[post.id]}))} className='post-action-btn'>
-            <HiChat size={18}/> Commenter
+            <NeonComment size={18}/> Commenter
           </button>
           <button onClick={() => sharePost(post)} className='post-action-btn'>
-            <HiShare size={18}/> Partager
+            <NeonShare size={18}/> Partager
           </button>
         </div>
 
@@ -680,7 +709,7 @@ export default function Profile() {
                   <button onClick={() => setProfMenu(p => !p)} style={{ width:36, height:36, borderRadius:'50%', background:'#F0F2F5', border:'none', cursor:'pointer', color:'#050505', display:'flex', alignItems:'center', justifyContent:'center' }}><HiDotsVertical size={17}/></button>
                   {profMenu && (
                     <div style={{ position:'absolute', top:'110%', right:0, background:'white', border:'1px solid #E4E6EB', borderRadius:12, boxShadow:'0 4px 20px rgba(0,0,0,.14)', minWidth:210, zIndex:60, overflow:'hidden' }}>
-                      <button onClick={openStoryArchive} style={{ width:'100%', display:'flex', alignItems:'center', gap:10, padding:'12px 16px', background:'none', border:'none', cursor:'pointer', fontFamily:'Poppins', fontSize:14, color:'#050505', borderBottom:'1px solid #F0F2F5' }}><NeonArchive/> Archive de votre story</button>
+                      <button onClick={openStoryArchive} style={{ width:'100%', display:'flex', alignItems:'center', gap:10, padding:'12px 16px', background:'none', border:'none', cursor:'pointer', fontFamily:'Poppins', fontSize:14, fontWeight:400, color:'#050505', borderBottom:'1px solid #F0F2F5', whiteSpace:'nowrap' }}><NeonArchive/> Archive</button>
                       <button onClick={openSouvenirs} style={{ width:'100%', display:'flex', alignItems:'center', gap:10, padding:'12px 16px', background:'none', border:'none', cursor:'pointer', fontFamily:'Poppins', fontSize:14, color:'#050505', borderBottom:'1px solid #F0F2F5' }}><NeonClock/> Souvenirs</button>
                       <button onClick={copyProfileLink} style={{ width:'100%', display:'flex', alignItems:'center', gap:10, padding:'12px 16px', background:'none', border:'none', cursor:'pointer', fontFamily:'Poppins', fontSize:14, color:'#050505' }}><HiLink size={16} color="#12A48D"/> Copier le lien</button>
                     </div>
@@ -690,7 +719,7 @@ export default function Profile() {
               ) : (
                 <>
                   <button onClick={toggleFollow} className={isFollowing ? 'btn-secondary' : 'btn-gold'} style={{ fontSize:13, padding:'8px 16px' }}>
-                    {isFollowing ? '✓ Abonné' : '⭐ Suivre'}
+                    {isFollowing ? '✓ Abonné' : <><NeonStar size={13} color="#4A3400"/> Suivre</>}
                   </button>
                   <button onClick={() => navigate(`/messages/${getChatId(currentUser.uid,targetUid)}`)} className="btn-primary" style={{ fontSize:13, padding:'8px 18px' }}><HiPaperAirplane size={14} style={{ display:'inline', marginRight:4 }}/>Message</button>
                   {friendStatus==='none'&&<button onClick={sendFriendRequest} style={{ display:'inline-flex', alignItems:'center', gap:6, background:"linear-gradient(180deg,#1B84FF,#1877F2)", border:"none", borderRadius:20, padding:'8px 16px', color:"white", fontWeight:600, cursor:'pointer', fontSize:13, boxShadow:"0 3px 12px rgba(24,119,242,.35)" }}><HiUserAdd size={14}/>Ajouter</button>}
@@ -838,7 +867,7 @@ export default function Profile() {
         <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.55)', zIndex:400, display:'flex', alignItems:'flex-end', justifyContent:'center' }} onClick={() => setStoryArchive(null)}>
           <div onClick={e => e.stopPropagation()} style={{ background:'white', borderRadius:'20px 20px 0 0', padding:18, width:'100%', maxWidth:520, maxHeight:'85vh', overflowY:'auto' }}>
             <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:12 }}>
-              <h3 style={{ fontWeight:800, color:'#1877F2' }}>🗂️ Archive de votre story</h3>
+              <h3 style={{ fontWeight:800, color:'#1877F2' }}>🗂️ Archive</h3>
               <button onClick={() => setStoryArchive(null)} style={{ background:'none', border:'none', cursor:'pointer', color:'#65676B' }}><HiX size={20}/></button>
             </div>
             {storyArchive.length === 0 && <p style={{ fontSize:14, color:'#65676B', textAlign:'center', padding:'20px 0' }}>Aucune story dans l'archive.</p>}

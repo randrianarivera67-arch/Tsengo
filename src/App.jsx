@@ -37,6 +37,8 @@ const Artists            = lazy(() => import('./pages/Artists'));
 const ArtistDetail       = lazy(() => import('./pages/ArtistDetail'));
 const ShopDetail          = lazy(() => import('./pages/ShopDetail'));
 const ShopMessages        = lazy(() => import('./pages/ShopMessages'));
+const PageMessages        = lazy(() => import('./pages/PageMessages'));
+const Stats               = lazy(() => import('./pages/Stats'));
 const Pages              = lazy(() => import('./pages/Pages'));
 const PageDetail          = lazy(() => import('./pages/PageDetail'));
 const Notes              = lazy(() => import('./pages/Notes'));
@@ -85,6 +87,9 @@ function AppRoutes() {
         <Route path="/shop/:shopId/messages/:visitorUid" element={<PrivateRoute><ShopMessages /></PrivateRoute>} />
         <Route path="/pages"          element={<PrivateRoute><Layout><Pages /></Layout></PrivateRoute>} />
         <Route path="/pages/:pageId"  element={<PrivateRoute><Layout><PageDetail /></Layout></PrivateRoute>} />
+        <Route path="/pages/:pageId/messages" element={<PrivateRoute><PageMessages /></PrivateRoute>} />
+        <Route path="/pages/:pageId/messages/:visitorUid" element={<PrivateRoute><PageMessages /></PrivateRoute>} />
+        <Route path="/stats"          element={<PrivateRoute><Layout><Stats /></Layout></PrivateRoute>} />
         <Route path="/notes"          element={<PrivateRoute><Layout><Notes /></Layout></PrivateRoute>} />
         <Route path="/messages"       element={<PrivateRoute><Layout><Messages /></Layout></PrivateRoute>} />
         <Route path="/messages/:chatId" element={<PrivateRoute><Layout><Messages /></Layout></PrivateRoute>} />
