@@ -20,7 +20,7 @@ import MusicPostCard from '../components/MusicPostCard';
 import PhotoCarousel from '../components/PhotoCarousel';
 import StoryRing from '../components/StoryRing';
 import { useActiveStoryUids } from '../hooks/useActiveStoryUids';
-import { NeonGlobe, NeonPeople, NeonLock, NeonMic, NeonLocation, NeonLike, NeonComment, NeonShare, NeonPlaneWhite, NeonEye, NeonStar } from '../components/NeonIcons';
+import { NeonGlobe, NeonPeople, NeonLock, NeonMic, NeonLocation, NeonLike, NeonComment, NeonShare, NeonPlane, NeonPlaneWhite, NeonEye, NeonStar } from '../components/NeonIcons';
 import { getChatId } from '../utils/chat';
 import { ref as dbRef, push as dbPush, update as dbUpdate } from 'firebase/database';
 import { rtdb } from '../firebase';
