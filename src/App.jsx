@@ -5,6 +5,7 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import { LanguageProvider } from './context/LanguageContext';
 import { ThemeProvider } from './context/ThemeContext';
 import Layout from './components/Layout';
+import { initAdMob, showBannerAd } from './utils/admob';
 
 // ── Miaro rehefa efa lasibatra ela ilay app: mety mitady fichier (chunk) taloha
 //    izay tsy any Vercel intsony → mahatonga pejy fotsy. Averina refresh mangina
@@ -146,6 +147,7 @@ function AppRoutes() {
 
 export default function App() {
   useEffect(() => { sessionStorage.removeItem('tsengo_chunk_retry'); }, []);
+  useEffect(() => { initAdMob().then(showBannerAd); }, []);
 
   return (
     <AuthProvider>
