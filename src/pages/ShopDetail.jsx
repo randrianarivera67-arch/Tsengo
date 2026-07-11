@@ -620,15 +620,7 @@ export default function ShopDetail() {
       )}
 
       {followersOpen && <FollowListModal uids={shop.followers||[]} title="Abonnés" onClose={() => setFollowersOpen(false)} />}
-    </div>
-  );
-}
 
-function InfoRow({ label, value }) {
-  return (
-    <div style={{ display:'flex', justifyContent:'space-between', gap:12, padding:'8px 0', borderBottom:'1px solid #F0F2F5' }}>
-      <span style={{ fontSize:13, color:'#65676B', flexShrink:0 }}>{label}</span>
-      <span style={{ fontSize:13, fontWeight:600, textAlign:'right' }}>{value}</span>
       {/* ── Statistiques (admin) : mifanaraka amin'ny boutique ── */}
       {statsOpen && (() => {
         let reactions = 0, views = 0, clicks = 0, comments = 0;
@@ -656,6 +648,15 @@ function InfoRow({ label, value }) {
           </div>
         );
       })()}
+    </div>
+  );
+}
+
+function InfoRow({ label, value }) {
+  return (
+    <div style={{ display:'flex', justifyContent:'space-between', gap:12, padding:'8px 0', borderBottom:'1px solid #F0F2F5' }}>
+      <span style={{ fontSize:13, color:'#65676B', flexShrink:0 }}>{label}</span>
+      <span style={{ fontSize:13, fontWeight:600, textAlign:'right' }}>{value}</span>
     </div>
   );
 }

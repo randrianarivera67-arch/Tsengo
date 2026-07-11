@@ -1,0 +1,100 @@
+--- a/src/pages/ArtistDetail.jsx
++++ b/src/pages/ArtistDetail.jsx
+@@ -641,6 +641,33 @@
+ 
+       {followersOpen && <FollowListModal uids={artist.followers||[]} title="Abonnés" onClose={() => setFollowersOpen(false)} />}
+ 
++      {/* ── Statistiques (admin) : mifanaraka amin'ny page artiste ── */}
++      {statsOpen && (() => {
++        let reactions = 0, views = 0, comments = 0;
++        tracks.forEach(t => { reactions += Object.keys(t.reactions||{}).length; views += t.views || 0; comments += (t.comments||[]).length; });
++        const Row = ({ icon, label, value, c }) => (
++          <div style={{ display:'flex', alignItems:'center', gap:12, padding:'11px 4px', borderBottom:'1px solid #F0F2F5' }}>
++            <span style={{ width:38, height:38, borderRadius:11, background:c, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>{icon}</span>
++            <span style={{ flex:1, fontSize:13.5, color:'#65676B' }}>{label}</span>
++            <span style={{ fontWeight:800, fontSize:17 }}>{Number(value).toLocaleString()}</span>
++          </div>
++        );
++        return (
++          <div onClick={() => setStatsOpen(false)} style={{ position:'fixed', inset:0, background:'rgba(0,0,0,.55)', zIndex:400, display:'flex', alignItems:'flex-end', justifyContent:'center' }}>
++            <div onClick={e => e.stopPropagation()} style={{ background:'#fff', borderRadius:'20px 20px 0 0', width:'100%', maxWidth:520, maxHeight:'80vh', overflowY:'auto', padding:'14px 16px 26px' }}>
++              <div style={{ width:40, height:4, borderRadius:2, background:'#CED0D4', margin:'0 auto 12px' }} />
++              <h3 style={{ fontWeight:800, fontSize:16, display:'flex', alignItems:'center', gap:8, marginBottom:6 }}><NeonChart size={18}/> Statistiques — {artist.name}</h3>
++              <p style={{ fontSize:11.5, color:'#65676B', marginBottom:8 }}>Canal artiste : abonnés, titres et interactions</p>
++              <Row icon={<span style={{ color:'#fff', fontSize:16 }}>👥</span>} label="Abonnés" value={(artist.followers||[]).length} c="linear-gradient(145deg,#63A9FF,#1877F2)" />
++              <Row icon={<NeonMic size={16} color="#fff"/>} label="Titres / publications" value={tracks.length} c="linear-gradient(145deg,#FF6FA5,#FF2D8D)" />
++              <Row icon={<span style={{ color:'#fff', fontSize:15 }}>❤</span>} label="Réactions reçues" value={reactions} c="linear-gradient(145deg,#FF9A5A,#FF7A00)" />
++              <Row icon={<NeonEye size={16} color="#fff"/>} label="Vues / écoutes" value={views} c="linear-gradient(145deg,#8F7BFF,#5E4BDB)" />
++              <Row icon={<span style={{ color:'#fff', fontSize:15 }}>💬</span>} label="Commentaires" value={comments} c="linear-gradient(145deg,#3DD9C4,#12A48D)" />
++            </div>
++          </div>
++        );
++      })()}
++
+       {/* ── LECTEUR (mini-player Spotify) ── */}
+       {currentTrack && (
+         <>
+@@ -691,32 +718,6 @@
+     <div style={{ display:'flex', justifyContent:'space-between', gap:12, padding:'8px 0', borderBottom:'1px solid #F0F2F5' }}>
+       <span style={{ fontSize:13, color:'#65676B', flexShrink:0 }}>{label}</span>
+       <span style={{ fontSize:13, fontWeight:600, textAlign:'right' }}>{value}</span>
+-      {/* ── Statistiques (admin) : mifanaraka amin'ny page artiste ── */}
+-      {statsOpen && (() => {
+-        let reactions = 0, views = 0, comments = 0;
+-        tracks.forEach(t => { reactions += Object.keys(t.reactions||{}).length; views += t.views || 0; comments += (t.comments||[]).length; });
+-        const Row = ({ icon, label, value, c }) => (
+-          <div style={{ display:'flex', alignItems:'center', gap:12, padding:'11px 4px', borderBottom:'1px solid #F0F2F5' }}>
+-            <span style={{ width:38, height:38, borderRadius:11, background:c, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>{icon}</span>
+-            <span style={{ flex:1, fontSize:13.5, color:'#65676B' }}>{label}</span>
+-            <span style={{ fontWeight:800, fontSize:17 }}>{Number(value).toLocaleString()}</span>
+-          </div>
+-        );
+-        return (
+-          <div onClick={() => setStatsOpen(false)} style={{ position:'fixed', inset:0, background:'rgba(0,0,0,.55)', zIndex:400, display:'flex', alignItems:'flex-end', justifyContent:'center' }}>
+-            <div onClick={e => e.stopPropagation()} style={{ background:'#fff', borderRadius:'20px 20px 0 0', width:'100%', maxWidth:520, maxHeight:'80vh', overflowY:'auto', padding:'14px 16px 26px' }}>
+-              <div style={{ width:40, height:4, borderRadius:2, background:'#CED0D4', margin:'0 auto 12px' }} />
+-              <h3 style={{ fontWeight:800, fontSize:16, display:'flex', alignItems:'center', gap:8, marginBottom:6 }}><NeonChart size={18}/> Statistiques — {artist.name}</h3>
+-              <p style={{ fontSize:11.5, color:'#65676B', marginBottom:8 }}>Canal artiste : abonnés, titres et interactions</p>
+-              <Row icon={<span style={{ color:'#fff', fontSize:16 }}>👥</span>} label="Abonnés" value={(artist.followers||[]).length} c="linear-gradient(145deg,#63A9FF,#1877F2)" />
+-              <Row icon={<NeonMic size={16} color="#fff"/>} label="Titres / publications" value={tracks.length} c="linear-gradient(145deg,#FF6FA5,#FF2D8D)" />
+-              <Row icon={<span style={{ color:'#fff', fontSize:15 }}>❤</span>} label="Réactions reçues" value={reactions} c="linear-gradient(145deg,#FF9A5A,#FF7A00)" />
+-              <Row icon={<NeonEye size={16} color="#fff"/>} label="Vues / écoutes" value={views} c="linear-gradient(145deg,#8F7BFF,#5E4BDB)" />
+-              <Row icon={<span style={{ color:'#fff', fontSize:15 }}>💬</span>} label="Commentaires" value={comments} c="linear-gradient(145deg,#3DD9C4,#12A48D)" />
+-            </div>
+-          </div>
+-        );
+-      })()}
+     </div>
+   );
+ }
+--- a/src/pages/ShopDetail.jsx
++++ b/src/pages/ShopDetail.jsx
+@@ -620,15 +620,7 @@
+       )}
+ 
+       {followersOpen && <FollowListModal uids={shop.followers||[]} title="Abonnés" onClose={() => setFollowersOpen(false)} />}
+-    </div>
+-  );
+-}
+ 
+-function InfoRow({ label, value }) {
+-  return (
+-    <div style={{ display:'flex', justifyContent:'space-between', gap:12, padding:'8px 0', borderBottom:'1px solid #F0F2F5' }}>
+-      <span style={{ fontSize:13, color:'#65676B', flexShrink:0 }}>{label}</span>
+-      <span style={{ fontSize:13, fontWeight:600, textAlign:'right' }}>{value}</span>
+       {/* ── Statistiques (admin) : mifanaraka amin'ny boutique ── */}
+       {statsOpen && (() => {
+         let reactions = 0, views = 0, clicks = 0, comments = 0;
+@@ -659,3 +651,12 @@
+     </div>
+   );
+ }
++
++function InfoRow({ label, value }) {
++  return (
++    <div style={{ display:'flex', justifyContent:'space-between', gap:12, padding:'8px 0', borderBottom:'1px solid #F0F2F5' }}>
++      <span style={{ fontSize:13, color:'#65676B', flexShrink:0 }}>{label}</span>
++      <span style={{ fontSize:13, fontWeight:600, textAlign:'right' }}>{value}</span>
++    </div>
++  );
++}
