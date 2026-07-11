@@ -38,7 +38,7 @@ import { increment } from 'firebase/firestore';
 const MAX_POST    = 2000;
 const MAX_COMMENT = 500;
 const MAX_PRICE   = 999_999_999;
-const REACTIONS   = ['❤️','😂','😮','😢','😡','👍'];
+const REACTIONS   = ['❤️','😂','😮','😢','😡'];
 const SALE_CATEGORIES = ['Vêtements', 'Électronique', 'Déco & Maison', 'Véhicules', 'Alimentation', 'Beauté', 'Autre'];
 
 function VIPBadge() {
@@ -198,12 +198,13 @@ function MusicCard({ track, index, playing, onToggle, onArtist, onSave, onBlock,
   );
 }
 
-function MusicRow({ tracks, playingId, onToggle, onArtist, onSave, onBlock, savedIds = [], blockedIds = [], onFollow, onMessage, followedArtists = [], onShare }) {
+function MusicRow({ tracks, playingId, onToggle, onArtist, onSave, onBlock, savedIds = [], blockedIds = [], onFollow, onMessage, followedArtists = [], onShare, onVoirTout }) {
   if (!tracks || tracks.length === 0) return null;
   return (
     <div className="card" style={{ marginBottom: 14, padding: '12px 0 6px' }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 14px 10px' }}>
         <span style={{ fontWeight: 800, fontSize: 17, color: '#050505' }}>Suggestions musicales pour vous</span>
+        <button onClick={onVoirTout} style={{ background:'none', border:'none', color:'#1877F2', fontWeight:700, fontSize:13, cursor:'pointer', padding:'2px 6px', fontFamily:'Poppins' }}>Voir tout</button>
       </div>
       <div style={{ display: 'flex', gap: 12, overflowX: 'auto', padding: '2px 14px 8px', WebkitOverflowScrolling: 'touch' }}>
         {tracks.map((t, i) => (
@@ -232,6 +233,7 @@ export default function Home() {
   const [posting, setPosting]   = useState(false);
   const [uploadPct, setUploadPct] = useState(0);
   const [pageGroups, setPageGroups] = useState([]);   // groupes publics (suggestions)
+  const [shopSuggestions, setShopSuggestions] = useState([]); // boutiques suggestions
 
   // ── Stories (format Facebook) ──
   const [storyGroups, setStoryGroups] = useState([]);       // [{uid, name, photo, items:[...]}]
@@ -402,6 +404,14 @@ export default function Home() {
       const list = Object.values(byUser).sort((a, b) => (a.uid === currentUser?.uid ? -1 : b.uid === currentUser?.uid ? 1 : 0));
       setStoryGroups(list);
     }, () => {});
+  }, [currentUser]);
+
+  // Boutiques suggestions
+  useEffect(() => {
+    if (!currentUser) return;
+    getDocs(query(collection(db, 'shops'), orderBy('createdAt', 'desc')))
+      .then(snap => setShopSuggestions(snap.docs.map(d => ({ id: d.id, ...d.data() })).slice(0, 16)))
+      .catch(() => {});
   }, [currentUser]);
 
   // Suggestions d'amis (personnes non amies)
@@ -794,6 +804,21 @@ const fields = {
   function isFriend(uid) { return (userProfile?.friends||[]).includes(uid); }
   function hasSentReq(uid) { return (userProfile?.sentRequests||[]).includes(uid); }
 
+  async function cancelFriendReq(toUid) {
+    try {
+      await updateDoc(doc(db,'users',currentUser.uid), { sentRequests: arrayRemove(toUid) });
+      setUserProfile(p => ({ ...p, sentRequests: (p.sentRequests||[]).filter(id => id !== toUid) }));
+      // Supprimer la notif friendRequest correspondante
+      const { getDocs, query, collection, where, deleteDoc } = await import('firebase/firestore');
+      const q = query(collection(db,'notifications'),
+        where('fromUid','==',currentUser.uid),
+        where('toUid','==',toUid),
+        where('type','==','friendRequest'));
+      const snap = await getDocs(q);
+      await Promise.all(snap.docs.map(d => deleteDoc(d.ref)));
+    } catch(e) { console.warn('cancelFriendReq:', e); }
+  }
+
   async function sendFriendReq(toUid, toName) {
     if (isFriend(toUid) || hasSentReq(toUid)) return;
     await addDoc(collection(db,'friendRequests'), {
@@ -1047,7 +1072,7 @@ const fields = {
   function quickLike(post) {
     if (lpFired.current) { lpFired.current = false; return; }
     const myR = post.reactions?.[currentUser.uid];
-    reactToPost(post.id, myR || '👍');
+    reactToPost(post.id, myR || '❤️');
   }
   function startLongPress(postId) {
     lpFired.current = false;
@@ -1540,6 +1565,7 @@ const fields = {
           <div key={post.id}>
           {pIdx > 0 && pIdx % 5 === 0 && (
             <MusicRow
+              onVoirTout={() => navigate('/artists')}
               tracks={posts.filter(p => p.mediaType === 'audio' && p.isMusic)}
               playingId={playingTrackId}
               onToggle={toggleMusic}
@@ -1818,8 +1844,8 @@ const fields = {
                   onTouchStart={() => startLongPress(post.id)} onTouchEnd={endLongPress}
                   onMouseDown={() => startLongPress(post.id)} onMouseUp={endLongPress} onMouseLeave={endLongPress}
                   className={'post-action-btn'+(myR?' active':'')}
-                  style={myR ? { color: myR === '👍' ? '#1877F2' : '#FF2D8D', fontWeight:700 } : {}}>
-                  {myR ? <span style={{ fontSize:17 }}>{myR}</span> : <NeonLike size={19}/>} J'aime
+                  style={myR ? { color: myR === '❤️' ? '#FF2D8D' : '#1877F2', fontWeight:700 } : {}}>
+                  {myR ? <span style={{ fontSize:17 }}>{myR}</span> : <NeonLike size={19} color={myR ? '#1877F2' : '#65676B'}/>} J'aime
                 </button>
                 {showReact[post.id] && (
                   <div style={{ position:'absolute', bottom:'110%', left:8, background:'white', borderRadius:30, padding:'8px 12px', display:'flex', gap:6, boxShadow:'0 4px 20px rgba(0,0,0,.2)', zIndex:10, border:'1px solid #E4E6EB' }}>
@@ -1860,9 +1886,9 @@ const fields = {
                       </div>
                       {/* Liens sous la bulle (format Facebook) */}
                       <div style={{ display:'flex', gap:14, padding:'4px 12px 0', fontSize:12, fontWeight:700, color:'#65676B', position:'relative', alignItems:'center' }}>
-                        <span onClick={() => reactToCmt(post.id, c.id, '👍')}
-                          style={{ cursor:'pointer', color: myCR ? (myCR === '👍' ? '#1877F2' : '#FF2D8D') : '#65676B' }}>
-                          {myCR && myCR !== '👍' ? myCR + ' ' : ''}J'aime
+                        <span onClick={() => reactToCmt(post.id, c.id, '❤️')}
+                          style={{ cursor:'pointer', color: myCR ? '#FF2D8D' : '#65676B', fontWeight: myCR ? 700 : 400 }}>
+                          {myCR && myCR !== '❤️' ? myCR + ' ' : ''}J'aime
                         </span>
                         <span onClick={() => setCmtReactionPicker(p => p===c.id?null:c.id)} style={{ cursor:'pointer' }}>😊</span>
                         <span onClick={() => setReplyTo(p=>({...p,[post.id]:c.authorName}))} style={{ cursor:'pointer' }}>Répondre</span>
@@ -1938,6 +1964,36 @@ const fields = {
             )}
           </div>
 
+          {/* Suggestions boutique toutes les 8 publications */}
+          {(pIdx + 1) % 8 === 0 && shopSuggestions.length > 0 && (() => {
+            const shopOff = (Math.floor((pIdx + 1) / 8) - 1) * 4 % shopSuggestions.length;
+            const shopChunk = [...shopSuggestions.slice(shopOff), ...shopSuggestions.slice(0, shopOff)].slice(0, 4);
+            return (
+              <div className="card post-card" style={{ marginBottom:14, padding:'12px 0' }}>
+                <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'0 16px 10px' }}>
+                  <p style={{ fontWeight:700, fontSize:15, margin:0 }}>Boutiques à découvrir</p>
+                  <button onClick={() => navigate('/shop')} style={{ background:'none', border:'none', color:'#1877F2', fontWeight:700, fontSize:13, cursor:'pointer', fontFamily:'Poppins' }}>Voir tout</button>
+                </div>
+                <div style={{ display:'flex', gap:10, overflowX:'auto', padding:'0 16px 4px', scrollbarWidth:'none' }}>
+                  {shopChunk.map(sh => (
+                    <div key={sh.id} onClick={() => navigate(`/shop/${sh.id}`)} style={{ flexShrink:0, width:140, border:'1px solid #E4E6EB', borderRadius:12, overflow:'hidden', background:'white', cursor:'pointer' }}>
+                      <div style={{ width:'100%', height:80, background:'linear-gradient(135deg,#FF2D8D,#FF6BB5)', display:'flex', alignItems:'center', justifyContent:'center', overflow:'hidden' }}>
+                        {sh.photoURL
+                          ? <img src={sh.photoURL} alt="" style={{ width:'100%', height:'100%', objectFit:'cover' }}/>
+                          : <HiShoppingBag size={28} color="white"/>}
+                      </div>
+                      <div style={{ padding:'8px 8px 10px' }}>
+                        <p style={{ fontWeight:700, fontSize:13, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{sh.name}</p>
+                        <p style={{ fontSize:11, color:'#65676B' }}>{sh.category || 'Boutique'}</p>
+                        <button className="btn-blue" style={{ width:'100%', marginTop:6, padding:'6px 0', fontSize:12, borderRadius:8 }}>Voir la boutique</button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            );
+          })()}
+
           {/* Suggestions en rotation toutes les 10 publications : amis → groupes → stories */}
           {(pIdx + 1) % 10 === 0 && (() => {
             const slot = Math.floor((pIdx + 1) / 10) - 1;
@@ -1950,7 +2006,10 @@ const fields = {
             if (kind === 'groupes') {
               return (
                 <div className="card post-card" style={{ marginBottom:14, padding:'12px 0' }}>
-                  <p style={{ padding:'0 16px 10px', fontWeight:700, fontSize:15 }}>Groupes que vous pourriez rejoindre</p>
+                  <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'0 16px 10px' }}>
+                    <p style={{ fontWeight:700, fontSize:15, margin:0 }}>Groupes que vous pourriez rejoindre</p>
+                    <button onClick={() => navigate('/groups')} style={{ background:'none', border:'none', color:'#1877F2', fontWeight:700, fontSize:13, cursor:'pointer', fontFamily:'Poppins' }}>Voir tout</button>
+                  </div>
                   <div style={{ display:'flex', gap:10, overflowX:'auto', padding:'0 16px 4px', scrollbarWidth:'none' }}>
                     {grpSugg.slice(0, 8).map(g => (
                       <div key={g.id} onClick={() => navigate(`/groups/${g.id}`)} style={{ flexShrink:0, width:150, border:'1px solid #E4E6EB', borderRadius:12, overflow:'hidden', background:'white', cursor:'pointer' }}>
@@ -1974,7 +2033,10 @@ const fields = {
             if (kind === 'stories') {
               return (
                 <div className="card post-card" style={{ marginBottom:14, padding:'12px 0' }}>
-                  <p style={{ padding:'0 16px 10px', fontWeight:700, fontSize:15 }}>Stories</p>
+                  <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'0 16px 10px' }}>
+                    <p style={{ fontWeight:700, fontSize:15, margin:0 }}>Stories</p>
+                    <button onClick={() => navigate('/', { state: { scrollToStories: true } })} style={{ background:'none', border:'none', color:'#1877F2', fontWeight:700, fontSize:13, cursor:'pointer', fontFamily:'Poppins' }}>Voir tout</button>
+                  </div>
                   <div style={{ display:'flex', gap:8, overflowX:'auto', padding:'0 16px 4px', scrollbarWidth:'none' }}>
                     {storyGroups.slice(0, 10).map(g => {
                       const last = g.items[g.items.length - 1];
@@ -1998,7 +2060,10 @@ const fields = {
             const chunk = [...suggestions.slice(off), ...suggestions.slice(0, off)].slice(0, 8);
             return (
               <div className="card post-card" style={{ marginBottom:14, padding:'12px 0' }}>
-                <p style={{ padding:'0 16px 10px', fontWeight:700, fontSize:15 }}>Personnes que vous connaissez peut-être</p>
+                <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'0 16px 10px' }}>
+                  <p style={{ fontWeight:700, fontSize:15, margin:0 }}>Personnes que vous connaissez peut-être</p>
+                  <button onClick={() => navigate('/friends')} style={{ background:'none', border:'none', color:'#1877F2', fontWeight:700, fontSize:13, cursor:'pointer', fontFamily:'Poppins' }}>Voir tout</button>
+                </div>
                 <div style={{ display:'flex', gap:10, overflowX:'auto', padding:'0 16px 4px', scrollbarWidth:'none' }}>
                   {chunk.map(u => (
                     <div key={u.uid} style={{ flexShrink:0, width:136, border:'1px solid #E4E6EB', borderRadius:12, overflow:'hidden', background:'white' }}>
@@ -2008,7 +2073,7 @@ const fields = {
                       <div style={{ padding:'8px 8px 10px' }}>
                         <p onClick={() => navigate(`/profile/${u.uid}`)} style={{ fontWeight:700, fontSize:13, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', cursor:'pointer' }}>{u.fullName}</p>
                         {hasSentReq(u.uid)
-                          ? <button disabled className="btn-secondary" style={{ width:'100%', marginTop:6, padding:'7px 0', fontSize:12, borderRadius:8 }}>Demande envoyée</button>
+                          ? <button onClick={() => cancelFriendReq(u.uid)} className="btn-secondary" style={{ width:'100%', marginTop:6, padding:'7px 0', fontSize:12, borderRadius:8 }}>Annulé</button>
                           : <button onClick={() => sendFriendReq(u.uid, u.fullName)} className="btn-blue" style={{ width:'100%', marginTop:6, padding:'7px 0', fontSize:12, borderRadius:8, display:'flex', alignItems:'center', justifyContent:'center', gap:5 }}>
                               <HiUserAdd size={14}/> Ajouter
                             </button>}

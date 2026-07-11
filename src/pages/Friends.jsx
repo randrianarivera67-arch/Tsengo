@@ -73,6 +73,13 @@ export default function Friends() {
     setLoading(false);
   }
 
+  async function cancelRequest(toUid) {
+    try {
+      await updateDoc(doc(db, 'users', currentUser.uid), { sentRequests: arrayRemove(toUid) });
+      setUserProfile(p => ({ ...p, sentRequests: (p.sentRequests||[]).filter(id => id !== toUid) }));
+    } catch(e) { console.warn('cancelRequest:', e); }
+  }
+
   async function sendRequest(toUser) {
     if (!toUser?.uid) return;
     setActionLoading(p => ({ ...p, [toUser.uid]: true }));
