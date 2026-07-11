@@ -39,6 +39,16 @@ const MAX_POST    = 2000;
 const MAX_COMMENT = 500;
 const MAX_PRICE   = 999_999_999;
 const REACTIONS   = ['❤️','😂','😮','😢','😡'];
+const TEXT_BG_COLORS = [
+  null,
+  'linear-gradient(135deg,#1877F2,#42A5F5)',
+  'linear-gradient(135deg,#E91E8C,#FF6BB5)',
+  'linear-gradient(135deg,#FF7A00,#FFB347)',
+  'linear-gradient(135deg,#00C853,#69F0AE)',
+  'linear-gradient(135deg,#7C3AED,#A78BFA)',
+  'linear-gradient(135deg,#D32F2F,#FF8A80)',
+  'linear-gradient(135deg,#1A1A1A,#424242)',
+];
 const SALE_CATEGORIES = ['Vêtements', 'Électronique', 'Déco & Maison', 'Véhicules', 'Alimentation', 'Beauté', 'Autre'];
 
 function VIPBadge() {
@@ -263,6 +273,7 @@ export default function Home() {
   const MOODS = ['😊 se sent heureux(se)', '😢 se sent triste', '🥳 fait la fête', '😴 fatigué(e)', '🙏 reconnaissant(e)', '💪 motivé(e)', '😍 amoureux(se)', '🤒 malade'];
   const [storyReactors, setStoryReactors] = useState(null);   // null | [{uid,name,photo,emoji}]
   const storyFileRef = useRef();
+  const [textBg, setTextBg] = useState(null);
 
   // ── Suggestions d'amis ──
   const [suggestions, setSuggestions] = useState([]);
@@ -495,6 +506,7 @@ const fields = {
       authorUsername: asPage ? '' : userProfile.username,
       authorPhoto: asPage ? (_idn.photoURL || '') : (userProfile.photoURL || ''),      authorIsVip: asPage ? false : (userProfile.isVip || false),
       content: content.trim().slice(0, MAX_POST),
+      textBg: textBg || null,
       isSale, price: isSale ? parseFloat(price) : '',
       contact: isSale ? contact.trim() : '', lieu: isSale ? lieu.trim() : '', saleCategory: isSale ? saleCategory : '',
       audience,
@@ -1332,8 +1344,24 @@ const fields = {
         </div>        <div style={{ display:'flex', gap:10, alignItems:'flex-start' }}>
           <img src={userProfile?.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(userProfile?.fullName||'U')}&background=1877F2&color=fff`} alt="" className="avatar" style={{ width:42, height:42, flexShrink:0 }}/>
           <div style={{ flex:1 }}>
-            <textarea className="input" placeholder={t('whatsOnMind')} value={content} onChange={e => setContent(e.target.value)} rows={3} style={{ resize:'none', width:'100%', border:'none', fontSize:17 }} maxLength={MAX_POST} autoFocus/>
+            {textBg ? (
+              <div style={{ background:textBg, borderRadius:12, minHeight:120, display:'flex', alignItems:'center', justifyContent:'center', padding:'16px 12px' }}>
+                <textarea className="input" placeholder="Quoi de neuf ?" value={content} onChange={e => setContent(e.target.value)}
+                  style={{ resize:'none', width:'100%', border:'none', fontSize:20, fontWeight:700, color:'white', textAlign:'center', background:'transparent', outline:'none' }} maxLength={MAX_POST} autoFocus/>
+              </div>
+            ) : (
+              <textarea className="input" placeholder={t('whatsOnMind')} value={content} onChange={e => setContent(e.target.value)} rows={3} style={{ resize:'none', width:'100%', border:'none', fontSize:17 }} maxLength={MAX_POST} autoFocus/>
+            )}
             {content.length > 0 && <p style={{ fontSize:11, color:charColor, textAlign:'right', marginTop:2 }}>{rem} restants</p>}
+          <div style={{ display:'flex', gap:6, marginTop:8, alignItems:'center' }}>
+            <span style={{ fontSize:11, color:'#65676B' }}>Fond :</span>
+            {TEXT_BG_COLORS.map((bg, i) => (
+              <button key={i} onClick={() => setTextBg(bg)}
+                style={{ width:22, height:22, borderRadius:'50%', padding:0, cursor:'pointer', flexShrink:0,
+                  background: bg || '#ffffff',
+                  border: textBg===bg ? '2.5px solid #050505' : '1.5px solid #E4E6EB' }}/>
+            ))}
+          </div>
           </div>
         </div>
 
@@ -1705,7 +1733,7 @@ const fields = {
             </div>
 
             {/* Content */}
-            <div style={{ padding:'10px 16px', cursor:'pointer' }} onClick={() => navigate(`/post/${post.id}`)}>
+            <div style={{ padding: post.textBg ? 0 : '10px 16px', cursor:'pointer' }} onClick={() => navigate(`/post/${post.id}`)}>
               {post.content && (
                 <p
                   onClick={e => {

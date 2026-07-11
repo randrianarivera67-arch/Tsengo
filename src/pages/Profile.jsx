@@ -102,6 +102,7 @@ export default function Profile() {
   const [friendsData,    setFriendsData] = useState([]);
   const [loadingFriends, setLoadingF]    = useState(false);
   const [zoomPhoto,      setZoomPhoto]   = useState(null);
+  const [selectedPost,   setSelectedPost] = useState(null);
   const [friendStatus,   setFriendStatus] = useState('none');
 
   const photoRef  = useRef();
@@ -210,6 +211,14 @@ export default function Profile() {
       accountType: editForm.accountType,
     });
     setProfile(p=>({...p,...editForm})); setUserProfile(p=>({...p,...editForm})); setEditing(false);
+  }
+
+  async function cancelFriendRequest() {
+    try {
+      await updateDoc(doc(db,'users',currentUser.uid), { sentRequests: arrayRemove(targetUid) });
+      setUserProfile(p => ({ ...p, sentRequests: (p.sentRequests||[]).filter(id => id !== targetUid) }));
+      setFriendStatus('none');
+    } catch(e) { console.warn(e); }
   }
 
   async function sendFriendRequest() {
@@ -454,7 +463,7 @@ export default function Profile() {
           </div>
         </div>
 
-        <div style={{ padding:'10px 16px', cursor:'pointer' }} onClick={() => navigate(`/post/${post.id}`)}>
+        <div style={{ padding:'10px 16px', cursor:'pointer' }} onClick={() => setSelectedPost(post)}>
           {post.content && (<>
             <p style={{ fontSize:15, lineHeight:1.6, wordBreak:'break-word',
               ...(expandedPosts[post.id] ? {} : { display:'-webkit-box', WebkitLineClamp:2, WebkitBoxOrient:'vertical', overflow:'hidden' }) }}>
@@ -514,11 +523,11 @@ export default function Profile() {
 
         <div className='post-actions-row'>
           <div style={{ position:'relative', flex:1, display:'flex' }}>
-            <button onClick={() => { const m = post.reactions?.[currentUser.uid]; reactToPost(post.id, m || '👍'); }}
+            <button onClick={() => { const m = post.reactions?.[currentUser.uid]; reactToPost(post.id, m || '❤️'); }}
               onContextMenu={e => { e.preventDefault(); setShowReact(p=>({...p,[post.id]:!p[post.id]})); }}
               className={'post-action-btn'+(myR?' active':'')}
-              style={myR ? { color: myR === '👍' ? '#1877F2' : '#FF2D8D', fontWeight:700 } : {}}>
-              {myR ? <span style={{ fontSize:17 }}>{myR}</span> : <NeonLike size={19}/>} J'aime
+              style={myR ? { color: '#FF2D8D', fontWeight:700 } : {}}>
+              {myR ? <span style={{ fontSize:17 }}>{myR}</span> : <NeonLike size={19} color='#65676B'/>} J'aime
             </button>
             {showReact[post.id] && (
               <div style={{ position:'absolute', bottom:'110%', left:8, background:'white', borderRadius:30, padding:'8px 12px', display:'flex', gap:6, boxShadow:'0 4px 20px rgba(0,0,0,.2)', zIndex:10, border:'1px solid #E4E6EB' }}>
@@ -723,7 +732,7 @@ export default function Profile() {
                   </button>
                   <button onClick={() => navigate(`/messages/${getChatId(currentUser.uid,targetUid)}`)} className="btn-primary" style={{ fontSize:13, padding:'8px 18px' }}><HiPaperAirplane size={14} style={{ display:'inline', marginRight:4 }}/>Message</button>
                   {friendStatus==='none'&&<button onClick={sendFriendRequest} style={{ display:'inline-flex', alignItems:'center', gap:6, background:"linear-gradient(180deg,#1B84FF,#1877F2)", border:"none", borderRadius:20, padding:'8px 16px', color:"white", fontWeight:600, cursor:'pointer', fontSize:13, boxShadow:"0 3px 12px rgba(24,119,242,.35)" }}><HiUserAdd size={14}/>Ajouter</button>}
-                  {friendStatus==='requested'&&<span style={{ display:'inline-flex', alignItems:'center', background:'#F3F4F6', borderRadius:20, padding:'8px 16px', color:'#9CA3AF', fontSize:13 }}>Demande envoyée</span>}
+                  {friendStatus==='requested'&&<button onClick={cancelFriendRequest} style={{ display:'inline-flex', alignItems:'center', background:'#F3F4F6', border:'none', borderRadius:20, padding:'8px 16px', color:'#65676B', fontSize:13, fontWeight:600, cursor:'pointer', fontFamily:'Poppins' }}>Annulé</button>}
                   {friendStatus==='friend'&&<span style={{ display:'inline-flex', alignItems:'center', background:'#D1FAE5', borderRadius:20, padding:'8px 16px', color:'#065F46', fontSize:13 }}>✓ Ami</span>}
                   <div style={{ position:'relative', display:'inline-block' }} onClick={e => e.stopPropagation()}>
                     <button onClick={() => setOtherMenu(p => !p)} style={{ width:36, height:36, borderRadius:'50%', background:'#F0F2F5', border:'none', cursor:'pointer', color:'#050505', display:'flex', alignItems:'center', justifyContent:'center' }}><HiDotsVertical size={17}/></button>

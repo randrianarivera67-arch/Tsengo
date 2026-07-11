@@ -48,39 +48,41 @@ export default function Stats() {
   const friends = (profile.friends || []).length;
   const profileViews = profile.profileViews || 0;
 
-  const Card = ({ icon, label, value, sub, c1 = '#63A9FF', c2 = '#1877F2' }) => (
-    <div className="card" style={{ padding: 14, borderRadius: 16, display: 'flex', alignItems: 'center', gap: 12 }}>
-      <span className="icon-badge-3d" style={{ width: 44, height: 44, borderRadius: 13, background: `linear-gradient(145deg,${c1},${c2})`, flexShrink: 0 }}>
+  const Card = ({ icon, label, value, sub, c1 = '#63A9FF', c2 = '#1877F2', onClick }) => (
+    <div className="card" onClick={onClick} style={{ padding: 14, borderRadius: 16, display: 'flex', alignItems: 'center', gap: 12, cursor: onClick ? 'pointer' : 'default' }}>
+      <span className="icon-badge-3d" style={{ width: 44, height: 44, borderRadius: 13, background: `linear-gradient(145deg,${c1},${c2})`, flexShrink: 0, display:'flex', alignItems:'center', justifyContent:'center' }}>
         {icon}
       </span>
       <div style={{ minWidth: 0 }}>
-        <p style={{ fontWeight: 800, fontSize: 20, lineHeight: 1.1 }}>{Number(value).toLocaleString()}</p>
+        <p style={{ fontWeight: 800, fontSize: 24, lineHeight: 1, color:'#050505' }}>{Number(value).toLocaleString()}</p>
         <p style={{ fontSize: 12, color: '#65676B' }}>{label}{sub ? ` · ${sub}` : ''}</p>
       </div>
+      {onClick && <span style={{ color:'#1877F2', fontSize:18, marginLeft:'auto' }}>›</span>}
     </div>
   );
 
   return (
-    <div style={{ padding: '14px 12px 30px' }}>
-      <h2 style={{ fontWeight: 800, fontSize: 20, display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
+    <div style={{ minHeight:'100vh', padding:'0 0 80px', background:'#F0F2F5' }}>
+      <div style={{ position:'sticky', top:0, background:'white', zIndex:10, padding:'12px 16px', display:'flex', alignItems:'center', gap:10, borderBottom:'1px solid #E4E6EB', boxShadow:'0 1px 4px rgba(0,0,0,.06)', marginBottom:12 }}>
+      <h2 style={{ fontWeight: 800, fontSize: 17, display: 'flex', alignItems: 'center', gap: 10, margin:0 }}>
         <button onClick={() => navigate(-1)} style={{ background: '#F0F2F5', border: 'none', borderRadius: '50%', width: 34, height: 34, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#050505' }}><HiArrowLeft size={18} /></button>
         <span className="icon-badge-3d" style={{ width: 34, height: 34, borderRadius: 10, background: 'linear-gradient(145deg,#3DD9C4,#12A48D)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <NeonChart size={18} color="#fff" />
         </span>
         Statistiques
       </h2>
-      <p style={{ fontSize: 12, color: '#65676B', margin: '8px 0 14px' }}>Vue d'ensemble de votre compte et de vos publications</p>
+      </div>
 
-      <p style={{ fontWeight: 800, fontSize: 14, margin: '4px 2px 8px' }}>Compte</p>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 16 }}>
-        <Card icon={<HiUserGroup size={22} color="#fff" />} label="Abonnés" value={followers} c1="#63A9FF" c2="#1877F2" />
+      <p style={{ fontWeight: 800, fontSize: 14, margin: '4px 12px 8px', color:'#050505' }}>Compte</p>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 16, padding:'0 12px' }}>
+        <Card icon={<HiUserGroup size={22} color="#fff" />} label="Abonnés" value={followers} c1="#63A9FF" c2="#1877F2" onClick={() => navigate('/friends')}/>
         <Card icon={<HiUser size={22} color="#fff" />} label="Vues du profil" value={profileViews} c1="#8F7BFF" c2="#5E4BDB" />
         <Card icon={<HiUserGroup size={22} color="#fff" />} label="Abonnements" value={following} c1="#FFD84D" c2="#F2B300" />
         <Card icon={<HiUserGroup size={22} color="#fff" />} label="Amis" value={friends} c1="#3DD9C4" c2="#12A48D" />
       </div>
 
-      <p style={{ fontWeight: 800, fontSize: 14, margin: '4px 2px 8px' }}>Publications <span style={{ fontSize: 12, color: '#65676B', fontWeight: 600 }}>{S.nPosts} au total</span></p>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 16 }}>
+      <p style={{ fontWeight: 800, fontSize: 14, margin: '16px 12px 8px', color:'#050505' }}>Publications <span style={{ fontSize: 12, color: '#65676B', fontWeight: 600 }}>{S.nPosts} au total</span></p>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 16, padding:'0 12px' }}>
         <Card icon={<HiHeart size={22} color="#fff" />} label="Réactions reçues" value={S.reactions} c1="#FF7AB8" c2="#FF2D8D" />
         <Card icon={<HiEye size={22} color="#fff" />} label="Vues publications" value={S.views} c1="#63A9FF" c2="#1877F2" />
         <Card icon={<HiChat size={22} color="#fff" />} label="Commentaires" value={S.comments} c1="#3DD9C4" c2="#12A48D" />
@@ -89,11 +91,11 @@ export default function Stats() {
 
       {S.top.length > 0 && (
         <>
-          <p style={{ fontWeight: 800, fontSize: 14, margin: '4px 2px 8px' }}>Meilleures publications</p>
+          <p style={{ fontWeight: 800, fontSize: 14, margin: '16px 12px 8px', color:'#050505' }}>Meilleures publications</p>
           {S.top.map(p => {
             const r = Object.keys(p.reactions || {}).length;
             return (
-              <div key={p.id} onClick={() => navigate(`/post/${p.id}`)} className="card" style={{ display: 'flex', gap: 10, padding: 10, marginBottom: 8, borderRadius: 14, cursor: 'pointer', alignItems: 'center' }}>
+              <div key={p.id} onClick={() => navigate(`/post/${p.id}`)} className="card" style={{ display: 'flex', gap: 10, padding: 10, marginBottom: 8, borderRadius: 14, cursor: 'pointer', alignItems: 'center', margin:'0 12px 8px' }}>
                 <div style={{ width: 48, height: 48, borderRadius: 10, overflow: 'hidden', background: '#F0F2F5', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   {p.mediaURL && p.mediaType === 'image'
                     ? <img src={p.mediaURL} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
