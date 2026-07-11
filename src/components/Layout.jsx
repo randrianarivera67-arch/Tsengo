@@ -10,7 +10,7 @@ import { collection, getDocs, query, orderBy, limit, where, onSnapshot } from 'f
 import { ref, set, onDisconnect, onValue } from 'firebase/database';
 import { db, rtdb } from '../firebase';
 import { parseAppLink } from '../utils/appLink';
-import { getIdentity } from '../utils/identity';
+// identity.js neutralisé — import retiré
 import { getCart, subscribeCart } from '../utils/cart';
 import { NeonChart } from './NeonIcons';
 import { subscribeUpload } from '../utils/uploadManager';
@@ -115,7 +115,7 @@ export default function Layout({ children }) {
   useEffect(() => subscribeCart(items => setCartCount(items.length)), []);
 
 
-  useEffect(() => subscribeIdentity(setIdentityState), []);
+  // Page Sera supprimée — subscribeIdentity retiré
 
   // Page Sera supprimée
   useEffect(() => {
