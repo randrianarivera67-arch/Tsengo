@@ -1,6 +1,6 @@
 // src/pages/PageDetail.jsx — Page Sera (format Facebook Page)
 import { useState, useEffect, useRef } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import {
   doc, onSnapshot, updateDoc, deleteDoc, collection, query, where, getDocs,
   addDoc, serverTimestamp, arrayUnion, arrayRemove, writeBatch
@@ -19,11 +19,13 @@ import {
 } from 'react-icons/hi';
 
 const REACTIONS = ['❤️','😂','😮','😢','😡','👍'];
+const CATEGORIES = ['Blog personnel', 'Produit/service', 'Art', 'Musique/groupe', 'Shopping et vente au détail', 'Entreprise', 'Influenceur', 'Association', 'Commerce local', 'Service', 'Communauté', 'Autre'];
 
 export default function PageDetail() {
   const { pageId } = useParams();
   const { currentUser, userProfile } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
 
   const [pg, setPg] = useState(null);
   const [notFound, setNotFound] = useState(false);
@@ -40,7 +42,7 @@ export default function PageDetail() {
   const [pgGroupSel, setPgGroupSel] = useState({});
   const [menuOpen, setMenuOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
-  const [editForm, setEditForm] = useState({ name:'', description:'', website:'', phone:'', location:'', email:'', team:'', hobbies:'' });
+  const [editForm, setEditForm] = useState({ name:'', category:'', description:'', website:'', phone:'', location:'', email:'', team:'', hobbies:'' });
   const [showReact, setShowReact] = useState({});
   const [followersOpen, setFollowersOpen] = useState(false);
   const [statsOpen, setStatsOpen] = useState(false);
@@ -71,6 +73,12 @@ export default function PageDetail() {
 
   useEffect(() => { const fn = () => setMenuOpen(false); document.addEventListener('click', fn); window.addEventListener('scroll', fn, true); return () => { document.removeEventListener('click', fn); window.removeEventListener('scroll', fn, true); }; }, []);
 
+  // ── Deep-link : "Statistiques" / "Abonnés" avy amin'ny sidebar (raha mode page active) ──
+  useEffect(() => {
+    if (location.state?.openStats) setStatsOpen(true);
+    if (location.state?.openFollowers) setFollowersOpen(true);
+  }, [location.state]);
+
   async function changeImage(e, field) {
     const file = e.target.files[0]; if (!file) return;
     try { const r = await uploadToTelegram(file); await updateDoc(doc(db, 'pages', pageId), { [field]: r.url }); }
@@ -85,7 +93,7 @@ export default function PageDetail() {
   }
 
   function openEdit() {
-    setEditForm({ name: pg.name||'', description: pg.description||'', website: pg.website||'', phone: pg.phone||'', location: pg.location||'', email: pg.email||'', team: pg.team||'', hobbies: pg.hobbies||'' });
+    setEditForm({ name: pg.name||'', category: pg.category||CATEGORIES[0], description: pg.description||'', website: pg.website||'', phone: pg.phone||'', location: pg.location||'', email: pg.email||'', team: pg.team||'', hobbies: pg.hobbies||'' });
     setEditOpen(true);
   }
   async function saveEdit() {
@@ -392,6 +400,9 @@ export default function PageDetail() {
               <button onClick={() => setEditOpen(false)} style={{ background:'none', border:'none', cursor:'pointer', color:'#65676B' }}><HiX size={20}/></button>
             </div>
             <input className="input" value={editForm.name} onChange={e=>setEditForm(p=>({...p,name:e.target.value}))} placeholder="Nom" style={{ marginBottom:10 }}/>
+            <select className="input" value={editForm.category} onChange={e=>setEditForm(p=>({...p,category:e.target.value}))} style={{ marginBottom:10 }}>
+              {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+            </select>
             <textarea className="input" value={editForm.description} onChange={e=>setEditForm(p=>({...p,description:e.target.value}))} placeholder="Description" rows={3} style={{ resize:'none', marginBottom:10 }}/>
             <input className="input" value={editForm.location} onChange={e=>setEditForm(p=>({...p,location:e.target.value}))} placeholder="Lieu (point exact)" style={{ marginBottom:10 }}/>
             <input className="input" value={editForm.phone} onChange={e=>setEditForm(p=>({...p,phone:e.target.value}))} placeholder="Téléphone" style={{ marginBottom:10 }}/>

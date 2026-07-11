@@ -165,15 +165,21 @@ export default function Layout({ children }) {
     prevNotif.current = notifCount;
   }, [notifCount]);
 
+  // ── Mode identité : page Sera active = ilay page no "miasa" eran'ny appli ──
+  const isPageMode   = identity.type === 'page';
+  const profilePath  = isPageMode ? `/pages/${identity.id}` : `/profile/${currentUser?.uid}`;
+
   // Dock flottant style Telegram — icônes remplies, couleur par couleur
   // Dock flottant — 3 couleurs du logo uniquement : bleu / rose / doré
   // Notifications afindra any amin'ny top bar — ny "Revy" (Reels) no centré eto
     const bottomNav = [
-    { path: '/',                            icon: 'home',   color: '#1877F2', label: 'Accueil' },
-    { path: '/friends',                     icon: 'amis',   color: '#F5C518', label: 'Amis' },
-    { path: '/reels',                       isJejo: true,   label: 'JEJO' },
-    { path: '/messages',                    icon: 'plane',  color: '#F5C518', label: 'Messages', badge: msgCount },
-    { path: `/profile/${currentUser?.uid}`, icon: 'profil', color: '#1877F2', label: 'Profil' },
+    { path: '/',           icon: 'home',   color: '#1877F2', label: 'Accueil' },
+    isPageMode
+      ? { path: `/pages/${identity.id}`, navState: { openFollowers: true }, icon: 'amis', color: '#F5C518', label: 'Abonnés' }
+      : { path: '/friends', icon: 'amis',   color: '#F5C518', label: 'Amis' },
+    { path: '/reels',      isJejo: true,   label: 'JEJO' },
+    { path: '/messages',   icon: 'plane',  color: '#F5C518', label: 'Messages', badge: msgCount },
+    { path: profilePath,   icon: 'profil', color: '#1877F2', label: isPageMode ? 'Page' : 'Profil' },
   ];
 
   const isActive = p => {
@@ -234,21 +240,30 @@ export default function Layout({ children }) {
 
   // Navigation rapide — horizontale, ambony indrindra (matetika ampiasaina)
   const quickNav = [
-    { path: '/',                            AIcon: HiHome,          label: t('home'),          color1:'#1B84FF', color2:'#1877F2' },
-    { path: '/friends',                     AIcon: HiUserGroup,     label: t('friends'),       color1:'#FFD84D', color2:'#F5C518' },
-    { path: '/messages',                    AIcon: HiPaperAirplane, label: t('messages'),      color1:'#63A9FF', color2:'#1877F2', badge: msgCount },
-    { path: '/notifications',               AIcon: HiBell,          label: t('notifications'), color1:'#FF7AB8', color2:'#FF2D8D', badge: notifCount },
-    { path: `/profile/${currentUser?.uid}`, AIcon: HiUser,          label: t('profile'),       color1:'#63A9FF', color2:'#1877F2' },
+    { path: '/',            AIcon: HiHome,          label: t('home'),          color1:'#1B84FF', color2:'#1877F2' },
+    isPageMode
+      ? { path: `/pages/${identity.id}`, navState: { openFollowers: true }, AIcon: HiUserGroup, label: 'Abonnés', color1:'#FFD84D', color2:'#F5C518' }
+      : { path: '/friends', AIcon: HiUserGroup,     label: t('friends'),       color1:'#FFD84D', color2:'#F5C518' },
+    { path: '/messages',    AIcon: HiPaperAirplane, label: t('messages'),      color1:'#63A9FF', color2:'#1877F2', badge: msgCount },
+    { path: '/notifications', AIcon: HiBell,        label: t('notifications'), color1:'#FF7AB8', color2:'#FF2D8D', badge: notifCount },
+    { path: profilePath,    AIcon: HiUser,          label: isPageMode ? 'Page' : t('profile'), color1:'#63A9FF', color2:'#1877F2' },
   ];
 
-  // Hub — grille d'icônes (fonctionnalités)
-  const drawerNav = [
-    { path: '/groups',                      AIcon: HiUserGroup,     label: 'Groupes',          sub: 'Communautés',          color1:'#8F7BFF', color2:'#5E4BDB' },
-    { path: '/events',                      AIcon: HiCalendar,      label: 'Événements',       sub: 'Créez, participez',    color1:'#3DD9C4', color2:'#12A48D' },
-    { path: '/announcements',               AIcon: HiSpeakerphone,  label: 'Annonces',         sub: 'Petites annonces',     color1:'#FF9A5A', color2:'#FF7A00' },
-    { path: '/shop',                        AIcon: HiShoppingBag,   label: 'Boutique',         sub: 'Achetez, vendez',      color1:'#FF6FA5', color2:'#FF2D8D' },
-    { path: '/saved',                       AIcon: HiBookmark,      label: 'Enregistrements',  sub: 'Vos posts sauvegardés',color1:'#FFD84D', color2:'#F5C518' },
-    { path: '/stats',                       AIcon: HiChartBar,      label: 'Statistiques',     sub: 'Abonnés, vues, réactions', color1:'#3DD9C4', color2:'#12A48D' },
+  // Hub — grille d'icônes (fonctionnalités). Miova arakaraka ny identité (compte / page Sera).
+  const drawerNav = isPageMode ? [
+    { path: '/groups',        AIcon: HiUserGroup,    label: 'Groupes',          sub: 'Communautés',              color1:'#8F7BFF', color2:'#5E4BDB' },
+    { path: '/events',        AIcon: HiCalendar,     label: 'Événements',       sub: 'Créez, participez',        color1:'#3DD9C4', color2:'#12A48D' },
+    { path: '/announcements', AIcon: HiSpeakerphone, label: 'Annonces',         sub: 'Petites annonces',         color1:'#FF9A5A', color2:'#FF7A00' },
+    { path: '/saved',         AIcon: HiBookmark,     label: 'Enregistrements',  sub: 'Vos posts sauvegardés',    color1:'#FFD84D', color2:'#F5C518' },
+    { path: `/pages/${identity.id}`, navState: { openStats: true }, AIcon: HiChartBar, label: 'Statistiques', sub: 'Abonnés, vues, réactions', color1:'#3DD9C4', color2:'#12A48D' },
+    { path: '/notes',         AIcon: HiDocumentText, label: 'Bloc-notes',       sub: 'Vos notes privées',        color1:'#FFD84D', color2:'#F2B300' },
+  ] : [
+    { path: '/groups',        AIcon: HiUserGroup,    label: 'Groupes',          sub: 'Communautés',          color1:'#8F7BFF', color2:'#5E4BDB' },
+    { path: '/events',        AIcon: HiCalendar,     label: 'Événements',       sub: 'Créez, participez',    color1:'#3DD9C4', color2:'#12A48D' },
+    { path: '/announcements', AIcon: HiSpeakerphone, label: 'Annonces',         sub: 'Petites annonces',     color1:'#FF9A5A', color2:'#FF7A00' },
+    { path: '/shop',          AIcon: HiShoppingBag,  label: 'Boutique',         sub: 'Achetez, vendez',      color1:'#FF6FA5', color2:'#FF2D8D' },
+    { path: '/saved',         AIcon: HiBookmark,     label: 'Enregistrements',  sub: 'Vos posts sauvegardés',color1:'#FFD84D', color2:'#F5C518' },
+    { path: '/stats',         AIcon: HiChartBar,     label: 'Statistiques',     sub: 'Abonnés, vues, réactions', color1:'#3DD9C4', color2:'#12A48D' },
   ];
 
   const bg   = isDark ? '#050505' : 'white';
@@ -314,8 +329,20 @@ export default function Layout({ children }) {
           <button onClick={() => setDrawerOpen(false)} style={{ background: isDark ? '#232733' : '#F0F2F5', border: 'none', borderRadius: '50%', width: 36, height: 36, cursor: 'pointer', color: '#65676B', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><HiX size={20} /></button>
         </div>
 
-        {/* User mini + points/rôle */}
-        {userProfile && (
+        {/* User mini + points/rôle — mampiseho ilay page raha mode "page" no active */}
+        {isPageMode ? (
+          <div onClick={() => { navigate(`/pages/${identity.id}`); setDrawerOpen(false); }}
+            style={{ margin: '4px 16px 10px', padding: '14px', borderRadius: 16, background: isDark ? '#15181F' : '#F0F2F5', display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer' }}>
+            <span style={{ width: 52, height: 52, borderRadius: 14, overflow: 'hidden', background: 'linear-gradient(145deg,#63A9FF,#1877F2)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, border: '2px solid white' }}>
+              {identity.photoURL ? <img src={identity.photoURL} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <HiIdentification size={24} color="white" />}
+            </span>
+            <div style={{ minWidth: 0, flex: 1 }}>
+              <p style={{ fontWeight: 800, fontSize: 16, color: text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{identity.name}</p>
+              <p style={{ fontSize: 12, color: '#1877F2', fontWeight: 700 }}>📄 Page Sera</p>
+            </div>
+            <HiChevronRight size={18} color="#65676B" />
+          </div>
+        ) : userProfile && (
           <div onClick={() => { navigate(`/profile/${currentUser?.uid}`); setDrawerOpen(false); }}
             style={{ margin: '4px 16px 10px', padding: '14px', borderRadius: 16, background: isDark ? '#15181F' : '#F0F2F5', display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer' }}>
             <img src={userProfile.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(userProfile.fullName || 'U')}&background=1877F2&color=fff`}
@@ -342,7 +369,7 @@ export default function Layout({ children }) {
             const active = isActive(item.path);
             const IconComp = item.AIcon;
             return (
-              <button key={item.path} onClick={() => { navigate(item.path); setDrawerOpen(false); }}
+              <button key={item.label} onClick={() => { navigate(item.path, item.navState ? { state: item.navState } : undefined); setDrawerOpen(false); }}
                 className={`quicknav-item ${active ? 'active' : ''}`} style={{ position: 'relative' }}>
                 <span className="quicknav-icon icon-sweep" style={{ background: `linear-gradient(145deg, ${item.color1}, ${item.color2})`, '--glow': item.color2 + '66' }}>
                   <IconComp size={20} color="white" />
@@ -360,7 +387,7 @@ export default function Layout({ children }) {
             const active = isActive(item.path);
             const IconComp = item.AIcon;
             return (
-              <button key={item.path} onClick={() => { navigate(item.path); setDrawerOpen(false); }}
+              <button key={item.label} onClick={() => { navigate(item.path, item.navState ? { state: item.navState } : undefined); setDrawerOpen(false); }}
                 style={{
                   display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 8, padding: '14px', textAlign: 'left',
                   background: isDark ? '#15181F' : 'white', position: 'relative',
@@ -377,19 +404,21 @@ export default function Layout({ children }) {
             );
           })}
 
-          {/* Artiste — canal artiste (musique/vidéo), à la place du Live */}
-          <button onClick={() => { navigate('/artists'); setDrawerOpen(false); }}
-            style={{
-              display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 8, padding: '14px', textAlign: 'left',
-              background: isDark ? '#15181F' : 'white', border: `1.5px solid ${bdr}`, borderRadius: 16, cursor: 'pointer',
-              boxShadow: '0 1px 3px rgba(0,0,0,.06)',
-            }}>
-            <span className="icon-badge-3d icon-sweep" style={{ width: 44, height: 44, borderRadius: 13, background: 'linear-gradient(145deg, #FF6FA5, #FF2D8D)', '--sweep-delay': Math.random() * 2 }}>
-              <HiMicrophone size={22} color="white" />
-            </span>
-            <span style={{ fontWeight: 700, fontSize: 14, color: text }}>Artiste</span>
-            <span style={{ fontSize: 11, color: '#65676B', marginTop: -6 }}>Musique, vidéos, canal</span>
-          </button>
+          {/* Artiste — canal artiste (musique/vidéo) : tsy miseho raha mode "page Sera" no active */}
+          {!isPageMode && (
+            <button onClick={() => { navigate('/artists'); setDrawerOpen(false); }}
+              style={{
+                display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 8, padding: '14px', textAlign: 'left',
+                background: isDark ? '#15181F' : 'white', border: `1.5px solid ${bdr}`, borderRadius: 16, cursor: 'pointer',
+                boxShadow: '0 1px 3px rgba(0,0,0,.06)',
+              }}>
+              <span className="icon-badge-3d icon-sweep" style={{ width: 44, height: 44, borderRadius: 13, background: 'linear-gradient(145deg, #FF6FA5, #FF2D8D)', '--sweep-delay': Math.random() * 2 }}>
+                <HiMicrophone size={22} color="white" />
+              </span>
+              <span style={{ fontWeight: 700, fontSize: 14, color: text }}>Artiste</span>
+              <span style={{ fontSize: 11, color: '#65676B', marginTop: -6 }}>Musique, vidéos, canal</span>
+            </button>
+          )}
         </nav>
 
         {/* Changer de profil (compte ↔ page Sera, toy ny Facebook) */}
@@ -573,11 +602,11 @@ export default function Layout({ children }) {
 
       {/* ── Dock flottant — clay 3D, JEJO au centre ────────────── */}
       <nav className="floating-dock">
-        {bottomNav.map(({ path, icon, badge, color, isJejo, label }) => {
+        {bottomNav.map(({ path, navState, icon, badge, color, isJejo, label }) => {
           const active = isActive(path);
           const FilledIcon = icon === 'home' ? HiHome : icon === 'amis' ? HiUserGroup : icon === 'plane' ? HiPaperAirplane : HiUser;
           return (
-            <button key={path} className={`dock-item ${active ? 'active' : ''}`} onClick={() => navigate(path)}
+            <button key={label} className={`dock-item ${active ? 'active' : ''}`} onClick={() => navigate(path, navState ? { state: navState } : undefined)}
               style={{ background: 'none', border: 'none', cursor: 'pointer', position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5, flex: 1, padding: '4px 0' }}>
               {isJejo ? (
                 <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 46, transform: active ? 'scale(1.06)' : 'scale(1)', transition: 'transform .2s' }}>
