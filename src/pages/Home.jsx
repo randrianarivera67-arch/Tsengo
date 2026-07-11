@@ -33,7 +33,6 @@ import {
   HiReply, HiUserAdd, HiUserGroup, HiBookmark, HiFlag, HiBan, HiPaperAirplane, HiIdentification, HiShoppingBag, HiShoppingCart, HiCalendar, HiClipboardCopy, HiInformationCircle, HiCheck, HiGlobeAlt, HiStar, HiAtSymbol
 } from 'react-icons/hi';
 import { addToCart } from '../utils/cart';
-import { getIdentity } from '../utils/identity';
 import { increment } from 'firebase/firestore';
 
 const MAX_POST    = 2000;
@@ -275,7 +274,6 @@ export default function Home() {
   const [reactorNames, setReactorNames] = useState({});   // uid → prenom (ho an'ny "X et N autres")
   const [mentionQuery, setMentionQuery] = useState(null); // { postId, q } rehefa manoratra @
   const [mentionFriends, setMentionFriends] = useState([]);
-  const activeIdentity = getIdentity();                    // compte na page Sera
 
   // ── Menus mikatona rehefa scroll na clic ivelany ──
   useEffect(() => {
@@ -480,15 +478,12 @@ export default function Home() {
     setPosting(true); setUploadPct(0);
 
     // Sary raikitra ny votoaty (snapshot) — ilaina amin'ny arrière-plan
-    const _idn = getIdentity();
-    const asPage = _idn.type === 'page';
-    const fields = {
+    const asPage = false;
+const fields = {
       uid: currentUser.uid,
       authorName: asPage ? _idn.name : userProfile.fullName,
       authorUsername: asPage ? '' : userProfile.username,
-      authorPhoto: asPage ? (_idn.photoURL || '') : (userProfile.photoURL || ''),
-      ...(asPage ? { pageId: _idn.id, pageName: _idn.name, pagePhoto: _idn.photoURL || '', postedByPage: true } : {}),
-      authorIsVip: asPage ? false : (userProfile.isVip || false),
+      authorPhoto: asPage ? (_idn.photoURL || '') : (userProfile.photoURL || ''),      authorIsVip: asPage ? false : (userProfile.isVip || false),
       content: content.trim().slice(0, MAX_POST),
       isSale, price: isSale ? parseFloat(price) : '',
       contact: isSale ? contact.trim() : '', lieu: isSale ? lieu.trim() : '', saleCategory: isSale ? saleCategory : '',
@@ -1309,15 +1304,8 @@ export default function Home() {
           <button className="btn-primary" onClick={() => { createPost(); }} disabled={posting||(!content.trim()&&!mediaFile&&multiPhotos.length===0)||content.length>MAX_POST} style={{ padding:'7px 20px', fontSize:14 }}>
             {posting?'...':t('publishPost')}
           </button>
-        </div>
-        {activeIdentity.type === 'page' && (
-          <div style={{ display:'flex', alignItems:'center', gap:8, background:'#E7F0FE', borderRadius:12, padding:'8px 12px', marginBottom:10 }}>
-            <HiIdentification size={15} color="#1877F2"/>
-            <span style={{ fontSize:12.5, fontWeight:700, color:'#1877F2' }}>Publier en tant que {activeIdentity.name}</span>
-          </div>
-        )}
-        <div style={{ display:'flex', gap:10, alignItems:'flex-start' }}>
-          <img src={(activeIdentity.type==='page' ? activeIdentity.photoURL : userProfile?.photoURL)||`https://ui-avatars.com/api/?name=${encodeURIComponent((activeIdentity.type==='page'?activeIdentity.name:userProfile?.fullName)||'U')}&background=1877F2&color=fff`} alt="" className="avatar" style={{ width:42, height:42, flexShrink:0 }}/>
+        </div>        <div style={{ display:'flex', gap:10, alignItems:'flex-start' }}>
+          <img src={userProfile?.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(userProfile?.fullName||'U')}&background=1877F2&color=fff`} alt="" className="avatar" style={{ width:42, height:42, flexShrink:0 }}/>
           <div style={{ flex:1 }}>
             <textarea className="input" placeholder={t('whatsOnMind')} value={content} onChange={e => setContent(e.target.value)} rows={3} style={{ resize:'none', width:'100%', border:'none', fontSize:17 }} maxLength={MAX_POST} autoFocus/>
             {content.length > 0 && <p style={{ fontSize:11, color:charColor, textAlign:'right', marginTop:2 }}>{rem} restants</p>}
@@ -1596,19 +1584,7 @@ export default function Home() {
                       {post.authorIsVip&&<VIPBadge/>} · {post.createdAt?timeAgo(post.createdAt):"À l'instant"}
                     </p>
                   </div>
-                </div>
-              ) : post.pageId ? (
-                /* Pub de Sera (page) : photo + nom de la page, clic → page */
-                <div onClick={() => navigate(`/pages/${post.pageId}`)} style={{ display:'flex', alignItems:'center', gap:10, cursor:'pointer', flex:1, minWidth:0 }}>
-                  <div style={{ width:44, height:44, borderRadius:10, background:'linear-gradient(145deg,#63A9FF,#1877F2)', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0, overflow:'hidden' }}>
-                    {post.pagePhoto ? <img src={post.pagePhoto} alt="" style={{ width:'100%', height:'100%', objectFit:'cover' }}/> : <HiIdentification size={22} color="white"/>}
-                  </div>
-                  <div style={{ minWidth:0 }}>
-                    <p style={{ fontWeight:700, fontSize:14, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{post.pageName}</p>
-                    <p style={{ fontSize:12, color:'#65676B' }}>Sera · {post.createdAt?timeAgo(post.createdAt):"À l'instant"}</p>
-                  </div>
-                </div>
-              ) : post.artistId ? (
+                </div>) : post.artistId ? (
                 /* Pub de canal Artiste : photo + nom, clic → page artiste */
                 <div onClick={() => navigate(`/artists/${post.artistId}`)} style={{ display:'flex', alignItems:'center', gap:10, cursor:'pointer', flex:1, minWidth:0 }}>
                   <div style={{ width:44, height:44, borderRadius:'50%', background:'linear-gradient(145deg,#FF6FA5,#FF2D8D)', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0, overflow:'hidden' }}>

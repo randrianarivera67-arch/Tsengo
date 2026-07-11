@@ -10,7 +10,7 @@ import { collection, getDocs, query, orderBy, limit, where, onSnapshot } from 'f
 import { ref, set, onDisconnect, onValue } from 'firebase/database';
 import { db, rtdb } from '../firebase';
 import { parseAppLink } from '../utils/appLink';
-import { getIdentity, setIdentity, subscribeIdentity } from '../utils/identity';
+import { getIdentity } from '../utils/identity';
 import { getCart, subscribeCart } from '../utils/cart';
 import { NeonChart } from './NeonIcons';
 import { subscribeUpload } from '../utils/uploadManager';
@@ -110,14 +110,14 @@ export default function Layout({ children }) {
   const { theme } = useTheme();
   const { unreadCount: notifCount } = useNotifications();
   const { unreadCount: msgCount }   = useMessages();
-  const [identity, setIdentityState] = useState(getIdentity());
+  const identity = { type: 'user' };
   const [cartCount, setCartCount] = useState(() => { try { return getCart().length; } catch { return 0; } });
   useEffect(() => subscribeCart(items => setCartCount(items.length)), []);
-  const [myPagesList, setMyPagesList] = useState([]);
+
 
   useEffect(() => subscribeIdentity(setIdentityState), []);
 
-  // Mes pages Sera (ho an'ny "Changer de profil")
+  // Page Sera supprimée
   useEffect(() => {
     if (!currentUser) return;
     const q = query(collection(db, 'pages'), where('admins', 'array-contains', currentUser.uid));
@@ -166,8 +166,8 @@ export default function Layout({ children }) {
   }, [notifCount]);
 
   // ── Mode identité : page Sera active = ilay page no "miasa" eran'ny appli ──
-  const isPageMode   = identity.type === 'page';
-  const profilePath  = isPageMode ? `/pages/${identity.id}` : `/profile/${currentUser?.uid}`;
+  const isPageMode = false;
+  const profilePath = `/profile/${currentUser?.uid}`;
 
   // Dock flottant style Telegram — icônes remplies, couleur par couleur
   // Dock flottant — 3 couleurs du logo uniquement : bleu / rose / doré
@@ -421,50 +421,8 @@ export default function Layout({ children }) {
           )}
         </nav>
 
-        {/* Changer de profil (compte ↔ page Sera, toy ny Facebook) */}
-        {myPagesList.length > 0 && (
-          <div style={{ padding: '0 14px 14px' }}>
-            <div style={{ background: isDark ? '#15181F' : 'white', border: `1.5px solid ${bdr}`, borderRadius: 16, overflow: 'hidden' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '11px 14px 7px' }}>
-                <HiSwitchHorizontal size={16} color="#12A48D" />
-                <span style={{ fontWeight: 700, fontSize: 13, color: text }}>Changer de profil</span>
-              </div>
-              <button onClick={() => { setIdentity({ type: 'user' }); }}
-                style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: '9px 14px', background: identity.type === 'user' ? (isDark ? '#10131A' : '#F0F7FF') : 'none', border: 'none', cursor: 'pointer', textAlign: 'left' }}>
-                <img src={userProfile?.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(userProfile?.fullName || 'U')}&background=1877F2&color=fff`} alt="" style={{ width: 34, height: 34, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} />
-                <span style={{ flex: 1, minWidth: 0 }}>
-                  <span style={{ display: 'block', fontWeight: 700, fontSize: 13, color: text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{userProfile?.fullName || 'Moi'}</span>
-                  <span style={{ display: 'block', fontSize: 10.5, color: '#65676B' }}>Compte personnel</span>
-                </span>
-                {identity.type === 'user' && <HiCheck size={17} color="#1877F2" style={{ flexShrink: 0 }} />}
-              </button>
-              {myPagesList.map(pg => (
-                <button key={pg.id} onClick={() => { setIdentity({ type: 'page', id: pg.id, name: pg.name, photoURL: pg.photoURL || '' }); }}
-                  style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: '9px 14px', background: identity.type === 'page' && identity.id === pg.id ? (isDark ? '#10131A' : '#F0F7FF') : 'none', border: 'none', borderTop: `1px solid ${bdr}`, cursor: 'pointer', textAlign: 'left' }}>
-                  <span style={{ width: 34, height: 34, borderRadius: 10, overflow: 'hidden', background: 'linear-gradient(145deg,#63A9FF,#1877F2)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                    {pg.photoURL ? <img src={pg.photoURL} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <HiIdentification size={17} color="white" />}
-                  </span>
-                  <span style={{ flex: 1, minWidth: 0 }}>
-                    <span style={{ display: 'block', fontWeight: 700, fontSize: 13, color: text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{pg.name}</span>
-                    <span style={{ display: 'block', fontSize: 10.5, color: '#65676B' }}>Page Sera</span>
-                  </span>
-                  {identity.type === 'page' && identity.id === pg.id && <HiCheck size={17} color="#1877F2" style={{ flexShrink: 0 }} />}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Sera (Pages) et Bloc-notes */}
-        <div style={{ padding: '0 14px 14px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-          <button onClick={() => { navigate('/pages'); setDrawerOpen(false); }}
-            style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 8, padding: '14px', textAlign: 'left', background: isDark ? '#15181F' : 'white', border: `1.5px solid ${bdr}`, borderRadius: 16, cursor: 'pointer', boxShadow: '0 1px 3px rgba(0,0,0,.06)' }}>
-            <span className="icon-badge-3d" style={{ width: 44, height: 44, borderRadius: 13, background: 'linear-gradient(145deg,#63A9FF,#1877F2)' }}>
-              <HiIdentification size={22} color="white" />
-            </span>
-            <span style={{ fontWeight: 700, fontSize: 14, color: text }}>Sera</span>
-            <span style={{ fontSize: 11, color: '#65676B', marginTop: -6 }}>Pages publiques</span>
-          </button>
+        {/* Bloc-notes */}
+        <div style={{ padding: '0 14px 14px', display: 'grid', gridTemplateColumns: '1fr', gap: 10 }}>
           <button onClick={() => { navigate('/notes'); setDrawerOpen(false); }}
             style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 8, padding: '14px', textAlign: 'left', background: isDark ? '#15181F' : 'white', border: `1.5px solid ${bdr}`, borderRadius: 16, cursor: 'pointer', boxShadow: '0 1px 3px rgba(0,0,0,.06)' }}>
             <span className="icon-badge-3d" style={{ width: 44, height: 44, borderRadius: 13, background: 'linear-gradient(145deg,#FFD84D,#F2B300)' }}>
