@@ -29,6 +29,8 @@ export default function Friends() {
   const [activeTab, setActiveTab] = useState('friends');
   const [loading, setLoading] = useState(false);
   const [actionLoading, setActionLoading] = useState({});
+  const [suggestions, setSuggestions] = useState([]);
+  const [suggLoading, setSuggLoading] = useState(false);
 
   useEffect(() => {
     if (!userProfile?.friends?.length) { setFriends([]); return; }
@@ -53,6 +55,27 @@ export default function Friends() {
     });
     return unsub;
   }, [currentUser]);
+
+  // Fetch suggestions (utilisateurs non amis, non déjà demandés)
+  useEffect(() => {
+    if (!currentUser) return;
+    setSuggLoading(true);
+    getDocs(query(collection(db, 'users'), orderBy('fullName')))
+      .then(snap => {
+        const myFriends = userProfile?.friends || [];
+        const sentReqs  = userProfile?.sentRequests || [];
+        const list = snap.docs
+          .map(d => ({ uid: d.id, ...d.data() }))
+          .filter(u =>
+            u.uid !== currentUser.uid &&
+            !myFriends.includes(u.uid) &&
+            !sentReqs.includes(u.uid)
+          );
+        setSuggestions(list);
+      })
+      .catch(() => {})
+      .finally(() => setSuggLoading(false));
+  }, [currentUser, userProfile?.friends?.join?.(','), userProfile?.sentRequests?.join?.(',')]);
 
   async function handleSearch(val) {
     setSearch(val);
@@ -164,9 +187,10 @@ export default function Friends() {
   }
 
   const tabs = [
-    { key: 'friends', label: t('myFriends'), count: friends.length },
-    { key: 'requests', label: t('pendingRequests'), count: requests.length },
-    { key: 'search', label: t('search').replace('...', ''), count: 0 },
+    { key: 'friends',     label: t('myFriends'),        count: friends.length },
+    { key: 'requests',    label: t('pendingRequests'),   count: requests.length },
+    { key: 'suggestions', label: 'Suggestions',          count: suggestions.length },
+    { key: 'search',      label: t('search').replace('...', ''), count: 0 },
   ];
 
   return (
@@ -292,6 +316,56 @@ export default function Friends() {
       )}
 
       {/* Requests */}
+      {activeTab === 'suggestions' && (
+        <div>
+          {suggLoading ? (
+            <p style={{ textAlign:'center', color:'#65676B', padding:30 }}>Chargement...</p>
+          ) : suggestions.length === 0 ? (
+            <div style={{ textAlign:'center', padding:'40px 20px' }}>
+              <p style={{ fontSize:40, marginBottom:8 }}>🎉</p>
+              <p style={{ fontWeight:700, fontSize:17, marginBottom:6 }}>Vous connaissez tout le monde !</p>
+              <p style={{ color:'#65676B', fontSize:14 }}>Aucune suggestion pour l'instant.</p>
+            </div>
+          ) : (
+            <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10, padding:'4px 0' }}>
+              {suggestions.map(u => (
+                <div key={u.uid} style={{ border:'1px solid #E4E6EB', borderRadius:14, overflow:'hidden', background:'white' }}>
+                  <img
+                    src={u.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(u.fullName||'U')}&background=1877F2&color=fff`}
+                    alt=""
+                    onClick={() => navigate(`/profile/${u.uid}`)}
+                    style={{ width:'100%', height:110, objectFit:'cover', cursor:'pointer', display:'block' }}
+                  />
+                  <div style={{ padding:'8px 8px 10px' }}>
+                    <p
+                      onClick={() => navigate(`/profile/${u.uid}`)}
+                      style={{ fontWeight:700, fontSize:13, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', cursor:'pointer', marginBottom:2 }}
+                    >{u.fullName}</p>
+                    {u.username && <p style={{ fontSize:11, color:'#65676B', marginBottom:6 }}>@{u.username}</p>}
+                    {(userProfile?.sentRequests||[]).includes(u.uid) ? (
+                      <button
+                        onClick={() => cancelRequest(u.uid)}
+                        style={{ width:'100%', padding:'7px 0', fontSize:12, borderRadius:8, background:'#E4E6EB', color:'#65676B', border:'none', fontWeight:600, cursor:'pointer', fontFamily:'Poppins' }}
+                      >Annulé</button>
+                    ) : (userProfile?.friends||[]).includes(u.uid) ? (
+                      <button disabled style={{ width:'100%', padding:'7px 0', fontSize:12, borderRadius:8, background:'#E4E6EB', color:'#65676B', border:'none', fontWeight:600 }}>Ami ✓</button>
+                    ) : (
+                      <button
+                        onClick={() => sendRequest(u)}
+                        disabled={actionLoading[u.uid]}
+                        style={{ width:'100%', padding:'7px 0', fontSize:12, borderRadius:8, background:'#1877F2', color:'white', border:'none', fontWeight:600, cursor:'pointer', fontFamily:'Poppins', display:'flex', alignItems:'center', justifyContent:'center', gap:5 }}
+                      >
+                        <HiUserAdd size={13}/> {actionLoading[u.uid] ? '...' : 'Ajouter'}
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
       {activeTab === 'requests' && (
         <div>
           {requests.length === 0 ? (

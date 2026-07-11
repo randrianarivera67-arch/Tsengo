@@ -110,6 +110,19 @@ export default function Layout({ children }) {
   const { theme } = useTheme();
   const { unreadCount: notifCount } = useNotifications();
   const { unreadCount: msgCount }   = useMessages();
+
+  // ✅ Badge demandes d'amis reçues
+  const [friendReqCount, setFriendReqCount] = useState(0);
+  useEffect(() => {
+    if (!currentUser) return;
+    const q = query(
+      collection(db, 'friendRequests'),
+      where('toUid', '==', currentUser.uid),
+      where('status', '==', 'pending')
+    );
+    const unsub = onSnapshot(q, snap => setFriendReqCount(snap.size), () => {});
+    return unsub;
+  }, [currentUser]);
   const identity = { type: 'user' };
   const [cartCount, setCartCount] = useState(() => { try { return getCart().length; } catch { return 0; } });
   useEffect(() => subscribeCart(items => setCartCount(items.length)), []);
@@ -176,7 +189,7 @@ export default function Layout({ children }) {
     { path: '/',           icon: 'home',   color: '#1877F2', label: 'Accueil' },
     isPageMode
       ? { path: `/pages/${identity.id}`, navState: { openFollowers: true }, icon: 'amis', color: '#F5C518', label: 'Abonnés' }
-      : { path: '/friends', icon: 'amis',   color: '#F5C518', label: 'Amis' },
+      : { path: '/friends', icon: 'amis',   color: '#F5C518', label: 'Amis', badge: friendReqCount },
     { path: '/reels',      isJejo: true,   label: 'JEJO' },
     { path: '/messages',   icon: 'plane',  color: '#F5C518', label: 'Messages', badge: msgCount },
     { path: profilePath,   icon: 'profil', color: '#1877F2', label: isPageMode ? 'Page' : 'Profil' },
