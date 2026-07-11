@@ -1,10 +1,49 @@
 // src/App.jsx
-import { lazy, Suspense } from 'react';
+import { lazy, Suspense, Component, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { LanguageProvider } from './context/LanguageContext';
 import { ThemeProvider } from './context/ThemeContext';
 import Layout from './components/Layout';
+
+// ── Miaro rehefa efa lasibatra ela ilay app: mety mitady fichier (chunk) taloha
+//    izay tsy any Vercel intsony → mahatonga pejy fotsy. Averina refresh mangina
+//    indray mandeha ihany (miaro tsy ho boucle infini amin'ny alalan'ny sessionStorage). ──
+const CHUNK_ERROR_RE = /Failed to fetch dynamically imported module|error loading dynamically imported module|Importing a module script failed|Loading chunk|ChunkLoadError/i;
+
+class ErrorBoundary extends Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false };
+  }
+  static getDerivedStateFromError(error) {
+    return { hasError: true, error };
+  }
+  componentDidCatch(error) {
+    const isChunkError = CHUNK_ERROR_RE.test(error?.message || '');
+    const alreadyRetried = sessionStorage.getItem('tsengo_chunk_retry') === '1';
+    if (isChunkError && !alreadyRetried) {
+      sessionStorage.setItem('tsengo_chunk_retry', '1');
+      window.location.reload();
+    }
+  }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div style={{ height:'100vh', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:14, padding:20, textAlign:'center', fontFamily:'Poppins' }}>
+          <p style={{ fontWeight:700, fontSize:16, color:'#050505' }}>Nisy olana teo am-pandefasana ny app</p>
+          <p style={{ fontSize:13, color:'#65676B' }}>Andramo averina sokafana na tsindrio ity bokitra ity.</p>
+          <button
+            onClick={() => { sessionStorage.removeItem('tsengo_chunk_retry'); window.location.reload(); }}
+            style={{ background:'#1877F2', border:'none', borderRadius:20, padding:'10px 22px', color:'#fff', fontWeight:700, fontSize:14, cursor:'pointer', fontFamily:'Poppins' }}>
+            Refresh
+          </button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
 
 import Login from './pages/Login';
 import Register from './pages/Register';
@@ -106,12 +145,16 @@ function AppRoutes() {
 }
 
 export default function App() {
+  useEffect(() => { sessionStorage.removeItem('tsengo_chunk_retry'); }, []);
+
   return (
     <AuthProvider>
       <LanguageProvider>
         <ThemeProvider>
           <BrowserRouter>
-            <AppRoutes />
+            <ErrorBoundary>
+              <AppRoutes />
+            </ErrorBoundary>
           </BrowserRouter>
         </ThemeProvider>
       </LanguageProvider>

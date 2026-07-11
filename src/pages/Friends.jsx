@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import {
   collection, query, where, getDocs, doc, getDoc,
   updateDoc, arrayUnion, arrayRemove, addDoc, serverTimestamp,
-  onSnapshot, deleteDoc
+  onSnapshot, deleteDoc, orderBy
 } from 'firebase/firestore';
 import { db } from '../firebase';
 import { useAuth } from '../context/AuthContext';
@@ -249,9 +249,9 @@ export default function Friends() {
                       </button>
                       <button onClick={() => removeFriend(user.uid)} style={{ background: 'none', border: '1px solid #E4E6EB', borderRadius: 20, padding: '5px 12px', cursor: 'pointer', color: '#65676B', fontSize: 12 }}>
                         {t('removeFriend')}
+                      </button>
                       <button onClick={() => blockFriend(user.uid)} style={{ background: "none", border: "1px solid #1877F2", borderRadius: 20, padding: "5px 12px", cursor: "pointer", color: "#1877F2", fontSize: 12 }}>
                         🚫 Bloquer
-                      </button>
                       </button>
                     </>
                   ) : rel === 'sent' ? (
