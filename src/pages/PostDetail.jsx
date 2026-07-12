@@ -24,7 +24,7 @@ import {
 } from 'react-icons/hi';
 import { addToCart } from '../utils/cart';
 
-const REACTIONS = ['❤️','😂','😮','😢','😡','👍'];
+const REACTIONS = ['❤️','😂','😮','😢','😡'];
 function VIPBadge() {
   return <img src='/vip-badge.png' style={{ width:24, height:24, marginLeft:5, verticalAlign:'middle', display:'inline-block', flexShrink:0, objectFit:'contain' }} alt='VIP'/>;
 }

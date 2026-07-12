@@ -1872,8 +1872,8 @@ const fields = {
                   onTouchStart={() => startLongPress(post.id)} onTouchEnd={endLongPress}
                   onMouseDown={() => startLongPress(post.id)} onMouseUp={endLongPress} onMouseLeave={endLongPress}
                   className={'post-action-btn'+(myR?' active':'')}
-                  style={myR ? { color: myR === '❤️' ? '#FF2D8D' : '#1877F2', fontWeight:700 } : {}}>
-                  {myR ? <span style={{ fontSize:17 }}>{myR}</span> : <NeonLike size={19} color={myR ? '#1877F2' : '#65676B'}/>} J'aime
+                  style={myR ? { color:'#1877F2', fontWeight:700 } : {}}>
+                  <NeonLike size={19} color={myR ? '#1877F2' : '#65676B'}/> J'aime
                 </button>
                 {showReact[post.id] && (
                   <div style={{ position:'absolute', bottom:'110%', left:8, background:'white', borderRadius:30, padding:'8px 12px', display:'flex', gap:6, boxShadow:'0 4px 20px rgba(0,0,0,.2)', zIndex:10, border:'1px solid #E4E6EB' }}>

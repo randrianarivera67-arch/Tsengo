@@ -26,7 +26,7 @@ import {
   HiReply, HiPhone, HiLocationMarker, HiLink
 } from 'react-icons/hi';
 
-const REACTIONS = ['❤️','😂','😮','😢','😡','👍'];
+const REACTIONS = ['❤️','😂','😮','😢','😡'];
 
 function VIPBadge() {
   return <img src='/vip-badge.png' style={{ width:32, height:32, marginLeft:5, verticalAlign:'middle', display:'inline-block', flexShrink:0, objectFit:'contain' }} alt='VIP'/>;
@@ -526,8 +526,8 @@ export default function Profile() {
             <button onClick={() => { const m = post.reactions?.[currentUser.uid]; reactToPost(post.id, m || '❤️'); }}
               onContextMenu={e => { e.preventDefault(); setShowReact(p=>({...p,[post.id]:!p[post.id]})); }}
               className={'post-action-btn'+(myR?' active':'')}
-              style={myR ? { color: '#FF2D8D', fontWeight:700 } : {}}>
-              {myR ? <span style={{ fontSize:17 }}>{myR}</span> : <NeonLike size={19} color='#65676B'/>} J'aime
+              style={myR ? { color:'#1877F2', fontWeight:700 } : {}}>
+              <NeonLike size={19} color={myR ? '#1877F2' : '#65676B'}/> J'aime
             </button>
             {showReact[post.id] && (
               <div style={{ position:'absolute', bottom:'110%', left:8, background:'white', borderRadius:30, padding:'8px 12px', display:'flex', gap:6, boxShadow:'0 4px 20px rgba(0,0,0,.2)', zIndex:10, border:'1px solid #E4E6EB' }}>
