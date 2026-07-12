@@ -1423,7 +1423,21 @@ const fields = {
                 />
               </div>
             ) : (
+              {textBg ? (
+              <div style={{ background:textBg, borderRadius:14, minHeight:180, display:'flex', alignItems:'center', justifyContent:'center', padding:'20px 16px', width:'100%' }} onClick={()=>document.getElementById('textbg-input')?.focus()}>
+                <textarea
+                  id="textbg-input"
+                  placeholder="Écrire quelque chose..."
+                  value={content}
+                  onChange={e => setContent(e.target.value)}
+                  style={{ resize:'none', width:'100%', border:'none', fontSize:22, fontWeight:800, color:'white', textAlign:'center', background:'transparent', outline:'none', lineHeight:1.4, minHeight:80 }}
+                  maxLength={MAX_POST}
+                  autoFocus
+                />
+              </div>
+            ) : (
               <textarea className="input" placeholder={t('whatsOnMind')} value={content} onChange={e => setContent(e.target.value)} rows={3} style={{ resize:'none', width:'100%', border:'none', fontSize:17 }} maxLength={MAX_POST} autoFocus/>
+            )}
             )}
             {content.length > 0 && <p style={{ fontSize:11, color:charColor, textAlign:'right', marginTop:2 }}>{rem} restants</p>}
           <div style={{ display:'flex', gap:8, marginTop:10, alignItems:'center', justifyContent:'center', flexWrap:'wrap' }}>
@@ -1950,7 +1964,7 @@ const fields = {
                   <NeonLike size={19} color={myR ? '#1877F2' : '#65676B'}/> J'aime
                 </button>
                 {showReact[post.id] && (
-                  <div onClick={e=>e.stopPropagation()} style={{ position:'absolute', bottom:'calc(100% + 8px)', left:'50%', transform:'translateX(-50%)', background:'white', borderRadius:20, padding:'10px 8px 6px', display:'flex', gap:4, boxShadow:'0 4px 24px rgba(0,0,0,.18)', zIndex:50, border:'1px solid #E4E6EB', whiteSpace:'nowrap' }}>
+                  <div onClick={e=>e.stopPropagation()} style={{ position:'absolute', bottom:'calc(100% + 8px)', left:0, background:'white', borderRadius:20, padding:'10px 8px 6px', display:'flex', gap:4, boxShadow:'0 4px 24px rgba(0,0,0,.18)', zIndex:50, border:'1px solid #E4E6EB', whiteSpace:'nowrap' }}>
                     {FB_REACTIONS.map(r => (
                       <button key={r.emoji}
                         onClick={() => { reactToPost(post.id, r.emoji); setShowReact(p=>({...p,[post.id]:false})); }}
