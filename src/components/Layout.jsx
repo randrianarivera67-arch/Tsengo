@@ -336,8 +336,7 @@ export default function Layout({ children }) {
         {/* Header */}
         <div style={{ padding: '18px 16px 14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <img src='/trengo-logo.png' alt="Trengo" style={{ width:44, height:44, objectFit:"contain" }}/>
-            <span style={{ fontWeight: 900, fontSize: 18 }}><span style={{ color:'#1877F2' }}>tre</span><span style={{ color:'#FF2D8D' }}>ngo</span></span>
+            <span style={{ fontWeight: 900, fontSize: 24, letterSpacing: -0.5 }}><span style={{ color:'#1877F2' }}>Tre</span><span style={{ color:'#FF2D8D' }}>ngo</span></span>
           </div>
           <button onClick={() => setDrawerOpen(false)} style={{ background: isDark ? '#232733' : '#F0F2F5', border: 'none', borderRadius: '50%', width: 36, height: 36, cursor: 'pointer', color: '#65676B', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><HiX size={20} /></button>
         </div>
@@ -496,9 +495,8 @@ export default function Layout({ children }) {
           </button>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', flex: 1, minWidth: 0 }} onClick={() => navigate('/')}>
-            <img src='/trengo-logo.png' alt="Trengo" style={{ width: 44, height: 44, objectFit: 'contain', flexShrink: 0 }} />
-            <span style={{ fontWeight: 900, fontSize: 21, letterSpacing: -1, whiteSpace: 'nowrap' }}>
-              <span style={{ color: '#1877F2' }}>tre</span><span style={{ color: '#FF2D8D' }}>ngo</span>
+            <span style={{ fontWeight: 900, fontSize: 28, letterSpacing: -1, whiteSpace: 'nowrap' }}>
+              <span style={{ color: '#1877F2' }}>Tre</span><span style={{ color: '#FF2D8D' }}>ngo</span>
             </span>
           </div>
 

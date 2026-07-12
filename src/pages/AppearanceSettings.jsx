@@ -7,15 +7,15 @@ import { HiArrowLeft, HiSun, HiMoon, HiCheck } from 'react-icons/hi';
 const THEMES = [
   {
     value: 'light',
-    label: 'Rose blanche',
-    desc: 'Fond blanc, rose clair',
+    label: 'Clair',
+    desc: 'Fond clair',
     icon: HiSun,
     preview: ['#FFFFFF', '#E4E6EB', '#1877F2'],
   },
   {
     value: 'dark',
-    label: 'Rose noire',
-    desc: 'Fond sombre, accents roses',
+    label: 'Sombre',
+    desc: 'Fond sombre',
     icon: HiMoon,
     preview: ['#0B0D12', '#050505', '#1877F2'],
   },
@@ -79,7 +79,7 @@ export default function AppearanceSettings() {
       </div>
 
       <div style={{ marginTop: 20, borderRadius: 16, overflow: 'hidden', height: 70, background: 'linear-gradient(135deg,#1877F2,#63A9FF,#FFB3D9)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <div style={{ width: 38, height: 38, background: 'white', borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: 20, color: '#1877F2' }}>T</div>
+        <img src='/trengo-logo.png' alt="Trengo" style={{ width: 54, height: 54, objectFit: 'contain', background: 'white', borderRadius: 12, padding: 4 }} />
         <span style={{ color: 'white', fontWeight: 800, fontSize: 22, marginLeft: 10 }}>Trengo</span>
       </div>
     </div>
