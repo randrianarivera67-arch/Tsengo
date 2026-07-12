@@ -206,6 +206,7 @@ body {
 }
 .input:focus { outline: none; border-color: var(--blue); box-shadow: 0 0 0 3px rgba(24,119,242,.12); }
 input::placeholder, textarea::placeholder { color: #8A8D91 !important; font-size: 13px; }
+.textbg-textarea::placeholder { color: rgba(255,255,255,0.65) !important; font-size: 22px; }
 
 /* Scrollbar */
 ::-webkit-scrollbar { width: 5px; height: 5px; }

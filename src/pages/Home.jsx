@@ -40,6 +40,13 @@ const MAX_POST    = 2000;
 const MAX_COMMENT = 500;
 const MAX_PRICE   = 999_999_999;
 const REACTIONS   = ['❤️','😂','😮','😢','😡'];
+const FB_REACTIONS = [
+  { emoji:'❤️', label:"J'aime"    },
+  { emoji:'😂', label:'Haha'      },
+  { emoji:'😮', label:'Wouah'     },
+  { emoji:'😢', label:'Triste'    },
+  { emoji:'😡', label:'En colère' },
+];
 const TEXT_BG_COLORS = [
   null,
   'linear-gradient(135deg,#1877F2,#42A5F5)',
@@ -286,6 +293,7 @@ export default function Home() {
   const [posts, setPosts]           = useState([]);
   const [visibleCount, setVisibleCount] = useState(10);   // affichage progressif
   const [expandedPosts, setExpandedPosts] = useState({});
+  const [zoomImg,       setZoomImg]       = useState(null);
   const [reactorNames, setReactorNames] = useState({});   // uid → prenom (ho an'ny "X et N autres")
   const [mentionQuery, setMentionQuery] = useState(null); // { postId, q } rehefa manoratra @
   const [mentionFriends, setMentionFriends] = useState([]);
@@ -1106,6 +1114,40 @@ const fields = {
 
   return (
     <div style={{ padding:0 }}>
+      {zoomImg && (
+        <div onClick={()=>setZoomImg(null)} style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.95)', zIndex:600, display:'flex', alignItems:'center', justifyContent:'center', touchAction:'none' }}>
+          <button onClick={()=>setZoomImg(null)} style={{ position:'absolute', top:16, right:16, background:'rgba(255,255,255,.15)', border:'none', borderRadius:'50%', width:40, height:40, color:'white', fontSize:22, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', zIndex:10 }}>✕</button>
+          <img
+            src={zoomImg} alt=""
+            onClick={e=>e.stopPropagation()}
+            onTouchStart={e=>{
+              if(e.touches.length===2){
+                e.currentTarget._sd=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY);
+                e.currentTarget._ss=parseFloat(e.currentTarget.getAttribute('data-s')||1);
+              } else {
+                const now=Date.now();
+                if(now-(e.currentTarget._lt||0)<300){
+                  const c=parseFloat(e.currentTarget.getAttribute('data-s')||1);
+                  const ns=c>1?1:2.5;
+                  e.currentTarget.setAttribute('data-s',ns);
+                  e.currentTarget.style.transform='scale('+ns+')';
+                }
+                e.currentTarget._lt=now;
+              }
+            }}
+            onTouchMove={e=>{
+              if(e.touches.length===2){
+                e.preventDefault();
+                const d=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY);
+                const ns=Math.min(Math.max((e.currentTarget._ss||1)*(d/(e.currentTarget._sd||d)),1),4);
+                e.currentTarget.setAttribute('data-s',ns);
+                e.currentTarget.style.transform='scale('+ns+')';
+              }
+            }}
+            style={{ maxWidth:'100vw', maxHeight:'100vh', objectFit:'contain', transition:'transform .2s', touchAction:'none', cursor:'zoom-in' }}
+          />
+        </div>
+      )}
 
       {/* ── Stories (format Facebook) ─────────────────────────── */}
       <div className="stories-strip">
@@ -1369,21 +1411,29 @@ const fields = {
           <img src={userProfile?.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(userProfile?.fullName||'U')}&background=1877F2&color=fff`} alt="" className="avatar" style={{ width:42, height:42, flexShrink:0 }}/>
           <div style={{ flex:1 }}>
             {textBg ? (
-              <div style={{ background:textBg, borderRadius:12, minHeight:120, display:'flex', alignItems:'center', justifyContent:'center', padding:'16px 12px' }}>
-                <textarea className="input" placeholder="Quoi de neuf ?" value={content} onChange={e => setContent(e.target.value)}
-                  style={{ resize:'none', width:'100%', border:'none', fontSize:20, fontWeight:700, color:'white', textAlign:'center', background:'transparent', outline:'none' }} maxLength={MAX_POST} autoFocus/>
+              <div style={{ background:textBg, borderRadius:14, minHeight:180, display:'flex', alignItems:'center', justifyContent:'center', padding:'20px 16px', width:'100%' }}>
+                <textarea
+                  className="textbg-textarea"
+                  placeholder="Écrire quelque chose..."
+                  value={content}
+                  onChange={e => setContent(e.target.value)}
+                  style={{ resize:'none', width:'100%', border:'none', fontSize:22, fontWeight:800, color:'white', textAlign:'center', background:'transparent', outline:'none', lineHeight:1.4, minHeight:80 }}
+                  maxLength={MAX_POST}
+                  autoFocus
+                />
               </div>
             ) : (
               <textarea className="input" placeholder={t('whatsOnMind')} value={content} onChange={e => setContent(e.target.value)} rows={3} style={{ resize:'none', width:'100%', border:'none', fontSize:17 }} maxLength={MAX_POST} autoFocus/>
             )}
             {content.length > 0 && <p style={{ fontSize:11, color:charColor, textAlign:'right', marginTop:2 }}>{rem} restants</p>}
-          <div style={{ display:'flex', gap:6, marginTop:8, alignItems:'center' }}>
-            <span style={{ fontSize:11, color:'#65676B' }}>Fond :</span>
+          <div style={{ display:'flex', gap:8, marginTop:10, alignItems:'center', justifyContent:'center', flexWrap:'wrap' }}>
             {TEXT_BG_COLORS.map((bg, i) => (
               <button key={i} onClick={() => setTextBg(bg)}
-                style={{ width:22, height:22, borderRadius:'50%', padding:0, cursor:'pointer', flexShrink:0,
+                style={{ width: textBg===bg ? 32 : 28, height: textBg===bg ? 32 : 28, borderRadius:'50%', padding:0, cursor:'pointer', flexShrink:0,
                   background: bg || '#ffffff',
-                  border: textBg===bg ? '2.5px solid #050505' : '1.5px solid #E4E6EB' }}/>
+                  border: textBg===bg ? '3px solid #050505' : '2px solid #E4E6EB',
+                  transition:'all .15s',
+                  boxShadow: textBg===bg ? '0 0 0 2px white, 0 0 0 4px #050505' : 'none' }}/>
             ))}
           </div>
           </div>
@@ -1823,7 +1873,7 @@ const fields = {
                 </div>
               ) : post.mediaURL && (
                 <div style={{ marginTop:8, marginLeft:-16, marginRight:-16 }}>
-                  {post.isMusic ? <MusicPostCard post={post} height={140}/> : post.mediaType==='image' ? <img src={post.mediaURL} alt="" style={{ width:'100%', borderRadius:0, maxHeight:520, objectFit:'cover', display:'block' }}/> : <FeedVideo src={post.mediaURL} poster={post.thumbURL} dataSaver={dataSaver} onOpenReels={()=>navigate('/reels',{state:{startId:post.id}})} style={{ width:'100%', borderRadius:0, maxHeight:520, objectFit:'cover', display:'block', background:'#000' }} />}
+                  {post.isMusic ? <MusicPostCard post={post} height={140}/> : post.mediaType==='image' ? <img src={post.mediaURL} alt="" onClick={e=>{e.stopPropagation();setZoomImg(post.mediaURL);}} style={{ width:'100%', borderRadius:0, maxHeight:520, objectFit:'cover', display:'block', cursor:'zoom-in' }}/> : <FeedVideo src={post.mediaURL} poster={post.thumbURL} dataSaver={dataSaver} onOpenReels={()=>navigate('/reels',{state:{startId:post.id}})} style={{ width:'100%', borderRadius:0, maxHeight:520, objectFit:'cover', display:'block', background:'#000' }} />}
                 </div>
               )}
               {/* ── Article boutique : informations ambanin'ny sary (sary 3) ── */}
@@ -1900,9 +1950,20 @@ const fields = {
                   <NeonLike size={19} color={myR ? '#1877F2' : '#65676B'}/> J'aime
                 </button>
                 {showReact[post.id] && (
-                  <div style={{ position:'absolute', bottom:'110%', left:8, background:'white', borderRadius:30, padding:'8px 12px', display:'flex', gap:6, boxShadow:'0 4px 20px rgba(0,0,0,.2)', zIndex:10, border:'1px solid #E4E6EB' }}>
-                    {REACTIONS.map(e => <button key={e} onClick={() => reactToPost(post.id,e)} style={{ background:'none', border:'none', cursor:'pointer', fontSize:24, transition:'transform .15s' }}
-                      onMouseEnter={ev => ev.currentTarget.style.transform='scale(1.3)'} onMouseLeave={ev => ev.currentTarget.style.transform='scale(1)'}>{e}</button>)}
+                  <div onClick={e=>e.stopPropagation()} style={{ position:'absolute', bottom:'calc(100% + 8px)', left:'50%', transform:'translateX(-50%)', background:'white', borderRadius:20, padding:'10px 8px 6px', display:'flex', gap:4, boxShadow:'0 4px 24px rgba(0,0,0,.18)', zIndex:50, border:'1px solid #E4E6EB', whiteSpace:'nowrap' }}>
+                    {FB_REACTIONS.map(r => (
+                      <button key={r.emoji}
+                        onClick={() => { reactToPost(post.id, r.emoji); setShowReact(p=>({...p,[post.id]:false})); }}
+                        style={{ background:'none', border:'none', cursor:'pointer', display:'flex', flexDirection:'column', alignItems:'center', gap:3, padding:'0 4px', minWidth:44 }}>
+                        <span style={{ fontSize:28, lineHeight:1, transition:'transform .15s', display:'block' }}
+                          onMouseEnter={ev=>ev.currentTarget.style.transform='scale(1.35) translateY(-4px)'}
+                          onMouseLeave={ev=>ev.currentTarget.style.transform='scale(1)'}
+                          onTouchStart={ev=>ev.currentTarget.style.transform='scale(1.35) translateY(-4px)'}
+                          onTouchEnd={ev=>ev.currentTarget.style.transform='scale(1)'}
+                        >{r.emoji}</span>
+                        <span style={{ fontSize:10, color:'#65676B', fontWeight:600, fontFamily:'Poppins' }}>{r.label}</span>
+                      </button>
+                    ))}
                   </div>
                 )}
               </div>

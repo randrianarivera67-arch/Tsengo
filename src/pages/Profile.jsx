@@ -27,6 +27,13 @@ import {
 } from 'react-icons/hi';
 
 const REACTIONS = ['❤️','😂','😮','😢','😡'];
+const FB_REACTIONS = [
+  { emoji:'❤️', label:"J'aime"    },
+  { emoji:'😂', label:'Haha'      },
+  { emoji:'😮', label:'Wouah'     },
+  { emoji:'😢', label:'Triste'    },
+  { emoji:'😡', label:'En colère' },
+];
 
 function VIPBadge() {
   return <img src='/vip-badge.png' style={{ width:32, height:32, marginLeft:5, verticalAlign:'middle', display:'inline-block', flexShrink:0, objectFit:'contain' }} alt='VIP'/>;
@@ -530,8 +537,18 @@ export default function Profile() {
               <NeonLike size={19} color={myR ? '#1877F2' : '#65676B'}/> J'aime
             </button>
             {showReact[post.id] && (
-              <div style={{ position:'absolute', bottom:'110%', left:8, background:'white', borderRadius:30, padding:'8px 12px', display:'flex', gap:6, boxShadow:'0 4px 20px rgba(0,0,0,.2)', zIndex:10, border:'1px solid #E4E6EB' }}>
-                {REACTIONS.map(e => <button key={e} onClick={() => reactToPost(post.id,e)} style={{ background:'none', border:'none', cursor:'pointer', fontSize:24 }}>{e}</button>)}
+              <div onClick={e=>e.stopPropagation()} style={{ position:'absolute', bottom:'calc(100% + 8px)', left:'50%', transform:'translateX(-50%)', background:'white', borderRadius:20, padding:'10px 8px 6px', display:'flex', gap:4, boxShadow:'0 4px 24px rgba(0,0,0,.18)', zIndex:50, border:'1px solid #E4E6EB', whiteSpace:'nowrap' }}>
+                {FB_REACTIONS.map(r => (
+                  <button key={r.emoji}
+                    onClick={()=>{ reactToPost(post.id, r.emoji); setShowReact(p=>({...p,[post.id]:false})); }}
+                    style={{ background:'none', border:'none', cursor:'pointer', display:'flex', flexDirection:'column', alignItems:'center', gap:3, padding:'0 4px', minWidth:44 }}>
+                    <span style={{ fontSize:28, lineHeight:1, display:'block', transition:'transform .15s' }}
+                      onTouchStart={ev=>ev.currentTarget.style.transform='scale(1.35) translateY(-4px)'}
+                      onTouchEnd={ev=>ev.currentTarget.style.transform='scale(1)'}
+                    >{r.emoji}</span>
+                    <span style={{ fontSize:10, color:'#65676B', fontWeight:600, fontFamily:'Poppins' }}>{r.label}</span>
+                  </button>
+                ))}
               </div>
             )}
           </div>
