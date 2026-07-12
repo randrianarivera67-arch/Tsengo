@@ -1077,7 +1077,7 @@ const fields = {
     if (!storyViewer || storyPaused) return;
     const cur = storyViewer.group.items[storyViewer.index];
     if (!cur || cur.mediaType === 'video') return;
-    const tm = setTimeout(nextStory, 5000);
+    const tm = setTimeout(nextStory, 30000);
     return () => clearTimeout(tm);
   }, [storyViewer, storyPaused]);
 

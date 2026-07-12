@@ -13,6 +13,8 @@ import { sendPushNotification } from '../utils/onesignal';
 import { isDataSaverOn, subscribeDataSaver } from '../utils/dataSaver';
 import { downloadMedia } from '../utils/download';
 import ShareModal from '../components/ShareModal';
+import JejoStudio from '../components/JejoStudio';
+import { StoryMusicPlayer } from '../components/StoryStudio';
 import { v4 as uuidv4 } from 'uuid';
 import {
   HiHeart, HiOutlineHeart, HiChat, HiShare, HiArrowLeft, HiBookmark,
@@ -49,6 +51,7 @@ export default function Reels() {
   const [dataSaver,         setDataSaverState]   = useState(isDataSaverOn());
   useEffect(() => subscribeDataSaver(setDataSaverState), []);
   const [shareModal,        setShareModal]       = useState(null);
+  const [jejoStudio,        setJejoStudio]       = useState(false);
 
   const videoRefs  = useRef({});
   const containerRef = useRef();
@@ -224,7 +227,7 @@ export default function Reels() {
     const c={}; Object.values(r).forEach(e=>{c[e]=(c[e]||0)+1;}); return c;
   }
 
-  if (posts.length===0) { return ( <div style={{ display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", height:"100dvh", color:"#65676B", gap:8 }}> <style>{`@keyframes dot { 0%,80%,100%{opacity:0} 40%{opacity:1} } .d1{animation:dot 1.4s infinite .0s} .d2{animation:dot 1.4s infinite .2s} .d3{animation:dot 1.4s infinite .4s}`}</style> <p style={{ fontSize:18, fontWeight:600 }}>Chargement<span className="d1">.</span><span className="d2">.</span><span className="d3">.</span></p> </div> ); } if (posts.length===-999) {
+  if (posts.length===0) { return ( <div style={{ display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", height:"100dvh", color:"#65676B", gap:8 }}> <style>{`@keyframes dot { 0%,80%,100%{opacity:0} 40%{opacity:1} } .d1{animation:dot 1.4s infinite .0s} .d2{animation:dot 1.4s infinite .2s} .d3{animation:dot 1.4s infinite .4s}`}</style> <p style={{ fontSize:18, fontWeight:600 }}>Chargement<span className="d1">.</span><span className="d2">.</span><span className="d3">.</span></p> <button onClick={() => setJejoStudio(true)} style={{ marginTop:8, background:'linear-gradient(135deg,#FF2D8D,#FF7AB8)', border:'none', borderRadius:24, height:46, padding:'0 22px', display:'flex', alignItems:'center', gap:8, cursor:'pointer', color:'#fff', fontWeight:800, fontSize:15 }}><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round"/></svg> Créer un Jejo</button> {jejoStudio && <JejoStudio currentUser={currentUser} userProfile={userProfile} onClose={() => setJejoStudio(false)} onPublished={() => setJejoStudio(false)} />} </div> ); } if (posts.length===-999) {
     return (
       <div style={{ display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', height:'100dvh', color:'#65676B', gap:16 }}>
         <span style={{ fontSize:48 }}>🎬</span>
@@ -242,6 +245,10 @@ export default function Reels() {
       <button onClick={() => navigate(-1)} style={{ position:'absolute', top:14, left:14, zIndex:50, background:'rgba(0,0,0,0.4)', border:'none', borderRadius:'50%', width:38, height:38, display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', color:'white' }}>
         <HiArrowLeft size={20}/>
       </button>
+      <button onClick={() => setJejoStudio(true)} style={{ position:'absolute', top:12, right:14, zIndex:50, background:'linear-gradient(135deg,#FF2D8D,#FF7AB8)', border:'none', borderRadius:24, height:44, padding:'0 16px', display:'flex', alignItems:'center', gap:7, cursor:'pointer', color:'#fff', fontWeight:800, fontSize:14, boxShadow:'0 4px 16px rgba(255,45,141,.5)' }}>
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round"/></svg> Jejo
+      </button>
+      {jejoStudio && <JejoStudio currentUser={currentUser} userProfile={userProfile} onClose={() => setJejoStudio(false)} onPublished={() => setJejoStudio(false)} />}
 
       {/* Video feed */}
       <div ref={containerRef} onScroll={handleScroll} style={{ height:'100%', overflowY:'scroll', scrollSnapType:'y mandatory', scrollbarWidth:'none' }}>
@@ -253,12 +260,13 @@ export default function Reels() {
             <div key={post.id} style={{ height:'100%', scrollSnapAlign:'start', position:'relative', flexShrink:0 }}>
               <video
                 ref={el=>videoRefs.current[idx]=el}
-                src={post.mediaURL} loop playsInline
+                src={post.mediaURL} loop playsInline muted={!!post.music?.url}
                 poster={post.thumbURL || undefined}
                 preload={dataSaver ? 'none' : (Math.abs(idx - activeIndex) <= 1 ? 'auto' : 'metadata')}
-                style={{ width:'100%', height:'100%', objectFit: videoFit[idx] || 'cover', background:'#000' }}
+                style={{ width:'100%', height:'100%', objectFit: videoFit[idx] || 'cover', background:'#000', filter: post.filter || 'none' }}
                 onLoadedMetadata={e => {
                   const v = e.target;
+                  try { v.playbackRate = post.speed || 1; } catch {}
                   // Portrait/carré = cover (mameno écran) ; paysage tena marina = contain (letterbox, tsy tapaka)
                   const fit = (v.videoHeight >= v.videoWidth * 0.95) ? 'cover' : 'contain';
                   setVideoFit(p => p[idx] === fit ? p : { ...p, [idx]: fit });
@@ -270,6 +278,7 @@ export default function Reels() {
                 onPause={() => idx===activeIndex && setPausedIdx(idx)}
                 onClick={() => { const v=videoRefs.current[idx]; if(v) v.paused?v.play().catch(()=>{}):v.pause(); }}
               />
+              {post.music?.url && idx===activeIndex && <StoryMusicPlayer url={post.music.url} start={post.music.start} paused={pausedIdx===idx} />}
               <div style={{ position:'absolute', inset:0, background:'linear-gradient(to top, rgba(0,0,0,0.7) 0%, transparent 50%)', pointerEvents:'none' }}/>
 
               {/* Spinner buffering — miseho rehefa tena mbuffer ihany (tsy paused manuel) */}
