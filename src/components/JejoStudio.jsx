@@ -18,6 +18,8 @@ const MAX_SECONDS = 60;
 const FILTERS = [
   { key: 'none',      label: 'Original', css: 'none' },
   { key: 'clarendon', label: 'Clarendon', css: 'contrast(1.15) saturate(1.35) brightness(1.05)' },
+  { key: 'smooth',    label: 'Lissage',  css: 'blur(0.5px) brightness(1.06) saturate(1.05) contrast(1.02)' },
+  { key: 'beauty',    label: 'Beauté',   css: 'blur(0.7px) brightness(1.09) saturate(1.12) contrast(1.03)' },
   { key: 'bw',        label: 'N&B',      css: 'grayscale(1) contrast(1.1)' },
   { key: 'warm',      label: 'Chaud',    css: 'sepia(0.35) saturate(1.4) brightness(1.05)' },
   { key: 'cool',      label: 'Froid',    css: 'saturate(1.2) hue-rotate(15deg) brightness(1.03) contrast(1.05)' },
@@ -115,10 +117,20 @@ function processClip(file, { startSec = 0, endSec = null, speed = 1, filterCss =
   });
 }
 
+function chooseDefaultTrack(list) {
+  if (!list || !list.length) return null;
+  const recent = list.slice(0, 8);
+  const popular = [...list].sort((a, b) => (b._pop || 0) - (a._pop || 0)).slice(0, 8);
+  const pool = [...recent, ...popular];
+  const t = pool[Math.floor(Math.random() * pool.length)] || list[0];
+  return { url: t.url, title: t.title, artist: t.artist, start: 0 };
+}
+
 export default function JejoStudio({ currentUser, userProfile, onClose, onPublished }) {
   const [stage, setStage]       = useState('capture');   // 'capture' | 'edit'
   const [camError, setCamError] = useState(false);
   const [facing, setFacing]     = useState('user');
+  const [orient, setOrient]     = useState('portrait');   // 'portrait' | 'landscape'
   const [timerSel, setTimerSel] = useState(0);           // 0 | 3 | 10
   const [countdown, setCountdown] = useState(null);
   const [recording, setRecording] = useState(false);
@@ -141,6 +153,7 @@ export default function JejoStudio({ currentUser, userProfile, onClose, onPublis
   const [tracksLoaded, setTracksLoaded] = useState(false);
   const [previewTrack, setPreviewTrack] = useState(null);
   const previewAudioRef = useRef(null);
+  const defaultMusicRef = useRef(null);
 
   const liveVideoRef = useRef(null);
   const editVideoRef = useRef(null);
@@ -153,12 +166,13 @@ export default function JejoStudio({ currentUser, userProfile, onClose, onPublis
   const nativeRef    = useRef(null);
 
   // ── Caméra live ──
-  async function startCamera(face = facing) {
+  async function startCamera(face = facing, ori = orient) {
     try {
       if (!navigator.mediaDevices?.getUserMedia) { setCamError(true); return; }
       stopStream();
+      const portrait = ori === 'portrait';
       const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: face, width: { ideal: 1080 }, height: { ideal: 1920 } },
+        video: { facingMode: face, width: { ideal: portrait ? 1080 : 1920 }, height: { ideal: portrait ? 1920 : 1080 } },
         audio: true,
       });
       streamRef.current = stream;
@@ -170,12 +184,17 @@ export default function JejoStudio({ currentUser, userProfile, onClose, onPublis
     try { streamRef.current?.getTracks().forEach(t => t.stop()); } catch {}
     streamRef.current = null;
   }
-  useEffect(() => { if (stage === 'capture') startCamera(facing); return () => {}; }, [stage]); // eslint-disable-line
+  useEffect(() => { if (stage === 'capture') startCamera(facing, orient); return () => {}; }, [stage]); // eslint-disable-line
+  useEffect(() => { loadTracks(); }, []); // eslint-disable-line
   useEffect(() => () => { stopStream(); clearInterval(recTimerRef.current); clearInterval(cdTimerRef.current); try { previewAudioRef.current?.pause(); } catch {} }, []);
 
   function flipCamera() {
     const nf = facing === 'user' ? 'environment' : 'user';
-    setFacing(nf); startCamera(nf);
+    setFacing(nf); startCamera(nf, orient);
+  }
+  function toggleOrient() {
+    const no = orient === 'portrait' ? 'landscape' : 'portrait';
+    setOrient(no); if (!camError) startCamera(facing, no);
   }
 
   // ── Enregistrement ──
@@ -240,6 +259,7 @@ export default function JejoStudio({ currentUser, userProfile, onClose, onPublis
       setClipDur(v.duration || 0);
       setTrim({ start: 0, end: Math.min(v.duration || 0, MAX_SECONDS) });
     };
+    setMusic(m => m || defaultMusicRef.current);
     setStage('edit');
   }
   function onImport(e) {
@@ -254,9 +274,12 @@ export default function JejoStudio({ currentUser, userProfile, onClose, onPublis
     if (tracksLoaded) return;
     try {
       const snap = await getDocs(query(collection(db, 'posts'), orderBy('createdAt', 'desc'), limit(120)));
-      setTracks(snap.docs.map(d => ({ id: d.id, ...d.data() }))
-        .filter(p => p.isMusic && p.mediaType === 'audio' && p.mediaURL)
-        .map(p => ({ id: p.id, url: p.mediaURL, title: p.songTitle || p.content || 'Sans titre', artist: p.artistName || p.authorName || '' })));
+      const list = snap.docs.map(d => ({ id: d.id, ...d.data() }))
+        .filter(p => p.isMusic && p.mediaType === 'audio' && p.mediaURL && (p.artistId || p.artistName))
+        .map(p => ({ id: p.id, url: p.mediaURL, title: p.songTitle || p.content || 'Sans titre', artist: p.artistName || '', _pop: Object.keys(p.reactions || {}).length + ((p.comments || []).length) }));
+      setTracks(list);
+      defaultMusicRef.current = chooseDefaultTrack(list);
+      setMusic(m => m || defaultMusicRef.current);
     } catch {}
     setTracksLoaded(true);
   }
@@ -379,6 +402,9 @@ export default function JejoStudio({ currentUser, userProfile, onClose, onPublis
             {!camError && <button style={topBtn} onClick={flipCamera}>{Ic.flip(20)}</button>}
             <button style={{ ...topBtn, width: 'auto', borderRadius: 21, padding: '0 14px', gap: 6, fontSize: 13, fontWeight: 700 }} onClick={() => setTimerSel(timerSel === 0 ? 3 : timerSel === 3 ? 10 : 0)}>
               {Ic.timer(18)} {timerSel === 0 ? 'Off' : timerSel + 's'}
+            </button>
+            <button style={{ ...topBtn, width: 'auto', borderRadius: 21, padding: '0 14px', fontSize: 13, fontWeight: 700 }} onClick={toggleOrient}>
+              {orient === 'portrait' ? 'Portrait' : 'Paysage'}
             </button>
           </div>
 

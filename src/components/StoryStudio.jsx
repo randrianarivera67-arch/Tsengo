@@ -28,6 +28,8 @@ const BG = [
 const FILTERS = [
   { key: 'none',      label: 'Original', css: 'none' },
   { key: 'clarendon', label: 'Clarendon', css: 'contrast(1.15) saturate(1.35) brightness(1.05)' },
+  { key: 'smooth',    label: 'Lissage',  css: 'blur(0.5px) brightness(1.06) saturate(1.05) contrast(1.02)' },
+  { key: 'beauty',    label: 'Beauté',   css: 'blur(0.7px) brightness(1.09) saturate(1.12) contrast(1.03)' },
   { key: 'bw',        label: 'N&B',      css: 'grayscale(1) contrast(1.1)' },
   { key: 'warm',      label: 'Chaud',    css: 'sepia(0.35) saturate(1.4) brightness(1.05)' },
   { key: 'cool',      label: 'Froid',    css: 'saturate(1.2) hue-rotate(15deg) brightness(1.03) contrast(1.05)' },
@@ -61,6 +63,15 @@ const fmt = d => (!d || !isFinite(d)) ? '0:00' : Math.floor(d / 60) + ':' + Stri
 // Lecteur musique story (self-contained) — ampiasaina ao amin'ny visionneuse.
 // Miloka avy amin'ny "start", mijanona rehefa pause na miova story.
 // ══════════════════════════════════════════════════════════════════════════
+function chooseDefaultTrack(list) {
+  if (!list || !list.length) return null;
+  const recent = list.slice(0, 8);
+  const popular = [...list].sort((a, b) => (b._pop || 0) - (a._pop || 0)).slice(0, 8);
+  const pool = [...recent, ...popular];
+  const t = pool[Math.floor(Math.random() * pool.length)] || list[0];
+  return { url: t.url, title: t.title, artist: t.artist, start: 0 };
+}
+
 export function StoryMusicPlayer({ url, start = 0, paused = false }) {
   const ref = useRef(null);
   useEffect(() => {
@@ -125,15 +136,18 @@ export default function StoryStudio({ mode: initialMode = 'menu', currentUser, u
     }
   }, [mode]); // eslint-disable-line
 
+  useEffect(() => { if (mode === 'photo' || mode === 'video') loadTracks(); }, [mode]); // eslint-disable-line
+
   // Charger les extraits musique (posts isMusic audio) — 1 seul orderBy, tri client (pas d'index composite)
   async function loadTracks() {
     if (tracksLoaded) return;
     try {
       const snap = await getDocs(query(collection(db, 'posts'), orderBy('createdAt', 'desc'), limit(120)));
       const list = snap.docs.map(d => ({ id: d.id, ...d.data() }))
-        .filter(p => p.isMusic && p.mediaType === 'audio' && p.mediaURL)
-        .map(p => ({ id: p.id, url: p.mediaURL, title: p.songTitle || p.content || 'Sans titre', artist: p.artistName || p.authorName || '' }));
+        .filter(p => p.isMusic && p.mediaType === 'audio' && p.mediaURL && (p.artistId || p.artistName))
+        .map(p => ({ id: p.id, url: p.mediaURL, title: p.songTitle || p.content || 'Sans titre', artist: p.artistName || '', _pop: Object.keys(p.reactions || {}).length + ((p.comments || []).length) }));
       setTracks(list);
+      if (list.length && !music && (mode === 'photo' || mode === 'video')) setMusic(chooseDefaultTrack(list));
     } catch (e) { /* silencieux */ }
     setTracksLoaded(true);
   }
