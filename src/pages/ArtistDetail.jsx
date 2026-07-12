@@ -10,7 +10,7 @@ import { useAuth } from '../context/AuthContext';
 import { uploadToTelegram } from '../utils/telegram';
 import { captureVideoThumb } from '../utils/videoThumb';
 import { timeAgo } from '../utils/timeAgo';
-import { NeonMic, NeonGlobe, NeonPhone, NeonLocation, NeonChart, NeonEye } from '../components/NeonIcons';
+import { NeonMic, NeonGlobe, NeonPhone, NeonLocation, NeonChart, NeonEye, NeonPeople, NeonLike, NeonComment } from '../components/NeonIcons';
 import FollowListModal from '../components/FollowListModal';
 import ShareModal from '../components/ShareModal';
 import { downloadMedia } from '../utils/download';
@@ -641,28 +641,86 @@ export default function ArtistDetail() {
 
       {followersOpen && <FollowListModal uids={artist.followers||[]} title="Abonnés" onClose={() => setFollowersOpen(false)} />}
 
-      {/* ── Statistiques (admin) : mifanaraka amin'ny page artiste ── */}
+      {/* ── Statistiques plein écran artiste : SVG NeonIcons + donut + bar ── */}
       {statsOpen && (() => {
         let reactions = 0, views = 0, comments = 0;
-        tracks.forEach(t => { reactions += Object.keys(t.reactions||{}).length; views += t.views || 0; comments += (t.comments||[]).length; });
-        const Row = ({ icon, label, value, c }) => (
-          <div style={{ display:'flex', alignItems:'center', gap:12, padding:'11px 4px', borderBottom:'1px solid #F0F2F5' }}>
-            <span style={{ width:38, height:38, borderRadius:11, background:c, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>{icon}</span>
-            <span style={{ flex:1, fontSize:13.5, color:'#65676B' }}>{label}</span>
-            <span style={{ fontWeight:800, fontSize:17 }}>{Number(value).toLocaleString()}</span>
-          </div>
-        );
+        tracks.forEach(t => { reactions += Object.keys(t.reactions||{}).length; views += t.views||0; comments += (t.comments||[]).length; });
+        const abonnes = (artist.followers||[]).length;
+        const statsData = [
+          { label:'Abonnés',   value:abonnes,      color:'#1877F2', icon:<NeonPeople  size={18} color="#fff"/> },
+          { label:'Titres',    value:tracks.length, color:'#FF2D8D', icon:<NeonMic     size={18} color="#fff"/> },
+          { label:'Réactions', value:reactions,     color:'#FF7A00', icon:<NeonLike    size={18} color="#fff"/> },
+          { label:'Écoutes',   value:views,         color:'#5E4BDB', icon:<NeonEye     size={18} color="#fff"/> },
+          { label:'Comments',  value:comments,      color:'#12A48D', icon:<NeonComment size={18} color="#fff"/> },
+        ];
+        const total = statsData.reduce((s,d)=>s+d.value,0)||1;
+        const maxV  = Math.max(...statsData.map(d=>d.value),1);
+        let cumPct = 0;
+        const R=48, CX=60, CY=60, CIRC=2*Math.PI*R;
+        const donutSegs = statsData.filter(d=>d.value>0).map((d,i)=>{
+          const pct = d.value/total;
+          const dash= pct*CIRC;
+          const off = -cumPct*CIRC + CIRC/4;
+          cumPct += pct;
+          return <circle key={i} cx={CX} cy={CY} r={R} fill="none" stroke={d.color} strokeWidth={20}
+            strokeDasharray={dash + " " + (CIRC-dash)} strokeDashoffset={off}
+            style={{ transition:'stroke-dasharray .4s' }}/>;
+        });
         return (
-          <div onClick={() => setStatsOpen(false)} style={{ position:'fixed', inset:0, background:'rgba(0,0,0,.55)', zIndex:400, display:'flex', alignItems:'flex-end', justifyContent:'center' }}>
-            <div onClick={e => e.stopPropagation()} style={{ background:'#fff', borderRadius:'20px 20px 0 0', width:'100%', maxWidth:520, maxHeight:'80vh', overflowY:'auto', padding:'14px 16px 26px' }}>
-              <div style={{ width:40, height:4, borderRadius:2, background:'#CED0D4', margin:'0 auto 12px' }} />
-              <h3 style={{ fontWeight:800, fontSize:16, display:'flex', alignItems:'center', gap:8, marginBottom:6 }}><NeonChart size={18}/> Statistiques — {artist.name}</h3>
-              <p style={{ fontSize:11.5, color:'#65676B', marginBottom:8 }}>Canal artiste : abonnés, titres et interactions</p>
-              <Row icon={<span style={{ color:'#fff', fontSize:16 }}>👥</span>} label="Abonnés" value={(artist.followers||[]).length} c="linear-gradient(145deg,#63A9FF,#1877F2)" />
-              <Row icon={<NeonMic size={16} color="#fff"/>} label="Titres / publications" value={tracks.length} c="linear-gradient(145deg,#FF6FA5,#FF2D8D)" />
-              <Row icon={<span style={{ color:'#fff', fontSize:15 }}>❤</span>} label="Réactions reçues" value={reactions} c="linear-gradient(145deg,#FF9A5A,#FF7A00)" />
-              <Row icon={<NeonEye size={16} color="#fff"/>} label="Vues / écoutes" value={views} c="linear-gradient(145deg,#8F7BFF,#5E4BDB)" />
-              <Row icon={<span style={{ color:'#fff', fontSize:15 }}>💬</span>} label="Commentaires" value={comments} c="linear-gradient(145deg,#3DD9C4,#12A48D)" />
+          <div onClick={() => setStatsOpen(false)} style={{ position:'fixed', inset:0, background:'white', zIndex:400, overflowY:'auto', display:'flex', flexDirection:'column' }}>
+            <div style={{ position:'sticky', top:0, background:'white', zIndex:10, padding:'12px 16px', display:'flex', alignItems:'center', gap:10, borderBottom:'1px solid #E4E6EB', boxShadow:'0 1px 4px rgba(0,0,0,.06)' }}
+              onClick={e=>e.stopPropagation()}>
+              <button onClick={() => setStatsOpen(false)} style={{ background:'#F0F2F5', border:'none', borderRadius:'50%', width:36, height:36, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>←</button>
+              <NeonChart size={20}/>
+              <div>
+                <p style={{ fontWeight:800, fontSize:16 }}>Statistiques — {artist.name}</p>
+                <p style={{ fontSize:11, color:'#65676B' }}>Canal artiste · abonnés, titres, interactions</p>
+              </div>
+            </div>
+            <div onClick={e=>e.stopPropagation()} style={{ padding:'16px 14px 40px', maxWidth:520, margin:'0 auto', width:'100%' }}>
+              <div style={{ background:'#F8F9FA', borderRadius:16, padding:'16px', marginBottom:14, display:'flex', alignItems:'center', gap:16 }}>
+                <svg width={120} height={120} viewBox="0 0 120 120" style={{ flexShrink:0 }}>
+                  <circle cx={CX} cy={CY} r={R} fill="none" stroke="#F0F2F5" strokeWidth={20}/>
+                  {donutSegs}
+                  <text x={CX} y={CY-5} textAnchor="middle" fontSize={11} fill="#65676B">Total</text>
+                  <text x={CX} y={CY+10} textAnchor="middle" fontSize={16} fontWeight={800} fill="#050505">{total}</text>
+                </svg>
+                <div style={{ flex:1 }}>
+                  {statsData.filter(d=>d.value>0).map((d,i)=>(
+                    <div key={i} style={{ display:'flex', alignItems:'center', gap:6, marginBottom:5 }}>
+                      <div style={{ width:10, height:10, borderRadius:'50%', background:d.color, flexShrink:0 }}/>
+                      <span style={{ fontSize:12, color:'#65676B', flex:1 }}>{d.label}</span>
+                      <span style={{ fontSize:12, fontWeight:700 }}>{d.value.toLocaleString()}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <div style={{ background:'#F8F9FA', borderRadius:16, padding:'14px', marginBottom:14 }}>
+                <p style={{ fontWeight:700, fontSize:13, marginBottom:10, color:'#050505' }}>Distribution</p>
+                <div style={{ display:'flex', alignItems:'flex-end', gap:8, height:80 }}>
+                  {statsData.map((d,i)=>{
+                    const h = Math.max((d.value/maxV)*64,2);
+                    return (
+                      <div key={i} style={{ flex:1, display:'flex', flexDirection:'column', alignItems:'center', gap:3 }}>
+                        <span style={{ fontSize:9, fontWeight:700, color:d.color }}>{d.value}</span>
+                        <div style={{ width:'100%', height:h, background:d.color, borderRadius:'6px 6px 2px 2px', opacity:0.85 }}/>
+                        <span style={{ fontSize:8, color:'#65676B', textAlign:'center', lineHeight:1.2 }}>{d.label}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+              <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10 }}>
+                {statsData.map((d,i)=>(
+                  <div key={i} style={{ background:'white', borderRadius:14, padding:'12px', border:'1px solid #E4E6EB', display:'flex', alignItems:'center', gap:10 }}>
+                    <span style={{ width:40, height:40, borderRadius:12, background:`linear-gradient(145deg,${d.color}99,${d.color})`, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>{d.icon}</span>
+                    <div>
+                      <p style={{ fontWeight:800, fontSize:20, lineHeight:1 }}>{d.value.toLocaleString()}</p>
+                      <p style={{ fontSize:11, color:'#65676B', marginTop:2 }}>{d.label}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         );

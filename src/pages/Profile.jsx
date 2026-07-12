@@ -553,8 +553,8 @@ export default function Profile() {
                   {c.text&&<span style={{ fontSize:13 }}>{c.text}</span>}
                   {c.mediaURL&&<div style={{ marginTop:4 }}>{c.mediaType==='image'?<img src={c.mediaURL} alt="" style={{ maxWidth:200, borderRadius:8 }}/>:<video src={c.mediaURL} controls style={{ maxWidth:200, borderRadius:8 }}/>}</div>}
                   <div style={{ display:'flex', gap:14, marginTop:5, flexWrap:'wrap', fontSize:12, fontWeight:700, color:'#65676B', position:'relative', alignItems:'center' }}>
-                    <span onClick={() => reactToCmt(post.id, c.id, '👍')} style={{ cursor:'pointer', color: c.reactions?.[currentUser.uid] ? (c.reactions[currentUser.uid]==='👍'?'#1877F2':'#FF2D8D') : '#65676B' }}>
-                      {c.reactions?.[currentUser.uid] && c.reactions[currentUser.uid] !== '👍' ? c.reactions[currentUser.uid] + ' ' : ''}J'aime
+                    <span onClick={() => reactToCmt(post.id, c.id, c.reactions?.[currentUser.uid] || '❤️')} style={{ cursor:'pointer', color: c.reactions?.[currentUser.uid] ? '#FF2D8D' : '#65676B', fontWeight: c.reactions?.[currentUser.uid] ? 700 : 400 }}>
+                      {c.reactions?.[currentUser.uid] && c.reactions[currentUser.uid] !== '❤️' ? c.reactions[currentUser.uid] + ' ' : ''}J'aime
                     </span>
                     <span onClick={() => setCmtReactionPicker(p => p===c.id?null:c.id)} style={{ cursor:'pointer' }}>😊</span>
                     <span onClick={() => setReplyTo(p=>({...p,[post.id]:c.authorName}))} style={{ cursor:'pointer' }}>Répondre</span>
@@ -634,7 +634,65 @@ export default function Profile() {
   }
 
   return (
-    <div>
+    <>
+      {selectedPost && (
+        <div onClick={() => setSelectedPost(null)} style={{
+          position:'fixed', inset:0, background:'rgba(0,0,0,0.88)',
+          zIndex:500, overflowY:'auto', display:'flex',
+          alignItems:'flex-start', justifyContent:'center', padding:'16px 0 60px'
+        }}>
+          <div onClick={e => e.stopPropagation()} style={{
+            background:'white', borderRadius:16, width:'100%',
+            maxWidth:520, margin:'0 12px', overflow:'hidden'
+          }}>
+            <div style={{ padding:'14px 16px', display:'flex', alignItems:'center', gap:10 }}>
+              <img
+                src={profile.photoURL||`https://ui-avatars.com/api/?name=${encodeURIComponent(profile.fullName||'U')}&background=1877F2&color=fff`}
+                alt="" style={{ width:42,height:42,borderRadius:'50%',objectFit:'cover' }}/>
+              <div style={{ flex:1 }}>
+                <p style={{ fontWeight:700,fontSize:14 }}>{profile.fullName}</p>
+                <p style={{ fontSize:12,color:'#65676B' }}>{timeAgo(selectedPost.createdAt)}</p>
+              </div>
+              <button onClick={() => setSelectedPost(null)} style={{
+                background:'#F0F2F5',border:'none',borderRadius:'50%',
+                width:34,height:34,cursor:'pointer',fontSize:20,
+                display:'flex',alignItems:'center',justifyContent:'center'
+              }}>✕</button>
+            </div>
+            {selectedPost.content && (
+              selectedPost.textBg
+                ? <div style={{ background:selectedPost.textBg,minHeight:160,display:'flex',alignItems:'center',justifyContent:'center',padding:'24px 20px' }}>
+                    <p style={{ fontSize:22,fontWeight:800,color:'white',textAlign:'center' }}>{selectedPost.content}</p>
+                  </div>
+                : <p style={{ padding:'0 16px 10px',fontSize:15,lineHeight:1.6,wordBreak:'break-word' }}>{selectedPost.content}</p>
+            )}
+            {selectedPost.mediaURL && (
+              selectedPost.mediaType==='image'
+                ? <img src={selectedPost.mediaURL} alt="" style={{ width:'100%',maxHeight:420,objectFit:'contain',background:'#000',display:'block' }}/>
+                : <video src={selectedPost.mediaURL} controls style={{ width:'100%',maxHeight:420,background:'#000',display:'block' }}/>
+            )}
+            {(Object.keys(selectedPost.reactions||{}).length > 0 || (selectedPost.comments||[]).length > 0) && (
+              <div style={{ padding:'8px 16px',display:'flex',justifyContent:'space-between',borderTop:'1px solid #F0F2F5' }}>
+                <span style={{ fontSize:13,color:'#65676B' }}>{Object.keys(selectedPost.reactions||{}).length} réaction{Object.keys(selectedPost.reactions||{}).length!==1?'s':''}</span>
+                <span style={{ fontSize:13,color:'#65676B' }}>{(selectedPost.comments||[]).length} commentaire{(selectedPost.comments||[]).length!==1?'s':''}</span>
+              </div>
+            )}
+            <div className="post-actions-row">
+              <button onClick={() => reactToPost(selectedPost.id, selectedPost.reactions?.[currentUser.uid] || '❤️')}
+                className={'post-action-btn'+(selectedPost.reactions?.[currentUser.uid]?' active':'')}>
+                <NeonLike size={19} color={selectedPost.reactions?.[currentUser.uid]?'#FF2D8D':'#65676B'}/> J'aime
+              </button>
+              <button onClick={() => navigate(`/post/${selectedPost.id}`)} className="post-action-btn">
+                <NeonComment size={18}/> Commenter
+              </button>
+              <button onClick={() => sharePost(selectedPost)} className="post-action-btn">
+                <NeonShare size={18}/> Partager
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      <div>
       <div style={{ height:200, background:'linear-gradient(135deg,#1877F2,#63A9FF,#FFB3D9)', position:'relative' }}>
         {coverURL && <img src={coverURL} alt='cover' onClick={()=>setZoomPhoto(coverURL)} style={{ width:'100%', height:'100%', objectFit:'cover', position:'absolute', inset:0, cursor:'pointer' }}/>}
         {isOwn && <>
@@ -945,5 +1003,6 @@ export default function Profile() {
         />
       )}
     </div>
+    </>
   );
 }
