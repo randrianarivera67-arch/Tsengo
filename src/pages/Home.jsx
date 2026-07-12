@@ -19,6 +19,7 @@ import ShareModal from '../components/ShareModal';
 import MusicPostCard from '../components/MusicPostCard';
 import PhotoCarousel from '../components/PhotoCarousel';
 import StoryRing from '../components/StoryRing';
+import StoryStudio, { StoryMusicPlayer } from '../components/StoryStudio';
 import { useActiveStoryUids } from '../hooks/useActiveStoryUids';
 import { NeonGlobe, NeonPeople, NeonLock, NeonMic, NeonLocation, NeonLike, NeonComment, NeonShare, NeonPlane, NeonPlaneWhite, NeonEye, NeonStar } from '../components/NeonIcons';
 import { getChatId } from '../utils/chat';
@@ -250,6 +251,7 @@ export default function Home() {
   const [storyViewer, setStoryViewer] = useState(null);     // {group, index}
   const [addingStory, setAddingStory] = useState(false);
   const [createStoryMenuOpen, setCreateStoryMenuOpen] = useState(false);
+  const [storyStudio, setStoryStudio] = useState(null);
   const [storyPaused, setStoryPaused] = useState(false);
   const storyPressTimer = useRef(null);
   const storyPressedRef = useRef(false);
@@ -404,7 +406,14 @@ export default function Home() {
     const q = query(collection(db, 'stories'), orderBy('ts', 'desc'), limit(150));
     return onSnapshot(q, snap => {
       const cutoff = Date.now() - 24 * 60 * 60 * 1000;
-      const fresh = snap.docs.map(d => ({ id: d.id, ...d.data() })).filter(st => (st.ts || 0) > cutoff);
+      const myFriends = userProfile?.friends || [];
+      const fresh = snap.docs.map(d => ({ id: d.id, ...d.data() })).filter(st => {
+        if ((st.ts || 0) <= cutoff) return false;
+        if (st.uid === currentUser?.uid) return true;
+        if (st.audience === 'me') return false;
+        if (st.audience === 'friends') return myFriends.includes(st.uid);
+        return true;
+      });
       const byUser = {};
       fresh.forEach(st => {
         if (!byUser[st.uid]) byUser[st.uid] = { uid: st.uid, name: st.authorName, photo: st.authorPhoto || '', items: [] };
@@ -415,7 +424,7 @@ export default function Home() {
       const list = Object.values(byUser).sort((a, b) => (a.uid === currentUser?.uid ? -1 : b.uid === currentUser?.uid ? 1 : 0));
       setStoryGroups(list);
     }, () => {});
-  }, [currentUser]);
+  }, [currentUser, userProfile?.friends?.length]);
 
   // Boutiques suggestions
   useEffect(() => {
@@ -1134,27 +1143,32 @@ const fields = {
         })}
       </div>
 
+      {storyStudio && (
+        <StoryStudio mode={storyStudio} currentUser={currentUser} userProfile={userProfile}
+          onClose={() => setStoryStudio(null)} onPublished={() => setStoryStudio(null)} />
+      )}
+
       {/* ── Bottom sheet : Créer une story (choix texte / photo / vidéo) ── */}
       {createStoryMenuOpen && (
         <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,.5)', zIndex:400, display:'flex', alignItems:'flex-end', justifyContent:'center' }} onClick={() => setCreateStoryMenuOpen(false)}>
           <div onClick={e => e.stopPropagation()} style={{ background:'white', borderRadius:'20px 20px 0 0', width:'100%', maxWidth:520, padding:'10px 0 22px' }}>
             <div style={{ width:40, height:4, borderRadius:2, background:'#CED0D4', margin:'6px auto 12px' }} />
             <p style={{ fontWeight:800, fontSize:17, textAlign:'center', marginBottom:14, color:'#050505' }}>Créer une story</p>
-            <button onClick={() => { setCreateStoryMenuOpen(false); setTextStoryOpen(true); }}
+            <button onClick={() => { setCreateStoryMenuOpen(false); setStoryStudio('text'); }}
               style={{ width:'100%', display:'flex', alignItems:'center', gap:14, padding:'14px 22px', background:'none', border:'none', cursor:'pointer', textAlign:'left' }}>
               <span className="icon-badge-3d" style={{ width:44, height:44, borderRadius:13, background:'linear-gradient(145deg,#8F7BFF,#5E4BDB)', flexShrink:0 }}>
                 <span style={{ color:'white', fontSize:22, fontWeight:800 }}>Aa</span>
               </span>
               <span><span style={{ display:'block', fontWeight:700, fontSize:15, color:'#050505' }}>Texte</span><span style={{ display:'block', fontSize:12, color:'#65676B' }}>Fond en couleur</span></span>
             </button>
-            <button onClick={() => { setCreateStoryMenuOpen(false); storyFileRef.current.accept='image/*'; storyFileRef.current.click(); }}
+            <button onClick={() => { setCreateStoryMenuOpen(false); setStoryStudio('photo'); }}
               style={{ width:'100%', display:'flex', alignItems:'center', gap:14, padding:'14px 22px', background:'none', border:'none', cursor:'pointer', textAlign:'left' }}>
               <span className="icon-badge-3d" style={{ width:44, height:44, borderRadius:13, background:'linear-gradient(145deg,#3DD9C4,#12A48D)', flexShrink:0 }}>
                 <HiPhotograph size={22} color="white" />
               </span>
               <span><span style={{ display:'block', fontWeight:700, fontSize:15, color:'#050505' }}>Photo</span><span style={{ display:'block', fontSize:12, color:'#65676B' }}>Depuis votre galerie</span></span>
             </button>
-            <button onClick={() => { setCreateStoryMenuOpen(false); storyFileRef.current.accept='video/mp4,video/webm,video/quicktime'; storyFileRef.current.click(); }}
+            <button onClick={() => { setCreateStoryMenuOpen(false); setStoryStudio('video'); }}
               style={{ width:'100%', display:'flex', alignItems:'center', gap:14, padding:'14px 22px', background:'none', border:'none', cursor:'pointer', textAlign:'left' }}>
               <span className="icon-badge-3d" style={{ width:44, height:44, borderRadius:13, background:'linear-gradient(145deg,#FF6FA5,#FF2D8D)', flexShrink:0 }}>
                 <HiVideoCamera size={22} color="white" />
@@ -1218,10 +1232,20 @@ const fields = {
             {/* Média + zones tactiles gauche/droite */}
             <div style={{ flex:1, position:'relative', display:'flex', alignItems:'center', justifyContent:'center', overflow:'hidden', background: cur.mediaType === 'text' ? (cur.bgColor || '#1877F2') : 'transparent' }}>
               {cur.mediaType === 'video'
-                ? <video ref={storyVideoRef} key={cur.id} src={cur.mediaURL} autoPlay={!dataSaver} controls={dataSaver} playsInline onEnded={nextStory} style={{ maxWidth:'100%', maxHeight:'100%' }} />
+                ? <video ref={storyVideoRef} key={cur.id} src={cur.mediaURL} autoPlay={!dataSaver} controls={dataSaver} playsInline muted={!!cur.music?.url} onEnded={nextStory} style={{ maxWidth:'100%', maxHeight:'100%', filter: cur.filter || 'none' }} />
                 : cur.mediaType === 'text'
-                ? <p style={{ color:'white', fontSize:30, fontWeight:800, textAlign:'center', padding:'0 30px', wordBreak:'break-word' }}>{cur.text}</p>
-                : <img key={cur.id} src={cur.mediaURL} alt="" style={{ maxWidth:'100%', maxHeight:'100%', objectFit:'contain' }} />}
+                ? <p style={{ color: cur.textColor || 'white', fontSize: cur.fontSize || 30, fontWeight:800, textAlign: cur.align || 'center', padding:'0 30px', wordBreak:'break-word', whiteSpace:'pre-wrap' }}>{cur.text}</p>
+                : <img key={cur.id} src={cur.mediaURL} alt="" style={{ maxWidth:'100%', maxHeight:'100%', objectFit:'contain', filter: cur.filter || 'none' }} />}
+              {cur.caption && (cur.mediaType === 'video' || cur.mediaType === 'image') && (
+                <div style={{ position:'absolute', left:24, right:24, bottom:24, textAlign:'center', color:'#fff', fontWeight:800, fontSize:22, textShadow:'0 2px 10px rgba(0,0,0,.7)', pointerEvents:'none', wordBreak:'break-word' }}>{cur.caption}</div>
+              )}
+              {cur.music?.url && <StoryMusicPlayer url={cur.music.url} start={cur.music.start} paused={storyPaused} />}
+              {cur.music?.title && (
+                <div style={{ position:'absolute', left:14, bottom:14, display:'flex', alignItems:'center', gap:7, background:'rgba(0,0,0,.5)', borderRadius:20, padding:'6px 12px', color:'#fff', fontSize:12.5, fontWeight:700, maxWidth:'70%', pointerEvents:'none' }}>
+                  <span style={{ color:'#FF7AB8' }}>♪</span>
+                  <span style={{ overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{cur.music.title}{cur.music.artist ? ' · ' + cur.music.artist : ''}</span>
+                </div>
+              )}
               {/* Zone gauche : appui long = pause, tap = précédent */}
               <div
                 onPointerDown={() => startStoryPress()}
