@@ -1411,19 +1411,6 @@ const fields = {
           <img src={userProfile?.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(userProfile?.fullName||'U')}&background=1877F2&color=fff`} alt="" className="avatar" style={{ width:42, height:42, flexShrink:0 }}/>
           <div style={{ flex:1 }}>
             {textBg ? (
-              <div style={{ background:textBg, borderRadius:14, minHeight:180, display:'flex', alignItems:'center', justifyContent:'center', padding:'20px 16px', width:'100%' }}>
-                <textarea
-                  className="textbg-textarea"
-                  placeholder="Écrire quelque chose..."
-                  value={content}
-                  onChange={e => setContent(e.target.value)}
-                  style={{ resize:'none', width:'100%', border:'none', fontSize:22, fontWeight:800, color:'white', textAlign:'center', background:'transparent', outline:'none', lineHeight:1.4, minHeight:80 }}
-                  maxLength={MAX_POST}
-                  autoFocus
-                />
-              </div>
-            ) : (
-              {textBg ? (
               <div style={{ background:textBg, borderRadius:14, minHeight:180, display:'flex', alignItems:'center', justifyContent:'center', padding:'20px 16px', width:'100%' }} onClick={()=>document.getElementById('textbg-input')?.focus()}>
                 <textarea
                   id="textbg-input"
@@ -1437,7 +1424,6 @@ const fields = {
               </div>
             ) : (
               <textarea className="input" placeholder={t('whatsOnMind')} value={content} onChange={e => setContent(e.target.value)} rows={3} style={{ resize:'none', width:'100%', border:'none', fontSize:17 }} maxLength={MAX_POST} autoFocus/>
-            )}
             )}
             {content.length > 0 && <p style={{ fontSize:11, color:charColor, textAlign:'right', marginTop:2 }}>{rem} restants</p>}
           <div style={{ display:'flex', gap:8, marginTop:10, alignItems:'center', justifyContent:'center', flexWrap:'wrap' }}>
