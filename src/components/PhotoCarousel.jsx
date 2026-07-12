@@ -1,27 +1,52 @@
 // src/components/PhotoCarousel.jsx
-// Carrousel photo (2 à 10 images) — glisser horizontalement, points indicateurs
-import { useState, useRef } from 'react';
+// Grille photo façon Facebook : 1 à 4 visibles, "+N" sur la 4e si plus.
+// Clic sur une image => onOpen(url) (ouvre le plein écran/zoom du parent).
+export default function PhotoCarousel({ urls = [], onOpen }) {
+  const list = Array.isArray(urls) ? urls.filter(Boolean) : [];
+  const n = list.length;
+  if (!n) return null;
+  const open = (u) => (e) => { e.stopPropagation(); onOpen && onOpen(u); };
+  const GAP = 2;
 
-export default function PhotoCarousel({ urls }) {
-  const [idx, setIdx] = useState(0);
-  const scRef = useRef();
-  function onScroll(e) {
-    const w = e.currentTarget.clientWidth;
-    const i = Math.round(e.currentTarget.scrollLeft / w);
-    if (i !== idx) setIdx(i);
+  const Cell = ({ u, style, badge }) => (
+    <div onClick={open(u)} style={{ position: 'relative', overflow: 'hidden', cursor: 'pointer', background: '#111', ...style }}>
+      <img src={u} alt="" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+      {badge != null && (
+        <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: 30, fontWeight: 800 }}>+{badge}</div>
+      )}
+    </div>
+  );
+
+  if (n === 1) {
+    return (
+      <div onClick={open(list[0])} style={{ cursor: 'pointer' }}>
+        <img src={list[0]} alt="" style={{ width: '100%', maxHeight: 520, objectFit: 'cover', display: 'block' }} />
+      </div>
+    );
   }
+  if (n === 2) {
+    return (
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: GAP, aspectRatio: '2 / 1' }}>
+        <Cell u={list[0]} /><Cell u={list[1]} />
+      </div>
+    );
+  }
+  if (n === 3) {
+    return (
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gridTemplateRows: '1fr 1fr', gap: GAP, aspectRatio: '1 / 1' }}>
+        <Cell u={list[0]} style={{ gridColumn: '1 / span 2' }} />
+        <Cell u={list[1]} /><Cell u={list[2]} />
+      </div>
+    );
+  }
+  // n >= 4
+  const shown = list.slice(0, 4);
+  const rest = n - 4;
   return (
-    <div style={{ position:'relative' }}>
-      <div ref={scRef} onScroll={onScroll}
-        style={{ display:'flex', overflowX:'auto', scrollSnapType:'x mandatory', WebkitOverflowScrolling:'touch', scrollbarWidth:'none' }}>
-        {urls.map((u, i) => (
-          <img key={i} src={u} alt="" style={{ width:'100%', flexShrink:0, scrollSnapAlign:'start', maxHeight:520, objectFit:'cover', display:'block' }} />
-        ))}
-      </div>
-      <span style={{ position:'absolute', top:10, right:10, background:'rgba(0,0,0,.55)', color:'white', borderRadius:12, padding:'2px 9px', fontSize:12, fontWeight:700 }}>{idx+1}/{urls.length}</span>
-      <div style={{ position:'absolute', bottom:8, left:0, right:0, display:'flex', justifyContent:'center', gap:5 }}>
-        {urls.map((_, i) => <span key={i} style={{ width:6, height:6, borderRadius:'50%', background: i===idx ? 'white' : 'rgba(255,255,255,.45)' }} />)}
-      </div>
+    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gridTemplateRows: '1fr 1fr', gap: GAP, aspectRatio: '1 / 1' }}>
+      {shown.map((u, i) => (
+        <Cell key={i} u={u} badge={i === 3 && rest > 0 ? rest : null} />
+      ))}
     </div>
   );
 }

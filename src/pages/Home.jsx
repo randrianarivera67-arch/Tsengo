@@ -1116,6 +1116,7 @@ const fields = {
     <div style={{ padding:0 }}>
       {zoomImg && (
         <div onClick={()=>setZoomImg(null)} style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.95)', zIndex:600, display:'flex', alignItems:'center', justifyContent:'center', touchAction:'none' }}>
+          <button onClick={(e)=>{e.stopPropagation();downloadMedia(zoomImg,'image');}} aria-label="Télécharger" style={{ position:'absolute', top:16, left:16, background:'rgba(255,255,255,.15)', border:'none', borderRadius:'50%', width:40, height:40, color:'white', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', zIndex:10 }}><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M12 4v10m0 0l-4-4m4 4l4-4M5 19h14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg></button>
           <button onClick={()=>setZoomImg(null)} style={{ position:'absolute', top:16, right:16, background:'rgba(255,255,255,.15)', border:'none', borderRadius:'50%', width:40, height:40, color:'white', fontSize:22, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', zIndex:10 }}>✕</button>
           <img
             src={zoomImg} alt=""
@@ -1869,7 +1870,7 @@ const fields = {
               )}
               {post.mediaURLs?.length > 1 ? (
                 <div style={{ marginTop:8, marginLeft:-16, marginRight:-16 }}>
-                  <PhotoCarousel urls={post.mediaURLs} />
+                  <PhotoCarousel urls={post.mediaURLs} onOpen={setZoomImg} />
                 </div>
               ) : post.mediaURL && (
                 <div style={{ marginTop:8, marginLeft:-16, marginRight:-16 }}>
