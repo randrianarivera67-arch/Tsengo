@@ -25,9 +25,11 @@ jobs:
 
           mkdir -p twa/app/src/main/res/{mipmap-hdpi,mipmap-mdpi,mipmap-xhdpi,mipmap-xxhdpi,mipmap-xxxhdpi,values}
 
-          curl -sL "https://tsengo.onrender.com/tsengo-icon-192.png" -o /tmp/icon.png
-          for dir in hdpi mdpi xhdpi xxhdpi xxxhdpi; do
-            cp /tmp/icon.png twa/app/src/main/res/mipmap-$dir/ic_launcher.png
+          # ── Icône = logo Trengo depuis le repo (public/icon-512.png), toutes densités ──
+          declare -A SIZES=( [mdpi]=48 [hdpi]=72 [xhdpi]=96 [xxhdpi]=144 [xxxhdpi]=192 )
+          for dir in mdpi hdpi xhdpi xxhdpi xxxhdpi; do
+            convert public/icon-512.png -resize ${SIZES[$dir]}x${SIZES[$dir]} \
+              twa/app/src/main/res/mipmap-$dir/ic_launcher.png
           done
 
           cat > twa/settings.gradle << 'EOF'
@@ -44,7 +46,7 @@ jobs:
               mavenCentral()
             }
           }
-          rootProject.name = "Tsengo"
+          rootProject.name = "Trengo"
           include(":app")
           EOF
 
@@ -65,8 +67,8 @@ jobs:
               applicationId = "mg.tsengo.app"
               minSdk = 21
               targetSdk = 34
-              versionCode = 1
-              versionName = "1.0"
+              versionCode = 2
+              versionName = "1.1"
             }
             buildTypes {
               debug { isDebuggable = true }
@@ -88,7 +90,7 @@ jobs:
           <manifest xmlns:android="http://schemas.android.com/apk/res/android">
             <uses-permission android:name="android.permission.INTERNET"/>
             <application
-              android:label="Tsengo"
+              android:label="Trengo"
               android:icon="@mipmap/ic_launcher"
               android:allowBackup="true"
               android:theme="@android:style/Theme.NoTitleBar">
@@ -97,7 +99,7 @@ jobs:
                 android:exported="true">
                 <meta-data
                   android:name="android.support.customtabs.trusted.DEFAULT_URL"
-                  android:value="https://tsengo.onrender.com"/>
+                  android:value="https://trengo-mg.vercel.app"/>
                 <intent-filter>
                   <action android:name="android.intent.action.MAIN"/>
                   <category android:name="android.intent.category.LAUNCHER"/>
@@ -136,15 +138,15 @@ jobs:
           keytool -genkeypair -v -keystore key.jks -alias tsengo \
             -keyalg RSA -keysize 2048 -validity 10000 \
             -storepass tsengo123 -keypass tsengo123 \
-            -dname "CN=Tsengo,O=Tsengo,C=MG" -noprompt
+            -dname "CN=Trengo,O=Trengo,C=MG" -noprompt
           $ANDROID_HOME/build-tools/33.0.2/apksigner sign \
             --ks key.jks --ks-pass pass:tsengo123 \
             --key-pass pass:tsengo123 \
-            --out tsengo.apk "$APK"
+            --out trengo.apk "$APK"
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: Tsengo-APK
-          path: tsengo.apk
+          name: Trengo-APK
+          path: trengo.apk
           if-no-files-found: error
