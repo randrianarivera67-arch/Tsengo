@@ -472,10 +472,14 @@ export default function Profile() {
 
         <div style={{ padding:'10px 16px', cursor:'pointer' }} onClick={() => setSelectedPost(post)}>
           {post.content && (<>
+            {post.textBg ? (
+            <p style={{ background: post.textBg, minHeight:180, display:'flex', alignItems:'center', justifyContent:'center', textAlign:'center', color:'#fff', fontSize:24, fontWeight:800, padding:'24px 18px', lineHeight:1.4, wordBreak:'break-word', whiteSpace:'pre-wrap', margin:0, borderRadius:8 }}>{post.content}</p>
+            ) : (
             <p style={{ fontSize:15, lineHeight:1.6, wordBreak:'break-word',
               ...(expandedPosts[post.id] ? {} : { display:'-webkit-box', WebkitLineClamp:2, WebkitBoxOrient:'vertical', overflow:'hidden' }) }}>
               {post.content}
             </p>
+            )}
             {post.content.length > 120 && (
               <span onClick={e => { e.stopPropagation(); setExpandedPosts(pv => ({ ...pv, [post.id]: !pv[post.id] })); }}
                 style={{ fontSize:13, fontWeight:700, color:'#65676B', cursor:'pointer' }}>

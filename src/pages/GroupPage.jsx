@@ -36,6 +36,7 @@ export default function GroupPage() {
   const [posts,      setPosts]      = useState([]);
   const [visibleCount, setVisibleCount] = useState(10);
   const [content,    setContent]    = useState('');
+  const [textBg,     setTextBg]     = useState(null);
   const [mediaFile,  setMediaFile]  = useState(null);
   const [mediaPreview, setMediaPreview] = useState(null);
   const [mediaType,  setMediaType]  = useState('');
@@ -228,6 +229,7 @@ export default function GroupPage() {
       taggedUids: Object.keys(gpTagSel).filter(k => gpTagSel[k]),
       taggedNames: gpTagList.filter(f => gpTagSel[f.uid]).map(f => f.fullName),
       groupId: group.id, groupName: group.name, groupPhoto: group.photoURL || '',
+      textBg: textBg || null,
       reactions: {}, comments: [], createdAt: serverTimestamp(),
     });
     try {
@@ -286,7 +288,7 @@ export default function GroupPage() {
         if (thumbFile) { try { const tr = await uploadToTelegram(thumbFile); thumbURL = tr.url || ''; } catch {} }
       }
       await finalizePublish(content, mediaURL, finalMT, thumbURL);
-      setContent(''); setMediaFile(null); setMediaPreview(null); setMediaType(''); setGpFullOpen(false); setGpLocation(''); setGpMood(''); setGpTagSel({});
+      setTextBg(null); setContent(''); setMediaFile(null); setMediaPreview(null); setMediaType(''); setGpFullOpen(false); setGpLocation(''); setGpMood(''); setGpTagSel({});
     } catch (err) { alert('Erreur lors de la publication : ' + (err?.message || err)); }
     setPosting(false);
   }
@@ -453,8 +455,19 @@ export default function GroupPage() {
         </div>
         <div style={{ display:'flex', gap:10, alignItems:'flex-start' }}>
           <img src={userProfile?.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(userProfile?.fullName || 'U')}&background=1877F2&color=fff`} alt="" className="avatar" style={{ width:42, height:42, flexShrink:0 }}/>
-          <textarea className="input" placeholder="Exprimez-vous..." value={content} onChange={e => setContent(e.target.value)} rows={3} style={{ resize:'none', flex:1, border:'none', fontSize:17 }} maxLength={2000} autoFocus/>
+          {textBg ? (
+            <div style={{ flex:1, background:textBg, borderRadius:14, minHeight:160, display:'flex', alignItems:'center', justifyContent:'center', padding:'18px 14px' }}>
+              <textarea placeholder="Écrire quelque chose..." value={content} onChange={e => setContent(e.target.value)} style={{ resize:'none', width:'100%', border:'none', background:'transparent', color:'#fff', fontWeight:800, fontSize:22, textAlign:'center', outline:'none', lineHeight:1.4, minHeight:80 }} maxLength={2000} autoFocus/>
+            </div>
+          ) : (
+            <textarea className="input" placeholder="Exprimez-vous..." value={content} onChange={e => setContent(e.target.value)} rows={3} style={{ resize:'none', flex:1, border:'none', fontSize:17 }} maxLength={2000} autoFocus/>
+          )}
         </div>
+          <div style={{ display:'flex', gap:8, marginTop:10, alignItems:'center', justifyContent:'center', flexWrap:'wrap' }}>
+            {[null,'linear-gradient(135deg,#1877F2,#42A5F5)','linear-gradient(135deg,#E91E8C,#FF6BB5)','linear-gradient(135deg,#FF7A00,#FFB347)','linear-gradient(135deg,#00C853,#69F0AE)','linear-gradient(135deg,#7C3AED,#A78BFA)'].map((bg,i)=>(
+              <button key={i} onClick={()=>setTextBg(bg)} style={{ width:textBg===bg?32:28, height:textBg===bg?32:28, borderRadius:'50%', padding:0, cursor:'pointer', flexShrink:0, background:bg||'#ffffff', border:textBg===bg?'3px solid #050505':'2px solid #E4E6EB', transition:'all .15s' }}/>
+            ))}
+          </div>
           {(gpLocation || gpMood || Object.values(gpTagSel).some(Boolean)) && (
             <div style={{ display:'flex', flexWrap:'wrap', gap:6, marginTop:8 }}>
               {gpLocation && <span style={{ display:'flex', alignItems:'center', gap:5, background:'#FFE9F2', color:'#FF2D8D', borderRadius:16, padding:'4px 10px', fontSize:12, fontWeight:700 }}>📍 {gpLocation} <span onClick={() => setGpLocation('')} style={{ cursor:'pointer' }}>✕</span></span>}
@@ -629,7 +642,7 @@ export default function GroupPage() {
               )}
             </div>
             <div style={{ padding: '8px 16px', cursor: 'pointer' }} onClick={() => navigate(`/post/${post.id}`)}>
-              {post.content && <p style={{ fontSize: 15, lineHeight: 1.6, wordBreak: 'break-word' }}>{post.content}</p>}
+              {post.content && (post.textBg ? <p style={{ background: post.textBg, minHeight:180, display:'flex', alignItems:'center', justifyContent:'center', textAlign:'center', color:'#fff', fontSize:24, fontWeight:800, padding:'24px 18px', lineHeight:1.4, wordBreak:'break-word', whiteSpace:'pre-wrap', margin:0, borderRadius:8 }}>{post.content}</p> : <p style={{ fontSize: 15, lineHeight: 1.6, wordBreak: 'break-word' }}>{post.content}</p>)}
               {post.sharedFrom && (
                 <div onClick={e => { e.stopPropagation(); navigate(`/post/${post.sharedFrom.id}`); }}
                   style={{ marginTop: 8, border: '1px solid #E4E6EB', borderRadius: 12, overflow: 'hidden', cursor: 'pointer' }}>
