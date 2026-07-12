@@ -1,7 +1,7 @@
 {
   "rewrites": [
     {
-      "source": "/((?!OneSignalSDKWorker.js).*)",
+      "source": "/((?!OneSignalSDKWorker.js|.well-known/).*)",
       "destination": "/index.html"
     }
   ],

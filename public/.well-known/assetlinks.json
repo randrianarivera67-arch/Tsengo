@@ -1,0 +1,10 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "mg.tsengo.app",
+      "sha256_cert_fingerprints": ["05:2E:77:D6:8F:61:04:96:1E:8D:2A:5C:0C:84:D1:11:0C:54:DB:CF:C8:F9:05:5F:2A:F7:F4:94:2C:2D:F8:DB"]
+    }
+  }
+]

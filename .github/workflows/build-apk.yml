@@ -132,16 +132,18 @@ jobs:
           cd twa && ./gradlew assembleDebug --no-daemon -x lint
 
       - name: Sign APK
+        env:
+          KEYSTORE_B64: ${{ secrets.KEYSTORE_B64 }}
+          KEYSTORE_PASS: ${{ secrets.KEYSTORE_PASS }}
         run: |
           APK=$(find twa -name "*.apk" | head -1)
           echo "APK: $APK"
-          keytool -genkeypair -v -keystore key.jks -alias tsengo \
-            -keyalg RSA -keysize 2048 -validity 10000 \
-            -storepass tsengo123 -keypass tsengo123 \
-            -dname "CN=Trengo,O=Trengo,C=MG" -noprompt
+          if [ -z "$KEYSTORE_B64" ]; then echo "ERREUR: secret KEYSTORE_B64 manquant (voir instructions)"; exit 1; fi
+          echo "$KEYSTORE_B64" | base64 -d > key.jks
           $ANDROID_HOME/build-tools/33.0.2/apksigner sign \
-            --ks key.jks --ks-pass pass:tsengo123 \
-            --key-pass pass:tsengo123 \
+            --ks key.jks --ks-pass "pass:$KEYSTORE_PASS" \
+            --key-pass "pass:$KEYSTORE_PASS" \
+            --ks-key-alias trengo \
             --out trengo.apk "$APK"
 
       - name: Upload APK
