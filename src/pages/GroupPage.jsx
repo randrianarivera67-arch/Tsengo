@@ -213,7 +213,7 @@ export default function GroupPage() {
 
   function handleMedia(e, type) {
     const file = e.target.files[0]; if (!file) return;
-    setMediaFile(file); setMediaType(type); setMediaPreview(URL.createObjectURL(file));
+    setTextBg(null); setMediaFile(file); setMediaType(type); setMediaPreview(URL.createObjectURL(file));
   }
 
   // Publie dans le groupe (caption capturée en paramètre — utilisable aussi
@@ -463,11 +463,13 @@ export default function GroupPage() {
             <textarea className="input" placeholder="Exprimez-vous..." value={content} onChange={e => setContent(e.target.value)} rows={3} style={{ resize:'none', flex:1, border:'none', fontSize:17 }} maxLength={2000} autoFocus/>
           )}
         </div>
+          {!mediaPreview && (
           <div style={{ display:'flex', gap:8, marginTop:10, alignItems:'center', justifyContent:'center', flexWrap:'wrap' }}>
             {[null,'linear-gradient(135deg,#1877F2,#42A5F5)','linear-gradient(135deg,#E91E8C,#FF6BB5)','linear-gradient(135deg,#FF7A00,#FFB347)','linear-gradient(135deg,#00C853,#69F0AE)','linear-gradient(135deg,#7C3AED,#A78BFA)'].map((bg,i)=>(
               <button key={i} onClick={()=>setTextBg(bg)} style={{ width:textBg===bg?32:28, height:textBg===bg?32:28, borderRadius:'50%', padding:0, cursor:'pointer', flexShrink:0, background:bg||'#ffffff', border:textBg===bg?'3px solid #050505':'2px solid #E4E6EB', transition:'all .15s' }}/>
             ))}
           </div>
+          )}
           {(gpLocation || gpMood || Object.values(gpTagSel).some(Boolean)) && (
             <div style={{ display:'flex', flexWrap:'wrap', gap:6, marginTop:8 }}>
               {gpLocation && <span style={{ display:'flex', alignItems:'center', gap:5, background:'#FFE9F2', color:'#FF2D8D', borderRadius:16, padding:'4px 10px', fontSize:12, fontWeight:700 }}>📍 {gpLocation} <span onClick={() => setGpLocation('')} style={{ cursor:'pointer' }}>✕</span></span>}

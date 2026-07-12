@@ -485,6 +485,7 @@ export default function Home() {
   function handleMedia(e, type) {
     const files = Array.from(e.target.files || []);
     if (!files.length) return;
+    setTextBg(null);
     const allowed = type === 'image'
       ? ['image/jpeg','image/png','image/gif','image/webp']
       : ['video/mp4','video/webm','video/quicktime'];
@@ -1427,6 +1428,7 @@ const fields = {
               <textarea className="input" placeholder={t('whatsOnMind')} value={content} onChange={e => setContent(e.target.value)} rows={3} style={{ resize:'none', width:'100%', border:'none', fontSize:17 }} maxLength={MAX_POST} autoFocus/>
             )}
             {content.length > 0 && <p style={{ fontSize:11, color:charColor, textAlign:'right', marginTop:2 }}>{rem} restants</p>}
+          {!mediaPreview && multiPhotos.length === 0 && (
           <div style={{ display:'flex', gap:8, marginTop:10, alignItems:'center', justifyContent:'center', flexWrap:'wrap' }}>
             {TEXT_BG_COLORS.map((bg, i) => (
               <button key={i} onClick={() => setTextBg(bg)}
@@ -1437,6 +1439,7 @@ const fields = {
                   boxShadow: textBg===bg ? '0 0 0 2px white, 0 0 0 4px #050505' : 'none' }}/>
             ))}
           </div>
+          )}
           </div>
         </div>
 
