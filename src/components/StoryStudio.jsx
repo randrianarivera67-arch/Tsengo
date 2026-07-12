@@ -105,6 +105,10 @@ export default function StoryStudio({ mode: initialMode = 'menu', currentUser, u
   const [previewURL, setPreviewURL] = useState('');
   const [filterKey, setFilterKey]   = useState('none');
   const [caption, setCaption]       = useState('');
+  const [captionPos, setCaptionPos] = useState({ x: 0.5, y: 0.8 });
+  const [sonMode, setSonMode]       = useState('music'); // 'music' (muet+musique) | 'original'
+  const previewRef = useRef(null);
+  const capDragRef = useRef(false);
   const [audience, setAudience]     = useState('public');  // 'public'|'friends'|'me'
   const [music, setMusic]           = useState(null);      // {url,title,artist,start}
   const [busy, setBusy]             = useState(false);
@@ -208,7 +212,7 @@ export default function StoryStudio({ mode: initialMode = 'menu', currentUser, u
               const fs = 54;
               ctx.font = `800 ${fs}px Poppins, sans-serif`;
               ctx.textAlign = 'center';
-              ctx.textBaseline = 'bottom';
+              ctx.textBaseline = 'middle';
               const maxW = W - 120;
               const words = caption.trim().split(/\s+/);
               const lines = []; let line = '';
@@ -219,12 +223,13 @@ export default function StoryStudio({ mode: initialMode = 'menu', currentUser, u
               }
               if (line) lines.push(line);
               const lh = fs * 1.25;
-              let y = H - 180 - (lines.length - 1) * lh;
+              const cxp = captionPos.x * W;
+              let y = captionPos.y * H - ((lines.length - 1) * lh) / 2;
               for (const ln of lines) {
                 ctx.save();
                 ctx.shadowColor = 'rgba(0,0,0,.65)'; ctx.shadowBlur = 14; ctx.shadowOffsetY = 3;
                 ctx.fillStyle = '#fff';
-                ctx.fillText(ln, W / 2, y);
+                ctx.fillText(ln, cxp, y);
                 ctx.restore();
                 y += lh;
               }
@@ -239,6 +244,22 @@ export default function StoryStudio({ mode: initialMode = 'menu', currentUser, u
         img.src = previewURL;
       } catch (err) { reject(err); }
     });
+  }
+
+  function capPointerDown() { capDragRef.current = true; }
+  function capPointerMove(e) {
+    if (!capDragRef.current || !previewRef.current) return;
+    const r = previewRef.current.getBoundingClientRect();
+    const cx = (e.touches && e.touches[0]) ? e.touches[0].clientX : e.clientX;
+    const cy = (e.touches && e.touches[0]) ? e.touches[0].clientY : e.clientY;
+    let x = (cx - r.left) / r.width, y = (cy - r.top) / r.height;
+    x = Math.max(0.12, Math.min(0.88, x)); y = Math.max(0.08, Math.min(0.92, y));
+    setCaptionPos({ x, y });
+  }
+  function capPointerUp() { capDragRef.current = false; }
+  function toggleSon() {
+    if (sonMode === 'music') { setSonMode('original'); setMusic(null); }
+    else { setSonMode('music'); if (!music) setMusic(chooseDefaultTrack(tracks)); }
   }
 
   const baseDoc = () => ({
@@ -285,6 +306,7 @@ export default function StoryStudio({ mode: initialMode = 'menu', currentUser, u
           mediaURL: r.url,
           filter: cssFor(filterKey),
           caption: caption.trim().slice(0, 200),
+          captionPos,
         });
       }
       try { previewAudioRef.current?.pause(); } catch {}
@@ -327,7 +349,7 @@ export default function StoryStudio({ mode: initialMode = 'menu', currentUser, u
   // ── Preview central ──
   const previewFilter = cssFor(filterKey);
   const preview = (
-    <div style={{ flex: 1, position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', background: mode === 'text' ? BG[bgIdx] : '#000' }}>
+    <div ref={previewRef} onPointerMove={capPointerMove} onPointerUp={capPointerUp} onPointerLeave={capPointerUp} style={{ flex: 1, position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', background: mode === 'text' ? BG[bgIdx] : '#000' }}>
       {mode === 'text' && (
         <textarea
           autoFocus value={text} onChange={e => setText(e.target.value)} maxLength={280}
@@ -342,11 +364,11 @@ export default function StoryStudio({ mode: initialMode = 'menu', currentUser, u
         </>
       )}
       {mode === 'video' && previewURL && (
-        <video ref={videoElRef} src={previewURL} autoPlay loop muted={!!music} playsInline style={{ maxWidth: '100%', maxHeight: '100%', filter: previewFilter }} />
+        <video ref={videoElRef} src={previewURL} autoPlay loop muted={sonMode !== 'original'} playsInline style={{ maxWidth: '100%', maxHeight: '100%', filter: previewFilter }} />
       )}
       {/* Légende overlay (photo/vidéo) */}
       {(mode === 'photo' || mode === 'video') && caption.trim() && (
-        <div style={{ position: 'absolute', left: 24, right: 24, bottom: 96, textAlign: 'center', color: '#fff', fontWeight: 800, fontSize: 22, textShadow: '0 2px 10px rgba(0,0,0,.7)', pointerEvents: 'none', wordBreak: 'break-word' }}>{caption}</div>
+        <div onPointerDown={capPointerDown} style={{ position: 'absolute', left: (captionPos.x * 100) + '%', top: (captionPos.y * 100) + '%', transform: 'translate(-50%,-50%)', maxWidth: '82%', textAlign: 'center', color: '#fff', fontWeight: 800, fontSize: 22, textShadow: '0 2px 10px rgba(0,0,0,.7)', wordBreak: 'break-word', cursor: 'move', touchAction: 'none', userSelect: 'none' }}>{caption}</div>
       )}
       {/* Badge musique */}
       {music && (
@@ -396,6 +418,9 @@ export default function StoryStudio({ mode: initialMode = 'menu', currentUser, u
             <button style={toolBtn(panel === 'fx')} onClick={() => setPanel(panel === 'fx' ? null : 'fx')}>{Ic.fx(19)} Effet</button>
             <button style={toolBtn(panel === 'caption')} onClick={() => setPanel(panel === 'caption' ? null : 'caption')}>{Ic.text(18)} Texte</button>
           </>
+        )}
+        {mode === 'video' && (
+          <button style={toolBtn(false)} onClick={toggleSon}>{sonMode === 'original' ? 'Son original' : 'Muet + musique'}</button>
         )}
         <button style={toolBtn(panel === 'music')} onClick={() => { loadTracks(); setPanel(panel === 'music' ? null : 'music'); }}>{Ic.music(18)} {music ? 'Musique ✓' : 'Musique'}</button>
         <button style={toolBtn(panel === 'audience')} onClick={() => setPanel(panel === 'audience' ? null : 'audience')}>

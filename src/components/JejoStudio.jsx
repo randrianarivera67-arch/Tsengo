@@ -616,7 +616,7 @@ export default function JejoStudio({ currentUser, userProfile, onClose, onPublis
 
       <div style={{ flex: 1, position: 'relative', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#000' }} onClick={togglePlay}>
         {clipURL && (
-          <video ref={editVideoRef} src={clipURL} autoPlay loop playsInline muted={!!music}
+          <video ref={editVideoRef} src={clipURL} autoPlay loop playsInline muted={sonMode === 'music'}
             style={{ maxWidth: '100%', maxHeight: '100%', filter: filterCss }} />
         )}
         {caption.trim() && (

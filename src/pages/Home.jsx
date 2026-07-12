@@ -1280,7 +1280,7 @@ const fields = {
                 ? <p style={{ color: cur.textColor || 'white', fontSize: cur.fontSize || 30, fontWeight:800, textAlign: cur.align || 'center', padding:'0 30px', wordBreak:'break-word', whiteSpace:'pre-wrap' }}>{cur.text}</p>
                 : <img key={cur.id} src={cur.mediaURL} alt="" style={{ maxWidth:'100%', maxHeight:'100%', objectFit:'contain', filter: cur.filter || 'none' }} />}
               {cur.caption && (cur.mediaType === 'video' || cur.mediaType === 'image') && (
-                <div style={{ position:'absolute', left:24, right:24, bottom:24, textAlign:'center', color:'#fff', fontWeight:800, fontSize:22, textShadow:'0 2px 10px rgba(0,0,0,.7)', pointerEvents:'none', wordBreak:'break-word' }}>{cur.caption}</div>
+                <div style={ cur.captionPos ? { position:'absolute', left:(cur.captionPos.x*100)+'%', top:(cur.captionPos.y*100)+'%', transform:'translate(-50%,-50%)', maxWidth:'82%', textAlign:'center', color:'#fff', fontWeight:800, fontSize:22, textShadow:'0 2px 10px rgba(0,0,0,.7)', pointerEvents:'none', wordBreak:'break-word' } : { position:'absolute', left:24, right:24, bottom:24, textAlign:'center', color:'#fff', fontWeight:800, fontSize:22, textShadow:'0 2px 10px rgba(0,0,0,.7)', pointerEvents:'none', wordBreak:'break-word' }}>{cur.caption}</div>
               )}
               {cur.music?.url && <StoryMusicPlayer url={cur.music.url} start={cur.music.start} paused={storyPaused} />}
               {cur.music?.title && (
@@ -1819,8 +1819,8 @@ const fields = {
                   onPointerDown={e => startTextPress(e, post)}
                   onPointerUp={endTextPress}
                   onPointerLeave={endTextPress}
-                  style={{ fontSize:15, lineHeight:1.6, wordBreak:'break-word', whiteSpace:'pre-wrap', userSelect:'text', WebkitUserSelect:'text', cursor:'text',
-                    ...(expandedPosts[post.id] ? {} : { display:'-webkit-box', WebkitLineClamp:2, WebkitBoxOrient:'vertical', overflow:'hidden' }) }}
+                  style={ post.textBg ? { background: post.textBg, minHeight:200, display:'flex', alignItems:'center', justifyContent:'center', textAlign:'center', color:'#fff', fontSize:26, fontWeight:800, padding:'28px 20px', lineHeight:1.4, wordBreak:'break-word', whiteSpace:'pre-wrap', margin:0 } : { fontSize:15, lineHeight:1.6, wordBreak:'break-word', whiteSpace:'pre-wrap', userSelect:'text', WebkitUserSelect:'text', cursor:'text',
+                    ...(expandedPosts[post.id] ? {} : { display:'-webkit-box', WebkitLineClamp:2, WebkitBoxOrient:'vertical', overflow:'hidden' }) } }
                 >{post.content}</p>
               )}
               {post.content && post.content.length > 90 && (
@@ -1931,7 +1931,7 @@ const fields = {
                     </span>
                   )}
                   {post.comments?.length > 0 && (
-                    <span onClick={() => setOpenCmt(p=>({...p,[post.id]:!p[post.id]}))} style={{ fontSize:12.5, color:'#65676B', cursor:'pointer' }}>
+                    <span onClick={(e) => { e.stopPropagation(); navigate('/post/' + post.id); }} style={{ fontSize:12.5, color:'#65676B', cursor:'pointer' }}>
                       {post.comments.length} commentaire{post.comments.length>1?'s':''}
                     </span>
                   )}
@@ -1968,7 +1968,7 @@ const fields = {
                   </div>
                 )}
               </div>
-              <button onClick={() => setOpenCmt(p=>({...p,[post.id]:!p[post.id]}))} className='post-action-btn'>
+              <button onClick={() => navigate('/post/' + post.id)} className='post-action-btn'>
                 <NeonComment size={18}/> Commenter
               </button>
               <button onClick={() => sharePost(post)} className='post-action-btn'>
