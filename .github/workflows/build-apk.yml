@@ -71,7 +71,7 @@ jobs:
               versionName = "1.1"
             }
             buildTypes {
-              debug { isDebuggable = true }
+              debug { debuggable true }
             }
           }
           dependencies {
