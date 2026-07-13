@@ -85,3 +85,21 @@ firebase.initializeApp({
   appId: "1:346673250242:web:b1b826f630c443f144e05b",
 });
 firebase.messaging();   // mandray ny push sy mampiseho ho azy — tsy misy onBackgroundMessage
+
+
+/* ── TRENGO_PWA_FETCH : nécessaire pour l'installabilité PWA + offline léger ──
+ * Chrome n'affiche "Installer" que si le SW possède un handler 'fetch'.
+ * On intercepte UNIQUEMENT les navigations (network-first, cache de secours).
+ * Les assets (chunks JS hashés) passent au réseau → pas de chunk périmé. */
+const TRENGO_CACHE = 'trengo-shell-v1';
+self.addEventListener('install',  (e) => self.skipWaiting());
+self.addEventListener('activate', (e) => e.waitUntil(self.clients.claim()));
+self.addEventListener('fetch', (event) => {
+  const req = event.request;
+  if (req.method !== 'GET' || req.mode !== 'navigate') return;
+  event.respondWith(
+    fetch(req)
+      .then((res) => { const c = res.clone(); caches.open(TRENGO_CACHE).then((k) => k.put('/', c)); return res; })
+      .catch(() => caches.match('/'))
+  );
+});

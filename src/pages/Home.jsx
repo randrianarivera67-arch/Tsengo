@@ -19,6 +19,7 @@ import ShareModal from '../components/ShareModal';
 import MusicPostCard from '../components/MusicPostCard';
 import PhotoCarousel from '../components/PhotoCarousel';
 import StoryRing from '../components/StoryRing';
+import SponsoredPost, { useFeedAds } from '../components/SponsoredPost';
 import StoryStudio, { StoryMusicPlayer } from '../components/StoryStudio';
 import { useActiveStoryUids } from '../hooks/useActiveStoryUids';
 import { NeonGlobe, NeonPeople, NeonLock, NeonMic, NeonLocation, NeonLike, NeonComment, NeonShare, NeonPlane, NeonPlaneWhite, NeonEye, NeonStar } from '../components/NeonIcons';
@@ -291,6 +292,7 @@ export default function Home() {
   const lpFired = useRef(false);
 
   const [posts, setPosts]           = useState([]);
+  const feedAds = useFeedAds();
   const [visibleCount, setVisibleCount] = useState(10);   // affichage progressif
   const [expandedPosts, setExpandedPosts] = useState({});
   const [zoomImg,       setZoomImg]       = useState(null);
@@ -1685,6 +1687,9 @@ const fields = {
               savedIds={userProfile?.saved || []}
               blockedIds={userProfile?.blocked || []}
             />
+          )}
+          {feedAds.length > 0 && pIdx > 0 && pIdx % 4 === 0 && (
+            <SponsoredPost ad={feedAds[(Math.floor(pIdx / 4) - 1) % feedAds.length]} />
           )}
           <div className="card post-card animate-fade" style={{ marginBottom:14, border:boosted?'1px solid #a855f755':undefined }}>
             {boosted && (

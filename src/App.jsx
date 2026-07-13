@@ -147,7 +147,7 @@ function AppRoutes() {
 
 export default function App() {
   useEffect(() => { sessionStorage.removeItem('tsengo_chunk_retry'); }, []);
-  useEffect(() => { initAdMob().then(showBannerAd); }, []);
+  useEffect(() => { initAdMob(); }, []); // banner bas retiré → pubs in-feed (SponsoredPost)
 
   return (
     <AuthProvider>
