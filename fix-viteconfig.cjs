@@ -1,4 +1,6 @@
-import { defineConfig } from 'vite';
+const fs = require('fs');
+const p = 'vite.config.js';
+const content = `import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 
 export default defineConfig({
@@ -22,3 +24,6 @@ export default defineConfig({
     chunkSizeWarningLimit: 600,
   },
 });
+`;
+fs.writeFileSync(p, content);
+console.log('OK vite.config.js remis propre (sans externalize)');

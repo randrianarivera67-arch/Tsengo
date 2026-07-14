@@ -445,11 +445,10 @@ export default function Layout({ children }) {
           </button>
         </div>
 
-        {/* Panel Admin — admin ihany */}
-        {userProfile?.isAdmin && (
+        {userProfile && userProfile.isAdmin ? (
           <div style={{ padding: '0 14px 6px' }}>
             <button onClick={() => { navigate('/admin'); setDrawerOpen(false); }}
-              style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 12, padding: '13px 14px', textAlign: 'left', background: isDark ? '#15181F' : '#F7F8FA', border: `1.5px solid ${isActive('/admin') ? '#FF2D8D' : bdr}`, borderRadius: 14, cursor: 'pointer' }}>
+              style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 12, padding: '13px 14px', textAlign: 'left', background: isDark ? '#15181F' : '#F7F8FA', border: '1.5px solid ' + (isActive('/admin') ? '#FF2D8D' : bdr), borderRadius: 14, cursor: 'pointer' }}>
               <span className="icon-badge-3d" style={{ width: 38, height: 38, borderRadius: 11, background: 'linear-gradient(145deg,#FF2D8D,#FF7AB8)', flexShrink: 0 }}>
                 <HiShieldCheck size={20} color="white" />
               </span>
@@ -460,8 +459,9 @@ export default function Layout({ children }) {
               <HiChevronRight size={18} color="#65676B" />
             </button>
           </div>
+        ) : null}
 
-        {/* Paramètres — atokana ambany indrindra (tsy atambatra amin'ny hafa) */}
+                {/* Paramètres — atokana ambany indrindra (tsy atambatra amin'ny hafa) */}
         <div style={{ padding: '0 14px 6px' }}>
           <button onClick={() => { navigate('/settings'); setDrawerOpen(false); }}
             style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 12, padding: '13px 14px', textAlign: 'left', background: isDark ? '#15181F' : '#F7F8FA', border: `1.5px solid ${isActive('/settings') ? '#1877F2' : bdr}`, borderRadius: 14, cursor: 'pointer' }}>
