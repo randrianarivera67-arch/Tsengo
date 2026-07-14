@@ -12,7 +12,12 @@ export default function PushDiagnostic({ uid }) {
   const [result, setResult] = useState(null);
 
   async function refresh() {
-    setState(await getPushState());
+    try {
+      const st = await getPushState();
+      setState(st);
+    } catch (e) {
+      setState({ native:false, platform:'?', permission:'erreur', hasToken:false, token:null, error:(e&&e.message)||String(e), backend:'?', hasSecret:false });
+    }
     try {
       const snap = await getDoc(doc(db, 'users', uid));
       const toks = (snap.exists() && snap.data().fcmTokens) || [];

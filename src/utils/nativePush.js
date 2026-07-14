@@ -115,7 +115,8 @@ export async function getPushState() {
   try {
     if (state.native) {
       const P = await getPlugin();
-      state.permission = (await P.checkPermissions()).receive;
+      const r = await Promise.race([P.checkPermissions(), new Promise((res)=>setTimeout(()=>res({receive:'timeout'}),2500))]);
+      state.permission = r.receive;
     } else if (typeof Notification !== 'undefined') {
       state.permission = Notification.permission;
     }
