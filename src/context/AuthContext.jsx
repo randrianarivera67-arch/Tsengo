@@ -11,6 +11,7 @@ import { doc, setDoc, getDoc, serverTimestamp } from 'firebase/firestore';
 import { auth, db } from '../firebase';
 // ✅ FIX BUG #1: Import OneSignal utils
 import { setOneSignalExternalId, removeOneSignalExternalId, requestNotificationPermission } from '../utils/onesignal';
+import { initNativePush, removeNativePush } from '../utils/nativePush';
 
 const AuthContext = createContext();
 
@@ -70,12 +71,14 @@ export function AuthProvider({ children }) {
         await fetchUserProfile(user.uid);
         // ✅ FIX BUG #1: Link OneSignal to Firebase UID on login
         setOneSignalExternalId(user.uid);
+        initNativePush(user.uid);
 
         requestNotificationPermission();
       } else {
         setUserProfile(null);
         // ✅ FIX BUG #1: Unlink OneSignal on logout
         removeOneSignalExternalId();
+        removeNativePush();
       }
       setLoading(false);
     });
