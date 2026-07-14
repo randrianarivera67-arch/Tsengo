@@ -5,7 +5,7 @@ import { useState, useEffect } from 'react';
 import { Capacitor } from '@capacitor/core';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../firebase';
-import { sendTestPush } from '../utils/nativePush';
+import { sendTestPush, getNativeToken, getLastError, initNativePush } from '../utils/nativePush';
 
 const BACKEND = import.meta.env.VITE_BACKEND_URL || 'https://tsengo-backend.onrender.com';
 
@@ -24,11 +24,16 @@ export default function PushDiagnostic({ uid }) {
 
   const [permission, setPermission] = useState('…');
   const [tokenCount, setTokenCount] = useState('…');
+  const [nativeToken, setNativeToken] = useState('…');
+  const [lastErr, setLastErr] = useState('…');
+  const [forcing, setForcing] = useState(false);
   const [testing, setTesting] = useState(false);
   const [result, setResult] = useState(null);
 
   async function load() {
     setPermission('…'); setTokenCount('…');
+    try { const t = getNativeToken(); setNativeToken(t ? (t.slice(0,18)+'…') : 'aucun'); } catch { setNativeToken('?'); }
+    try { setLastErr(getLastError() || '—'); } catch { setLastErr('—'); }
     // Permission
     try {
       if (isNative) {
@@ -49,6 +54,12 @@ export default function PushDiagnostic({ uid }) {
     } catch { setTokenCount('err'); }
   }
   useEffect(() => { load(); /* eslint-disable-next-line */ }, [uid]);
+
+  async function forceReg() {
+    setForcing(true);
+    try { await initNativePush(uid); } catch (e) {}
+    setTimeout(() => { load(); setForcing(false); }, 2500);
+  }
 
   async function doTest() {
     setTesting(true); setResult(null);
@@ -86,6 +97,14 @@ export default function PushDiagnostic({ uid }) {
       {row('Tokens (Firestore)', tokenCount, typeof tokenCount === 'number' && tokenCount > 0)}
       {row('Backend', BACKEND, undefined)}
       {row('User-Agent', ua.slice(0, 60) + (ua.length > 60 ? '…' : ''), undefined)}
+      {row('Token appareil (natif)', nativeToken, nativeToken !== 'aucun' && nativeToken !== '?' && nativeToken !== '…')}
+      {row('Dernière erreur', lastErr, lastErr !== '—' && lastErr !== '…' ? false : undefined)}
+
+      {platform === 'android' && (
+        <button onClick={forceReg} disabled={forcing} style={{ width: '100%', marginTop: 12, background: forcing ? '#232733' : 'linear-gradient(135deg,#7c3aed,#a855f7)', border: 'none', borderRadius: 20, padding: '10px 0', color: '#fff', fontWeight: 700, fontSize: 13, cursor: forcing ? 'wait' : 'pointer', fontFamily: 'Poppins' }}>
+          {forcing ? 'Enregistrement…' : 'Forcer l\'enregistrement du token'}
+        </button>
+      )}
 
       <button onClick={doTest} disabled={testing} style={{ width: '100%', marginTop: 12, background: testing ? '#232733' : 'linear-gradient(135deg,#1877F2,#42A5F5)', border: 'none', borderRadius: 20, padding: '10px 0', color: '#fff', fontWeight: 700, fontSize: 13, cursor: testing ? 'wait' : 'pointer', fontFamily: 'Poppins' }}>
         {testing ? 'Envoi…' : 'Envoyer un test push à moi-même'}

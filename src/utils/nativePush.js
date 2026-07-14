@@ -143,3 +143,6 @@ export async function sendTestPush(uid) {
     return { ok: false, status: 0, body: (e && e.message) || String(e) };
   }
 }
+
+export function getNativeToken() { return currentToken; }
+export function getLastError() { return lastError; }
