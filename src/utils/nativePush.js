@@ -1,15 +1,20 @@
 // src/utils/nativePush.js
 // Push notifications NATIVES (APK) via @capacitor/push-notifications + FCM.
-// Le token natif est enregistré dans users/{uid}.fcmTokens — LE MÊME champ que
-// le push web. Donc le backend Render (/notify → firebase-admin → FCM) délivre
-// aussi bien au PWA qu'à l'APK, sans rien changer côté serveur.
-// Sur le web / PWA, ce module ne fait rien (garde isNativePlatform).
+// Le token natif est enregistré dans users/{uid}.fcmTokens (même champ que le
+// push web) → le backend Render (/notify → firebase-admin) délivre au natif.
+// Ajout : création d'un canal de notification (obligatoire Android 8+),
+// diagnostic (getPushState) et test (sendTestPush) pour le panel admin.
 import { Capacitor } from '@capacitor/core';
 import { doc, updateDoc, arrayUnion, arrayRemove } from 'firebase/firestore';
 import { db } from '../firebase';
 
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'https://tsengo-backend.onrender.com';
+const NOTIFY_SECRET = import.meta.env.VITE_NOTIFY_SECRET || '';
+const CHANNEL_ID = 'trengo_default';
+
 let currentUid = null;
 let currentToken = null;
+let lastError = null;
 let listenersAdded = false;
 
 async function getPlugin() {
@@ -17,7 +22,6 @@ async function getPlugin() {
   return mod.PushNotifications;
 }
 
-// Route à ouvrir au tap, selon le type de notification
 function routeFor(data = {}) {
   if (data.url) return data.url;
   if (data.link) return data.link;
@@ -29,36 +33,48 @@ function routeFor(data = {}) {
 }
 
 export async function initNativePush(uid) {
-  if (!Capacitor.isNativePlatform() || !uid) return; // web/PWA → géré par FCM web
+  if (!Capacitor.isNativePlatform() || !uid) return;
   currentUid = uid;
   try {
     const PushNotifications = await getPlugin();
+
+    // Canal (Android 8+) — sans lui, les notifications peuvent ne pas s'afficher
+    try {
+      await PushNotifications.createChannel({
+        id: CHANNEL_ID,
+        name: 'Trengo',
+        description: 'Notifications Trengo',
+        importance: 5,        // HIGH → bannière + son
+        visibility: 1,
+        vibration: true,
+        lights: true,
+      });
+    } catch (e) { /* certains appareils : ignore */ }
 
     let perm = await PushNotifications.checkPermissions();
     if (perm.receive === 'prompt' || perm.receive === 'prompt-with-rationale') {
       perm = await PushNotifications.requestPermissions();
     }
-    if (perm.receive !== 'granted') return;
+    if (perm.receive !== 'granted') { lastError = 'permission: ' + perm.receive; return; }
 
     if (!listenersAdded) {
       listenersAdded = true;
 
-      // Token FCM natif → users/{uid}.fcmTokens (lu par le backend)
       PushNotifications.addListener('registration', (token) => {
         currentToken = token.value;
+        lastError = null;
         if (currentUid) {
-          updateDoc(doc(db, 'users', currentUid), { fcmTokens: arrayUnion(token.value) }).catch(() => {});
+          updateDoc(doc(db, 'users', currentUid), { fcmTokens: arrayUnion(token.value) }).catch((e) => { lastError = 'save token: ' + (e && e.message); });
         }
       });
 
       PushNotifications.addListener('registrationError', (err) => {
-        console.warn('Push registration error:', err?.error || err);
+        lastError = 'registration: ' + ((err && err.error) || JSON.stringify(err));
+        console.warn('Push registration error:', err);
       });
 
-      // App au premier plan : la cloche in-app se met à jour via Firestore (rien à afficher ici)
-      PushNotifications.addListener('pushNotificationReceived', () => { /* no-op */ });
+      PushNotifications.addListener('pushNotificationReceived', () => { /* premier plan : cloche in-app via Firestore */ });
 
-      // Tap sur la notification (app en arrière-plan/fermée) → ouvre la bonne page
       PushNotifications.addListener('pushNotificationActionPerformed', (action) => {
         try {
           const data = (action && action.notification && action.notification.data) || {};
@@ -69,7 +85,8 @@ export async function initNativePush(uid) {
 
     await PushNotifications.register();
   } catch (e) {
-    console.warn('initNativePush failed:', (e && e.message) || e);
+    lastError = 'init: ' + ((e && e.message) || e);
+    console.warn('initNativePush failed:', lastError);
   }
 }
 
@@ -81,4 +98,47 @@ export async function removeNativePush() {
   } catch (e) { /* ignore */ }
   currentUid = null;
   currentToken = null;
+}
+
+// ── Diagnostic (panel admin) ────────────────────────────────────────────────
+export async function getPushState() {
+  const state = {
+    native: Capacitor.isNativePlatform(),
+    platform: Capacitor.getPlatform(),
+    permission: '?',
+    hasToken: !!currentToken,
+    token: currentToken ? (currentToken.slice(0, 16) + '…') : null,
+    error: lastError,
+    backend: BACKEND_URL,
+    hasSecret: !!NOTIFY_SECRET,
+  };
+  try {
+    if (state.native) {
+      const P = await getPlugin();
+      state.permission = (await P.checkPermissions()).receive;
+    } else if (typeof Notification !== 'undefined') {
+      state.permission = Notification.permission;
+    }
+  } catch (e) { state.error = (e && e.message) || String(e); }
+  return state;
+}
+
+// Envoie un push de test à soi-même (via le backend). Retourne le statut HTTP.
+export async function sendTestPush(uid) {
+  try {
+    const r = await fetch(`${BACKEND_URL}/notify`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-notify-secret': NOTIFY_SECRET },
+      body: JSON.stringify({
+        toExternalId: uid,
+        title: 'Trengo 🔔',
+        message: 'Test de notification — ça marche !',
+        data: { type: 'test', url: '/notifications' },
+      }),
+    });
+    const body = await r.text().catch(() => '');
+    return { ok: r.ok, status: r.status, body: body.slice(0, 300) };
+  } catch (e) {
+    return { ok: false, status: 0, body: (e && e.message) || String(e) };
+  }
 }

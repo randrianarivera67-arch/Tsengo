@@ -15,6 +15,7 @@ import {
   HiDownload, HiDuplicate, HiShoppingBag, HiMusicNote, HiUserGroup
 } from 'react-icons/hi';
 import { isStandalone, canInstall, onInstallChange, promptInstall } from '../utils/pwaInstall';
+import PushDiagnostic from '../components/PushDiagnostic';
 
 export default function AdminPanel() {
   const { currentUser, userProfile } = useAuth();
@@ -285,6 +286,9 @@ export default function AdminPanel() {
             {installState === 'installed' ? 'Installée' : 'Installer'}
           </button>
         </div>
+
+        {/* Diagnostic Push */}
+        <PushDiagnostic uid={currentUser?.uid} />
 
         {/* Flash message */}
         {message && (
