@@ -20,7 +20,7 @@ import {
   HiBell, HiOutlineBell, HiMenu, HiX, HiSearch, HiLogout, HiCog,
   HiOutlineCog, HiTag, HiFilm, HiPhotograph,
   HiBookmark, HiOutlineBookmark, HiCalendar, HiSpeakerphone, HiShoppingBag, HiChevronRight,
-  HiMicrophone, HiIdentification, HiDocumentText, HiChartBar, HiSwitchHorizontal, HiCheck, HiShoppingCart,
+  HiMicrophone, HiIdentification, HiDocumentText, HiChartBar, HiSwitchHorizontal, HiCheck, HiShoppingCart, HiShieldCheck,
 } from 'react-icons/hi';
 
 // Icône "JEJO" — wordmark rose clay 3D + étoiles + smiley (style bijou)
@@ -444,6 +444,22 @@ export default function Layout({ children }) {
             <span style={{ fontSize: 11, color: '#65676B', marginTop: -6 }}>Vos notes privées</span>
           </button>
         </div>
+
+        {/* Panel Admin — admin ihany */}
+        {userProfile?.isAdmin && (
+          <div style={{ padding: '0 14px 6px' }}>
+            <button onClick={() => { navigate('/admin'); setDrawerOpen(false); }}
+              style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 12, padding: '13px 14px', textAlign: 'left', background: isDark ? '#15181F' : '#F7F8FA', border: `1.5px solid ${isActive('/admin') ? '#FF2D8D' : bdr}`, borderRadius: 14, cursor: 'pointer' }}>
+              <span className="icon-badge-3d" style={{ width: 38, height: 38, borderRadius: 11, background: 'linear-gradient(145deg,#FF2D8D,#FF7AB8)', flexShrink: 0 }}>
+                <HiShieldCheck size={20} color="white" />
+              </span>
+              <span style={{ flex: 1, minWidth: 0 }}>
+                <span style={{ display: 'block', fontWeight: 700, fontSize: 14, color: text }}>Panel Admin</span>
+                <span style={{ display: 'block', fontSize: 11, color: '#65676B' }}>Utilisateurs, boost, diagnostic</span>
+              </span>
+              <HiChevronRight size={18} color="#65676B" />
+            </button>
+          </div>
 
         {/* Paramètres — atokana ambany indrindra (tsy atambatra amin'ny hafa) */}
         <div style={{ padding: '0 14px 6px' }}>
