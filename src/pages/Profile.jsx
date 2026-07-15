@@ -796,7 +796,7 @@ export default function Profile() {
                 </div>
               ))}
             </div>
-            <div style={{ display:'flex', justifyContent:'center', gap:10, marginTop:14 }}>
+            <div style={{ display:'flex', justifyContent:'center', alignItems:'center', flexWrap:'wrap', rowGap:8, gap:10, marginTop:14 }}>
               {isOwn ? (
                 <>
                 <button onClick={() => setEditing(true)} style={{ display:'inline-flex', alignItems:'center', gap:6, background:"linear-gradient(180deg,#1B84FF,#1877F2)", border:"none", borderRadius:20, padding:'8px 18px', color:"white", fontWeight:600, cursor:'pointer', fontSize:13, boxShadow:"0 3px 12px rgba(24,119,242,.35)" }}><HiPencil size={14}/>{t('editProfile')}</button>
