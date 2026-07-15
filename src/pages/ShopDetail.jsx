@@ -21,8 +21,7 @@ import {
   HiCamera, HiArrowLeft, HiPencil, HiX, HiTrash, HiDotsVertical, HiPaperAirplane,
   HiShoppingBag, HiPhotograph, HiTag, HiCog, HiBan, HiFlag, HiShoppingCart,
   HiInformationCircle, HiDownload, HiLightningBolt, HiSearch, HiLink, HiShare,
-  HiEye, HiCursorClick, HiHeart, HiOutlineHeart, HiChat
-} from 'react-icons/hi';
+  HiEye, HiCursorClick, HiHeart, HiOutlineHeart, HiChat, HiCheckCircle} from 'react-icons/hi';
 
 const CATEGORIES = ['Vêtements', 'Robes', 'Hauts', 'Pantalons', 'Chaussures', 'Accessoires', 'Électronique', 'Déco & Maison', 'Véhicules', 'Alimentation', 'Beauté', 'Autre'];
 
@@ -296,6 +295,7 @@ export default function ShopDetail() {
           <div style={{ minWidth:0 }}>
             <h2 style={{ fontWeight:800, fontSize:19, display:'flex', alignItems:'center', gap:6, flexWrap:'wrap' }}>
               {shop.name}
+              {shop.verified && <HiCheckCircle size={17} color="#1877F2" style={{ flexShrink:0 }} />}
               {isAdmin && <span style={{ fontSize:10, fontWeight:800, color:'#F2B300', background:'#FFF6DB', borderRadius:8, padding:'2px 8px' }}>ADMIN</span>}
             </h2>
             <p style={{ fontSize:12, color:'#65676B' }}>

@@ -154,7 +154,7 @@ export default function Shop() {
           <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{s.name}</span>
           {admin
             ? <span style={{ fontSize: 9, fontWeight: 800, color: '#F2B300', background: '#FFF6DB', borderRadius: 7, padding: '1px 6px', flexShrink: 0 }}>ADMIN</span>
-            : <HiCheckCircle size={14} color="#1877F2" style={{ flexShrink: 0 }} />}
+            : s.verified ? <HiCheckCircle size={14} color="#1877F2" style={{ flexShrink: 0 }} /> : null}
         </div>
         <div style={{ fontSize: 11, color: '#65676B', margin: '1px 0 9px' }}>{(s.followers || []).length} abonnés</div>
         <div style={{ display: 'flex', gap: 6 }}>

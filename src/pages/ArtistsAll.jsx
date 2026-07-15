@@ -140,7 +140,7 @@ export default function ArtistsAll() {
                   {a.photoURL ? <img src={a.photoURL} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <NeonMic size={26} color="white" />}
                 </div>
                 <div style={{ fontWeight: 800, fontSize: 14, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                  {a.name} <HiCheckCircle size={14} color="#1877F2" />
+                  {a.name} {a.verified && <HiCheckCircle size={14} color="#1877F2" />}
                 </div>
                 <div style={{ fontSize: 11, color: '#65676B', margin: '1px 0 9px' }}>{(a.followers || []).length} abonnés</div>
                 <div style={{ display: 'flex', gap: 6 }}>

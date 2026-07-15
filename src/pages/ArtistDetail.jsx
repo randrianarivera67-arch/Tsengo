@@ -18,8 +18,7 @@ import { parseAppLink } from '../utils/appLink';
 import {
   HiCamera, HiArrowLeft, HiPencil, HiX, HiTrash, HiDotsVertical, HiPaperAirplane,
   HiMusicNote, HiVideoCamera, HiPhotograph, HiCog, HiBan, HiFlag,
-  HiInformationCircle, HiDownload, HiLightningBolt, HiSearch, HiLink, HiShare
-} from 'react-icons/hi';
+  HiInformationCircle, HiDownload, HiLightningBolt, HiSearch, HiLink, HiShare, HiCheckCircle} from 'react-icons/hi';
 
 const GENRES = ['Salegy', 'Tsapiky', 'Kawitry', 'Pop', 'Hip-Hop', 'Gospel', 'Reggae', 'Rock', 'Autre'];
 const GENRE_COLORS = {
@@ -316,8 +315,9 @@ export default function ArtistDetail() {
       <div style={{ padding:'40px 16px 0' }}>
         <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start' }}>
           <div style={{ minWidth:0 }}>
-            <h2 style={{ fontWeight:800, fontSize:19, display:'flex', alignItems:'center', gap:6 }}>
+            <h2 style={{ fontWeight:800, fontSize:19, display:'flex', alignItems:'center', gap:6, flexWrap:'wrap' }}>
               {artist.name}
+              {artist.verified && <HiCheckCircle size={17} color="#1877F2" style={{ flexShrink:0 }} />}
               <span style={{ display:'inline-flex', alignItems:'center', gap:3, background:'linear-gradient(135deg,#FF6FA5,#FF2D8D)', color:'white', fontSize:10, fontWeight:800, borderRadius:8, padding:'2px 8px' }}><NeonMic size={10} color="white"/> ARTISTE</span>
             </h2>
             <p style={{ fontSize:12, color:'#65676B' }}>

@@ -9,7 +9,7 @@ import { sendPushNotification } from '../utils/onesignal';
 import { uploadToTelegram } from '../utils/telegram';
 import { NeonMic } from '../components/NeonIcons';
 import Linkify from '../components/Linkify';
-import { HiArrowLeft, HiPaperAirplane, HiChevronRight, HiPhotograph, HiVideoCamera, HiPaperClip, HiMicrophone, HiDotsVertical, HiBan, HiTrash, HiCollection, HiX, HiSearch } from 'react-icons/hi';
+import { HiArrowLeft, HiPaperAirplane, HiChevronRight, HiPhotograph, HiVideoCamera, HiPaperClip, HiMicrophone, HiDotsVertical, HiBan, HiTrash, HiCollection, HiX, HiSearch, HiCheckCircle} from 'react-icons/hi';
 
 const REACT_EMOJIS = ['❤️', '😂', '😮', '😢', '😡', '👍'];
 
@@ -176,7 +176,7 @@ export default function ArtistMessages() {
           <div style={{ width: 40, height: 40, borderRadius: '50%', overflow: 'hidden', background: 'linear-gradient(145deg,#FF6FA5,#FF2D8D)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
             {artist.photoURL ? <img src={artist.photoURL} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <NeonMic size={18} color="white" />}
           </div>
-          <div><div style={{ fontWeight: 800, fontSize: 16 }}>{artist.name}</div><div style={{ fontSize: 11.5, color: '#65676B' }}>Messages de la page</div></div>
+          <div><div style={{ fontWeight: 800, fontSize: 16, display:'flex', alignItems:'center', gap:5 }}>{artist.name} {artist.verified && <HiCheckCircle size={14} color="#1877F2" />}</div><div style={{ fontSize: 11.5, color: '#65676B' }}>Messages de la page</div></div>
         </div>
         <div style={{ padding: '10px 12px 6px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: '#F0F2F5', borderRadius: 22, padding: '9px 14px' }}>
