@@ -26,6 +26,7 @@ export default function MediaViewer({
   onReact, onOpenReactionModal, onDownload, onShare,
   reactToCmt, addComment, deleteCmt,
   cmtText, setCmtText, replyTo, setReplyTo,
+  onSubmitComment, onReactCmt, onDeleteCmt,
   VIPBadge,
 }) {
   const images = post.mediaURLs?.length ? post.mediaURLs : (post.mediaURL ? [post.mediaURL] : []);
@@ -38,6 +39,7 @@ export default function MediaViewer({
   const [scale, setScale] = useState(1);
   const [toast, setToast] = useState('');
   const [text, setText] = useState('');
+  const [replyToName, setReplyToName] = useState(null);
   const scrollRef = useRef(null);
   const rafRef = useRef(null);
   const lpTimer = useRef(null);
@@ -116,12 +118,18 @@ export default function MediaViewer({
   function submitComment() {
     const v = text.trim();
     if (!v) return;
-    const full = replyTo?.[post.id] ? `@${replyTo[post.id]} ${v}` : v;
-    setCmtText((p) => ({ ...p, [post.id]: full }));
+    const full = replyToName ? `@${replyToName} ${v}` : v;
+    if (onSubmitComment) {
+      onSubmitComment(full);
+    } else if (setCmtText && addComment) {
+      setCmtText((p) => ({ ...p, [post.id]: full }));
+      setTimeout(() => addComment(post.id), 0);
+    }
     setText('');
-    setTimeout(() => addComment(post.id), 0);
+    setReplyToName(null);
   }
 
+  const hasComments = !!(onSubmitComment || (addComment && setCmtText));
   const sortedEmojis = Object.entries(rc || {}).sort((a, b) => b[1] - a[1]).slice(0, 3).map(([e]) => e);
   const myLabel = myR ? (FB_REACTIONS.find((r) => r.emoji === myR)?.label || "J'aime") : "J'aime";
 
@@ -209,7 +217,7 @@ export default function MediaViewer({
         )}
 
         {total > 0 && (
-          <div onClick={onOpenReactionModal} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '10px 14px 0', cursor: 'pointer' }}>
+          <div onClick={onOpenReactionModal || undefined} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '10px 14px 0', cursor: onOpenReactionModal ? 'pointer' : 'default' }}>
             <div style={{ display: 'flex', gap: 3 }}>
               {sortedEmojis.map((e) => (
                 <span key={e} style={{ fontSize: 14, background: '#18191A', borderRadius: '50%', boxShadow: '0 0 0 1.5px #18191A', lineHeight: 1 }}>{e}</span>
@@ -235,17 +243,21 @@ export default function MediaViewer({
               ))}
             </div>
           )}
-          <button onClick={() => setShowComments((p) => !p)}
-            style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '10px 0', background: 'none', border: 'none', cursor: 'pointer', color: '#B0B3B8', fontWeight: 700, fontSize: 13, fontFamily: 'Poppins' }}>
-            <NeonComment size={18} color="#B0B3B8" /> Commenter
-          </button>
-          <button onClick={onShare}
-            style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '10px 0', background: 'none', border: 'none', cursor: 'pointer', color: '#B0B3B8', fontWeight: 700, fontSize: 13, fontFamily: 'Poppins' }}>
-            <NeonShare size={18} color="#B0B3B8" /> Partager
-          </button>
+          {hasComments && (
+            <button onClick={() => setShowComments((p) => !p)}
+              style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '10px 0', background: 'none', border: 'none', cursor: 'pointer', color: '#B0B3B8', fontWeight: 700, fontSize: 13, fontFamily: 'Poppins' }}>
+              <NeonComment size={18} color="#B0B3B8" /> Commenter
+            </button>
+          )}
+          {onShare && (
+            <button onClick={onShare}
+              style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '10px 0', background: 'none', border: 'none', cursor: 'pointer', color: '#B0B3B8', fontWeight: 700, fontSize: 13, fontFamily: 'Poppins' }}>
+              <NeonShare size={18} color="#B0B3B8" /> Partager
+            </button>
+          )}
         </div>
 
-        {showComments && (
+        {hasComments && showComments && (
           <div style={{ overflowY: 'auto', flex: 1, padding: '10px 14px' }}>
             {(post.comments || []).length === 0 && (
               <p style={{ color: '#65676B', fontSize: 13, textAlign: 'center', padding: '10px 0' }}>Aucun commentaire</p>
@@ -277,12 +289,12 @@ export default function MediaViewer({
                       )}
                     </div>
                     <div style={{ display: 'flex', gap: 14, padding: '4px 12px 0', fontSize: 12, fontWeight: 700, color: '#B0B3B8' }}>
-                      <span onClick={() => reactToCmt(post.id, c.id, '❤️')} style={{ cursor: 'pointer', color: myCR ? '#FF2D8D' : '#B0B3B8' }}>
+                      <span onClick={() => (onReactCmt ? onReactCmt(c.id, '❤️') : reactToCmt && reactToCmt(post.id, c.id, '❤️'))} style={{ cursor: 'pointer', color: myCR ? '#FF2D8D' : '#B0B3B8' }}>
                         {myCR && myCR !== '❤️' ? myCR + ' ' : ''}J'aime
                       </span>
-                      <span onClick={() => setReplyTo((p) => ({ ...p, [post.id]: c.authorName }))} style={{ cursor: 'pointer' }}>Répondre</span>
+                      <span onClick={() => setReplyToName(c.authorName)} style={{ cursor: 'pointer' }}>Répondre</span>
                       {(c.uid === currentUser.uid || post.uid === currentUser.uid) && (
-                        <span onClick={() => deleteCmt(post.id, c)} style={{ cursor: 'pointer', color: '#FF2D8D' }}>Supprimer</span>
+                        <span onClick={() => (onDeleteCmt ? onDeleteCmt(c) : deleteCmt && deleteCmt(post.id, c))} style={{ cursor: 'pointer', color: '#FF2D8D' }}>Supprimer</span>
                       )}
                     </div>
                   </div>
@@ -292,7 +304,7 @@ export default function MediaViewer({
           </div>
         )}
 
-        {showComments && (
+        {hasComments && showComments && (
           <div style={{ display: 'flex', gap: 8, alignItems: 'center', padding: '10px 14px', borderTop: '1px solid #3A3B3C' }}>
             <img src={userProfile?.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(userProfile?.fullName || 'U')}&background=1877F2&color=fff`} alt=""
               style={{ width: 28, height: 28, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} />
@@ -300,7 +312,7 @@ export default function MediaViewer({
               value={text}
               onChange={(e) => setText(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && submitComment()}
-              placeholder={replyTo?.[post.id] ? `Répondre à ${replyTo[post.id]}...` : 'Écrire un commentaire...'}
+              placeholder={replyToName ? `Répondre à ${replyToName}...` : 'Écrire un commentaire...'}
               style={{ flex: 1, background: '#3A3B3C', border: 'none', borderRadius: 18, padding: '9px 14px', color: '#E4E6EB', fontSize: 13, fontFamily: 'Poppins', minWidth: 0 }}
             />
             <button onClick={submitComment} disabled={!text.trim()}
