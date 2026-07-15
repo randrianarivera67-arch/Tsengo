@@ -9,6 +9,8 @@ public class MainActivity extends BridgeActivity {
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
+        // Plugins natifs maison (a enregistrer AVANT super.onCreate)
+        registerPlugin(TrengoDownloader.class);
         super.onCreate(savedInstanceState);
         handleTrengoUrl(getIntent());
     }
@@ -20,7 +22,7 @@ public class MainActivity extends BridgeActivity {
         handleTrengoUrl(intent);
     }
 
-    // Ouvre la page ciblée (message/post/...) quand on tape la notification.
+    // Ouvre la page ciblee (message/post/...) quand on tape la notification.
     private void handleTrengoUrl(Intent intent) {
         if (intent == null) return;
         final String url = intent.getStringExtra("trengo_url");
