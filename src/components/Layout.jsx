@@ -591,7 +591,10 @@ export default function Layout({ children }) {
           const active = isActive(path);
           const FilledIcon = icon === 'home' ? HiHome : icon === 'amis' ? HiUserGroup : icon === 'plane' ? HiPaperAirplane : HiUser;
           return (
-            <button key={label} className={`dock-item ${active ? 'active' : ''}`} onClick={() => navigate(path, navState ? { state: navState } : undefined)}
+            <button key={label} className={`dock-item ${active ? 'active' : ''}`} onClick={() => {
+                if (path === '/' && location.pathname === '/') { window.dispatchEvent(new CustomEvent('trengo:refresh-home')); return; }
+                navigate(path, navState ? { state: navState } : undefined);
+              }}
               style={{ background: 'none', border: 'none', cursor: 'pointer', position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5, flex: 1, padding: '4px 0' }}>
               {isJejo ? (
                 <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 46, transform: active ? 'scale(1.06)' : 'scale(1)', transition: 'transform .2s' }}>

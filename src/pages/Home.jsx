@@ -7,6 +7,7 @@ import {
 } from 'firebase/firestore';
 import { db } from '../firebase';
 import MediaViewer from '../components/MediaViewer';
+import PullToRefresh from '../components/PullToRefresh';
 import { useAuth } from '../context/AuthContext';
 import { useLang } from '../context/LanguageContext';
 import { uploadToTelegram } from '../utils/telegram';
@@ -1119,6 +1120,7 @@ const fields = {
 
   return (
     <div style={{ padding:0 }}>
+      <PullToRefresh />
       {viewerState && (
         <MediaViewer
           post={viewerState.post}
