@@ -6,6 +6,7 @@ import { LanguageProvider } from './context/LanguageContext';
 import { ThemeProvider } from './context/ThemeContext';
 import Layout from './components/Layout';
 import { initAdMob, showBannerAd } from './utils/admob';
+import { Capacitor } from '@capacitor/core';
 
 // ── Miaro rehefa efa lasibatra ela ilay app: mety mitady fichier (chunk) taloha
 //    izay tsy any Vercel intsony → mahatonga pejy fotsy. Averina refresh mangina
@@ -148,6 +149,20 @@ function AppRoutes() {
 export default function App() {
   useEffect(() => { sessionStorage.removeItem('tsengo_chunk_retry'); }, []);
   useEffect(() => { initAdMob(); }, []); // banner bas retiré → pubs in-feed (SponsoredPost)
+
+  // Bouton retour matériel (Android natif) : un pas en arrière à la fois (flow Facebook).
+  // S'il n'y a plus d'historique (canGoBack=false), on ferme l'application.
+  useEffect(() => {
+    if (!Capacitor.isNativePlatform()) return;
+    let handle;
+    import('@capacitor/app').then(({ App: CapacitorApp }) => {
+      CapacitorApp.addListener('backButton', ({ canGoBack }) => {
+        if (canGoBack) window.history.back();
+        else CapacitorApp.exitApp();
+      }).then((h) => { handle = h; });
+    }).catch(() => {});
+    return () => { handle && handle.remove(); };
+  }, []);
 
   return (
     <AuthProvider>
