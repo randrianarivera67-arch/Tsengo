@@ -31,6 +31,7 @@ export default function Friends() {
   const [actionLoading, setActionLoading] = useState({});
   const [suggestions, setSuggestions] = useState([]);
   const [suggLoading, setSuggLoading] = useState(false);
+  const [sentRequestUsers, setSentRequestUsers] = useState([]);
 
   useEffect(() => {
     if (!userProfile?.friends?.length) { setFriends([]); return; }
@@ -40,6 +41,15 @@ export default function Friends() {
       )
     ).then(list => setFriends(list.filter(Boolean)));
   }, [userProfile?.friends?.join?.(',')]);
+
+  useEffect(() => {
+    if (!userProfile?.sentRequests?.length) { setSentRequestUsers([]); return; }
+    Promise.all(
+      userProfile.sentRequests.map(uid =>
+        getDoc(doc(db, 'users', uid)).then(s => s.exists() ? { uid: s.id, ...s.data() } : null)
+      )
+    ).then(list => setSentRequestUsers(list.filter(Boolean)));
+  }, [userProfile?.sentRequests?.join?.(',')]);
 
   useEffect(() => {
     if (!currentUser) return;
@@ -187,15 +197,21 @@ export default function Friends() {
   }
 
   const tabs = [
-    { key: 'friends',     label: t('myFriends'),        count: friends.length },
-    { key: 'requests',    label: t('pendingRequests'),   count: requests.length },
-    { key: 'suggestions', label: 'Suggestions',          count: suggestions.length },
-    { key: 'search',      label: t('search').replace('...', ''), count: 0 },
+    { key: 'friends',      label: t('myFriends'),        count: friends.length },
+    { key: 'requests',     label: t('pendingRequests'),  count: requests.length },
+    { key: 'sentRequests', label: 'Demandes envoyées',   count: sentRequestUsers.length },
+    { key: 'suggestions',  label: 'Suggestions',         count: suggestions.length },
   ];
 
   return (
     <div style={{ padding: '16px 12px' }}>
-      <h2 style={{ fontWeight: 700, fontSize: 20, color: '#1877F2', marginBottom: 14 }}>{t('friends')}</h2>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+        <h2 style={{ fontWeight: 700, fontSize: 20, color: '#1877F2' }}>{t('friends')}</h2>
+        <button onClick={() => setActiveTab(activeTab === 'search' ? 'friends' : 'search')} aria-label="Rechercher"
+          style={{ width: 38, height: 38, borderRadius: '50%', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', background: activeTab === 'search' ? '#1877F2' : '#E4E6EB', color: activeTab === 'search' ? 'white' : '#1877F2', flexShrink: 0 }}>
+          <HiSearch size={18} />
+        </button>
+      </div>
 
       {/* Tabs */}
       <div style={{ display: 'flex', gap: 6, marginBottom: 16, overflowX: 'auto', paddingBottom: 4 }}>
@@ -270,6 +286,31 @@ export default function Friends() {
               </div>
             );
           })}
+        </div>
+      )}
+
+      {/* Demandes envoyées */}
+      {activeTab === 'sentRequests' && (
+        <div>
+          {sentRequestUsers.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: 40, color: '#65676B' }}>Aucune demande envoyée</div>
+          ) : sentRequestUsers.map(user => (
+            <div key={user.uid} className="card" style={{ padding: '12px 14px', marginBottom: 10, display: 'flex', alignItems: 'center', gap: 12 }}>
+              <img
+                src={user.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.fullName)}&background=1877F2&color=fff`}
+                alt=""
+                onClick={() => navigate(`/profile/${user.uid}`)}
+                style={{ cursor: 'pointer', width: 50, height: 50, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }}
+              />
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <p style={{ fontWeight: 600, fontSize: 15 }}>{user.fullName}{user.isVip && <VIPBadge />}</p>
+                <p style={{ fontSize: 13, color: '#65676B' }}>@{user.username}</p>
+              </div>
+              <button onClick={() => cancelRequest(user.uid)} style={{ background: 'none', border: '1px solid #E4E6EB', borderRadius: 20, padding: '6px 14px', cursor: 'pointer', color: '#65676B', fontSize: 12, fontWeight: 600, flexShrink: 0 }}>
+                Annuler
+              </button>
+            </div>
+          ))}
         </div>
       )}
 

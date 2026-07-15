@@ -17,8 +17,7 @@ import {
   HiVideoCamera, HiPaperClip, HiX, HiDownload, HiMicrophone, HiStop,
   HiTrash, HiPencil, HiReply, HiDotsVertical, HiCheck,
   HiArchive, HiColorSwatch, HiMusicNote, HiHeart, HiUserGroup, HiUserAdd,
-  HiPhone, HiBan,
-} from 'react-icons/hi';
+  HiPhone, HiBan, HiPlus} from 'react-icons/hi';
 
 export default function Messages() {
   const { chatId: paramChatId } = useParams();
@@ -654,9 +653,9 @@ export default function Messages() {
         <div style={{ padding: '14px 14px 10px', borderBottom: '1px solid #E4E6EB' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 10 }}>
             <h2 style={{ fontWeight: 700, fontSize: 18, color: '#1877F2' }}>{t('messages')}</h2>
-            <button onClick={() => setCreateGroupOpen(true)} className="btn-gold"
-              style={{ padding: '5px 12px', fontSize: 12, display: 'flex', alignItems: 'center', gap: 5 }}>
-              <HiUserGroup size={15} /> Groupe
+            <button onClick={() => setCreateGroupOpen(true)} aria-label="Créer un groupe"
+              style={{ width: 36, height: 36, borderRadius: '50%', background: '#F0F2F5', border: 'none', cursor: 'pointer', color: '#050505', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <HiPlus size={19} />
             </button>
             <button onClick={() => setMsgSearchOpen(p => !p)}
               style={{ marginLeft: 'auto', width: 36, height: 36, borderRadius: '50%', background: msgSearchOpen ? '#E7F0FE' : '#F0F2F5', border: 'none', cursor: 'pointer', color: '#050505', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
