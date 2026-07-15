@@ -13,6 +13,7 @@ import { timeAgo } from '../utils/timeAgo';
 import { downloadMedia } from '../utils/download';
 import ShareModal from '../components/ShareModal';
 import PhotoCarousel from '../components/PhotoCarousel';
+import MediaViewer from '../components/MediaViewer';
 import { useLang } from '../context/LanguageContext';
 import { uploadToTelegram } from '../utils/telegram';
 import { getChatId } from '../utils/chat';
@@ -43,6 +44,7 @@ export default function PostDetail() {
   const [editCmt,       setEditCmt]    = useState(null);
   const [replyTo,       setReplyTo]    = useState(null);
   const [cmtReactPicker, setCmtReactPicker] = useState(null);
+  const [viewerState,   setViewerState] = useState(null); // { index }
   const cPhotoRef = useRef(); const cVideoRef = useRef();
 
   useEffect(() => {
@@ -60,6 +62,16 @@ export default function PostDetail() {
       }
     }
     setShowReact(false);
+  }
+
+  async function submitViewerComment(text) {
+    const v = (text||'').trim();
+    if (!v || !post) return;
+    const cmt = { id:uuidv4(), uid:currentUser.uid, authorName:userProfile.fullName, authorPhoto:userProfile.photoURL||'', authorIsVip:userProfile.isVip||false, text:v.slice(0,500), mediaURL:'', mediaType:'', createdAt:new Date().toISOString() };
+    await updateDoc(doc(db,'posts',postId), { comments:arrayUnion(cmt) });
+    if (post.uid!==currentUser.uid) {
+      await addDoc(collection(db,'notifications'), { toUid:post.uid, fromUid:currentUser.uid, fromName:userProfile.fullName, fromPhoto:userProfile.photoURL||'', type:'comment', postId, message:`${userProfile.fullName} a commenté votre publication`, read:false, createdAt:serverTimestamp() });
+    }
   }
 
   async function openRM() {
@@ -134,7 +146,7 @@ export default function PostDetail() {
 
       {/* Reaction modal */}
       {reactionModal&&(
-        <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,.5)', zIndex:200, display:'flex', alignItems:'center', justifyContent:'center', padding:20 }}>
+        <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,.5)', zIndex:820, display:'flex', alignItems:'center', justifyContent:'center', padding:20 }}>
           <div className="card" style={{ width:'100%', maxWidth:360, padding:20, maxHeight:'70vh', overflowY:'auto' }}>
             <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:14 }}>
               <h3 style={{ color:'#1877F2' }}>Réactions</h3>
@@ -227,7 +239,7 @@ export default function PostDetail() {
           <>
             {post.mediaURL && (
               <div className="post-media" style={{ position:'relative' }}>
-                <img src={post.mediaURL} alt=""/>
+                <img src={post.mediaURL} alt="" onClick={() => setViewerState({ index: 0 })} style={{ cursor:'zoom-in' }}/>
                 <button onClick={() => downloadMedia(post.mediaURL, 'image')}
                   style={{ position:'absolute', top:8, right:8, width:34, height:34, borderRadius:'50%', background:'rgba(0,0,0,.5)', border:'none', cursor:'pointer', color:'white', display:'flex', alignItems:'center', justifyContent:'center' }}>
                   <HiDownload size={16}/>
@@ -287,14 +299,14 @@ export default function PostDetail() {
           )}
           {post.mediaURLs?.length > 1 ? (
             <div className="post-media">
-              <PhotoCarousel urls={post.mediaURLs} />
+              <PhotoCarousel urls={post.mediaURLs} onOpen={(u) => setViewerState({ index: Math.max(0, post.mediaURLs.indexOf(u)) })} />
             </div>
           ) : post.mediaURL&&(
             <div className="post-media" style={{ position:'relative' }}>
               {post.isMusic
                 ? <MusicPostCard post={post} height={150}/>
                 : post.mediaType==='image'
-                  ? <img src={post.mediaURL} alt=""/>
+                  ? <img src={post.mediaURL} alt="" onClick={() => setViewerState({ index: 0 })} style={{ cursor:'zoom-in' }}/>
                   : <video src={post.mediaURL} poster={post.thumbURL || undefined} controls/>}
               <button onClick={() => downloadMedia(post.mediaURL, post.mediaType)}
                 style={{ position:'absolute', top:8, right:8, width:34, height:34, borderRadius:'50%', background:'rgba(0,0,0,.5)', border:'none', cursor:'pointer', color:'white', display:'flex', alignItems:'center', justifyContent:'center' }}>
@@ -379,6 +391,27 @@ export default function PostDetail() {
         </div>
       </div>
 
+      {viewerState && post && (
+        <MediaViewer
+          post={post}
+          startIndex={viewerState.index}
+          onClose={() => setViewerState(null)}
+          currentUser={currentUser}
+          userProfile={userProfile}
+          navigate={navigate}
+          myR={post.reactions?.[currentUser.uid]}
+          rc={(() => { const c={}; Object.values(post.reactions||{}).forEach(e=>{c[e]=(c[e]||0)+1;}); return c; })()}
+          total={Object.keys(post.reactions||{}).length}
+          onReact={reactToPost}
+          onOpenReactionModal={openRM}
+          onDownload={(url) => downloadMedia(url, post.mediaType || 'image')}
+          onShare={sharePost}
+          onSubmitComment={submitViewerComment}
+          onReactCmt={reactToCmt}
+          onDeleteCmt={deleteCmt}
+          VIPBadge={VIPBadge}
+        />
+      )}
       {shareModalOpen && <ShareModal post={post} onClose={() => setShareModalOpen(false)} />}
     </div>
   );

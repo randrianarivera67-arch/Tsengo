@@ -16,6 +16,7 @@ import { startBackgroundUpload } from '../utils/uploadManager';
 import { isDataSaverOn, subscribeDataSaver } from '../utils/dataSaver';
 import { downloadMedia } from '../utils/download';
 import ShareModal from '../components/ShareModal';
+import MediaViewer from '../components/MediaViewer';
 import {
   HiUserGroup, HiCamera, HiArrowLeft, HiPlus, HiCheck, HiTrash,
   HiPhotograph, HiVideoCamera, HiChat, HiShare, HiX, HiUserAdd, HiDotsVertical,
@@ -59,6 +60,7 @@ export default function GroupPage() {
   const [dataSaver,  setDataSaverState] = useState(isDataSaverOn());
   useEffect(() => subscribeDataSaver(setDataSaverState), []);
   const [shareModalPost, setShareModalPost] = useState(null);
+  const [viewerState,    setViewerState]    = useState(null); // { post, index }
   const [addMemberOpen, setAddMemberOpen] = useState(false);
   const [friendsList, setFriendsList] = useState([]);
   const [memberSearch, setMemberSearch] = useState('');
@@ -668,7 +670,7 @@ export default function GroupPage() {
                   {post.isMusic
                     ? <MusicPostCard post={post} />
                     : post.mediaType === 'image'
-                      ? <img src={post.mediaURL} alt="" style={{ width: '100%', maxHeight: 520, objectFit: 'cover', display: 'block' }} />
+                      ? <img src={post.mediaURL} alt="" onClick={() => setViewerState({ post, index: 0 })} style={{ width: '100%', maxHeight: 520, objectFit: 'cover', display: 'block', cursor: 'zoom-in' }} />
                       : <video src={post.mediaURL} controls playsInline poster={post.thumbURL || undefined} preload={dataSaver ? 'none' : 'metadata'} style={{ width: '100%', maxHeight: 520, display: 'block', background: '#000' }} />}
                 </div>
               )}
@@ -726,6 +728,22 @@ export default function GroupPage() {
         );
       })}
 
+      {viewerState && (
+        <MediaViewer
+          post={viewerState.post}
+          startIndex={viewerState.index}
+          onClose={() => setViewerState(null)}
+          currentUser={currentUser}
+          userProfile={userProfile}
+          navigate={navigate}
+          myR={viewerState.post.reactions?.[currentUser.uid]}
+          rc={(() => { const c={}; Object.values(viewerState.post.reactions||{}).forEach(e=>{c[e]=(c[e]||0)+1;}); return c; })()}
+          total={Object.keys(viewerState.post.reactions||{}).length}
+          onReact={(emoji) => reactToPost(viewerState.post.id, emoji)}
+          onDownload={(url) => downloadMedia(url, 'image')}
+          onShare={() => sharePost(viewerState.post)}
+        />
+      )}
       {shareModalPost && <ShareModal post={shareModalPost} onClose={() => setShareModalPost(null)} />}
 
       {/* ── Bottom sheet : Plus d'options (groupe) ─────────────── */}
