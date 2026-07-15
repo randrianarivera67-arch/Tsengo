@@ -6,6 +6,7 @@ import {
   doc, updateDoc, arrayUnion, arrayRemove, deleteDoc, writeBatch, getDoc, getDocs, where
 } from 'firebase/firestore';
 import { db } from '../firebase';
+import MediaViewer from '../components/MediaViewer';
 import { useAuth } from '../context/AuthContext';
 import { useLang } from '../context/LanguageContext';
 import { uploadToTelegram } from '../utils/telegram';
@@ -296,7 +297,7 @@ export default function Home() {
   const feedAds = useFeedAds();
   const [visibleCount, setVisibleCount] = useState(10);   // affichage progressif
   const [expandedPosts, setExpandedPosts] = useState({});
-  const [zoomImg,       setZoomImg]       = useState(null);
+  const [viewerState,   setViewerState]   = useState(null); // { post, index }
   const [reactorNames, setReactorNames] = useState({});   // uid → prenom (ho an'ny "X et N autres")
   const [mentionQuery, setMentionQuery] = useState(null); // { postId, q } rehefa manoratra @
   const [mentionFriends, setMentionFriends] = useState([]);
@@ -1118,40 +1119,31 @@ const fields = {
 
   return (
     <div style={{ padding:0 }}>
-      {zoomImg && (
-        <div onClick={()=>setZoomImg(null)} style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.95)', zIndex:600, display:'flex', alignItems:'center', justifyContent:'center', touchAction:'none' }}>
-          <button onClick={(e)=>{e.stopPropagation();downloadMedia(zoomImg,'image');}} aria-label="Télécharger" style={{ position:'absolute', top:16, left:16, background:'rgba(255,255,255,.15)', border:'none', borderRadius:'50%', width:40, height:40, color:'white', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', zIndex:10 }}><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M12 4v10m0 0l-4-4m4 4l4-4M5 19h14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg></button>
-          <button onClick={()=>setZoomImg(null)} style={{ position:'absolute', top:16, right:16, background:'rgba(255,255,255,.15)', border:'none', borderRadius:'50%', width:40, height:40, color:'white', fontSize:22, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', zIndex:10 }}>✕</button>
-          <img
-            src={zoomImg} alt=""
-            onClick={e=>e.stopPropagation()}
-            onTouchStart={e=>{
-              if(e.touches.length===2){
-                e.currentTarget._sd=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY);
-                e.currentTarget._ss=parseFloat(e.currentTarget.getAttribute('data-s')||1);
-              } else {
-                const now=Date.now();
-                if(now-(e.currentTarget._lt||0)<300){
-                  const c=parseFloat(e.currentTarget.getAttribute('data-s')||1);
-                  const ns=c>1?1:2.5;
-                  e.currentTarget.setAttribute('data-s',ns);
-                  e.currentTarget.style.transform='scale('+ns+')';
-                }
-                e.currentTarget._lt=now;
-              }
-            }}
-            onTouchMove={e=>{
-              if(e.touches.length===2){
-                e.preventDefault();
-                const d=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY);
-                const ns=Math.min(Math.max((e.currentTarget._ss||1)*(d/(e.currentTarget._sd||d)),1),4);
-                e.currentTarget.setAttribute('data-s',ns);
-                e.currentTarget.style.transform='scale('+ns+')';
-              }
-            }}
-            style={{ maxWidth:'100vw', maxHeight:'100vh', objectFit:'contain', transition:'transform .2s', touchAction:'none', cursor:'zoom-in' }}
-          />
-        </div>
+      {viewerState && (
+        <MediaViewer
+          post={viewerState.post}
+          startIndex={viewerState.index}
+          onClose={() => setViewerState(null)}
+          currentUser={currentUser}
+          userProfile={userProfile}
+          navigate={navigate}
+          myR={viewerState.post.reactions?.[currentUser.uid]}
+          rc={countReactions(viewerState.post.reactions)}
+          total={Object.keys(viewerState.post.reactions||{}).length}
+          reactorNames={reactorNames}
+          onReact={(emoji) => reactToPost(viewerState.post.id, emoji)}
+          onOpenReactionModal={() => openReactionModal(viewerState.post)}
+          onDownload={(url) => downloadMedia(url, 'image')}
+          onShare={() => sharePost(viewerState.post)}
+          reactToCmt={reactToCmt}
+          addComment={addComment}
+          deleteCmt={deleteCmt}
+          cmtText={cmtText}
+          setCmtText={setCmtText}
+          replyTo={replyTo}
+          setReplyTo={setReplyTo}
+          VIPBadge={VIPBadge}
+        />
       )}
 
       {/* ── Stories (format Facebook) ─────────────────────────── */}
@@ -1879,11 +1871,11 @@ const fields = {
               )}
               {post.mediaURLs?.length > 1 ? (
                 <div style={{ marginTop:8, marginLeft:-16, marginRight:-16 }}>
-                  <PhotoCarousel urls={post.mediaURLs} onOpen={setZoomImg} />
+                  <PhotoCarousel urls={post.mediaURLs} onOpen={(u) => setViewerState({ post, index: Math.max(0, (post.mediaURLs||[]).indexOf(u)) })} />
                 </div>
               ) : post.mediaURL && (
                 <div style={{ marginTop:8, marginLeft:-16, marginRight:-16 }}>
-                  {post.isMusic ? <MusicPostCard post={post} height={140}/> : post.mediaType==='image' ? <img src={post.mediaURL} alt="" onClick={e=>{e.stopPropagation();setZoomImg(post.mediaURL);}} style={{ width:'100%', borderRadius:0, maxHeight:520, objectFit:'cover', display:'block', cursor:'zoom-in' }}/> : <FeedVideo src={post.mediaURL} poster={post.thumbURL} dataSaver={dataSaver} onOpenReels={()=>navigate('/reels',{state:{startId:post.id}})} style={{ width:'100%', borderRadius:0, maxHeight:520, objectFit:'cover', display:'block', background:'#000' }} />}
+                  {post.isMusic ? <MusicPostCard post={post} height={140}/> : post.mediaType==='image' ? <img src={post.mediaURL} alt="" onClick={e=>{e.stopPropagation();setViewerState({ post, index: 0 });}} style={{ width:'100%', borderRadius:0, maxHeight:520, objectFit:'cover', display:'block', cursor:'zoom-in' }}/> : <FeedVideo src={post.mediaURL} poster={post.thumbURL} dataSaver={dataSaver} onOpenReels={()=>navigate('/reels',{state:{startId:post.id}})} style={{ width:'100%', borderRadius:0, maxHeight:520, objectFit:'cover', display:'block', background:'#000' }} />}
                 </div>
               )}
               {/* ── Article boutique : informations ambanin'ny sary (sary 3) ── */}
