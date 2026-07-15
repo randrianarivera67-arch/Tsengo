@@ -11,6 +11,7 @@ import { db } from '../firebase';
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'https://tsengo-backend.onrender.com';
 const NOTIFY_SECRET = import.meta.env.VITE_NOTIFY_SECRET || '';
 const CHANNEL_ID = 'trengo_default';
+const CHANNEL_MSG = 'trengo_messages';
 
 let currentUid = null;
 let currentToken = null;
