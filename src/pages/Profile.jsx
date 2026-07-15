@@ -12,8 +12,6 @@ import { timeAgo } from '../utils/timeAgo';
 import { isDataSaverOn, subscribeDataSaver } from '../utils/dataSaver';
 import { downloadMedia } from '../utils/download';
 import ShareModal from '../components/ShareModal';
-import MediaViewer from '../components/MediaViewer';
-import PhotoCarousel from '../components/PhotoCarousel';
 import FollowListModal from '../components/FollowListModal';
 import { useActiveStoryUids } from '../hooks/useActiveStoryUids';
 import { NeonBriefcase, NeonGraduation, NeonPhone, NeonGlobe, NeonLocation, NeonHome, NeonMic, NeonArchive, NeonClock, NeonLike, NeonComment, NeonShare, NeonStar } from '../components/NeonIcons';
@@ -111,7 +109,6 @@ export default function Profile() {
   const [friendsData,    setFriendsData] = useState([]);
   const [loadingFriends, setLoadingF]    = useState(false);
   const [zoomPhoto,      setZoomPhoto]   = useState(null);
-  const [viewerState,    setViewerState] = useState(null); // { post, index }
   const [selectedPost,   setSelectedPost] = useState(null);
   const [friendStatus,   setFriendStatus] = useState('none');
 
@@ -425,8 +422,8 @@ export default function Profile() {
 
   if (!profile) return <div style={{ padding:40, textAlign:'center', color:'#65676B' }}>{t('loading')}</div>;
   const friendCount = profile.friends?.length||0;
-  const profilePhoto = profile.photoURL ? [posts.find(p=>p.isProfilePhoto && p.mediaURL===profile.photoURL) || { id:'profile-photo', uid:targetUid, authorName:profile.fullName, authorPhoto:profile.photoURL, mediaURL:profile.photoURL, mediaType:'image', isProfilePhoto:true, reactions:{}, comments:[] }] : [];
-  const coverPhotoArr = coverURL ? [posts.find(p=>p.isCoverPhoto && p.mediaURL===coverURL) || { id:'cover-photo', uid:targetUid, authorName:profile.fullName, authorPhoto:profile.photoURL, mediaURL:coverURL, mediaType:'image', isCoverPhoto:true, reactions:{}, comments:[] }] : [];
+  const profilePhoto = profile.photoURL ? [{ id:'profile-photo', mediaURL:profile.photoURL, isProfilePhoto:true }] : [];
+  const coverPhotoArr = coverURL ? [{ id:'cover-photo', mediaURL:coverURL, isCoverPhoto:true }] : [];
   const allPhotos = [...coverPhotoArr, ...profilePhoto, ...photoPosts];
 
   function renderPost(post) {
@@ -514,11 +511,7 @@ export default function Profile() {
           )}
           {post.mediaURL && (
             <div style={{ marginTop:8 }}>
-              {post.mediaType==='image'
-                ? (post.mediaURLs?.length > 1
-                    ? <PhotoCarousel urls={post.mediaURLs} onOpen={() => navigate(`/post/${post.id}`)} />
-                    : <img src={post.mediaURL} alt="" onClick={() => navigate(`/post/${post.id}`)} style={{ width:'100%', borderRadius:10, maxHeight:350, objectFit:'cover', cursor:'zoom-in' }}/>)
-                : <div onClick={()=>navigate('/reels',{state:{startId:post.id}})} style={{ position:'relative', cursor:'pointer' }}><video src={post.mediaURL} poster={post.thumbURL || undefined} preload={(dataSaver || post.thumbURL) ? 'none' : 'metadata'} style={{ width:'100%', borderRadius:10, maxHeight:350, objectFit:'cover', background:'#000' }} muted playsInline/><div style={{ position:'absolute', inset:0, display:'flex', alignItems:'center', justifyContent:'center' }}><div style={{ width:50, height:50, background:'rgba(0,0,0,0.5)', borderRadius:'50%', display:'flex', alignItems:'center', justifyContent:'center' }}><span style={{ color:'white', fontSize:20 }}>▶</span></div></div></div>}
+              {post.mediaType==='image' ? <img src={post.mediaURL} alt="" style={{ width:'100%', borderRadius:10, maxHeight:350, objectFit:'cover' }}/> : <div onClick={()=>navigate('/reels',{state:{startId:post.id}})} style={{ position:'relative', cursor:'pointer' }}><video src={post.mediaURL} poster={post.thumbURL || undefined} preload={(dataSaver || post.thumbURL) ? 'none' : 'metadata'} style={{ width:'100%', borderRadius:10, maxHeight:350, objectFit:'cover', background:'#000' }} muted playsInline/><div style={{ position:'absolute', inset:0, display:'flex', alignItems:'center', justifyContent:'center' }}><div style={{ width:50, height:50, background:'rgba(0,0,0,0.5)', borderRadius:'50%', display:'flex', alignItems:'center', justifyContent:'center' }}><span style={{ color:'white', fontSize:20 }}>▶</span></div></div></div>}
             </div>
           )}
         </div>
@@ -722,14 +715,14 @@ export default function Profile() {
       )}
       <div>
       <div style={{ height:200, background:'linear-gradient(135deg,#1877F2,#63A9FF,#FFB3D9)', position:'relative' }}>
-        {coverURL && <img src={coverURL} alt='cover' onClick={()=>{ const cp=coverPhotoArr[0]; cp && cp.id!=='cover-photo' ? navigate(`/post/${cp.id}`) : setZoomPhoto(coverURL); }} style={{ width:'100%', height:'100%', objectFit:'cover', position:'absolute', inset:0, cursor:'pointer' }}/>}
+        {coverURL && <img src={coverURL} alt='cover' onClick={()=>setZoomPhoto(coverURL)} style={{ width:'100%', height:'100%', objectFit:'cover', position:'absolute', inset:0, cursor:'pointer' }}/>}
         {isOwn && <>
           <button onClick={()=>coverRef.current.click()} disabled={uploadingCover} style={{ position:'absolute', bottom:10, right:10, background:'#1877F2', border:'2px solid white', borderRadius:'50%', width:32, height:32, cursor:'pointer', color:'white', display:'flex', alignItems:'center', justifyContent:'center', zIndex:2 }}>{uploadingCover?'...':<HiCamera size={16}/>}</button>
           <input ref={coverRef} type='file' accept='image/*' onChange={uploadCoverPhoto} style={{ display:'none' }}/>
         </>}
         <div style={{ position:'absolute', bottom:-55, left:'50%', transform:'translateX(-50%)' }}>
           <div style={{ position:'relative' }}>
-            <img src={profile.photoURL||`https://ui-avatars.com/api/?name=${encodeURIComponent(profile.fullName)}&background=1877F2&color=fff&size=100`} alt="" className="avatar avatar-ring" onClick={()=>{ if(!profile.photoURL) return; const pp=profilePhoto[0]; pp && pp.id!=='profile-photo' ? navigate(`/post/${pp.id}`) : setZoomPhoto(profile.photoURL); }} style={{ width:100, height:100, border: activeStoryUids.has(targetUid) ? '4px solid #1877F2' : '4px solid white', boxShadow: activeStoryUids.has(targetUid) ? '0 0 0 3px white, 0 0 0 6px #63A9FF' : 'none', objectFit:'cover', cursor:'pointer' }}/>
+            <img src={profile.photoURL||`https://ui-avatars.com/api/?name=${encodeURIComponent(profile.fullName)}&background=1877F2&color=fff&size=100`} alt="" className="avatar avatar-ring" onClick={()=>setZoomPhoto(profile.photoURL)} style={{ width:100, height:100, border: activeStoryUids.has(targetUid) ? '4px solid #1877F2' : '4px solid white', boxShadow: activeStoryUids.has(targetUid) ? '0 0 0 3px white, 0 0 0 6px #63A9FF' : 'none', objectFit:'cover', cursor:'pointer' }}/>
             {isOwn&&<><button onClick={() => photoRef.current.click()} disabled={uploadingPhoto} style={{ position:'absolute', bottom:2, right:2, background:'#1877F2', border:'2px solid white', borderRadius:'50%', width:28, height:28, cursor:'pointer', color:'white', display:'flex', alignItems:'center', justifyContent:'center' }}>{uploadingPhoto?'...':<HiCamera size={14}/>}</button><input ref={photoRef} type="file" accept="image/*" onChange={uploadProfilePhoto} style={{ display:'none' }}/></>}
           </div>
         </div>
@@ -813,13 +806,13 @@ export default function Profile() {
                 </>
               ) : (
                 <>
-                  <button onClick={toggleFollow} className={isFollowing ? 'btn-secondary' : 'btn-gold'} style={{ fontSize:13, padding:'8px 16px' }}>
+                  <button onClick={toggleFollow} className={isFollowing ? 'btn-secondary' : 'btn-gold'} style={{ fontSize:13, padding:'0 16px', height:36, display:'inline-flex', alignItems:'center', justifyContent:'center' }}>
                     {isFollowing ? '✓ Abonné' : <><NeonStar size={13} color="#4A3400"/> Suivre</>}
                   </button>
-                  <button onClick={() => navigate(`/messages/${getChatId(currentUser.uid,targetUid)}`)} className="btn-primary" style={{ fontSize:13, padding:'8px 18px' }}><HiPaperAirplane size={14} style={{ display:'inline', marginRight:4 }}/>Message</button>
-                  {friendStatus==='none'&&<button onClick={sendFriendRequest} style={{ display:'inline-flex', alignItems:'center', gap:6, background:"linear-gradient(180deg,#1B84FF,#1877F2)", border:"none", borderRadius:20, padding:'8px 16px', color:"white", fontWeight:600, cursor:'pointer', fontSize:13, boxShadow:"0 3px 12px rgba(24,119,242,.35)" }}><HiUserAdd size={14}/>Ajouter</button>}
-                  {friendStatus==='requested'&&<button onClick={cancelFriendRequest} style={{ display:'inline-flex', alignItems:'center', background:'#F3F4F6', border:'none', borderRadius:20, padding:'8px 16px', color:'#65676B', fontSize:13, fontWeight:600, cursor:'pointer', fontFamily:'Poppins' }}>Annulé</button>}
-                  {friendStatus==='friend'&&<span style={{ display:'inline-flex', alignItems:'center', background:'#D1FAE5', borderRadius:20, padding:'8px 16px', color:'#065F46', fontSize:13 }}>✓ Ami</span>}
+                  <button onClick={() => navigate(`/messages/${getChatId(currentUser.uid,targetUid)}`)} className="btn-primary" style={{ fontSize:13, padding:'0 18px', height:36, display:'inline-flex', alignItems:'center', justifyContent:'center' }}><HiPaperAirplane size={14} style={{ marginRight:4 }}/>Message</button>
+                  {friendStatus==='none'&&<button onClick={sendFriendRequest} style={{ display:'inline-flex', alignItems:'center', justifyContent:'center', gap:6, background:"linear-gradient(180deg,#1B84FF,#1877F2)", border:"none", borderRadius:20, padding:'0 16px', height:36, color:"white", fontWeight:600, cursor:'pointer', fontSize:13, boxShadow:"0 3px 12px rgba(24,119,242,.35)" }}><HiUserAdd size={14}/>Ajouter</button>}
+                  {friendStatus==='requested'&&<button onClick={cancelFriendRequest} style={{ display:'inline-flex', alignItems:'center', justifyContent:'center', background:'#F3F4F6', border:'none', borderRadius:20, padding:'0 16px', height:36, color:'#65676B', fontSize:13, fontWeight:600, cursor:'pointer', fontFamily:'Poppins' }}>Annulé</button>}
+                  {friendStatus==='friend'&&<span style={{ display:'inline-flex', alignItems:'center', justifyContent:'center', background:'#D1FAE5', borderRadius:20, padding:'0 16px', height:36, color:'#065F46', fontSize:13, fontWeight:600 }}>✓ Ami</span>}
                   <div style={{ position:'relative', display:'inline-block' }} onClick={e => e.stopPropagation()}>
                     <button onClick={() => setOtherMenu(p => !p)} style={{ width:36, height:36, borderRadius:'50%', background:'#F0F2F5', border:'none', cursor:'pointer', color:'#050505', display:'flex', alignItems:'center', justifyContent:'center' }}><HiDotsVertical size={17}/></button>
                     {otherMenu && (
@@ -883,7 +876,7 @@ export default function Profile() {
       )}
 
       {reactionModal && (
-        <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,.5)', zIndex:820, display:'flex', alignItems:'center', justifyContent:'center', padding:20 }}>
+        <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,.5)', zIndex:200, display:'flex', alignItems:'center', justifyContent:'center', padding:20 }}>
           <div className="card" style={{ width:'100%', maxWidth:360, padding:20, maxHeight:'70vh', overflowY:'auto' }}>
             <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:14 }}>
               <h3 style={{ color:'#1877F2', fontWeight:700 }}>Réactions</h3>
@@ -908,7 +901,7 @@ export default function Profile() {
         {activeTab==='photos'&&(photoPosts.length===0
           ? <div style={{ textAlign:'center', padding:40, color:'#65676B' }}>Aucune photo</div>
           : <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:4 }}>
-              {allPhotos.map(p => <div key={p.id} onClick={() => navigate(`/post/${p.id}`)} style={{ aspectRatio:'1', overflow:'hidden', borderRadius:8, cursor:'pointer' }}><img src={p.mediaURL} alt="" style={{ width:'100%', height:'100%', objectFit:'cover' }}/></div>)}
+              {allPhotos.map(p => <div key={p.id} onClick={() => p.isProfilePhoto||p.isCoverPhoto ? setZoomPhoto(p.mediaURL) : navigate(`/post/${p.id}`)} style={{ aspectRatio:'1', overflow:'hidden', borderRadius:8, cursor:'pointer' }}><img src={p.mediaURL} alt="" style={{ width:'100%', height:'100%', objectFit:'cover' }}/></div>)}
             </div>
         )}
 
@@ -1022,31 +1015,6 @@ export default function Profile() {
         </div>
       )}
 
-      {viewerState && (
-        <MediaViewer
-          post={viewerState.post}
-          startIndex={viewerState.index}
-          onClose={() => setViewerState(null)}
-          currentUser={currentUser}
-          userProfile={userProfile}
-          navigate={navigate}
-          myR={viewerState.post.reactions?.[currentUser.uid]}
-          rc={countReactions(viewerState.post.reactions)}
-          total={Object.keys(viewerState.post.reactions||{}).length}
-          onReact={(emoji) => reactToPost(viewerState.post.id, emoji)}
-          onOpenReactionModal={() => openReactionModal(viewerState.post)}
-          onDownload={(url) => downloadMedia(url, 'image')}
-          onShare={() => sharePost(viewerState.post)}
-          reactToCmt={reactToCmt}
-          addComment={addComment}
-          deleteCmt={deleteCmt}
-          cmtText={cmtText}
-          setCmtText={setCmtText}
-          replyTo={replyTo}
-          setReplyTo={setReplyTo}
-          VIPBadge={VIPBadge}
-        />
-      )}
       {shareModalPost && <ShareModal post={shareModalPost} onClose={() => setShareModalPost(null)} />}
       {followListOpen && (
         <FollowListModal
