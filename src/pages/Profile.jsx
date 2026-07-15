@@ -425,8 +425,8 @@ export default function Profile() {
 
   if (!profile) return <div style={{ padding:40, textAlign:'center', color:'#65676B' }}>{t('loading')}</div>;
   const friendCount = profile.friends?.length||0;
-  const profilePhoto = profile.photoURL ? [{ id:'profile-photo', mediaURL:profile.photoURL, isProfilePhoto:true }] : [];
-  const coverPhotoArr = coverURL ? [{ id:'cover-photo', mediaURL:coverURL, isCoverPhoto:true }] : [];
+  const profilePhoto = profile.photoURL ? [posts.find(p=>p.isProfilePhoto && p.mediaURL===profile.photoURL) || { id:'profile-photo', uid:targetUid, authorName:profile.fullName, authorPhoto:profile.photoURL, mediaURL:profile.photoURL, mediaType:'image', isProfilePhoto:true, reactions:{}, comments:[] }] : [];
+  const coverPhotoArr = coverURL ? [posts.find(p=>p.isCoverPhoto && p.mediaURL===coverURL) || { id:'cover-photo', uid:targetUid, authorName:profile.fullName, authorPhoto:profile.photoURL, mediaURL:coverURL, mediaType:'image', isCoverPhoto:true, reactions:{}, comments:[] }] : [];
   const allPhotos = [...coverPhotoArr, ...profilePhoto, ...photoPosts];
 
   function renderPost(post) {
@@ -722,14 +722,14 @@ export default function Profile() {
       )}
       <div>
       <div style={{ height:200, background:'linear-gradient(135deg,#1877F2,#63A9FF,#FFB3D9)', position:'relative' }}>
-        {coverURL && <img src={coverURL} alt='cover' onClick={()=>setZoomPhoto(coverURL)} style={{ width:'100%', height:'100%', objectFit:'cover', position:'absolute', inset:0, cursor:'pointer' }}/>}
+        {coverURL && <img src={coverURL} alt='cover' onClick={()=>setViewerState({ post: coverPhotoArr[0], index: 0 })} style={{ width:'100%', height:'100%', objectFit:'cover', position:'absolute', inset:0, cursor:'pointer' }}/>}
         {isOwn && <>
           <button onClick={()=>coverRef.current.click()} disabled={uploadingCover} style={{ position:'absolute', bottom:10, right:10, background:'#1877F2', border:'2px solid white', borderRadius:'50%', width:32, height:32, cursor:'pointer', color:'white', display:'flex', alignItems:'center', justifyContent:'center', zIndex:2 }}>{uploadingCover?'...':<HiCamera size={16}/>}</button>
           <input ref={coverRef} type='file' accept='image/*' onChange={uploadCoverPhoto} style={{ display:'none' }}/>
         </>}
         <div style={{ position:'absolute', bottom:-55, left:'50%', transform:'translateX(-50%)' }}>
           <div style={{ position:'relative' }}>
-            <img src={profile.photoURL||`https://ui-avatars.com/api/?name=${encodeURIComponent(profile.fullName)}&background=1877F2&color=fff&size=100`} alt="" className="avatar avatar-ring" onClick={()=>setZoomPhoto(profile.photoURL)} style={{ width:100, height:100, border: activeStoryUids.has(targetUid) ? '4px solid #1877F2' : '4px solid white', boxShadow: activeStoryUids.has(targetUid) ? '0 0 0 3px white, 0 0 0 6px #63A9FF' : 'none', objectFit:'cover', cursor:'pointer' }}/>
+            <img src={profile.photoURL||`https://ui-avatars.com/api/?name=${encodeURIComponent(profile.fullName)}&background=1877F2&color=fff&size=100`} alt="" className="avatar avatar-ring" onClick={()=> profile.photoURL ? setViewerState({ post: profilePhoto[0], index: 0 }) : null} style={{ width:100, height:100, border: activeStoryUids.has(targetUid) ? '4px solid #1877F2' : '4px solid white', boxShadow: activeStoryUids.has(targetUid) ? '0 0 0 3px white, 0 0 0 6px #63A9FF' : 'none', objectFit:'cover', cursor:'pointer' }}/>
             {isOwn&&<><button onClick={() => photoRef.current.click()} disabled={uploadingPhoto} style={{ position:'absolute', bottom:2, right:2, background:'#1877F2', border:'2px solid white', borderRadius:'50%', width:28, height:28, cursor:'pointer', color:'white', display:'flex', alignItems:'center', justifyContent:'center' }}>{uploadingPhoto?'...':<HiCamera size={14}/>}</button><input ref={photoRef} type="file" accept="image/*" onChange={uploadProfilePhoto} style={{ display:'none' }}/></>}
           </div>
         </div>
@@ -908,7 +908,7 @@ export default function Profile() {
         {activeTab==='photos'&&(photoPosts.length===0
           ? <div style={{ textAlign:'center', padding:40, color:'#65676B' }}>Aucune photo</div>
           : <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:4 }}>
-              {allPhotos.map(p => <div key={p.id} onClick={() => p.isProfilePhoto||p.isCoverPhoto ? setZoomPhoto(p.mediaURL) : setViewerState({ post:p, index:0 })} style={{ aspectRatio:'1', overflow:'hidden', borderRadius:8, cursor:'pointer' }}><img src={p.mediaURL} alt="" style={{ width:'100%', height:'100%', objectFit:'cover' }}/></div>)}
+              {allPhotos.map(p => <div key={p.id} onClick={() => setViewerState({ post:p, index:0 })} style={{ aspectRatio:'1', overflow:'hidden', borderRadius:8, cursor:'pointer' }}><img src={p.mediaURL} alt="" style={{ width:'100%', height:'100%', objectFit:'cover' }}/></div>)}
             </div>
         )}
 
