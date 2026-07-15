@@ -496,7 +496,7 @@ input::placeholder, textarea::placeholder { color: #8A8D91 !important; font-size
   font-family: 'Poppins', sans-serif; transition: background .15s;
 }
 .post-action-btn:hover { background: var(--canvas); color: var(--blue); }
-.post-action-btn.active { color: var(--blue); }
+.post-action-btn.active { color: #FF2D8D; }
 
 .reactions-bar {
   display: flex; align-items: center; justify-content: space-between;

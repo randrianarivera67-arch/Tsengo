@@ -40,9 +40,10 @@ import { increment } from 'firebase/firestore';
 const MAX_POST    = 2000;
 const MAX_COMMENT = 500;
 const MAX_PRICE   = 999_999_999;
-const REACTIONS   = ['❤️','😂','😮','😢','😡'];
+const REACTIONS   = ['👍','❤️','😂','😮','😢','😡'];
 const FB_REACTIONS = [
-  { emoji:'❤️', label:"J'aime"    },
+  { emoji:'👍', label:"J'aime"    },
+  { emoji:'❤️', label:"J'adore"   },
   { emoji:'😂', label:'Haha'      },
   { emoji:'😮', label:'Wouah'     },
   { emoji:'😢', label:'Triste'    },
@@ -1104,7 +1105,7 @@ const fields = {
   function quickLike(post) {
     if (lpFired.current) { lpFired.current = false; return; }
     const myR = post.reactions?.[currentUser.uid];
-    reactToPost(post.id, myR || '❤️');
+    reactToPost(post.id, myR || '👍');
   }
   function startLongPress(postId) {
     lpFired.current = false;
@@ -1915,19 +1916,20 @@ const fields = {
                 <div onClick={() => openReactionModal(post)} style={{ display:'flex', alignItems:'center', gap:4, cursor:'pointer', minHeight:18, minWidth:0, flex:1 }}>
                   {total > 0 && (() => {
                     const rUids = Object.keys(post.reactions||{});
-                    const firstUid = rUids.find(u => u !== currentUser?.uid) || rUids[0];
                     const meIn = rUids.includes(currentUser?.uid);
-                    const firstName = meIn && firstUid === currentUser?.uid ? 'Vous' : (reactorNames[firstUid] || '');
+                    const otherUid = rUids.find(u => u !== currentUser?.uid);
+                    const firstName = meIn ? 'Vous' : (reactorNames[otherUid] || '');
                     const rest = total - 1;
+                    const sortedEmojis = Object.entries(rc).sort((a,b) => b[1]-a[1]).slice(0,3).map(([e]) => e);
                     return <>
                       <div style={{ display:'flex', gap:3, flexShrink:0 }}>
-                        {Object.entries(rc).slice(0,3).map(([e]) =>
+                        {sortedEmojis.map(e =>
                           <span key={e} style={{ fontSize:14, background:'white', borderRadius:'50%', boxShadow:'0 0 0 1.5px white', lineHeight:1 }}>{e}</span>)}
                       </div>
                       <span style={{ fontSize:12.5, color:'#65676B', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
                         {firstName
-                          ? (rest > 0 ? `${firstName} et ${rest} autre${rest>1?'s':''} personne${rest>1?'s':''}` : firstName)
-                          : total}
+                          ? (rest > 0 ? `${firstName} et ${rest} autre${rest>1?'s':''} personne${rest>1?'s':''} ont réagi à la publication` : `${firstName} a réagi à la publication`)
+                          : `${total} réaction${total>1?'s':''}`}
                       </span>
                     </>;
                   })()}
@@ -1955,8 +1957,11 @@ const fields = {
                   onTouchStart={() => startLongPress(post.id)} onTouchEnd={endLongPress}
                   onMouseDown={() => startLongPress(post.id)} onMouseUp={endLongPress} onMouseLeave={endLongPress}
                   className={'post-action-btn'+(myR?' active':'')}
-                  style={myR ? { color:'#1877F2', fontWeight:700 } : {}}>
-                  <NeonLike size={19} color={myR ? '#1877F2' : '#65676B'}/> J'aime
+                  style={myR ? { color:'#FF2D8D', fontWeight:700 } : {}}>
+                  {myR
+                    ? <span style={{ fontSize:18, lineHeight:1 }}>{myR}</span>
+                    : <NeonLike size={19} color={'#65676B'}/>}
+                  {' '}{myR ? (FB_REACTIONS.find(r => r.emoji === myR)?.label || "J'aime") : "J'aime"}
                 </button>
                 {showReact[post.id] && (
                   <div onClick={e=>e.stopPropagation()} style={{ position:'absolute', bottom:'calc(100% + 8px)', left:0, background:'white', borderRadius:20, padding:'10px 8px 6px', display:'flex', gap:4, boxShadow:'0 4px 24px rgba(0,0,0,.18)', zIndex:50, border:'1px solid #E4E6EB', whiteSpace:'nowrap' }}>
