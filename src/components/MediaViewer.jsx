@@ -34,9 +34,58 @@ export default function MediaViewer({
   const [index, setIndex] = useState(Math.min(startIndex, Math.max(images.length - 1, 0)));
   const [showPicker, setShowPicker] = useState(false);
   const [showComments, setShowComments] = useState(false);
+  const [expanded, setExpanded] = useState(false);
+  const [scale, setScale] = useState(1);
+  const [toast, setToast] = useState('');
   const [text, setText] = useState('');
   const scrollRef = useRef(null);
   const rafRef = useRef(null);
+  const lpTimer = useRef(null);
+  const lpFired = useRef(false);
+  const pinch = useRef({ d: 0, s: 1, lastTap: 0 });
+
+  // Le zoom se remet a 1 quand on change d'image
+  useEffect(() => { setScale(1); }, [index]);
+
+  function flash(msg) { setToast(msg); setTimeout(() => setToast(''), 2600); }
+
+  // ── Zoom : pincement + double-tap (comme avant)
+  function onTouchStartImg(e) {
+    if (e.touches.length === 2) {
+      pinch.current.d = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+      pinch.current.s = scale;
+    } else {
+      const now = Date.now();
+      if (now - pinch.current.lastTap < 300) setScale((v) => (v > 1 ? 1 : 2.5));
+      pinch.current.lastTap = now;
+    }
+  }
+  function onTouchMoveImg(e) {
+    if (e.touches.length === 2) {
+      const d = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+      const ns = Math.min(Math.max(pinch.current.s * (d / (pinch.current.d || d)), 1), 4);
+      setScale(ns);
+    }
+  }
+
+  // ── Appui long -> palette de reactions (indispensable sur mobile)
+  function startLP() { lpFired.current = false; lpTimer.current = setTimeout(() => { lpFired.current = true; setShowPicker(true); }, 450); }
+  function endLP() { clearTimeout(lpTimer.current); }
+  function tapReact() {
+    if (lpFired.current) { lpFired.current = false; return; }
+    onReact(myR || '👍');
+  }
+
+  async function handleDownload() {
+    const url = images[index];
+    if (!url) { flash('Aucune image'); return; }
+    flash('Téléchargement…');
+    try {
+      const r = await onDownload(url);
+      if (r && r.ok === false) flash('Ouverture du fichier…');
+      else flash('Téléchargé ✓');
+    } catch (e) { flash('Échec du téléchargement'); }
+  }
 
   // Ouvre au bon index (sans animation) au montage
   useEffect(() => {
@@ -77,7 +126,11 @@ export default function MediaViewer({
   const myLabel = myR ? (FB_REACTIONS.find((r) => r.emoji === myR)?.label || "J'aime") : "J'aime";
 
   return (
-    <div style={{ position: 'fixed', inset: 0, background: '#000', zIndex: 700, display: 'flex', flexDirection: 'column' }}>
+    <div style={{ position: 'fixed', inset: 0, background: '#000', zIndex: 700, display: 'flex', flexDirection: 'column' }}
+      onClick={() => showPicker && setShowPicker(false)}>
+      {toast && (
+        <div style={{ position: 'absolute', top: 70, left: '50%', transform: 'translateX(-50%)', background: 'rgba(0,0,0,.85)', color: 'white', padding: '8px 16px', borderRadius: 20, fontSize: 13, zIndex: 30, pointerEvents: 'none' }}>{toast}</div>
+      )}
       {/* Barre haut */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 14px', flexShrink: 0, background: 'rgba(0,0,0,.5)' }}>
         <img
@@ -91,7 +144,7 @@ export default function MediaViewer({
           </p>
           {post.createdAt && <p style={{ color: '#B0B3B8', fontSize: 11 }}>{timeAgo(post.createdAt)}</p>}
         </div>
-        <button onClick={() => onDownload(images[index])} aria-label="Télécharger"
+        <button onClick={handleDownload} aria-label="Télécharger"
           style={{ background: 'rgba(255,255,255,.15)', border: 'none', borderRadius: '50%', width: 38, height: 38, color: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
           <HiDownload size={19} />
         </button>
@@ -104,10 +157,16 @@ export default function MediaViewer({
       {/* Image(s) — défilement horizontal si plusieurs */}
       <div style={{ position: 'relative', flex: 1, minHeight: 0 }}>
         <div ref={scrollRef} onScroll={onScroll}
-          style={{ display: 'flex', overflowX: multi ? 'auto' : 'hidden', overflowY: 'hidden', height: '100%', scrollSnapType: multi ? 'x mandatory' : 'none', WebkitOverflowScrolling: 'touch' }}>
+          style={{ display: 'flex', overflowX: (multi && scale === 1) ? 'auto' : 'hidden', overflowY: 'hidden', height: '100%', scrollSnapType: (multi && scale === 1) ? 'x mandatory' : 'none', WebkitOverflowScrolling: 'touch' }}>
           {images.map((u, i) => (
             <div key={i} style={{ minWidth: '100%', height: '100%', scrollSnapAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <img src={u} alt="" style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain', display: 'block' }} />
+              <img
+                src={u} alt=""
+                onTouchStart={i === index ? onTouchStartImg : undefined}
+                onTouchMove={i === index ? onTouchMoveImg : undefined}
+                onDoubleClick={i === index ? () => setScale((v) => (v > 1 ? 1 : 2.5)) : undefined}
+                style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain', display: 'block', transform: i === index ? `scale(${scale})` : 'none', transition: 'transform .18s', touchAction: 'none' }}
+              />
             </div>
           ))}
         </div>
@@ -136,7 +195,17 @@ export default function MediaViewer({
       {/* Panneau bas : légende, réactions, actions, commentaires */}
       <div style={{ background: '#18191A', maxHeight: showComments ? '62vh' : 'auto', display: 'flex', flexDirection: 'column', flexShrink: 0 }}>
         {post.content && (
-          <p style={{ color: '#E4E6EB', fontSize: 14, padding: '10px 14px 0', wordBreak: 'break-word' }}>{post.content}</p>
+          <div style={{ padding: '10px 14px 0' }}>
+            <p style={{ color: '#E4E6EB', fontSize: 14, wordBreak: 'break-word', whiteSpace: 'pre-wrap',
+              ...(expanded ? {} : { display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }) }}>
+              {post.content}
+            </p>
+            {post.content.length > 90 && (
+              <span onClick={() => setExpanded((v) => !v)} style={{ color: '#B0B3B8', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
+                {expanded ? 'Voir moins' : 'Voir plus'}
+              </span>
+            )}
+          </div>
         )}
 
         {total > 0 && (
@@ -151,8 +220,10 @@ export default function MediaViewer({
         )}
 
         <div style={{ display: 'flex', borderTop: '1px solid #3A3B3C', borderBottom: '1px solid #3A3B3C', marginTop: 10, position: 'relative' }}>
-          <button onClick={() => onReact(myR || '👍')}
-            onContextMenu={(e) => { e.preventDefault(); setShowPicker((p) => !p); }}
+          <button onClick={tapReact}
+            onTouchStart={startLP} onTouchEnd={endLP}
+            onMouseDown={startLP} onMouseUp={endLP} onMouseLeave={endLP}
+            onContextMenu={(e) => e.preventDefault()}
             style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '10px 0', background: 'none', border: 'none', cursor: 'pointer', color: myR ? '#FF2D8D' : '#B0B3B8', fontWeight: 700, fontSize: 13, fontFamily: 'Poppins' }}>
             {myR ? <span style={{ fontSize: 17 }}>{myR}</span> : <NeonLike size={18} color="#B0B3B8" />} {myLabel}
           </button>
