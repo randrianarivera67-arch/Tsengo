@@ -12,6 +12,8 @@ import { timeAgo } from '../utils/timeAgo';
 import { isDataSaverOn, subscribeDataSaver } from '../utils/dataSaver';
 import { downloadMedia } from '../utils/download';
 import ShareModal from '../components/ShareModal';
+import MediaViewer from '../components/MediaViewer';
+import PhotoCarousel from '../components/PhotoCarousel';
 import FollowListModal from '../components/FollowListModal';
 import { useActiveStoryUids } from '../hooks/useActiveStoryUids';
 import { NeonBriefcase, NeonGraduation, NeonPhone, NeonGlobe, NeonLocation, NeonHome, NeonMic, NeonArchive, NeonClock, NeonLike, NeonComment, NeonShare, NeonStar } from '../components/NeonIcons';
@@ -109,6 +111,7 @@ export default function Profile() {
   const [friendsData,    setFriendsData] = useState([]);
   const [loadingFriends, setLoadingF]    = useState(false);
   const [zoomPhoto,      setZoomPhoto]   = useState(null);
+  const [viewerState,    setViewerState] = useState(null); // { post, index }
   const [selectedPost,   setSelectedPost] = useState(null);
   const [friendStatus,   setFriendStatus] = useState('none');
 
@@ -511,7 +514,11 @@ export default function Profile() {
           )}
           {post.mediaURL && (
             <div style={{ marginTop:8 }}>
-              {post.mediaType==='image' ? <img src={post.mediaURL} alt="" style={{ width:'100%', borderRadius:10, maxHeight:350, objectFit:'cover' }}/> : <div onClick={()=>navigate('/reels',{state:{startId:post.id}})} style={{ position:'relative', cursor:'pointer' }}><video src={post.mediaURL} poster={post.thumbURL || undefined} preload={(dataSaver || post.thumbURL) ? 'none' : 'metadata'} style={{ width:'100%', borderRadius:10, maxHeight:350, objectFit:'cover', background:'#000' }} muted playsInline/><div style={{ position:'absolute', inset:0, display:'flex', alignItems:'center', justifyContent:'center' }}><div style={{ width:50, height:50, background:'rgba(0,0,0,0.5)', borderRadius:'50%', display:'flex', alignItems:'center', justifyContent:'center' }}><span style={{ color:'white', fontSize:20 }}>▶</span></div></div></div>}
+              {post.mediaType==='image'
+                ? (post.mediaURLs?.length > 1
+                    ? <PhotoCarousel urls={post.mediaURLs} onOpen={(u) => setViewerState({ post, index: Math.max(0, post.mediaURLs.indexOf(u)) })} />
+                    : <img src={post.mediaURL} alt="" onClick={() => setViewerState({ post, index: 0 })} style={{ width:'100%', borderRadius:10, maxHeight:350, objectFit:'cover', cursor:'zoom-in' }}/>)
+                : <div onClick={()=>navigate('/reels',{state:{startId:post.id}})} style={{ position:'relative', cursor:'pointer' }}><video src={post.mediaURL} poster={post.thumbURL || undefined} preload={(dataSaver || post.thumbURL) ? 'none' : 'metadata'} style={{ width:'100%', borderRadius:10, maxHeight:350, objectFit:'cover', background:'#000' }} muted playsInline/><div style={{ position:'absolute', inset:0, display:'flex', alignItems:'center', justifyContent:'center' }}><div style={{ width:50, height:50, background:'rgba(0,0,0,0.5)', borderRadius:'50%', display:'flex', alignItems:'center', justifyContent:'center' }}><span style={{ color:'white', fontSize:20 }}>▶</span></div></div></div>}
             </div>
           )}
         </div>
@@ -876,7 +883,7 @@ export default function Profile() {
       )}
 
       {reactionModal && (
-        <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,.5)', zIndex:200, display:'flex', alignItems:'center', justifyContent:'center', padding:20 }}>
+        <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,.5)', zIndex:820, display:'flex', alignItems:'center', justifyContent:'center', padding:20 }}>
           <div className="card" style={{ width:'100%', maxWidth:360, padding:20, maxHeight:'70vh', overflowY:'auto' }}>
             <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:14 }}>
               <h3 style={{ color:'#1877F2', fontWeight:700 }}>Réactions</h3>
@@ -901,7 +908,7 @@ export default function Profile() {
         {activeTab==='photos'&&(photoPosts.length===0
           ? <div style={{ textAlign:'center', padding:40, color:'#65676B' }}>Aucune photo</div>
           : <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:4 }}>
-              {allPhotos.map(p => <div key={p.id} onClick={() => p.isProfilePhoto||p.isCoverPhoto ? setZoomPhoto(p.mediaURL) : navigate(`/post/${p.id}`)} style={{ aspectRatio:'1', overflow:'hidden', borderRadius:8, cursor:'pointer' }}><img src={p.mediaURL} alt="" style={{ width:'100%', height:'100%', objectFit:'cover' }}/></div>)}
+              {allPhotos.map(p => <div key={p.id} onClick={() => p.isProfilePhoto||p.isCoverPhoto ? setZoomPhoto(p.mediaURL) : setViewerState({ post:p, index:0 })} style={{ aspectRatio:'1', overflow:'hidden', borderRadius:8, cursor:'pointer' }}><img src={p.mediaURL} alt="" style={{ width:'100%', height:'100%', objectFit:'cover' }}/></div>)}
             </div>
         )}
 
@@ -1015,6 +1022,31 @@ export default function Profile() {
         </div>
       )}
 
+      {viewerState && (
+        <MediaViewer
+          post={viewerState.post}
+          startIndex={viewerState.index}
+          onClose={() => setViewerState(null)}
+          currentUser={currentUser}
+          userProfile={userProfile}
+          navigate={navigate}
+          myR={viewerState.post.reactions?.[currentUser.uid]}
+          rc={countReactions(viewerState.post.reactions)}
+          total={Object.keys(viewerState.post.reactions||{}).length}
+          onReact={(emoji) => reactToPost(viewerState.post.id, emoji)}
+          onOpenReactionModal={() => openReactionModal(viewerState.post)}
+          onDownload={(url) => downloadMedia(url, 'image')}
+          onShare={() => sharePost(viewerState.post)}
+          reactToCmt={reactToCmt}
+          addComment={addComment}
+          deleteCmt={deleteCmt}
+          cmtText={cmtText}
+          setCmtText={setCmtText}
+          replyTo={replyTo}
+          setReplyTo={setReplyTo}
+          VIPBadge={VIPBadge}
+        />
+      )}
       {shareModalPost && <ShareModal post={shareModalPost} onClose={() => setShareModalPost(null)} />}
       {followListOpen && (
         <FollowListModal
