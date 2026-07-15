@@ -1871,11 +1871,11 @@ const fields = {
               )}
               {post.mediaURLs?.length > 1 ? (
                 <div style={{ marginTop:8, marginLeft:-16, marginRight:-16 }}>
-                  <PhotoCarousel urls={post.mediaURLs} onOpen={(u) => setViewerState({ post, index: Math.max(0, (post.mediaURLs||[]).indexOf(u)) })} />
+                  <PhotoCarousel urls={post.mediaURLs} onOpen={() => navigate(`/post/${post.id}`)} />
                 </div>
               ) : post.mediaURL && (
                 <div style={{ marginTop:8, marginLeft:-16, marginRight:-16 }}>
-                  {post.isMusic ? <MusicPostCard post={post} height={140}/> : post.mediaType==='image' ? <img src={post.mediaURL} alt="" onClick={e=>{e.stopPropagation();setViewerState({ post, index: 0 });}} style={{ width:'100%', borderRadius:0, maxHeight:520, objectFit:'cover', display:'block', cursor:'zoom-in' }}/> : <FeedVideo src={post.mediaURL} poster={post.thumbURL} dataSaver={dataSaver} onOpenReels={()=>navigate('/reels',{state:{startId:post.id}})} style={{ width:'100%', borderRadius:0, maxHeight:520, objectFit:'cover', display:'block', background:'#000' }} />}
+                  {post.isMusic ? <MusicPostCard post={post} height={140}/> : post.mediaType==='image' ? <img src={post.mediaURL} alt="" onClick={e=>{e.stopPropagation();navigate(`/post/${post.id}`);}} style={{ width:'100%', borderRadius:0, maxHeight:520, objectFit:'cover', display:'block', cursor:'zoom-in' }}/> : <FeedVideo src={post.mediaURL} poster={post.thumbURL} dataSaver={dataSaver} onOpenReels={()=>navigate('/reels',{state:{startId:post.id}})} style={{ width:'100%', borderRadius:0, maxHeight:520, objectFit:'cover', display:'block', background:'#000' }} />}
                 </div>
               )}
               {/* ── Article boutique : informations ambanin'ny sary (sary 3) ── */}

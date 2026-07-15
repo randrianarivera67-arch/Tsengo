@@ -516,8 +516,8 @@ export default function Profile() {
             <div style={{ marginTop:8 }}>
               {post.mediaType==='image'
                 ? (post.mediaURLs?.length > 1
-                    ? <PhotoCarousel urls={post.mediaURLs} onOpen={(u) => setViewerState({ post, index: Math.max(0, post.mediaURLs.indexOf(u)) })} />
-                    : <img src={post.mediaURL} alt="" onClick={() => setViewerState({ post, index: 0 })} style={{ width:'100%', borderRadius:10, maxHeight:350, objectFit:'cover', cursor:'zoom-in' }}/>)
+                    ? <PhotoCarousel urls={post.mediaURLs} onOpen={() => navigate(`/post/${post.id}`)} />
+                    : <img src={post.mediaURL} alt="" onClick={() => navigate(`/post/${post.id}`)} style={{ width:'100%', borderRadius:10, maxHeight:350, objectFit:'cover', cursor:'zoom-in' }}/>)
                 : <div onClick={()=>navigate('/reels',{state:{startId:post.id}})} style={{ position:'relative', cursor:'pointer' }}><video src={post.mediaURL} poster={post.thumbURL || undefined} preload={(dataSaver || post.thumbURL) ? 'none' : 'metadata'} style={{ width:'100%', borderRadius:10, maxHeight:350, objectFit:'cover', background:'#000' }} muted playsInline/><div style={{ position:'absolute', inset:0, display:'flex', alignItems:'center', justifyContent:'center' }}><div style={{ width:50, height:50, background:'rgba(0,0,0,0.5)', borderRadius:'50%', display:'flex', alignItems:'center', justifyContent:'center' }}><span style={{ color:'white', fontSize:20 }}>▶</span></div></div></div>}
             </div>
           )}
@@ -722,14 +722,14 @@ export default function Profile() {
       )}
       <div>
       <div style={{ height:200, background:'linear-gradient(135deg,#1877F2,#63A9FF,#FFB3D9)', position:'relative' }}>
-        {coverURL && <img src={coverURL} alt='cover' onClick={()=>setViewerState({ post: coverPhotoArr[0], index: 0 })} style={{ width:'100%', height:'100%', objectFit:'cover', position:'absolute', inset:0, cursor:'pointer' }}/>}
+        {coverURL && <img src={coverURL} alt='cover' onClick={()=>{ const cp=coverPhotoArr[0]; cp && cp.id!=='cover-photo' ? navigate(`/post/${cp.id}`) : setZoomPhoto(coverURL); }} style={{ width:'100%', height:'100%', objectFit:'cover', position:'absolute', inset:0, cursor:'pointer' }}/>}
         {isOwn && <>
           <button onClick={()=>coverRef.current.click()} disabled={uploadingCover} style={{ position:'absolute', bottom:10, right:10, background:'#1877F2', border:'2px solid white', borderRadius:'50%', width:32, height:32, cursor:'pointer', color:'white', display:'flex', alignItems:'center', justifyContent:'center', zIndex:2 }}>{uploadingCover?'...':<HiCamera size={16}/>}</button>
           <input ref={coverRef} type='file' accept='image/*' onChange={uploadCoverPhoto} style={{ display:'none' }}/>
         </>}
         <div style={{ position:'absolute', bottom:-55, left:'50%', transform:'translateX(-50%)' }}>
           <div style={{ position:'relative' }}>
-            <img src={profile.photoURL||`https://ui-avatars.com/api/?name=${encodeURIComponent(profile.fullName)}&background=1877F2&color=fff&size=100`} alt="" className="avatar avatar-ring" onClick={()=> profile.photoURL ? setViewerState({ post: profilePhoto[0], index: 0 }) : null} style={{ width:100, height:100, border: activeStoryUids.has(targetUid) ? '4px solid #1877F2' : '4px solid white', boxShadow: activeStoryUids.has(targetUid) ? '0 0 0 3px white, 0 0 0 6px #63A9FF' : 'none', objectFit:'cover', cursor:'pointer' }}/>
+            <img src={profile.photoURL||`https://ui-avatars.com/api/?name=${encodeURIComponent(profile.fullName)}&background=1877F2&color=fff&size=100`} alt="" className="avatar avatar-ring" onClick={()=>{ if(!profile.photoURL) return; const pp=profilePhoto[0]; pp && pp.id!=='profile-photo' ? navigate(`/post/${pp.id}`) : setZoomPhoto(profile.photoURL); }} style={{ width:100, height:100, border: activeStoryUids.has(targetUid) ? '4px solid #1877F2' : '4px solid white', boxShadow: activeStoryUids.has(targetUid) ? '0 0 0 3px white, 0 0 0 6px #63A9FF' : 'none', objectFit:'cover', cursor:'pointer' }}/>
             {isOwn&&<><button onClick={() => photoRef.current.click()} disabled={uploadingPhoto} style={{ position:'absolute', bottom:2, right:2, background:'#1877F2', border:'2px solid white', borderRadius:'50%', width:28, height:28, cursor:'pointer', color:'white', display:'flex', alignItems:'center', justifyContent:'center' }}>{uploadingPhoto?'...':<HiCamera size={14}/>}</button><input ref={photoRef} type="file" accept="image/*" onChange={uploadProfilePhoto} style={{ display:'none' }}/></>}
           </div>
         </div>
@@ -908,7 +908,7 @@ export default function Profile() {
         {activeTab==='photos'&&(photoPosts.length===0
           ? <div style={{ textAlign:'center', padding:40, color:'#65676B' }}>Aucune photo</div>
           : <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:4 }}>
-              {allPhotos.map(p => <div key={p.id} onClick={() => setViewerState({ post:p, index:0 })} style={{ aspectRatio:'1', overflow:'hidden', borderRadius:8, cursor:'pointer' }}><img src={p.mediaURL} alt="" style={{ width:'100%', height:'100%', objectFit:'cover' }}/></div>)}
+              {allPhotos.map(p => <div key={p.id} onClick={() => navigate(`/post/${p.id}`)} style={{ aspectRatio:'1', overflow:'hidden', borderRadius:8, cursor:'pointer' }}><img src={p.mediaURL} alt="" style={{ width:'100%', height:'100%', objectFit:'cover' }}/></div>)}
             </div>
         )}
 
