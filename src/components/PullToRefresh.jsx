@@ -3,43 +3,50 @@
 // (JS/touch tsotra — tsy miankina amin'ny overscroll an'ny navigateur, izay
 // tsy misy ao anaty WebView Capacitor). Mamaly koa ny "tapotra Accueil
 // rehefa efa ao Accueil" (événement window "trengo:refresh-home").
+//
+// v2 : listeners enregistrés UNE SEULE FOIS (montage) + refs pour éviter les
+// closures obsolètes — la v1 ré-enregistrait les listeners à chaque pixel de
+// glissement, ce qui perdait des événements sur certains WebView Android.
 import { useEffect, useRef, useState } from 'react';
 
-const THRESHOLD = 70;   // segondra fitiavana mba hiantsoana ny refresh
+const THRESHOLD = 70;
 const MAX_PULL  = 110;
 
 export default function PullToRefresh({ onRefresh }) {
-  const [pull, setPull] = useState(0);      // 0..MAX_PULL, an'ny visuel
+  const [pull, setPullState] = useState(0);
   const [spinning, setSpinning] = useState(false);
+
+  const pullRef = useRef(0);
+  const spinningRef = useRef(false);
   const startY = useRef(0);
   const dragging = useRef(false);
-  const atTop = useRef(true);
+
+  function setPull(v) { pullRef.current = v; setPullState(v); }
 
   function scrollTop() {
     return window.scrollY || document.documentElement.scrollTop || document.body.scrollTop || 0;
   }
 
   function doRefresh(fromGesture) {
+    spinningRef.current = true;
     setSpinning(true);
     window.scrollTo({ top: 0, behavior: fromGesture ? 'auto' : 'smooth' });
     try { onRefresh && onRefresh(); } catch (e) { /* ignore */ }
-    setTimeout(() => { setSpinning(false); setPull(0); }, 700);
+    setTimeout(() => { spinningRef.current = false; setSpinning(false); setPull(0); }, 700);
   }
 
   useEffect(() => {
     function onTouchStart(e) {
-      if (spinning) return;
-      atTop.current = scrollTop() <= 2;
-      if (!atTop.current) return;
+      if (spinningRef.current) return;
+      if (scrollTop() > 2) { dragging.current = false; return; }
       startY.current = e.touches[0].clientY;
       dragging.current = true;
     }
     function onTouchMove(e) {
-      if (!dragging.current || spinning) return;
+      if (!dragging.current || spinningRef.current) return;
       if (scrollTop() > 2) { dragging.current = false; setPull(0); return; }
       const dy = e.touches[0].clientY - startY.current;
       if (dy <= 0) { setPull(0); return; }
-      // resistance : tsy mihoatra ny MAX_PULL, ary mihena kely arakaraka ny halavany
       const p = Math.min(MAX_PULL, dy * 0.5);
       setPull(p);
       if (p > 12 && e.cancelable) e.preventDefault();
@@ -47,19 +54,25 @@ export default function PullToRefresh({ onRefresh }) {
     function onTouchEnd() {
       if (!dragging.current) return;
       dragging.current = false;
-      if (pull >= THRESHOLD) doRefresh(true);
+      if (pullRef.current >= THRESHOLD) doRefresh(true);
       else setPull(0);
     }
-    window.addEventListener('touchstart', onTouchStart, { passive: true });
-    window.addEventListener('touchmove', onTouchMove, { passive: false });
-    window.addEventListener('touchend', onTouchEnd, { passive: true });
+    function onTouchCancel() {
+      dragging.current = false;
+      if (!spinningRef.current) setPull(0);
+    }
+
+    document.addEventListener('touchstart', onTouchStart, { passive: true });
+    document.addEventListener('touchmove', onTouchMove, { passive: false });
+    document.addEventListener('touchend', onTouchEnd, { passive: true });
+    document.addEventListener('touchcancel', onTouchCancel, { passive: true });
     return () => {
-      window.removeEventListener('touchstart', onTouchStart);
-      window.removeEventListener('touchmove', onTouchMove);
-      window.removeEventListener('touchend', onTouchEnd);
+      document.removeEventListener('touchstart', onTouchStart);
+      document.removeEventListener('touchmove', onTouchMove);
+      document.removeEventListener('touchend', onTouchEnd);
+      document.removeEventListener('touchcancel', onTouchCancel);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pull, spinning]);
+  }, []); // ← enregistré UNE SEULE FOIS (plus de perte d'événements)
 
   // Tapotra "Accueil" rehefa efa ao Accueil -> mitovy fihetsika
   useEffect(() => {

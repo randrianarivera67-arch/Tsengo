@@ -593,7 +593,9 @@ export default function Layout({ children }) {
           return (
             <button key={label} className={`dock-item ${active ? 'active' : ''}`} onClick={() => {
                 if (path === '/' && location.pathname === '/') { window.dispatchEvent(new CustomEvent('trengo:refresh-home')); return; }
-                navigate(path, navState ? { state: navState } : undefined);
+                const tabPaths = bottomNav.map(it => it.path);
+                const isLateralTabSwitch = path !== '/' && location.pathname !== '/' && tabPaths.includes(location.pathname);
+                navigate(path, { replace: isLateralTabSwitch, state: navState });
               }}
               style={{ background: 'none', border: 'none', cursor: 'pointer', position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5, flex: 1, padding: '4px 0' }}>
               {isJejo ? (
