@@ -31,6 +31,38 @@ export function SkeletonPost() {
   );
 }
 
+// Squelette d'une publication seule (page PostDetail)
+export function SkeletonSinglePost() {
+  return (
+    <div style={{ padding: 14 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
+        <SkeletonCircle size={44} />
+        <div style={{ flex: 1 }}>
+          <SkeletonBlock w="40%" h={14} style={{ marginBottom: 6 }} />
+          <SkeletonBlock w="22%" h={10} />
+        </div>
+      </div>
+      <SkeletonBlock w="95%" h={13} style={{ marginBottom: 8 }} />
+      <SkeletonBlock w="75%" h={13} style={{ marginBottom: 16 }} />
+      <SkeletonBlock w="100%" h={320} r={14} style={{ marginBottom: 16 }} />
+      <div style={{ display: 'flex', gap: 10, marginBottom: 16 }}>
+        <SkeletonBlock w="33%" h={36} r={18} />
+        <SkeletonBlock w="33%" h={36} r={18} />
+        <SkeletonBlock w="33%" h={36} r={18} />
+      </div>
+      {[0, 1].map((i) => (
+        <div key={i} style={{ display: 'flex', gap: 10, marginBottom: 14 }}>
+          <SkeletonCircle size={34} />
+          <div style={{ flex: 1 }}>
+            <SkeletonBlock w="60%" h={12} style={{ marginBottom: 6 }} />
+            <SkeletonBlock w="40%" h={12} />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 // Squelette d'une page "canal" (Artiste / Boutique) : bannière, titre,
 // boutons, carte info, galerie horizontale — correspond au visuel Facebook.
 export function SkeletonChannelPage() {

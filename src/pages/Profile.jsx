@@ -12,6 +12,7 @@ import { timeAgo } from '../utils/timeAgo';
 import { isDataSaverOn, subscribeDataSaver } from '../utils/dataSaver';
 import { downloadMedia } from '../utils/download';
 import ShareModal from '../components/ShareModal';
+import { SkeletonChannelPage } from '../components/Skeleton';
 import ReportModal from '../components/ReportModal';
 import BoostOrderModal from '../components/BoostOrderModal';
 import FollowListModal from '../components/FollowListModal';
@@ -428,7 +429,7 @@ export default function Profile() {
     return [];
   }
 
-  if (!profile) return <div style={{ padding:40, textAlign:'center', color:'#65676B' }}>{t('loading')}</div>;
+  if (!profile) return <SkeletonChannelPage />;
   const friendCount = profile.friends?.length||0;
   const profilePhoto = profile.photoURL ? [{ id:'profile-photo', mediaURL:profile.photoURL, isProfilePhoto:true }] : [];
   const coverPhotoArr = coverURL ? [{ id:'cover-photo', mediaURL:coverURL, isCoverPhoto:true }] : [];

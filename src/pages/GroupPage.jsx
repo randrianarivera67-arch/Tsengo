@@ -16,6 +16,7 @@ import { startBackgroundUpload } from '../utils/uploadManager';
 import { isDataSaverOn, subscribeDataSaver } from '../utils/dataSaver';
 import { downloadMedia } from '../utils/download';
 import ShareModal from '../components/ShareModal';
+import { SkeletonChannelPage } from '../components/Skeleton';
 import MediaViewer from '../components/MediaViewer';
 import {
   HiUserGroup, HiCamera, HiArrowLeft, HiPlus, HiCheck, HiTrash,
@@ -326,7 +327,7 @@ export default function GroupPage() {
       <button className="btn-blue" onClick={() => navigate('/groups')} style={{ padding: '10px 20px', borderRadius: 20 }}>Voir les groupes</button>
     </div>
   );
-  if (!group) return <div style={{ padding: 40, textAlign: 'center', color: '#65676B' }}>Chargement...</div>;
+  if (!group) return <SkeletonChannelPage />;
 
   const av = u => u.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(u.fullName || 'U')}&background=1877F2&color=fff`;
 

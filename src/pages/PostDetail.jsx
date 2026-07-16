@@ -12,6 +12,7 @@ import { useAuth } from '../context/AuthContext';
 import { timeAgo } from '../utils/timeAgo';
 import { downloadMedia } from '../utils/download';
 import ShareModal from '../components/ShareModal';
+import { SkeletonSinglePost } from '../components/Skeleton';
 import PhotoCarousel from '../components/PhotoCarousel';
 import MediaViewer from '../components/MediaViewer';
 import { useLang } from '../context/LanguageContext';
@@ -130,7 +131,7 @@ export default function PostDetail() {
   function isFriend(uid) { return (userProfile?.friends||[]).includes(uid); }
   const [shareModalOpen, setShareModalOpen] = useState(false);
 
-  if (!post) return <div style={{ padding:40, textAlign:'center', color:'#65676B' }}>{t('loading')}</div>;
+  if (!post) return <SkeletonSinglePost />;
 
   const myR   = post.reactions?.[currentUser.uid];
   const total = Object.keys(post.reactions||{}).length;
