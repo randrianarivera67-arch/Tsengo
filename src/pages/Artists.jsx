@@ -6,7 +6,11 @@ import { db } from '../firebase';
 import { useAuth } from '../context/AuthContext';
 import { parseAppLink } from '../utils/appLink';
 import { NeonMic } from '../components/NeonIcons';
-import { HiPlus, HiX, HiChevronRight, HiArrowLeft, HiSearch, HiDotsVertical, HiCheckCircle, HiCheck } from 'react-icons/hi';
+import { HiPlus, HiX, HiChevronRight, HiArrowLeft, HiSearch, HiDotsVertical, HiCheckCircle, HiCheck, HiInformationCircle, HiDownload, HiLightningBolt, HiShare, HiTrash, HiFlag } from 'react-icons/hi';
+import { downloadMedia } from '../utils/download';
+import ShareModal from '../components/ShareModal';
+import BoostOrderModal from '../components/BoostOrderModal';
+import { doc as fsDoc, deleteDoc, addDoc as fsAddDoc, serverTimestamp as fsServerTimestamp, collection as fsCollection } from 'firebase/firestore';
 
 const GRADS = [['#FF6FA5', '#FF2D8D'], ['#A66BFF', '#7A2DFF'], ['#3DBEFF', '#1877F2']];
 
@@ -22,10 +26,13 @@ function fmtDur(sec) {
   return m + ':' + String(s).padStart(2, '0');
 }
 
-function TrackCard({ track, index, playing, onToggle, onArtist }) {
+function TrackCard({ track, index, playing, onToggle, onArtist, onBoost, onShare, currentUid }) {
   const [dur, setDur] = useState('');
+  const [menuOpen, setMenuOpen] = useState(false);
   const bars = useRef(waveBars(track.id || String(index)));
   const grad = GRADS[index % 3];
+  const navigate = useNavigate();
+  const isOwn = track.uid && currentUid && track.uid === currentUid;
   useEffect(() => {
     if (!track.mediaURL) return;
     const a = new Audio(); a.preload = 'metadata'; a.src = track.mediaURL;
@@ -33,11 +40,35 @@ function TrackCard({ track, index, playing, onToggle, onArtist }) {
     a.addEventListener('loadedmetadata', on);
     return () => { a.removeEventListener('loadedmetadata', on); a.src = ''; };
   }, [track.mediaURL]);
+  async function removeTrack() {
+    if (!window.confirm('Supprimer ce titre ?')) return;
+    try { await deleteDoc(fsDoc(db, 'posts', track.id)); } catch (e) { alert('Erreur : ' + (e?.message || e)); }
+  }
+  async function reportTrack() {
+    if (!window.confirm('Signaler ce titre aux administrateurs ?')) return;
+    try { await fsAddDoc(fsCollection(db, 'reports'), { type:'post', targetId:track.id, targetUid:track.uid, targetAuthor:track.artistName||'', reportedBy:currentUid, createdAt:fsServerTimestamp(), status:'pending' }); alert('Signalement envoyé. Merci.'); } catch (e) { alert('Erreur : ' + (e?.message || e)); }
+  }
   return (
     <div style={{ flex: '0 0 180px', background: '#0c0c12', borderRadius: 14, overflow: 'hidden' }}>
       <div style={{ position: 'relative', height: 110, display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
         <div onClick={() => onArtist?.(track.artistId)} style={{ position: 'absolute', top: 8, left: 8, width: 34, height: 34, borderRadius: '50%', overflow: 'hidden', border: '2px solid rgba(255,255,255,.85)', zIndex: 3, cursor: 'pointer', background: 'linear-gradient(145deg,#FF6FA5,#FF2D8D)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           {track.artistPhoto ? <img src={track.artistPhoto} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <NeonMic size={16} color="white" />}
+        </div>
+        <div style={{ position: 'absolute', top: 8, right: 8, zIndex: 4 }} onClick={e => e.stopPropagation()}>
+          <button onClick={() => setMenuOpen(p => !p)} style={{ width: 28, height: 28, borderRadius: '50%', background: 'rgba(0,0,0,.5)', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white' }}>
+            <HiDotsVertical size={15} />
+          </button>
+          {menuOpen && (
+            <div style={{ position: 'absolute', top: '110%', right: 0, background: 'white', border: '1px solid #E4E6EB', borderRadius: 12, boxShadow: '0 6px 22px rgba(0,0,0,.25)', minWidth: 175, zIndex: 60, overflow: 'hidden' }}>
+              <button onClick={() => { setMenuOpen(false); navigate(`/post/${track.id}`); }} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: '11px 14px', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'Poppins', fontSize: 13.5, color: '#050505', borderBottom: '1px solid #F0F2F5' }}><HiInformationCircle size={16} color="#1877F2" /> Informations</button>
+              {track.mediaURL && <button onClick={() => { setMenuOpen(false); downloadMedia(track.mediaURL, 'audio', track.songTitle || 'titre'); }} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: '11px 14px', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'Poppins', fontSize: 13.5, color: '#050505', borderBottom: '1px solid #F0F2F5' }}><HiDownload size={16} color="#12A48D" /> Télécharger</button>}
+              {isOwn && <button onClick={() => { setMenuOpen(false); onBoost?.({ type:'post', id:track.id, ownerUid:track.uid, title:track.songTitle||track.artistName||'Mon titre', thumbnailURL:track.thumbURL||track.mediaURL||'' }); }} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: '11px 14px', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'Poppins', fontSize: 13.5, color: '#050505', borderBottom: '1px solid #F0F2F5' }}><HiLightningBolt size={16} color="#a855f7" /> Booster</button>}
+              <button onClick={() => { setMenuOpen(false); onShare?.(track); }} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: '11px 14px', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'Poppins', fontSize: 13.5, color: '#050505', borderBottom: isOwn ? '1px solid #F0F2F5' : 'none' }}><HiShare size={16} color="#7A2DFF" /> Partager</button>
+              {isOwn
+                ? <button onClick={() => { setMenuOpen(false); removeTrack(); }} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: '11px 14px', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'Poppins', fontSize: 13.5, color: '#FF2D8D' }}><HiTrash size={16} /> Supprimer</button>
+                : <button onClick={() => { setMenuOpen(false); reportTrack(); }} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: '11px 14px', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'Poppins', fontSize: 13.5, color: '#050505' }}><HiFlag size={16} color="#F2B300" /> Signaler</button>}
+            </div>
+          )}
         </div>
         {track.thumbURL && <div style={{ position: 'absolute', inset: 0, backgroundImage: 'url(' + track.thumbURL + ')', backgroundSize: 'cover', backgroundPosition: 'center', filter: 'brightness(.45)', zIndex: 0 }} />}
         <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 2, padding: '0 10px', zIndex: 1 }}>
@@ -68,6 +99,8 @@ export default function Artists() {
   const [name, setName] = useState('');
   const [creating, setCreating] = useState(false);
   const [q, setQ] = useState('');
+  const [boostTarget, setBoostTarget] = useState(null);
+  const [shareItem, setShareItem] = useState(null);
 
   const audioRef = useRef(null);
   const [playingId, setPlayingId] = useState(null);
@@ -206,7 +239,7 @@ export default function Artists() {
                   {a.photoURL ? <img src={a.photoURL} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <NeonMic size={26} color="white" />}
                 </div>
                 <div style={{ fontWeight: 800, fontSize: 14, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                  {a.name} {a.verified && <HiCheckCircle size={14} color="#1877F2" />}
+                  {a.name} <HiCheckCircle size={14} color="#1877F2" />
                 </div>
                 <div style={{ fontSize: 11, color: '#65676B', margin: '1px 0 9px' }}>{(a.followers || []).length} abonnés</div>
                 <div style={{ display: 'flex', gap: 6 }}>
@@ -232,7 +265,7 @@ export default function Artists() {
           {secHd('Musiques pour vous', fTracks.length, 'music')}
           <div style={rowStyle}>
             {fTracks.map((t, i) => (
-              <TrackCard key={t.id} track={t} index={i} playing={playingId === t.id} onToggle={toggleTrack} onArtist={aid => aid && navigate(`/artists/${aid}`)} />
+              <TrackCard key={t.id} track={t} index={i} playing={playingId === t.id} onToggle={toggleTrack} onArtist={aid => aid && navigate(`/artists/${aid}`)} onBoost={setBoostTarget} onShare={setShareItem} currentUid={currentUser?.uid} />
             ))}
           </div>
         </>
@@ -287,6 +320,9 @@ export default function Artists() {
           </div>
         </div>
       )}
+
+      {boostTarget && <BoostOrderModal target={boostTarget} onClose={() => setBoostTarget(null)} />}
+      {shareItem && <ShareModal post={shareItem} onClose={() => setShareItem(null)} />}
     </div>
   );
 }

@@ -14,11 +14,12 @@ import { parseAppLink } from '../utils/appLink';
 import { NeonLocation, NeonPlane, NeonPlaneWhite } from '../components/NeonIcons';
 import ShareModal from '../components/ShareModal';
 import { downloadMedia } from '../utils/download';
+import BoostOrderModal from '../components/BoostOrderModal';
 import { getCart, addToCart, removeFromCart, subscribeCart, firstPhone } from '../utils/cart';
 import {
   HiShoppingBag, HiShoppingCart, HiPlus, HiX, HiChevronRight, HiArrowLeft, HiSearch,
   HiCheck, HiCheckCircle, HiHeart, HiOutlineHeart, HiChat, HiPhone, HiTrash,
-  HiDotsVertical, HiInformationCircle, HiDownload, HiShare, HiFlag
+  HiDotsVertical, HiInformationCircle, HiDownload, HiShare, HiFlag, HiLightningBolt
 } from 'react-icons/hi';
 
 const CATEGORIES = ['Vêtements', 'Robes', 'Hauts', 'Pantalons', 'Chaussures', 'Accessoires', 'Électronique', 'Déco & Maison', 'Véhicules', 'Alimentation', 'Beauté', 'Autre'];
@@ -49,6 +50,7 @@ export default function Shop() {
   const [cartOpen, setCartOpen] = useState(false);
   const [cardMenu, setCardMenu] = useState(null);
   const [shareItem, setShareItem] = useState(null);
+  const [boostTarget, setBoostTarget] = useState(null);
 
   // Menus mikatona rehefa scroll na clic ivelany
   useEffect(() => {
@@ -154,7 +156,7 @@ export default function Shop() {
           <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{s.name}</span>
           {admin
             ? <span style={{ fontSize: 9, fontWeight: 800, color: '#F2B300', background: '#FFF6DB', borderRadius: 7, padding: '1px 6px', flexShrink: 0 }}>ADMIN</span>
-            : s.verified ? <HiCheckCircle size={14} color="#1877F2" style={{ flexShrink: 0 }} /> : null}
+            : <HiCheckCircle size={14} color="#1877F2" style={{ flexShrink: 0 }} />}
         </div>
         <div style={{ fontSize: 11, color: '#65676B', margin: '1px 0 9px' }}>{(s.followers || []).length} abonnés</div>
         <div style={{ display: 'flex', gap: 6 }}>
@@ -273,6 +275,12 @@ export default function Shop() {
                     <button onClick={e => toggleHeart(e, p)} style={{ position: 'absolute', top: 8, right: 8, width: 32, height: 32, borderRadius: '50%', background: 'rgba(255,255,255,.95)', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 1px 5px rgba(0,0,0,.15)' }}>
                       {myHeart ? <HiHeart size={18} color="#FF2D8D" /> : <HiOutlineHeart size={18} color="#050505" />}
                     </button>
+                    {p.uid === currentUser?.uid && (
+                      <button onClick={e => { e.stopPropagation(); setBoostTarget({ type:'post', id:p.id, ownerUid:p.uid, title:(p.content||'').slice(0,60)||'Mon article', thumbnailURL:p.mediaURL||'' }); }}
+                        title="Booster" style={{ position: 'absolute', bottom: 8, right: 8, width: 30, height: 30, borderRadius: '50%', background: 'linear-gradient(135deg,#1B84FF,#1877F2)', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 2px 8px rgba(24,119,242,.5)' }}>
+                        <HiLightningBolt size={16} color="white" />
+                      </button>
+                    )}
                     <div style={{ position: 'absolute', top: 8, left: 8 }} onClick={e => e.stopPropagation()}>
                       <button onClick={() => setCardMenu(cardMenu === p.id ? null : p.id)}
                         style={{ width: 32, height: 32, borderRadius: '50%', background: 'rgba(255,255,255,.95)', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 1px 5px rgba(0,0,0,.15)', color: '#050505' }}>
@@ -403,6 +411,7 @@ export default function Shop() {
         </div>
       )}
       {shareItem && <ShareModal post={shareItem} onClose={() => setShareItem(null)} />}
+      {boostTarget && <BoostOrderModal target={boostTarget} onClose={() => setBoostTarget(null)} />}
     </div>
   );
 }

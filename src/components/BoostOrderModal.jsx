@@ -43,6 +43,8 @@ export default function BoostOrderModal({ target, onClose }) {
   const [objective, setObjective] = useState('views');
   const [center, setCenter] = useState(ANTANANARIVO);
   const [radiusKm, setRadiusKm] = useState(10);
+  const [zoneName, setZoneName] = useState('');
+  const [searchingZone, setSearchingZone] = useState(false);
   const [locating, setLocating] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
@@ -60,6 +62,18 @@ export default function BoostOrderModal({ target, onClose }) {
       { timeout: 4000 }
     );
   }, []);
+
+  async function searchZoneName() {
+    const query = zoneName.trim();
+    if (!query || searchingZone) return;
+    setSearchingZone(true);
+    try {
+      const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(query)}`);
+      const data = await res.json();
+      if (data && data[0]) setCenter({ lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) });
+    } catch (e) { /* silencieux : la carte reste sur la position actuelle */ }
+    setSearchingZone(false);
+  }
 
   function incDays(delta) {
     setDays((d) => Math.max(1, (Number(d) || 1) + delta));
@@ -82,7 +96,7 @@ export default function BoostOrderModal({ target, onClose }) {
         days: Math.max(1, Number(days) || 1),
         price,
         objective,
-        zone: { lat: center.lat, lng: center.lng, radiusKm },
+        zone: { lat: center.lat, lng: center.lng, radiusKm, label: zoneName.trim() || null },
         status: 'pending',
         createdAt: serverTimestamp(),
       });
@@ -151,7 +165,17 @@ export default function BoostOrderModal({ target, onClose }) {
               <p style={{ fontWeight: 700, fontSize: 14 }}>Zone préférée</p>
               {locating && <span style={{ fontSize: 11, color: '#65676B' }}>(localisation…)</span>}
             </div>
-            <p style={{ fontSize: 12, color: '#65676B', marginBottom: 10 }}>Touchez la carte pour placer le centre de la zone.</p>
+            <p style={{ fontSize: 12, color: '#65676B', marginBottom: 10 }}>Touchez la carte, ou tapez un nom de lieu (ex : Madagascar, Mahajanga, Maurice).</p>
+            <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
+              <input value={zoneName} onChange={(e) => setZoneName(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && searchZoneName()}
+                placeholder="Ex : Antananarivo, Mahajanga, Maurice…"
+                style={{ flex: 1, padding: '10px 12px', borderRadius: 10, border: '1.5px solid #E4E6EB', fontSize: 13, outline: 'none' }} />
+              <button onClick={searchZoneName} disabled={searchingZone || !zoneName.trim()}
+                style={{ padding: '0 16px', borderRadius: 10, border: 'none', background: searchingZone ? '#93B8F5' : '#1877F2', color: 'white', fontWeight: 700, fontSize: 13, cursor: zoneName.trim() ? 'pointer' : 'default' }}>
+                {searchingZone ? '…' : 'Chercher'}
+              </button>
+            </div>
             <div style={{ borderRadius: 14, overflow: 'hidden', border: '1.5px solid #E4E6EB', marginBottom: 12 }}>
               <MapContainer center={[center.lat, center.lng]} zoom={11} style={{ height: 220, width: '100%' }} ref={mapRef}>
                 <TileLayer attribution='&copy; OpenStreetMap' url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
