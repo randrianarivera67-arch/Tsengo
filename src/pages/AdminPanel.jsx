@@ -38,6 +38,8 @@ export default function AdminPanel() {
   const [shops, setShops] = useState([]);
   const [artists, setArtists] = useState([]);
   const [bizSearch, setBizSearch] = useState('');
+  const [boostOrders, setBoostOrders] = useState([]);
+  const [ordersLoading, setOrdersLoading] = useState(false);
 
   // ── Installation PWA ─────────────────────────────────────────────
   const [installState, setInstallState] = useState('unavailable'); // installed | ready | unavailable
@@ -62,7 +64,7 @@ export default function AdminPanel() {
         const snap = await getDoc(doc(db, 'users', currentUser.uid));
         if (snap.exists() && snap.data().isAdmin === true) {
           setIsAdmin(true);
-          loadUsers(); loadPosts(); loadShops(); loadArtists();
+          loadUsers(); loadPosts(); loadShops(); loadArtists(); loadBoostOrders();
         } else setIsAdmin(false);
       } catch { setIsAdmin(false); }
     }
@@ -90,6 +92,58 @@ export default function AdminPanel() {
       const snap = await getDocs(collection(db, 'artists'));
       setArtists(snap.docs.map(d => ({ id: d.id, ...d.data() })));
     } catch { setArtists([]); }
+  }
+
+  async function loadBoostOrders() {
+    setOrdersLoading(true);
+    try {
+      const snap = await getDocs(query(collection(db, 'boostOrders'), orderBy('createdAt', 'desc')));
+      setBoostOrders(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+    } catch (e) { setBoostOrders([]); }
+    setOrdersLoading(false);
+  }
+
+  const BOOST_COLLECTION = { post: 'posts', profile: 'users', shop: 'shops', artist: 'artists' };
+
+  async function approveOrder(order) {
+    try {
+      const col = BOOST_COLLECTION[order.targetType] || 'posts';
+      const boostUntil = new Date();
+      boostUntil.setDate(boostUntil.getDate() + (order.days || 1));
+      await updateDoc(doc(db, col, order.targetId), {
+        isBoosted: true, boostDays: order.days || 1,
+        boostUntil: boostUntil.toISOString(), boostedAt: new Date().toISOString(),
+      });
+      await updateDoc(doc(db, 'boostOrders', order.id), { status: 'approved', processedAt: new Date().toISOString() });
+      try {
+        await addDoc(collection(db, 'notifications'), {
+          toUid: order.requesterUid, fromUid: currentUser.uid, fromName: 'Trengo Admin', fromPhoto: '',
+          type: 'boost', message: `Votre commande de boost (${order.days} jour${order.days > 1 ? 's' : ''}) a été validée 🚀`,
+          read: false, createdAt: serverTimestamp(),
+        });
+      } catch (e) { /* notif optionnelle */ }
+      setBoostOrders(prev => prev.map(o => o.id === order.id ? { ...o, status: 'approved' } : o));
+      showMsg(`✅ Commande de ${order.requesterName} validée (${order.days}j)`);
+    } catch (err) {
+      showMsg('❌ Erreur : ' + (err?.message || err));
+    }
+  }
+
+  async function refuseOrder(order) {
+    try {
+      await updateDoc(doc(db, 'boostOrders', order.id), { status: 'refused', processedAt: new Date().toISOString() });
+      try {
+        await addDoc(collection(db, 'notifications'), {
+          toUid: order.requesterUid, fromUid: currentUser.uid, fromName: 'Trengo Admin', fromPhoto: '',
+          type: 'general', message: `Votre commande de boost a été refusée.`,
+          read: false, createdAt: serverTimestamp(),
+        });
+      } catch (e) { /* notif optionnelle */ }
+      setBoostOrders(prev => prev.map(o => o.id === order.id ? { ...o, status: 'refused' } : o));
+      showMsg(`⛔ Commande de ${order.requesterName} refusée`);
+    } catch (err) {
+      showMsg('❌ Erreur : ' + (err?.message || err));
+    }
   }
 
   // ── Actions Utilisateurs ─────────────────────────────────────────
@@ -322,6 +376,7 @@ export default function AdminPanel() {
           {tabBtn('boost', '🚀 Boost')}
           {tabBtn('shops', '🛍️ Boutiques')}
           {tabBtn('artists', '🎵 Artistes')}
+          {tabBtn('orders', `📢 Commandes${boostOrders.filter(o=>o.status==='pending').length ? ' ('+boostOrders.filter(o=>o.status==='pending').length+')' : ''}`)}
         </div>
 
         {/* ── TAB USERS ── */}
@@ -441,6 +496,49 @@ export default function AdminPanel() {
         )}
 
         {/* ── TAB SHOPS / ARTISTS ── */}
+        {activeTab === 'orders' && (
+          <div>
+            {ordersLoading ? (
+              <p style={{ textAlign:'center', color:'#65676B', padding:30 }}>Chargement…</p>
+            ) : boostOrders.length === 0 ? (
+              <p style={{ textAlign:'center', color:'#65676B', padding:30, fontSize:13 }}>Aucune commande de boost</p>
+            ) : boostOrders.map(order => (
+              <div key={order.id} style={{ background:'#050505', borderRadius:14, padding:'12px 14px', marginBottom:10, border: order.status==='pending' ? '1px solid #a855f7' : '1px solid #232733' }}>
+                <div style={{ display:'flex', alignItems:'center', gap:10 }}>
+                  <img src={order.requesterPhoto || `https://ui-avatars.com/api/?name=${encodeURIComponent(order.requesterName||'U')}&background=1877F2&color=fff`} alt="" style={{ width:38, height:38, borderRadius:'50%', objectFit:'cover', flexShrink:0 }}/>
+                  <div style={{ flex:1, minWidth:0 }}>
+                    <p style={{ fontWeight:700, fontSize:13, color:'#E4E6EB' }}>{order.requesterName}</p>
+                    <p style={{ fontSize:11, color:'#65676B' }}>
+                      {order.targetType==='post' ? '📝 Publication' : order.targetType==='profile' ? '👤 Profil' : order.targetType==='shop' ? '🛍️ Boutique' : '🎵 Artiste'}
+                      {order.targetTitle ? ` · ${order.targetTitle}` : ''}
+                    </p>
+                  </div>
+                  {order.targetThumb && <img src={order.targetThumb} alt="" style={{ width:38, height:38, borderRadius:8, objectFit:'cover', flexShrink:0 }}/>}
+                </div>
+                <div style={{ display:'flex', gap:14, marginTop:10, fontSize:12, color:'#B0B3B8', flexWrap:'wrap' }}>
+                  <span>⏱️ {order.days} jour{order.days>1?'s':''}</span>
+                  <span>💰 {(order.price||0).toLocaleString()} Ar</span>
+                  <span>🎯 {order.objective==='messages'?'Messages':order.objective==='followers'?'Abonnés':'Vues'}</span>
+                  {order.zone?.label && <span>📍 {order.zone.label}</span>}
+                  {!order.zone?.label && order.zone?.radiusKm && <span>📍 rayon {order.zone.radiusKm} km</span>}
+                </div>
+                <div style={{ marginTop:10 }}>
+                  {order.status === 'pending' ? (
+                    <div style={{ display:'flex', gap:8 }}>
+                      <button onClick={() => approveOrder(order)} style={{ flex:1, background:'linear-gradient(135deg,#1877F2,#42A5F5)', border:'none', borderRadius:16, padding:'9px 0', color:'white', fontWeight:700, fontSize:13, cursor:'pointer', fontFamily:'Poppins' }}>✅ Valider</button>
+                      <button onClick={() => refuseOrder(order)} style={{ flex:1, background:'#3b0000', border:'1px solid #ef4444', borderRadius:16, padding:'9px 0', color:'#fca5a5', fontWeight:700, fontSize:13, cursor:'pointer', fontFamily:'Poppins' }}>❌ Refuser</button>
+                    </div>
+                  ) : (
+                    <span style={{ fontSize:12, fontWeight:700, color: order.status==='approved' ? '#22c55e' : '#ef4444' }}>
+                      {order.status==='approved' ? '✅ Validée' : '❌ Refusée'}
+                    </span>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
         {(activeTab === 'shops' || activeTab === 'artists') && (
           <>
             <div style={{ position: 'relative', marginBottom: 14 }}>
