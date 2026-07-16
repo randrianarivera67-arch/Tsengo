@@ -7,6 +7,7 @@ import {
 } from 'firebase/firestore';
 import { db } from '../firebase';
 import MediaViewer from '../components/MediaViewer';
+import ReportModal from '../components/ReportModal';
 import BoostOrderModal from '../components/BoostOrderModal';
 import PullToRefresh from '../components/PullToRefresh';
 import { useAuth } from '../context/AuthContext';
@@ -300,6 +301,7 @@ export default function Home() {
   const [expandedPosts, setExpandedPosts] = useState({});
   const [viewerState,   setViewerState]   = useState(null); // { post, index }
   const [boostTarget,   setBoostTarget]    = useState(null); // { type, id, ownerUid, title, thumbnailURL }
+  const [reportTarget,  setReportTarget]   = useState(null); // post à signaler
   const [reactorNames, setReactorNames] = useState({});   // uid → prenom (ho an'ny "X et N autres")
   const [mentionQuery, setMentionQuery] = useState(null); // { postId, q } rehefa manoratra @
   const [mentionFriends, setMentionFriends] = useState([]);
@@ -762,13 +764,18 @@ const fields = {
   }
 
   async function reportPost(post) {
-    if (!window.confirm('Signaler cette publication aux administrateurs ?')) return;
+    setReportTarget(post);
+  }
+  async function submitReport(motif, detail) {
+    const post = reportTarget;
     try {
       await addDoc(collection(db, 'reports'), {
         type: 'post', targetId: post.id, targetUid: post.uid, targetAuthor: post.authorName,
         reportedBy: currentUser.uid, reportedByName: userProfile.fullName,
+        motif, detail: detail || '',
         createdAt: serverTimestamp(), status: 'pending',
       });
+      setReportTarget(null);
       alert('Signalement envoyé. Merci.');
     } catch (err) { alert('Erreur : ' + (err?.message || err)); }
   }
@@ -1124,6 +1131,9 @@ const fields = {
       <PullToRefresh />
       {boostTarget && (
         <BoostOrderModal target={boostTarget} onClose={() => setBoostTarget(null)} />
+      )}
+      {reportTarget && (
+        <ReportModal title="Signaler la publication" onConfirm={submitReport} onClose={() => setReportTarget(null)} />
       )}
       {viewerState && (
         <MediaViewer

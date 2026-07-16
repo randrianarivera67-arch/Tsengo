@@ -40,6 +40,7 @@ export default function AdminPanel() {
   const [artists, setArtists] = useState([]);
   const [bizSearch, setBizSearch] = useState('');
   const [navMenuOpen, setNavMenuOpen] = useState(false);
+  const [reports, setReports] = useState([]);
   const [boostOrders, setBoostOrders] = useState([]);
   const [ordersLoading, setOrdersLoading] = useState(false);
 
@@ -66,7 +67,7 @@ export default function AdminPanel() {
         const snap = await getDoc(doc(db, 'users', currentUser.uid));
         if (snap.exists() && snap.data().isAdmin === true) {
           setIsAdmin(true);
-          loadUsers(); loadPosts(); loadShops(); loadArtists(); loadBoostOrders();
+          loadUsers(); loadPosts(); loadShops(); loadArtists(); loadBoostOrders(); loadReports();
         } else setIsAdmin(false);
       } catch { setIsAdmin(false); }
     }
@@ -94,6 +95,27 @@ export default function AdminPanel() {
       const snap = await getDocs(collection(db, 'artists'));
       setArtists(snap.docs.map(d => ({ id: d.id, ...d.data() })));
     } catch { setArtists([]); }
+  }
+
+  async function loadReports() {
+    try {
+      const snap = await getDocs(query(collection(db, 'reports'), orderBy('createdAt', 'desc')));
+      setReports(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+    } catch (e) { setReports([]); }
+  }
+  async function resolveReport(r) {
+    try {
+      await updateDoc(doc(db, 'reports', r.id), { status: 'resolved', processedAt: new Date().toISOString() });
+      setReports(prev => prev.map(x => x.id === r.id ? { ...x, status: 'resolved' } : x));
+      showMsg('✅ Signalement traité');
+    } catch (e) { showMsg('❌ Erreur : ' + (e?.message || e)); }
+  }
+  async function dismissReport(r) {
+    try {
+      await updateDoc(doc(db, 'reports', r.id), { status: 'dismissed', processedAt: new Date().toISOString() });
+      setReports(prev => prev.map(x => x.id === r.id ? { ...x, status: 'dismissed' } : x));
+      showMsg('Signalement ignoré');
+    } catch (e) { showMsg('❌ Erreur : ' + (e?.message || e)); }
   }
 
   async function loadBoostOrders() {
@@ -295,6 +317,7 @@ export default function AdminPanel() {
     { key: 'shops',   label: 'Boutiques', icon: '🛍️' },
     { key: 'artists', label: 'Artistes', icon: '🎵' },
     { key: 'orders',  label: 'Commandes Boost', icon: '📢', badge: boostOrders.filter(o=>o.status==='pending').length },
+    { key: 'reports', label: 'Signalements', icon: '🚩', badge: reports.filter(r=>r.status==='pending'||!r.status).length },
   ];
 
   const tabBtn = (key, label) => (
@@ -417,6 +440,9 @@ export default function AdminPanel() {
             {boostOrders.filter(o=>o.status==='pending').length > 0 && activeTab !== 'orders' && (
               <span style={{ background: '#FF2D8D', color: 'white', fontSize: 10, fontWeight: 700, borderRadius: 10, padding: '2px 7px' }}>{boostOrders.filter(o=>o.status==='pending').length}</span>
             )}
+            {reports.filter(r=>r.status==='pending'||!r.status).length > 0 && activeTab !== 'reports' && (
+              <span style={{ background: '#F2B300', color: 'white', fontSize: 10, fontWeight: 700, borderRadius: 10, padding: '2px 7px' }}>{reports.filter(r=>r.status==='pending'||!r.status).length}</span>
+            )}
             <HiChevronDown size={18} color="#65676B" />
           </span>
         </button>
@@ -538,6 +564,36 @@ export default function AdminPanel() {
         )}
 
         {/* ── TAB SHOPS / ARTISTS ── */}
+        {activeTab === 'reports' && (
+          <div>
+            {reports.length === 0 ? (
+              <p style={{ textAlign:'center', color:'#65676B', padding:30, fontSize:13 }}>Aucun signalement</p>
+            ) : reports.map(r => (
+              <div key={r.id} style={{ background:'#FFFFFF', borderRadius:14, padding:'12px 14px', marginBottom:10, border: (r.status==='pending'||!r.status) ? '1px solid #F2B300' : '1px solid #E4E6EB', boxShadow:'0 1px 3px rgba(0,0,0,.06)' }}>
+                <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:8 }}>
+                  <span style={{ fontSize:11, fontWeight:700, color:'#65676B', textTransform:'uppercase' }}>
+                    {r.type === 'post' ? '📝 Publication' : r.type === 'shop' ? '🛍️ Boutique' : r.type === 'artist' ? '🎵 Artiste' : '👤 Compte'}
+                  </span>
+                  {(r.status==='pending'||!r.status)
+                    ? <span style={{ fontSize:10, fontWeight:700, color:'#F2B300' }}>EN ATTENTE</span>
+                    : <span style={{ fontSize:10, fontWeight:700, color: r.status==='resolved' ? '#22c55e' : '#65676B' }}>{r.status==='resolved' ? 'TRAITÉ' : 'IGNORÉ'}</span>}
+                </div>
+                <p style={{ fontWeight:800, fontSize:14, marginTop:6, color:'#050505' }}>{r.motif || 'Motif non précisé'}</p>
+                {r.detail && <p style={{ fontSize:12.5, color:'#65676B', marginTop:2 }}>{r.detail}</p>}
+                <p style={{ fontSize:12, color:'#65676B', marginTop:6 }}>
+                  Cible : <b>{r.targetAuthor || r.targetId}</b> · Signalé par <b>{r.reportedByName || r.reportedBy}</b>
+                </p>
+                {(r.status==='pending'||!r.status) && (
+                  <div style={{ display:'flex', gap:8, marginTop:10 }}>
+                    <button onClick={() => resolveReport(r)} style={{ flex:1, background:'linear-gradient(135deg,#FF2D8D,#FF7AB8)', border:'none', borderRadius:16, padding:'9px 0', color:'white', fontWeight:700, fontSize:13, cursor:'pointer', fontFamily:'Poppins' }}>✅ Traité</button>
+                    <button onClick={() => dismissReport(r)} style={{ flex:1, background:'#F0F2F5', border:'none', borderRadius:16, padding:'9px 0', color:'#65676B', fontWeight:700, fontSize:13, cursor:'pointer', fontFamily:'Poppins' }}>Ignorer</button>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+
         {activeTab === 'orders' && (
           <div>
             {ordersLoading ? (
