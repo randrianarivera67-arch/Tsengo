@@ -17,7 +17,7 @@ import {
   HiVideoCamera, HiPaperClip, HiX, HiDownload, HiMicrophone, HiStop,
   HiTrash, HiPencil, HiReply, HiDotsVertical, HiCheck,
   HiArchive, HiColorSwatch, HiMusicNote, HiHeart, HiUserGroup, HiUserAdd,
-  HiPhone, HiBan, HiPlus} from 'react-icons/hi';
+  HiPhone, HiBan, HiPlus, HiCog} from 'react-icons/hi';
 
 export default function Messages() {
   const { chatId: paramChatId } = useParams();
@@ -62,6 +62,7 @@ export default function Messages() {
   };
   const theme = THEMES[chatTheme]||THEMES.rose;
   const [convMenu,      setConvMenu]      = useState(null);  // chatId showing menu
+  const pendingRequestCount = conversations.filter(c => c.isPending).length;
   const [deleteConfirm, setDeleteConfirm] = useState(null);
   const [transferMsg, setTransferMsg] = useState(null);  // chatId | 'all'
 
@@ -213,7 +214,13 @@ export default function Messages() {
             }
             continue;
           }
-          list.push({ chatId, otherUid, user: s.data(), lastMsg: last, unread });
+          const myFriends = userProfile?.friends || [];
+          const iSentAny = msgs.some(m => m.fromUid === currentUser.uid);
+          const accepted = !!conv.meta?.acceptedBy?.[currentUser.uid];
+          const declined = !!conv.meta?.declinedBy?.[currentUser.uid];
+          const isPending = !myFriends.includes(otherUid) && !iSentAny && !accepted && !declined;
+          const isArchived = (userProfile?.archivedChats || []).includes(chatId);
+          list.push({ chatId, otherUid, user: s.data(), lastMsg: last, unread, isPending, isArchived });
         } catch {}
       }
       list.sort((a, b) => (b.lastMsg?.ts || 0) - (a.lastMsg?.ts || 0));
@@ -597,6 +604,14 @@ export default function Messages() {
     } catch (err) { alert('Erreur : ' + (err?.message || err)); }
   }
 
+  async function toggleArchiveChat(chatId) {
+    const list0 = userProfile?.archivedChats || [];
+    const archived = list0.includes(chatId);
+    const next = archived ? list0.filter(c => c !== chatId) : [...list0, chatId];
+    setUserProfile(p => ({ ...p, archivedChats: next }));
+    try { await updateDoc(doc(db, 'users', currentUser.uid), { archivedChats: archived ? arrayRemove(chatId) : arrayUnion(chatId) }); } catch (e) {}
+  }
+
   async function deleteConversation(chatId) {
     await remove(ref(rtdb, `conversations/${chatId}`));
     if (activeChatId === chatId) {
@@ -657,8 +672,15 @@ export default function Messages() {
               style={{ width: 36, height: 36, borderRadius: '50%', background: '#F0F2F5', border: 'none', cursor: 'pointer', color: '#050505', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
               <HiPlus size={19} />
             </button>
+            <button onClick={() => navigate('/messages/settings')}
+              style={{ marginLeft: 'auto', width: 36, height: 36, borderRadius: '50%', background: '#F0F2F5', border: 'none', cursor: 'pointer', color: '#050505', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, position: 'relative' }}>
+              <HiCog size={17} />
+              {pendingRequestCount > 0 && (
+                <span style={{ position: 'absolute', top: -2, right: -2, background: '#FF2D8D', color: 'white', fontSize: 9, fontWeight: 700, borderRadius: 8, minWidth: 15, height: 15, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 3px' }}>{pendingRequestCount}</span>
+              )}
+            </button>
             <button onClick={() => setMsgSearchOpen(p => !p)}
-              style={{ marginLeft: 'auto', width: 36, height: 36, borderRadius: '50%', background: msgSearchOpen ? '#E7F0FE' : '#F0F2F5', border: 'none', cursor: 'pointer', color: '#050505', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              style={{ width: 36, height: 36, borderRadius: '50%', background: msgSearchOpen ? '#E7F0FE' : '#F0F2F5', border: 'none', cursor: 'pointer', color: '#050505', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
               <HiSearch size={17} />
             </button>
 
@@ -703,7 +725,7 @@ export default function Messages() {
         {/* Liste unifiée (DM + groupes), triée par activité récente (format Facebook) */}
         <div style={{ flex: 1, overflowY: 'auto' }}>
           {(() => {
-            const dmItems = conversations.map(conv => ({ type: 'dm', key: conv.chatId, ts: conv.lastMsg?.ts || 0, data: conv }));
+            const dmItems = conversations.filter(c => !c.isPending && !c.isArchived).map(conv => ({ type: 'dm', key: conv.chatId, ts: conv.lastMsg?.ts || 0, data: conv }));
             const groupItems = groups.map(g => ({ type: 'group', key: g.id, ts: groupMetas[g.id]?.ts || 0, data: g }));
             const unified = [...dmItems, ...groupItems].sort((a, b) => b.ts - a.ts);
 
@@ -758,6 +780,10 @@ export default function Messages() {
                   </button>
                   {convMenu === item.key && (
                     <div onClick={e => e.stopPropagation()} style={{ position: 'absolute', right: 10, top: '100%', zIndex: 50, background: 'white', border: '1px solid #E4E6EB', borderRadius: 12, boxShadow: '0 6px 20px rgba(0,0,0,.12)', overflow: 'hidden', minWidth: 140 }}>
+                      <button onClick={() => { setConvMenu(null); toggleArchiveChat(item.key); }}
+                        style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 8, padding: '11px 16px', background: 'none', border: 'none', borderBottom: '1px solid #F0F2F5', cursor: 'pointer', color: '#65676B', fontSize: 13, fontWeight: 600 }}>
+                        <HiArchive size={16} /> Archiver
+                      </button>
                       <button onClick={() => { setConvMenu(null); setDeleteConfirm(item.key); }}
                         style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 8, padding: '11px 16px', background: 'none', border: 'none', cursor: 'pointer', color: '#1877F2', fontSize: 13, fontWeight: 600 }}>
                         <HiTrash size={16} /> Supprimer

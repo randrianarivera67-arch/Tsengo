@@ -55,6 +55,7 @@ const Home               = lazy(() => import('./pages/Home'));
 const Profile            = lazy(() => import('./pages/Profile'));
 const Friends            = lazy(() => import('./pages/Friends'));
 const Messages           = lazy(() => import('./pages/Messages'));
+const MessagesSettings   = lazy(() => import('./pages/MessagesSettings'));
 const Notifications      = lazy(() => import('./pages/Notifications'));
 const Settings           = lazy(() => import('./pages/Settings'));
 const Reels              = lazy(() => import('./pages/Reels'));
@@ -130,6 +131,7 @@ function AppRoutes() {
         <Route path="/stats"          element={<PrivateRoute><Layout><Stats /></Layout></PrivateRoute>} />
         <Route path="/notes"          element={<PrivateRoute><Layout><Notes /></Layout></PrivateRoute>} />
         <Route path="/messages"       element={<PrivateRoute><Layout><Messages /></Layout></PrivateRoute>} />
+        <Route path="/messages/settings" element={<PrivateRoute><MessagesSettings /></PrivateRoute>} />
         <Route path="/messages/:chatId" element={<PrivateRoute><Layout><Messages /></Layout></PrivateRoute>} />
         <Route path="/notifications"  element={<PrivateRoute><Layout><Notifications /></Layout></PrivateRoute>} />
         <Route path="/settings"       element={<PrivateRoute><Layout><Settings /></Layout></PrivateRoute>} />
