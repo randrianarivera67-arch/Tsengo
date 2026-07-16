@@ -140,6 +140,24 @@ body {
 }
 .btn-gold:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(242,179,0,.6); }
 
+/* ══════════════ Effet "ressort" (spring) sur TOUS les boutons ══════════════
+   Appui -> léger rétrécissement ; relâchement -> rebond élastique (back-out).
+   Cible l'élément <button> natif : couvre la quasi-totalité de l'app sans
+   modifier un seul fichier .jsx (zéro risque de régression). */
+button {
+  transition: transform .28s cubic-bezier(.34, 1.56, .64, 1);
+}
+button:active {
+  transform: scale(.93);
+  transition: transform .08s ease-out;
+}
+/* Renforce l'effet même sur les boutons à classe dédiée (spécificité CSS) */
+.btn-primary:active, .btn-secondary:active, .btn-gold:active,
+.dock-item:active, .post-action-btn:active {
+  transform: scale(.93);
+  transition: transform .08s ease-out;
+}
+
 /* Bouton orange */
 .btn-orange {
   background: linear-gradient(135deg, #FFD84D, #F2B300);
@@ -539,4 +557,5 @@ input::placeholder, textarea::placeholder { color: #8A8D91 !important; font-size
 
 @media (prefers-reduced-motion: reduce) {
   .btn-primary::after, .btn-secondary, .btn-gold, .logo-shimmer, .text-gold-shine { animation: none !important; }
+  button, button:active, .btn-primary:active, .btn-secondary:active, .btn-gold:active, .dock-item:active, .post-action-btn:active { transform: none !important; transition: none !important; }
 }
