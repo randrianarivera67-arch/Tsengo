@@ -7,6 +7,8 @@ import {
 } from 'firebase/firestore';
 import { db } from '../firebase';
 import MediaViewer from '../components/MediaViewer';
+import { useViewerLocation } from '../hooks/useViewerLocation';
+import { isInZones } from '../utils/geo';
 import { SkeletonPost } from '../components/Skeleton';
 import ReportModal from '../components/ReportModal';
 import BoostOrderModal from '../components/BoostOrderModal';
@@ -240,6 +242,7 @@ function MusicRow({ tracks, playingId, onToggle, onArtist, onSave, onBlock, save
 }
 
 export default function Home() {
+  const viewerLoc = useViewerLocation();
   const { currentUser, userProfile, setUserProfile } = useAuth();
   const activeStoryUids = useActiveStoryUids();
   const { t } = useLang();
@@ -482,15 +485,17 @@ export default function Home() {
         .filter(p => p.uid === currentUser?.uid || (p.audience === 'friends' ? myFriends.includes(p.uid) : p.audience !== 'me'));
       const now = new Date();
       const sorted = [...all].sort((a, b) => {
-        const aB = a.isBoosted && a.boostUntil && new Date(a.boostUntil) > now;
-        const bB = b.isBoosted && b.boostUntil && new Date(b.boostUntil) > now;
+        const aB = a.isBoosted && a.boostUntil && new Date(a.boostUntil) > now
+          && isInZones(viewerLoc?.lat, viewerLoc?.lng, a.boostZones);
+        const bB = b.isBoosted && b.boostUntil && new Date(b.boostUntil) > now
+          && isInZones(viewerLoc?.lat, viewerLoc?.lng, b.boostZones);
         return (aB && !bB) ? -1 : (!aB && bB) ? 1 : 0;
       });
       setPosts(sorted);
       setReelPosts(all.filter(p => p.mediaType === 'video' && p.mediaURL));
       setPostsLoading(false);
     });
-  }, []);
+  }, [viewerLoc?.lat, viewerLoc?.lng]);
 
   const [multiPhotos, setMultiPhotos] = useState([]);   // File[] — mode "plusieurs photos" (2 à 10)
   function handleMedia(e, type) {

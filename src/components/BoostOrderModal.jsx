@@ -1,7 +1,7 @@
 // src/components/BoostOrderModal.jsx
 // Formulaire de commande de boost (façon Facebook Ads) :
 //   - Durée (jours) → prix = jours × 3000 Ar
-//   - Zone préférée : point + rayon sur carte (Leaflet/OpenStreetMap)
+//   - Zone(s) préférée(s) : plusieurs zones (point + rayon) OU Madagascar entier
 //   - Objectif : Messages / Abonnés / Vues (n'affecte pas le prix)
 //   - Envoi → doc Firestore "boostOrders" (status:'pending'), l'admin valide/refuse.
 import { useState, useEffect, useRef } from 'react';
@@ -10,7 +10,7 @@ import 'leaflet/dist/leaflet.css';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../firebase';
 import { useAuth } from '../context/AuthContext';
-import { HiX, HiCheckCircle, HiChatAlt2, HiUserAdd, HiEye, HiLocationMarker } from 'react-icons/hi';
+import { HiX, HiCheckCircle, HiChatAlt2, HiUserAdd, HiEye, HiLocationMarker, HiPlus, HiGlobeAlt } from 'react-icons/hi';
 import L from 'leaflet';
 
 // Corrige les icônes par défaut de Leaflet (chemins cassés par les bundlers) via CDN.
@@ -35,13 +35,19 @@ function ClickToPlace({ onPick }) {
   return null;
 }
 
+let zoneIdCounter = 0;
+function nextZoneId() { zoneIdCounter += 1; return 'z' + Date.now() + zoneIdCounter; }
+
 export default function BoostOrderModal({ target, onClose }) {
   // target = { type:'post'|'profile'|'shop'|'artist', id, ownerUid, title, thumbnailURL }
   const { currentUser, userProfile } = useAuth();
   const [step, setStep] = useState(1); // 1: formulaire, 2: confirmation
   const [days, setDays] = useState(1);
   const [objective, setObjective] = useState('views');
-  const [center, setCenter] = useState(ANTANANARIVO);
+
+  const [countryWide, setCountryWide] = useState(false);
+  const [zones, setZones] = useState([]); // zones déjà ajoutées : [{id,lat,lng,radiusKm,label}]
+  const [center, setCenter] = useState(ANTANANARIVO); // zone en cours de réglage (pas encore ajoutée)
   const [radiusKm, setRadiusKm] = useState(10);
   const [zoneName, setZoneName] = useState('');
   const [searchingZone, setSearchingZone] = useState(false);
@@ -75,6 +81,17 @@ export default function BoostOrderModal({ target, onClose }) {
     setSearchingZone(false);
   }
 
+  function addCurrentZone() {
+    setZones((prev) => [...prev, {
+      id: nextZoneId(), lat: center.lat, lng: center.lng, radiusKm,
+      label: zoneName.trim() || `${center.lat.toFixed(2)}, ${center.lng.toFixed(2)}`,
+    }]);
+    setZoneName('');
+  }
+  function removeZone(id) {
+    setZones((prev) => prev.filter((z) => z.id !== id));
+  }
+
   function incDays(delta) {
     setDays((d) => Math.max(1, (Number(d) || 1) + delta));
   }
@@ -84,6 +101,16 @@ export default function BoostOrderModal({ target, onClose }) {
     setError('');
     setSubmitting(true);
     try {
+      let finalZones;
+      if (countryWide) {
+        finalZones = [{ isCountryWide: true, label: 'Madagascar (tout le pays)' }];
+      } else if (zones.length > 0) {
+        finalZones = zones.map(({ id, ...z }) => z);
+      } else {
+        // Aucune zone explicitement ajoutée -> on utilise la zone actuellement réglée sur la carte.
+        finalZones = [{ lat: center.lat, lng: center.lng, radiusKm, label: zoneName.trim() || null }];
+      }
+
       await addDoc(collection(db, 'boostOrders'), {
         targetType: target.type,
         targetId: target.id,
@@ -96,7 +123,7 @@ export default function BoostOrderModal({ target, onClose }) {
         days: Math.max(1, Number(days) || 1),
         price,
         objective,
-        zone: { lat: center.lat, lng: center.lng, radiusKm, label: zoneName.trim() || null },
+        zones: finalZones,
         status: 'pending',
         createdAt: serverTimestamp(),
       });
@@ -159,36 +186,66 @@ export default function BoostOrderModal({ target, onClose }) {
             </div>
             <p style={{ textAlign: 'center', fontSize: 13, color: '#65676B', marginBottom: 20 }}>{PRICE_PER_DAY.toLocaleString()} Ar / jour</p>
 
-            {/* Zone préférée */}
+            {/* Zone(s) préférée(s) */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10 }}>
               <HiLocationMarker size={16} color="#65676B" />
-              <p style={{ fontWeight: 700, fontSize: 14 }}>Zone préférée</p>
+              <p style={{ fontWeight: 700, fontSize: 14 }}>Zone(s) préférée(s)</p>
               {locating && <span style={{ fontSize: 11, color: '#65676B' }}>(localisation…)</span>}
             </div>
-            <p style={{ fontSize: 12, color: '#65676B', marginBottom: 10 }}>Touchez la carte, ou tapez un nom de lieu (ex : Madagascar, Mahajanga, Maurice).</p>
-            <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
-              <input value={zoneName} onChange={(e) => setZoneName(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && searchZoneName()}
-                placeholder="Ex : Antananarivo, Mahajanga, Maurice…"
-                style={{ flex: 1, padding: '10px 12px', borderRadius: 10, border: '1.5px solid #E4E6EB', fontSize: 13, outline: 'none' }} />
-              <button onClick={searchZoneName} disabled={searchingZone || !zoneName.trim()}
-                style={{ padding: '0 16px', borderRadius: 10, border: 'none', background: searchingZone ? '#93B8F5' : '#1877F2', color: 'white', fontWeight: 700, fontSize: 13, cursor: zoneName.trim() ? 'pointer' : 'default' }}>
-                {searchingZone ? '…' : 'Chercher'}
-              </button>
-            </div>
-            <div style={{ borderRadius: 14, overflow: 'hidden', border: '1.5px solid #E4E6EB', marginBottom: 12 }}>
-              <MapContainer center={[center.lat, center.lng]} zoom={11} style={{ height: 220, width: '100%' }} ref={mapRef}>
-                <TileLayer attribution='&copy; OpenStreetMap' url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-                <Marker position={[center.lat, center.lng]} icon={markerIcon} />
-                <Circle center={[center.lat, center.lng]} radius={radiusKm * 1000} pathOptions={{ color: '#1877F2', fillColor: '#1877F2', fillOpacity: 0.15 }} />
-                <ClickToPlace onPick={(latlng) => setCenter({ lat: latlng.lat, lng: latlng.lng })} />
-              </MapContainer>
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 22 }}>
-              <span style={{ fontSize: 12, color: '#65676B', flexShrink: 0 }}>Rayon</span>
-              <input type="range" min="1" max="100" value={radiusKm} onChange={(e) => setRadiusKm(Number(e.target.value))} style={{ flex: 1 }} />
-              <span style={{ fontSize: 12, fontWeight: 700, color: '#1877F2', flexShrink: 0, minWidth: 50, textAlign: 'right' }}>{radiusKm} km</span>
-            </div>
+
+            <button onClick={() => setCountryWide((v) => !v)}
+              style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', padding: '12px 14px', borderRadius: 14, border: countryWide ? '2px solid #1877F2' : '1.5px solid #E4E6EB', background: countryWide ? '#EBF2FF' : 'white', cursor: 'pointer', marginBottom: 14, textAlign: 'left' }}>
+              <HiGlobeAlt size={20} color={countryWide ? '#1877F2' : '#65676B'} style={{ flexShrink: 0 }} />
+              <span style={{ flex: 1, fontWeight: 700, fontSize: 14, color: '#050505' }}>🇲🇬 Toute Madagascar</span>
+              {countryWide && <HiCheckCircle size={18} color="#1877F2" style={{ flexShrink: 0 }} />}
+            </button>
+
+            {!countryWide && (
+              <>
+                <p style={{ fontSize: 12, color: '#65676B', marginBottom: 10 }}>Touchez la carte, ou tapez un nom de lieu (ex : Mahajanga, Toamasina, Maurice).</p>
+                <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
+                  <input value={zoneName} onChange={(e) => setZoneName(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && searchZoneName()}
+                    placeholder="Ex : Antananarivo, Mahajanga, Maurice…"
+                    style={{ flex: 1, padding: '10px 12px', borderRadius: 10, border: '1.5px solid #E4E6EB', fontSize: 13, outline: 'none' }} />
+                  <button onClick={searchZoneName} disabled={searchingZone || !zoneName.trim()}
+                    style={{ padding: '0 16px', borderRadius: 10, border: 'none', background: searchingZone ? '#93B8F5' : '#1877F2', color: 'white', fontWeight: 700, fontSize: 13, cursor: zoneName.trim() ? 'pointer' : 'default' }}>
+                    {searchingZone ? '…' : 'Chercher'}
+                  </button>
+                </div>
+                <div style={{ borderRadius: 14, overflow: 'hidden', border: '1.5px solid #E4E6EB', marginBottom: 12 }}>
+                  <MapContainer center={[center.lat, center.lng]} zoom={11} style={{ height: 220, width: '100%' }} ref={mapRef}>
+                    <TileLayer attribution='&copy; OpenStreetMap' url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+                    <Marker position={[center.lat, center.lng]} icon={markerIcon} />
+                    <Circle center={[center.lat, center.lng]} radius={radiusKm * 1000} pathOptions={{ color: '#1877F2', fillColor: '#1877F2', fillOpacity: 0.15 }} />
+                    <ClickToPlace onPick={(latlng) => setCenter({ lat: latlng.lat, lng: latlng.lng })} />
+                  </MapContainer>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
+                  <span style={{ fontSize: 12, color: '#65676B', flexShrink: 0 }}>Rayon</span>
+                  <input type="range" min="1" max="100" value={radiusKm} onChange={(e) => setRadiusKm(Number(e.target.value))} style={{ flex: 1 }} />
+                  <span style={{ fontSize: 12, fontWeight: 700, color: '#1877F2', flexShrink: 0, minWidth: 50, textAlign: 'right' }}>{radiusKm} km</span>
+                </div>
+
+                <button onClick={addCurrentZone}
+                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, width: '100%', padding: '10px 0', borderRadius: 20, border: '1.5px dashed #1877F2', background: 'white', color: '#1877F2', fontWeight: 700, fontSize: 13, cursor: 'pointer', marginBottom: 14 }}>
+                  <HiPlus size={16} /> Ajouter cette zone
+                </button>
+
+                {zones.length > 0 && (
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 20 }}>
+                    {zones.map((z) => (
+                      <span key={z.id} style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#EBF2FF', borderRadius: 16, padding: '6px 8px 6px 12px', fontSize: 12.5, fontWeight: 600, color: '#1877F2' }}>
+                        📍 {z.label} ({z.radiusKm}km)
+                        <button onClick={() => removeZone(z.id)} style={{ background: 'rgba(24,119,242,.15)', border: 'none', borderRadius: '50%', width: 18, height: 18, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#1877F2' }}>
+                          <HiX size={11} />
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </>
+            )}
 
             {error && <p style={{ color: '#ef4444', fontSize: 13, marginBottom: 12, textAlign: 'center' }}>{error}</p>}
 
@@ -197,6 +254,12 @@ export default function BoostOrderModal({ target, onClose }) {
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
                 <span style={{ fontSize: 13, color: '#65676B' }}>Durée</span>
                 <span style={{ fontSize: 13, fontWeight: 700 }}>{days} jour{days > 1 ? 's' : ''}</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+                <span style={{ fontSize: 13, color: '#65676B' }}>Zone(s)</span>
+                <span style={{ fontSize: 13, fontWeight: 700 }}>
+                  {countryWide ? 'Madagascar entier' : zones.length > 0 ? `${zones.length} zone${zones.length > 1 ? 's' : ''}` : '1 zone (carte)'}
+                </span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                 <span style={{ fontSize: 14, fontWeight: 800 }}>Total à payer</span>

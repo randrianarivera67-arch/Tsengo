@@ -138,6 +138,7 @@ export default function AdminPanel() {
       await updateDoc(doc(db, col, order.targetId), {
         isBoosted: true, boostDays: order.days || 1,
         boostUntil: boostUntil.toISOString(), boostedAt: new Date().toISOString(),
+        boostZones: order.zones || null, boostObjective: order.objective || null,
       });
       await updateDoc(doc(db, 'boostOrders', order.id), { status: 'approved', processedAt: new Date().toISOString() });
       try {
