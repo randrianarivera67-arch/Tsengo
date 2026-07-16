@@ -17,6 +17,7 @@ import {
 } from 'react-icons/hi';
 import { isStandalone, canInstall, onInstallChange, promptInstall } from '../utils/pwaInstall';
 import PushDiagnostic from '../components/PushDiagnostic';
+import { SkeletonList } from '../components/Skeleton';
 
 export default function AdminPanel() {
   const { currentUser, userProfile } = useAuth();
@@ -455,7 +456,7 @@ export default function AdminPanel() {
               <input placeholder="Rechercher (nom, @, email, ID)..." value={search} onChange={e => setSearch(e.target.value)}
                 style={{ width: '100%', background: '#FFFFFF', border: '1px solid #E4E6EB', borderRadius: 12, padding: '10px 10px 10px 36px', color: '#050505', fontFamily: 'Poppins', fontSize: 14, boxSizing: 'border-box' }} />
             </div>
-            {loading ? <p style={{ textAlign: 'center', color: '#65676B', padding: 30 }}>Chargement...</p> : (
+            {loading ? <SkeletonList rows={5} /> : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                 {filteredUsers.map(user => (
                   <div key={user.id} style={{ background: '#FFFFFF', borderRadius: 14, padding: '12px 14px', border: user.isBanned ? '1px solid #ef4444' : user.disabled ? '1px solid #f59e0b' : user.isVip ? '1px solid #1877F2' : '1px solid #E4E6EB' }}>
@@ -597,7 +598,7 @@ export default function AdminPanel() {
         {activeTab === 'orders' && (
           <div>
             {ordersLoading ? (
-              <p style={{ textAlign:'center', color:'#65676B', padding:30 }}>Chargement…</p>
+              <SkeletonList rows={3} />
             ) : boostOrders.length === 0 ? (
               <p style={{ textAlign:'center', color:'#65676B', padding:30, fontSize:13 }}>Aucune commande de boost</p>
             ) : boostOrders.map(order => (

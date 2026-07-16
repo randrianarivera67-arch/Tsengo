@@ -31,6 +31,24 @@ export function SkeletonPost() {
   );
 }
 
+// Squelette d'une liste (Amis, Recherche, Enregistrés, Admin...) : lignes
+// répétées avatar + texte, façon Facebook.
+export function SkeletonList({ rows = 5, avatar = true }) {
+  return (
+    <div>
+      {Array.from({ length: rows }).map((_, i) => (
+        <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 4px' }}>
+          {avatar && <SkeletonCircle size={44} />}
+          <div style={{ flex: 1 }}>
+            <SkeletonBlock w={`${55 - (i % 3) * 8}%`} h={13} style={{ marginBottom: 7 }} />
+            <SkeletonBlock w={`${32 - (i % 3) * 5}%`} h={10} />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 // Squelette d'une publication seule (page PostDetail)
 export function SkeletonSinglePost() {
   return (

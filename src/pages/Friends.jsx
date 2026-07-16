@@ -7,6 +7,7 @@ import {
   onSnapshot, deleteDoc, orderBy
 } from 'firebase/firestore';
 import { db } from '../firebase';
+import { SkeletonList } from '../components/Skeleton';
 import { useAuth } from '../context/AuthContext';
 import { useLang } from '../context/LanguageContext';
 import { getChatId } from '../utils/chat';
@@ -360,7 +361,7 @@ export default function Friends() {
       {activeTab === 'suggestions' && (
         <div>
           {suggLoading ? (
-            <p style={{ textAlign:'center', color:'#65676B', padding:30 }}>Chargement...</p>
+            <SkeletonList rows={4} />
           ) : suggestions.length === 0 ? (
             <div style={{ textAlign:'center', padding:'40px 20px' }}>
               <p style={{ fontSize:40, marginBottom:8 }}>🎉</p>

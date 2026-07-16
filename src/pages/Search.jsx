@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { collection, getDocs, query, where, orderBy, limit } from 'firebase/firestore';
 import { db } from '../firebase';
+import { SkeletonList } from '../components/Skeleton';
 import { useAuth } from '../context/AuthContext';
 import { parseAppLink } from '../utils/appLink';
 import { HiArrowLeft, HiSearch, HiUserGroup, HiX, HiChevronRight } from 'react-icons/hi';
@@ -93,7 +94,7 @@ export default function Search() {
         </div>
       </div>
 
-      {!loaded && <p style={{ padding: 30, textAlign: 'center', color: '#65676B', fontSize: 14 }}>Chargement...</p>}
+      {!loaded && <div style={{ padding: '10px 16px' }}><SkeletonList rows={6} /></div>}
 
       {loaded && !q && (
         <p style={{ padding: '12px 16px 0', fontSize: 13, color: '#65676B' }}>Suggestions</p>

@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { doc, getDoc, updateDoc, arrayRemove } from 'firebase/firestore';
 import { db } from '../firebase';
+import { SkeletonList } from '../components/Skeleton';
 import { useAuth } from '../context/AuthContext';
 import { HiBookmark, HiTrash, HiChevronRight, HiUserGroup } from 'react-icons/hi';
 
@@ -40,7 +41,7 @@ export default function Saved() {
         <HiBookmark size={24} color="#F2B300" /> Enregistrements
       </h2>
 
-      {!loaded && <p style={{ padding: 30, textAlign: 'center', color: '#65676B', fontSize: 14 }}>Chargement...</p>}
+      {!loaded && <SkeletonList rows={5} avatar={false} />}
 
       {loaded && items.length === 0 && (
         <div className="card" style={{ padding: 30, textAlign: 'center' }}>
