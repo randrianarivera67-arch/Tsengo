@@ -140,6 +140,27 @@ body {
 }
 .btn-gold:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(242,179,0,.6); }
 
+/* ══════════════ Skeleton loading (chargement façon Facebook) ══════════════ */
+.skeleton-shimmer {
+  position: relative;
+  overflow: hidden;
+  background: #E4E6EB;
+}
+.skeleton-shimmer::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,.55), transparent);
+  animation: skeletonSweep 1.4s ease-in-out infinite;
+}
+@keyframes skeletonSweep {
+  100% { transform: translateX(100%); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .skeleton-shimmer::after { animation: none !important; }
+}
+
 /* ══════════════ Effet "ressort" (spring) sur TOUS les boutons ══════════════
    Appui -> léger rétrécissement ; relâchement -> rebond élastique (back-out).
    Cible l'élément <button> natif : couvre la quasi-totalité de l'app sans

@@ -13,6 +13,7 @@ import { timeAgo } from '../utils/timeAgo';
 import { NeonMic, NeonGlobe, NeonPhone, NeonLocation, NeonChart, NeonEye, NeonPeople, NeonLike, NeonComment } from '../components/NeonIcons';
 import FollowListModal from '../components/FollowListModal';
 import ShareModal from '../components/ShareModal';
+import { SkeletonChannelPage } from '../components/Skeleton';
 import ReportModal from '../components/ReportModal';
 import BoostOrderModal from '../components/BoostOrderModal';
 import { downloadMedia } from '../utils/download';
@@ -297,7 +298,7 @@ export default function ArtistDetail() {
       <button className="btn-primary" onClick={() => navigate('/artists')} style={{ padding:'10px 20px', borderRadius:20 }}>Voir les artistes</button>
     </div>
   );
-  if (!artist) return <div style={{ padding:40, textAlign:'center', color:'#65676B' }}>Chargement...</div>;
+  if (!artist) return <SkeletonChannelPage />;
 
   return (
     <div style={{ paddingBottom:20 }}>

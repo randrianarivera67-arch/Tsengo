@@ -7,6 +7,7 @@ import {
 } from 'firebase/firestore';
 import { db } from '../firebase';
 import MediaViewer from '../components/MediaViewer';
+import { SkeletonPost } from '../components/Skeleton';
 import ReportModal from '../components/ReportModal';
 import BoostOrderModal from '../components/BoostOrderModal';
 import PullToRefresh from '../components/PullToRefresh';
@@ -296,6 +297,7 @@ export default function Home() {
   const lpFired = useRef(false);
 
   const [posts, setPosts]           = useState([]);
+  const [postsLoading, setPostsLoading] = useState(true);
   const feedAds = useFeedAds();
   const [visibleCount, setVisibleCount] = useState(10);   // affichage progressif
   const [expandedPosts, setExpandedPosts] = useState({});
@@ -486,6 +488,7 @@ export default function Home() {
       });
       setPosts(sorted);
       setReelPosts(all.filter(p => p.mediaType === 'video' && p.mediaURL));
+      setPostsLoading(false);
     });
   }, []);
 
@@ -1160,6 +1163,13 @@ const fields = {
           setReplyTo={setReplyTo}
           VIPBadge={VIPBadge}
         />
+      )}
+
+      {postsLoading && posts.length === 0 && (
+        <div style={{ padding: '0 0 8px' }}>
+          <SkeletonPost />
+          <SkeletonPost />
+        </div>
       )}
 
       {/* ── Stories (format Facebook) ─────────────────────────── */}

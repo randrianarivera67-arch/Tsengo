@@ -14,6 +14,7 @@ import { timeAgo } from '../utils/timeAgo';
 import { NeonPhone, NeonLocation, NeonPlaneWhite, NeonChart, NeonEye, NeonPeople, NeonLike, NeonComment } from '../components/NeonIcons';
 import FollowListModal from '../components/FollowListModal';
 import ShareModal from '../components/ShareModal';
+import { SkeletonChannelPage } from '../components/Skeleton';
 import ReportModal from '../components/ReportModal';
 import BoostOrderModal from '../components/BoostOrderModal';
 import { downloadMedia } from '../utils/download';
@@ -273,7 +274,7 @@ export default function ShopDetail() {
       <button className="btn-primary" onClick={() => navigate('/shop')} style={{ padding:'10px 20px', borderRadius:20 }}>Voir les boutiques</button>
     </div>
   );
-  if (!shop) return <div style={{ padding:40, textAlign:'center', color:'#65676B' }}>Chargement...</div>;
+  if (!shop) return <SkeletonChannelPage />;
 
   return (
     <div style={{ paddingBottom:20 }}>
