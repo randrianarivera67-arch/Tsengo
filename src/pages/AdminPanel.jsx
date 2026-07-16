@@ -12,7 +12,8 @@ import { useNavigate } from 'react-router-dom';
 import {
   HiShieldCheck, HiStar, HiSearch, HiLightningBolt, HiX, HiClock,
   HiChevronDown, HiChevronUp, HiBan, HiCheckCircle, HiTrash,
-  HiDownload, HiDuplicate, HiShoppingBag, HiMusicNote, HiUserGroup
+  HiDownload, HiDuplicate, HiShoppingBag, HiMusicNote, HiUserGroup, HiMenu,
+  HiUsers, HiSpeakerphone
 } from 'react-icons/hi';
 import { isStandalone, canInstall, onInstallChange, promptInstall } from '../utils/pwaInstall';
 import PushDiagnostic from '../components/PushDiagnostic';
@@ -38,6 +39,7 @@ export default function AdminPanel() {
   const [shops, setShops] = useState([]);
   const [artists, setArtists] = useState([]);
   const [bizSearch, setBizSearch] = useState('');
+  const [navMenuOpen, setNavMenuOpen] = useState(false);
   const [boostOrders, setBoostOrders] = useState([]);
   const [ordersLoading, setOrdersLoading] = useState(false);
 
@@ -267,17 +269,17 @@ export default function AdminPanel() {
   // ── États bloquants ──────────────────────────────────────────────
   if (isAdmin === null) {
     return (
-      <div style={{ minHeight: '100vh', background: '#0B0D12', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div style={{ minHeight: '100vh', background: '#F0F2F5', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <p style={{ color: '#65676B', fontFamily: 'Poppins' }}>Vérification des droits...</p>
       </div>
     );
   }
   if (isAdmin === false) {
     return (
-      <div style={{ minHeight: '100vh', background: '#0B0D12', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
-        <div style={{ background: '#050505', borderRadius: 20, padding: 32, maxWidth: 340, textAlign: 'center', border: '1px solid #232733', fontFamily: 'Poppins' }}>
+      <div style={{ minHeight: '100vh', background: '#F0F2F5', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+        <div style={{ background: '#FFFFFF', borderRadius: 20, padding: 32, maxWidth: 340, textAlign: 'center', border: '1px solid #E4E6EB', fontFamily: 'Poppins' }}>
           <div style={{ fontSize: 48, marginBottom: 12 }}>🔒</div>
-          <h2 style={{ color: '#E4E6EB', fontWeight: 800, fontSize: 20, marginBottom: 8 }}>Accès refusé</h2>
+          <h2 style={{ color: '#050505', fontWeight: 800, fontSize: 20, marginBottom: 8 }}>Accès refusé</h2>
           <p style={{ color: '#65676B', fontSize: 14, marginBottom: 24 }}>Vous n'avez pas les droits administrateur.</p>
           <button onClick={() => navigate('/')} style={{ background: 'linear-gradient(135deg,#FF2D8D,#FF7AB8)', color: 'white', border: 'none', borderRadius: 25, padding: '12px 28px', fontWeight: 700, fontSize: 14, cursor: 'pointer', fontFamily: 'Poppins' }}>
             Retour à l'accueil
@@ -287,12 +289,20 @@ export default function AdminPanel() {
     );
   }
 
+  const NAV_ITEMS = [
+    { key: 'users',   label: 'Utilisateurs', icon: '👥' },
+    { key: 'boost',   label: 'Boost (manuel)', icon: '🚀' },
+    { key: 'shops',   label: 'Boutiques', icon: '🛍️' },
+    { key: 'artists', label: 'Artistes', icon: '🎵' },
+    { key: 'orders',  label: 'Commandes Boost', icon: '📢', badge: boostOrders.filter(o=>o.status==='pending').length },
+  ];
+
   const tabBtn = (key, label) => (
     <button key={key} onClick={() => setActiveTab(key)}
       style={{
-        flex: 1, padding: '10px 6px', borderRadius: 14, border: activeTab === key ? 'none' : '1px solid #232733',
+        flex: 1, padding: '10px 6px', borderRadius: 14, border: activeTab === key ? 'none' : '1px solid #E4E6EB',
         cursor: 'pointer', fontFamily: 'Poppins', fontWeight: 600, fontSize: 12.5, whiteSpace: 'nowrap',
-        background: activeTab === key ? 'linear-gradient(135deg,#FF2D8D,#FF7AB8)' : '#050505',
+        background: activeTab === key ? 'linear-gradient(135deg,#FF2D8D,#FF7AB8)' : '#FFFFFF',
         color: activeTab === key ? 'white' : '#65676B',
       }}>{label}</button>
   );
@@ -302,7 +312,7 @@ export default function AdminPanel() {
   );
 
   return (
-    <div style={{ minHeight: '100vh', background: '#0B0D12', padding: '20px 16px', fontFamily: 'Poppins, sans-serif', color: '#E4E6EB' }}>
+    <div style={{ minHeight: '100vh', background: '#F0F2F5', padding: '20px 16px', fontFamily: 'Poppins, sans-serif', color: '#050505' }}>
       <div style={{ maxWidth: 700, margin: '0 auto' }}>
 
         {/* Header */}
@@ -311,19 +321,24 @@ export default function AdminPanel() {
             <HiShieldCheck size={24} color="white" />
           </div>
           <div>
-            <h2 style={{ fontWeight: 800, fontSize: 20, color: '#E4E6EB' }}>Panel Admin</h2>
+            <h2 style={{ fontWeight: 800, fontSize: 20, color: '#050505' }}>Panel Admin</h2>
             <p style={{ fontSize: 12, color: '#65676B' }}>Connecté : {userProfile?.fullName}</p>
           </div>
-          <button onClick={() => navigate('/')} style={{ marginLeft: 'auto', background: '#232733', border: 'none', borderRadius: 20, padding: '6px 14px', color: '#65676B', cursor: 'pointer', fontSize: 13 }}>
-            ← Retour
-          </button>
+          <div style={{ marginLeft: 'auto', display: 'flex', gap: 8 }}>
+            <button onClick={() => setNavMenuOpen(true)} style={{ width: 36, height: 36, borderRadius: '50%', background: '#E4E6EB', border: 'none', cursor: 'pointer', color: '#050505', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <HiMenu size={18} />
+            </button>
+            <button onClick={() => navigate('/')} style={{ background: '#E4E6EB', border: 'none', borderRadius: 20, padding: '6px 14px', color: '#65676B', cursor: 'pointer', fontSize: 13 }}>
+              ← Retour
+            </button>
+          </div>
         </div>
 
         {/* Installation PWA */}
         <div style={{ background: 'linear-gradient(135deg,#1877F218,#00C85311)', border: '1px solid #1877F244', borderRadius: 14, padding: '12px 14px', marginBottom: 14, display: 'flex', alignItems: 'center', gap: 12 }}>
           <HiDownload size={22} color="#3b82f6" style={{ flexShrink: 0 }} />
           <div style={{ flex: 1, minWidth: 0 }}>
-            <p style={{ fontWeight: 700, fontSize: 14, color: '#E4E6EB' }}>Installer l'application Trengo</p>
+            <p style={{ fontWeight: 700, fontSize: 14, color: '#050505' }}>Installer l'application Trengo</p>
             <p style={{ fontSize: 11, color: '#65676B' }}>
               {installState === 'installed' ? '✅ Déjà installée sur cet appareil'
                 : installState === 'ready' ? "Prête à installer sur l'écran d'accueil"
@@ -334,7 +349,7 @@ export default function AdminPanel() {
             style={{
               flexShrink: 0, border: 'none', borderRadius: 20, padding: '9px 16px', fontWeight: 700, fontSize: 13, fontFamily: 'Poppins',
               cursor: installState === 'ready' ? 'pointer' : 'not-allowed',
-              background: installState === 'ready' ? 'linear-gradient(135deg,#1877F2,#42A5F5)' : '#232733',
+              background: installState === 'ready' ? 'linear-gradient(135deg,#1877F2,#42A5F5)' : '#E4E6EB',
               color: installState === 'ready' ? '#fff' : '#65676B',
             }}>
             {installState === 'installed' ? 'Installée' : 'Installer'}
@@ -343,6 +358,29 @@ export default function AdminPanel() {
 
         {/* Diagnostic Push */}
         <PushDiagnostic uid={currentUser?.uid} />
+
+        {navMenuOpen && (
+          <div onClick={() => setNavMenuOpen(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.45)', zIndex: 700, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
+            <div onClick={e => e.stopPropagation()} style={{ background: '#FFFFFF', borderRadius: '20px 20px 0 0', width: '100%', maxWidth: 480, padding: '10px 0 24px', maxHeight: '75vh', overflowY: 'auto' }}>
+              <div style={{ width: 40, height: 4, background: '#E4E6EB', borderRadius: 2, margin: '6px auto 14px' }} />
+              <p style={{ fontWeight: 800, fontSize: 15, color: '#050505', padding: '0 20px 10px' }}>Menu Admin</p>
+              {NAV_ITEMS.map(item => (
+                <button key={item.key} onClick={() => { setActiveTab(item.key); setNavMenuOpen(false); }}
+                  style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 14, padding: '14px 20px', background: activeTab === item.key ? '#FFF0F7' : 'none', border: 'none', cursor: 'pointer', textAlign: 'left' }}>
+                  <span style={{ fontSize: 20 }}>{item.icon}</span>
+                  <span style={{ flex: 1, fontWeight: activeTab === item.key ? 700 : 500, fontSize: 15, color: activeTab === item.key ? '#FF2D8D' : '#050505' }}>{item.label}</span>
+                  {item.badge > 0 && <span style={{ background: '#FF2D8D', color: 'white', fontSize: 11, fontWeight: 700, borderRadius: 10, padding: '2px 8px' }}>{item.badge}</span>}
+                </button>
+              ))}
+              <div style={{ borderTop: '1px solid #F0F2F5', marginTop: 6, paddingTop: 6 }}>
+                <button onClick={() => { setNavMenuOpen(false); navigate('/'); }}
+                  style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 14, padding: '14px 20px', background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left', color: '#65676B', fontSize: 15 }}>
+                  ← Retour à l'accueil
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Flash message */}
         {message && (
@@ -363,21 +401,25 @@ export default function AdminPanel() {
             { label: 'Boutiques', value: shops.length, color: '#06b6d4' },
             { label: 'Artistes', value: artists.length, color: '#ec4899' },
           ].map(s => (
-            <div key={s.label} style={{ background: '#050505', borderRadius: 14, padding: '12px 6px', textAlign: 'center', border: '1px solid #232733' }}>
+            <div key={s.label} style={{ background: '#FFFFFF', borderRadius: 14, padding: '12px 6px', textAlign: 'center', border: '1px solid #E4E6EB', boxShadow: '0 1px 3px rgba(0,0,0,.06)' }}>
               <p style={{ fontWeight: 800, fontSize: 19, color: s.color }}>{s.value}</p>
               <p style={{ fontSize: 9.5, color: '#65676B' }}>{s.label}</p>
             </div>
           ))}
         </div>
 
-        {/* Tabs */}
-        <div style={{ display: 'flex', gap: 6, marginBottom: 18, overflowX: 'auto' }}>
-          {tabBtn('users', '👥 Utilisateurs')}
-          {tabBtn('boost', '🚀 Boost')}
-          {tabBtn('shops', '🛍️ Boutiques')}
-          {tabBtn('artists', '🎵 Artistes')}
-          {tabBtn('orders', `📢 Commandes${boostOrders.filter(o=>o.status==='pending').length ? ' ('+boostOrders.filter(o=>o.status==='pending').length+')' : ''}`)}
-        </div>
+        {/* Section active + accès au menu */}
+        <button onClick={() => setNavMenuOpen(true)} style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#FFFFFF', border: '1px solid #E4E6EB', borderRadius: 14, padding: '12px 16px', marginBottom: 18, cursor: 'pointer', boxShadow: '0 1px 3px rgba(0,0,0,.06)' }}>
+          <span style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 700, fontSize: 15, color: '#050505' }}>
+            {NAV_ITEMS.find(n => n.key === activeTab)?.icon} {NAV_ITEMS.find(n => n.key === activeTab)?.label}
+          </span>
+          <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            {boostOrders.filter(o=>o.status==='pending').length > 0 && activeTab !== 'orders' && (
+              <span style={{ background: '#FF2D8D', color: 'white', fontSize: 10, fontWeight: 700, borderRadius: 10, padding: '2px 7px' }}>{boostOrders.filter(o=>o.status==='pending').length}</span>
+            )}
+            <HiChevronDown size={18} color="#65676B" />
+          </span>
+        </button>
 
         {/* ── TAB USERS ── */}
         {activeTab === 'users' && (
@@ -385,17 +427,17 @@ export default function AdminPanel() {
             <div style={{ position: 'relative', marginBottom: 14 }}>
               <HiSearch style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: '#65676B' }} size={17} />
               <input placeholder="Rechercher (nom, @, email, ID)..." value={search} onChange={e => setSearch(e.target.value)}
-                style={{ width: '100%', background: '#050505', border: '1px solid #232733', borderRadius: 12, padding: '10px 10px 10px 36px', color: '#E4E6EB', fontFamily: 'Poppins', fontSize: 14, boxSizing: 'border-box' }} />
+                style={{ width: '100%', background: '#FFFFFF', border: '1px solid #E4E6EB', borderRadius: 12, padding: '10px 10px 10px 36px', color: '#050505', fontFamily: 'Poppins', fontSize: 14, boxSizing: 'border-box' }} />
             </div>
             {loading ? <p style={{ textAlign: 'center', color: '#65676B', padding: 30 }}>Chargement...</p> : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                 {filteredUsers.map(user => (
-                  <div key={user.id} style={{ background: '#050505', borderRadius: 14, padding: '12px 14px', border: user.isBanned ? '1px solid #ef4444' : user.disabled ? '1px solid #f59e0b' : user.isVip ? '1px solid #1877F2' : '1px solid #232733' }}>
+                  <div key={user.id} style={{ background: '#FFFFFF', borderRadius: 14, padding: '12px 14px', border: user.isBanned ? '1px solid #ef4444' : user.disabled ? '1px solid #f59e0b' : user.isVip ? '1px solid #1877F2' : '1px solid #E4E6EB' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                       <img src={user.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.fullName || 'U')}&background=1877F2&color=fff`} alt="" style={{ width: 44, height: 44, borderRadius: '50%', objectFit: 'cover', flexShrink: 0, opacity: user.disabled ? 0.5 : 1 }} />
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 5, flexWrap: 'wrap' }}>
-                          <p style={{ fontWeight: 600, fontSize: 14, color: '#E4E6EB' }}>{user.fullName}</p>
+                          <p style={{ fontWeight: 600, fontSize: 14, color: '#050505' }}>{user.fullName}</p>
                           {user.isVip && <img src='/vip-badge.png' style={{ width: 22, height: 22, flexShrink: 0, objectFit: 'contain' }} alt='VIP' />}
                           {user.isAdmin && pill('ADMIN', '#1d4ed8', 'white')}
                           {user.isBanned && pill('BLOQUÉ', '#7f1d1d', '#fca5a5')}
@@ -409,13 +451,13 @@ export default function AdminPanel() {
                     </div>
                     {/* Actions */}
                     <div style={{ display: 'flex', gap: 6, marginTop: 10, flexWrap: 'wrap' }}>
-                      <button onClick={() => toggleVip(user)} style={{ flex: 1, minWidth: 90, background: user.isVip ? '#232733' : 'linear-gradient(135deg,#FF2D8D,#FF7AB8)', border: 'none', borderRadius: 18, padding: '7px 10px', color: user.isVip ? '#1877F2' : 'white', cursor: 'pointer', fontSize: 12, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4, fontFamily: 'Poppins' }}>
+                      <button onClick={() => toggleVip(user)} style={{ flex: 1, minWidth: 90, background: user.isVip ? '#E4E6EB' : 'linear-gradient(135deg,#FF2D8D,#FF7AB8)', border: 'none', borderRadius: 18, padding: '7px 10px', color: user.isVip ? '#1877F2' : 'white', cursor: 'pointer', fontSize: 12, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4, fontFamily: 'Poppins' }}>
                         <HiStar size={13} /> {user.isVip ? 'Retirer VIP' : 'VIP'}
                       </button>
-                      <button onClick={() => toggleBan(user)} style={{ flex: 1, minWidth: 90, background: user.isBanned ? '#232733' : '#3b0000', border: '1px solid #ef4444', borderRadius: 18, padding: '7px 10px', color: '#fca5a5', cursor: 'pointer', fontSize: 12, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4, fontFamily: 'Poppins' }}>
+                      <button onClick={() => toggleBan(user)} style={{ flex: 1, minWidth: 90, background: user.isBanned ? '#E4E6EB' : '#3b0000', border: '1px solid #ef4444', borderRadius: 18, padding: '7px 10px', color: '#fca5a5', cursor: 'pointer', fontSize: 12, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4, fontFamily: 'Poppins' }}>
                         <HiBan size={13} /> {user.isBanned ? 'Débloquer' : 'Bloquer'}
                       </button>
-                      <button onClick={() => toggleDisable(user)} style={{ flex: 1, minWidth: 90, background: user.disabled ? '#232733' : '#3a2a00', border: '1px solid #f59e0b', borderRadius: 18, padding: '7px 10px', color: '#fcd34d', cursor: 'pointer', fontSize: 12, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4, fontFamily: 'Poppins' }}>
+                      <button onClick={() => toggleDisable(user)} style={{ flex: 1, minWidth: 90, background: user.disabled ? '#E4E6EB' : '#3a2a00', border: '1px solid #f59e0b', borderRadius: 18, padding: '7px 10px', color: '#fcd34d', cursor: 'pointer', fontSize: 12, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4, fontFamily: 'Poppins' }}>
                         <HiClock size={13} /> {user.disabled ? 'Réactiver' : 'Désactiver'}
                       </button>
                     </div>
@@ -434,26 +476,26 @@ export default function AdminPanel() {
               <div>
                 <p style={{ fontWeight: 700, fontSize: 14, color: '#d8b4fe', marginBottom: 4 }}>Boost de publication</p>
                 <p style={{ fontSize: 12, color: '#65676B', lineHeight: 1.7 }}>
-                  Saisissez le nombre de jours. Le post remonte en tête du fil avec le badge <strong style={{ color: '#a855f7' }}>Sponsorisé</strong>. ⚠️ Nécessite les règles Firestore <strong style={{ color: '#E4E6EB' }}>isAdmin</strong> à jour.
+                  Saisissez le nombre de jours. Le post remonte en tête du fil avec le badge <strong style={{ color: '#a855f7' }}>Sponsorisé</strong>. ⚠️ Nécessite les règles Firestore <strong style={{ color: '#050505' }}>isAdmin</strong> à jour.
                 </p>
               </div>
             </div>
             <div style={{ position: 'relative', marginBottom: 14 }}>
               <HiSearch style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: '#65676B' }} size={17} />
               <input placeholder="Rechercher une publication..." value={boostSearch} onChange={e => setBoostSearch(e.target.value)}
-                style={{ width: '100%', background: '#050505', border: '1px solid #232733', borderRadius: 12, padding: '10px 10px 10px 36px', color: '#E4E6EB', fontFamily: 'Poppins', fontSize: 14, boxSizing: 'border-box' }} />
+                style={{ width: '100%', background: '#FFFFFF', border: '1px solid #E4E6EB', borderRadius: 12, padding: '10px 10px 10px 36px', color: '#050505', fontFamily: 'Poppins', fontSize: 14, boxSizing: 'border-box' }} />
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
               {filteredPosts.map(post => {
                 const timeLeft = boostTimeLeft(post);
                 const isExpanded = expandedPost === post.id;
                 return (
-                  <div key={post.id} style={{ background: '#050505', borderRadius: 16, border: post.isBoosted ? '1px solid #a855f7' : '1px solid #232733', overflow: 'hidden' }}>
+                  <div key={post.id} style={{ background: '#FFFFFF', borderRadius: 16, border: post.isBoosted ? '1px solid #a855f7' : '1px solid #E4E6EB', overflow: 'hidden' }}>
                     <div style={{ padding: '12px 14px', display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer' }} onClick={() => setExpandedPost(isExpanded ? null : post.id)}>
                       <img src={post.authorPhoto || `https://ui-avatars.com/api/?name=${encodeURIComponent(post.authorName || 'U')}&background=1877F2&color=fff`} alt="" style={{ width: 40, height: 40, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} />
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                          <p style={{ fontWeight: 600, fontSize: 13, color: '#E4E6EB' }}>{post.authorName}</p>
+                          <p style={{ fontWeight: 600, fontSize: 13, color: '#050505' }}>{post.authorName}</p>
                           {post.isBoosted && <span style={{ background: 'linear-gradient(135deg,#7c3aed,#a855f7)', color: 'white', fontSize: 9, fontWeight: 700, padding: '1px 6px', borderRadius: 6, display: 'flex', alignItems: 'center', gap: 2 }}><HiLightningBolt size={9} /> Boosté</span>}
                         </div>
                         <p style={{ fontSize: 11, color: '#65676B', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 200 }}>{post.content || (post.mediaURL ? '📎 Media' : '—')}</p>
@@ -462,8 +504,8 @@ export default function AdminPanel() {
                       <span style={{ color: '#65676B', flexShrink: 0 }}>{isExpanded ? <HiChevronUp size={18} /> : <HiChevronDown size={18} />}</span>
                     </div>
                     {isExpanded && (
-                      <div style={{ borderTop: '1px solid #232733', padding: '14px' }}>
-                        {post.content && <p style={{ fontSize: 13, color: '#E4E6EB', marginBottom: 10, lineHeight: 1.5, background: '#0B0D12', borderRadius: 10, padding: '10px 12px' }}>{post.content.slice(0, 150)}{post.content.length > 150 ? '...' : ''}</p>}
+                      <div style={{ borderTop: '1px solid #E4E6EB', padding: '14px' }}>
+                        {post.content && <p style={{ fontSize: 13, color: '#050505', marginBottom: 10, lineHeight: 1.5, background: '#F0F2F5', borderRadius: 10, padding: '10px 12px' }}>{post.content.slice(0, 150)}{post.content.length > 150 ? '...' : ''}</p>}
                         {post.mediaURL && post.mediaType === 'image' && <img src={post.mediaURL} alt="" style={{ width: '100%', maxHeight: 160, objectFit: 'cover', borderRadius: 10, marginBottom: 10 }} />}
                         {post.isBoosted && (
                           <div style={{ background: '#2e1065', borderRadius: 12, padding: '12px 14px', marginBottom: 12, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
@@ -471,18 +513,18 @@ export default function AdminPanel() {
                               <p style={{ color: '#d8b4fe', fontWeight: 600, fontSize: 13 }}>✅ Boost actif — {post.boostDays}j</p>
                               <p style={{ color: '#a855f7', fontSize: 12 }}>{timeLeft}</p>
                             </div>
-                            <button onClick={() => deactivateBoost(post)} disabled={boostLoading[post.id]} style={{ background: '#232733', border: '1px solid #1877F2', borderRadius: 20, padding: '6px 14px', color: '#1877F2', cursor: 'pointer', fontSize: 12, fontWeight: 600, fontFamily: 'Poppins', display: 'flex', alignItems: 'center', gap: 4 }}><HiX size={13} /> Retirer boost</button>
+                            <button onClick={() => deactivateBoost(post)} disabled={boostLoading[post.id]} style={{ background: '#E4E6EB', border: '1px solid #1877F2', borderRadius: 20, padding: '6px 14px', color: '#1877F2', cursor: 'pointer', fontSize: 12, fontWeight: 600, fontFamily: 'Poppins', display: 'flex', alignItems: 'center', gap: 4 }}><HiX size={13} /> Retirer boost</button>
                           </div>
                         )}
                         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                           <div style={{ position: 'relative', flex: 1 }}>
                             <HiClock style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: '#65676B' }} size={16} />
                             <input type="number" min="1" max="365" placeholder="Nb. jours (ex: 7)" value={boostDays[post.id] || ''} onChange={e => setBoostDays(p => ({ ...p, [post.id]: e.target.value }))}
-                              style={{ width: '100%', background: '#0B0D12', border: '1px solid #232733', borderRadius: 12, padding: '10px 14px 10px 40px', color: '#E4E6EB', fontFamily: 'Poppins', fontSize: 14, boxSizing: 'border-box' }} />
+                              style={{ width: '100%', background: '#F0F2F5', border: '1px solid #E4E6EB', borderRadius: 12, padding: '10px 14px 10px 40px', color: '#050505', fontFamily: 'Poppins', fontSize: 14, boxSizing: 'border-box' }} />
                           </div>
                           <span style={{ color: '#65676B', fontSize: 13, fontWeight: 600 }}>j</span>
                           <button onClick={() => activateBoost(post)} disabled={boostLoading[post.id] || !boostDays[post.id]}
-                            style={{ background: (!boostDays[post.id] || boostLoading[post.id]) ? '#232733' : 'linear-gradient(135deg,#7c3aed,#a855f7)', border: 'none', borderRadius: 20, padding: '10px 18px', color: 'white', cursor: boostDays[post.id] ? 'pointer' : 'not-allowed', fontSize: 13, fontWeight: 700, fontFamily: 'Poppins', display: 'flex', alignItems: 'center', gap: 5, flexShrink: 0, opacity: boostLoading[post.id] ? 0.6 : 1 }}>
+                            style={{ background: (!boostDays[post.id] || boostLoading[post.id]) ? '#E4E6EB' : 'linear-gradient(135deg,#7c3aed,#a855f7)', border: 'none', borderRadius: 20, padding: '10px 18px', color: 'white', cursor: boostDays[post.id] ? 'pointer' : 'not-allowed', fontSize: 13, fontWeight: 700, fontFamily: 'Poppins', display: 'flex', alignItems: 'center', gap: 5, flexShrink: 0, opacity: boostLoading[post.id] ? 0.6 : 1 }}>
                             <HiLightningBolt size={14} /> {boostLoading[post.id] ? '...' : post.isBoosted ? 'Prolonger' : 'Booster'}
                           </button>
                         </div>
@@ -503,11 +545,11 @@ export default function AdminPanel() {
             ) : boostOrders.length === 0 ? (
               <p style={{ textAlign:'center', color:'#65676B', padding:30, fontSize:13 }}>Aucune commande de boost</p>
             ) : boostOrders.map(order => (
-              <div key={order.id} style={{ background:'#050505', borderRadius:14, padding:'12px 14px', marginBottom:10, border: order.status==='pending' ? '1px solid #a855f7' : '1px solid #232733' }}>
+              <div key={order.id} style={{ background:'#FFFFFF', borderRadius:14, padding:'12px 14px', marginBottom:10, border: order.status==='pending' ? '1px solid #a855f7' : '1px solid #E4E6EB' }}>
                 <div style={{ display:'flex', alignItems:'center', gap:10 }}>
                   <img src={order.requesterPhoto || `https://ui-avatars.com/api/?name=${encodeURIComponent(order.requesterName||'U')}&background=1877F2&color=fff`} alt="" style={{ width:38, height:38, borderRadius:'50%', objectFit:'cover', flexShrink:0 }}/>
                   <div style={{ flex:1, minWidth:0 }}>
-                    <p style={{ fontWeight:700, fontSize:13, color:'#E4E6EB' }}>{order.requesterName}</p>
+                    <p style={{ fontWeight:700, fontSize:13, color:'#050505' }}>{order.requesterName}</p>
                     <p style={{ fontSize:11, color:'#65676B' }}>
                       {order.targetType==='post' ? '📝 Publication' : order.targetType==='profile' ? '👤 Profil' : order.targetType==='shop' ? '🛍️ Boutique' : '🎵 Artiste'}
                       {order.targetTitle ? ` · ${order.targetTitle}` : ''}
@@ -544,23 +586,23 @@ export default function AdminPanel() {
             <div style={{ position: 'relative', marginBottom: 14 }}>
               <HiSearch style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: '#65676B' }} size={17} />
               <input placeholder={activeTab === 'shops' ? 'Rechercher une boutique...' : 'Rechercher un artiste...'} value={bizSearch} onChange={e => setBizSearch(e.target.value)}
-                style={{ width: '100%', background: '#050505', border: '1px solid #232733', borderRadius: 12, padding: '10px 10px 10px 36px', color: '#E4E6EB', fontFamily: 'Poppins', fontSize: 14, boxSizing: 'border-box' }} />
+                style={{ width: '100%', background: '#FFFFFF', border: '1px solid #E4E6EB', borderRadius: 12, padding: '10px 10px 10px 36px', color: '#050505', fontFamily: 'Poppins', fontSize: 14, boxSizing: 'border-box' }} />
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               {(activeTab === 'shops' ? filteredShops : filteredArtists).map(item => {
                 const kind = activeTab === 'shops' ? 'shop' : 'artist';
                 return (
-                  <div key={item.id} style={{ background: '#050505', borderRadius: 14, padding: '12px 14px', border: item.verified ? '1px solid #1877F2' : '1px solid #232733' }}>
+                  <div key={item.id} style={{ background: '#FFFFFF', borderRadius: 14, padding: '12px 14px', border: item.verified ? '1px solid #1877F2' : '1px solid #E4E6EB' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                      <div style={{ width: 44, height: 44, borderRadius: 12, background: '#0B0D12', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, overflow: 'hidden' }}>
+                      <div style={{ width: 44, height: 44, borderRadius: 12, background: '#F0F2F5', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, overflow: 'hidden' }}>
                         {item.photoURL ? <img src={item.photoURL} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                           : (kind === 'shop' ? <HiShoppingBag size={22} color="#06b6d4" /> : <HiMusicNote size={22} color="#ec4899" />)}
                       </div>
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 5, flexWrap: 'wrap' }}>
-                          <p style={{ fontWeight: 700, fontSize: 14, color: '#E4E6EB' }}>{item.name}</p>
+                          <p style={{ fontWeight: 700, fontSize: 14, color: '#050505' }}>{item.name}</p>
                           {item.verified && <HiCheckCircle size={15} color="#1877F2" />}
-                          {item.category && pill(item.category, '#0B0D12', '#65676B', '1px solid #232733')}
+                          {item.category && pill(item.category, '#F0F2F5', '#65676B', '1px solid #E4E6EB')}
                         </div>
                         <p style={{ fontSize: 11, color: '#65676B', display: 'flex', alignItems: 'center', gap: 4 }}>
                           <HiUserGroup size={11} /> {(item.followers || []).length} abonnés
@@ -569,7 +611,7 @@ export default function AdminPanel() {
                       </div>
                     </div>
                     <div style={{ display: 'flex', gap: 6, marginTop: 10 }}>
-                      <button onClick={() => verifyBiz(kind, item)} style={{ flex: 1, background: item.verified ? '#232733' : 'linear-gradient(135deg,#1877F2,#42A5F5)', border: 'none', borderRadius: 18, padding: '7px 10px', color: item.verified ? '#1877F2' : 'white', cursor: 'pointer', fontSize: 12, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4, fontFamily: 'Poppins' }}>
+                      <button onClick={() => verifyBiz(kind, item)} style={{ flex: 1, background: item.verified ? '#E4E6EB' : 'linear-gradient(135deg,#1877F2,#42A5F5)', border: 'none', borderRadius: 18, padding: '7px 10px', color: item.verified ? '#1877F2' : 'white', cursor: 'pointer', fontSize: 12, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4, fontFamily: 'Poppins' }}>
                         <HiCheckCircle size={13} /> {item.verified ? 'Retirer vérif.' : 'Vérifier'}
                       </button>
                       <button onClick={() => deleteBiz(kind, item)} style={{ flex: 1, background: '#3b0000', border: '1px solid #ef4444', borderRadius: 18, padding: '7px 10px', color: '#fca5a5', cursor: 'pointer', fontSize: 12, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4, fontFamily: 'Poppins' }}>
