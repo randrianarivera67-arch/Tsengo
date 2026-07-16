@@ -55,20 +55,9 @@ function TrackCard({ track, index, playing, onToggle, onArtist, onBoost, onShare
           {track.artistPhoto ? <img src={track.artistPhoto} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <NeonMic size={16} color="white" />}
         </div>
         <div style={{ position: 'absolute', top: 8, right: 8, zIndex: 4 }} onClick={e => e.stopPropagation()}>
-          <button onClick={() => setMenuOpen(p => !p)} style={{ width: 28, height: 28, borderRadius: '50%', background: 'rgba(0,0,0,.5)', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white' }}>
+          <button onClick={() => setMenuOpen(true)} style={{ width: 28, height: 28, borderRadius: '50%', background: 'rgba(0,0,0,.5)', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white' }}>
             <HiDotsVertical size={15} />
           </button>
-          {menuOpen && (
-            <div style={{ position: 'absolute', top: '110%', right: 0, background: 'white', border: '1px solid #E4E6EB', borderRadius: 12, boxShadow: '0 6px 22px rgba(0,0,0,.25)', minWidth: 175, zIndex: 60, overflow: 'hidden' }}>
-              <button onClick={() => { setMenuOpen(false); navigate(`/post/${track.id}`); }} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: '11px 14px', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'Poppins', fontSize: 13.5, color: '#050505', borderBottom: '1px solid #F0F2F5' }}><HiInformationCircle size={16} color="#1877F2" /> Informations</button>
-              {track.mediaURL && <button onClick={() => { setMenuOpen(false); downloadMedia(track.mediaURL, 'audio', track.songTitle || 'titre'); }} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: '11px 14px', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'Poppins', fontSize: 13.5, color: '#050505', borderBottom: '1px solid #F0F2F5' }}><HiDownload size={16} color="#12A48D" /> Télécharger</button>}
-              {isOwn && <button onClick={() => { setMenuOpen(false); onBoost?.({ type:'post', id:track.id, ownerUid:track.uid, title:track.songTitle||track.artistName||'Mon titre', thumbnailURL:track.thumbURL||track.mediaURL||'' }); }} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: '11px 14px', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'Poppins', fontSize: 13.5, color: '#050505', borderBottom: '1px solid #F0F2F5' }}><HiLightningBolt size={16} color="#a855f7" /> Booster</button>}
-              <button onClick={() => { setMenuOpen(false); onShare?.(track); }} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: '11px 14px', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'Poppins', fontSize: 13.5, color: '#050505', borderBottom: isOwn ? '1px solid #F0F2F5' : 'none' }}><HiShare size={16} color="#7A2DFF" /> Partager</button>
-              {isOwn
-                ? <button onClick={() => { setMenuOpen(false); removeTrack(); }} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: '11px 14px', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'Poppins', fontSize: 13.5, color: '#FF2D8D' }}><HiTrash size={16} /> Supprimer</button>
-                : <button onClick={() => { setMenuOpen(false); reportTrack(); }} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: '11px 14px', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'Poppins', fontSize: 13.5, color: '#050505' }}><HiFlag size={16} color="#F2B300" /> Signaler</button>}
-            </div>
-          )}
         </div>
         {track.thumbURL && <div style={{ position: 'absolute', inset: 0, backgroundImage: 'url(' + track.thumbURL + ')', backgroundSize: 'cover', backgroundPosition: 'center', filter: 'brightness(.45)', zIndex: 0 }} />}
         <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 2, padding: '0 10px', zIndex: 1 }}>
@@ -86,6 +75,20 @@ function TrackCard({ track, index, playing, onToggle, onArtist, onBoost, onShare
         </div>
         {dur && <div style={{ fontSize: 11, color: '#e6e6ea', fontWeight: 600, flexShrink: 0, marginLeft: 6 }}>{dur}</div>}
       </div>
+
+      {menuOpen && (
+        <div onClick={() => setMenuOpen(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.5)', zIndex: 300, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
+          <div onClick={e => e.stopPropagation()} style={{ background: '#fff', borderRadius: '18px 18px 0 0', width: '100%', maxWidth: 480, overflow: 'hidden' }}>
+            <button onClick={() => { setMenuOpen(false); navigate(`/post/${track.id}`); }} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 13, padding: '15px 20px', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'Poppins', fontSize: 15, fontWeight: 600, color: '#050505', borderBottom: '1px solid #F0F2F5' }}><HiInformationCircle size={19} color="#1877F2" /> Informations</button>
+            {track.mediaURL && <button onClick={() => { setMenuOpen(false); downloadMedia(track.mediaURL, 'audio', track.songTitle || 'titre'); }} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 13, padding: '15px 20px', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'Poppins', fontSize: 15, fontWeight: 600, color: '#050505', borderBottom: '1px solid #F0F2F5' }}><HiDownload size={19} color="#12A48D" /> Télécharger</button>}
+            {isOwn && <button onClick={() => { setMenuOpen(false); onBoost?.({ type:'post', id:track.id, ownerUid:track.uid, title:track.songTitle||track.artistName||'Mon titre', thumbnailURL:track.thumbURL||track.mediaURL||'' }); }} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 13, padding: '15px 20px', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'Poppins', fontSize: 15, fontWeight: 600, color: '#050505', borderBottom: '1px solid #F0F2F5' }}><HiLightningBolt size={19} color="#a855f7" /> Booster</button>}
+            <button onClick={() => { setMenuOpen(false); onShare?.(track); }} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 13, padding: '15px 20px', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'Poppins', fontSize: 15, fontWeight: 600, color: '#050505', borderBottom: isOwn ? '1px solid #F0F2F5' : 'none' }}><HiShare size={19} color="#7A2DFF" /> Partager</button>
+            {isOwn
+              ? <button onClick={() => { setMenuOpen(false); removeTrack(); }} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 13, padding: '15px 20px', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'Poppins', fontSize: 15, fontWeight: 600, color: '#FF2D8D' }}><HiTrash size={19} /> Supprimer</button>
+              : <button onClick={() => { setMenuOpen(false); reportTrack(); }} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 13, padding: '15px 20px', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'Poppins', fontSize: 15, fontWeight: 600, color: '#050505' }}><HiFlag size={19} color="#F2B300" /> Signaler</button>}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
