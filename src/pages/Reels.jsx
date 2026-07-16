@@ -12,6 +12,7 @@ import { uploadToTelegram } from '../utils/telegram';
 import { sendPushNotification } from '../utils/onesignal';
 import { isDataSaverOn, subscribeDataSaver } from '../utils/dataSaver';
 import { downloadMedia } from '../utils/download';
+import BoostOrderModal from '../components/BoostOrderModal';
 import ShareModal from '../components/ShareModal';
 import JejoStudio from '../components/JejoStudio';
 import { StoryMusicPlayer } from '../components/StoryStudio';
@@ -35,6 +36,7 @@ export default function Reels() {
   const location = useLocation();
 
   const [posts,             setPosts]           = useState([]);
+  const [boostTarget,       setBoostTarget]     = useState(null);
   const [activeIndex,       setActiveIndex]     = useState(0);
   const [showReactions,     setShowReactions]   = useState({});
   const [openComments,      setOpenComments]    = useState(false);
@@ -351,9 +353,11 @@ export default function Reels() {
                 </div>
 
                 {/* Boost */}
-                <button onClick={()=>navigate('/boost')} style={{ background:'none', border:'none', cursor:'pointer', color:'white' }}>
-                  <HiSpeakerphone size={24}/>
-                </button>
+                {isOwn && (
+                  <button onClick={()=>setBoostTarget({ type:'post', id:post.id, ownerUid:post.uid, title:(post.content||'').slice(0,60)||'Ma video', thumbnailURL:post.thumbURL||post.mediaURL||'' })} style={{ background:'none', border:'none', cursor:'pointer', color:'white' }}>
+                    <HiSpeakerphone size={24}/>
+                  </button>
+                )}
 
                 {/* Menu 3 points — anao ihany */}
                 {isOwn&&(
@@ -478,6 +482,7 @@ export default function Reels() {
       )}
 
       {shareModal && <ShareModal post={shareModal} onClose={() => setShareModal(null)} />}
+      {boostTarget && <BoostOrderModal target={boostTarget} onClose={() => setBoostTarget(null)} />}
     </div>
   );
 }

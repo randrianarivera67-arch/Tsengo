@@ -42,11 +42,17 @@
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
+html {
+  overscroll-behavior-y: contain;   /* desactive le "glow" natif Android -> laisse notre pull-to-refresh JS gerer le geste */
+}
+
 body {
   font-family: 'Poppins', sans-serif;
   background: var(--white);      /* fond blanc demandé */
   color: var(--black);
   min-height: 100vh;
+  overscroll-behavior-y: contain;
+  touch-action: pan-y pan-x;
 }
 
 /* ── Dark mode (conservé) ─────────────────────────────────── */

@@ -5,6 +5,7 @@ import { useLang } from '../context/LanguageContext';
 import { useTheme } from '../context/ThemeContext';
 import { useState, useEffect } from 'react';
 import { isDataSaverOn, setDataSaver } from '../utils/dataSaver';
+import BoostOrderModal from '../components/BoostOrderModal';
 import {
   HiLogout, HiGlobe, HiColorSwatch, HiUser, HiShieldCheck,
   HiChevronRight, HiStar, HiSpeakerphone, HiInformationCircle
@@ -16,6 +17,7 @@ export default function Settings() {
   const { theme } = useTheme();
   const navigate = useNavigate();
   const [dataSaver, setDataSaverState] = useState(false);
+  const [boostOpen, setBoostOpen] = useState(false);
   useEffect(() => { setDataSaverState(isDataSaverOn()); }, []);
   function toggleDataSaver() {
     const next = !dataSaver;
@@ -51,9 +53,9 @@ export default function Settings() {
       path: '/vip', color: '#f59e0b'
     },
     {
-      icon: HiSpeakerphone, label: 'Booster un post',
+      icon: HiSpeakerphone, label: 'Booster mon profil',
       sublabel: 'Augmenter la visibilité',
-      path: '/boost', color: '#1877F2'
+      path: '#boost', color: '#1877F2'
     },
   ];
 
@@ -109,7 +111,7 @@ export default function Settings() {
           return (
             <div
               key={item.path}
-              onClick={() => navigate(item.path)}
+              onClick={() => item.path === '#boost' ? setBoostOpen(true) : navigate(item.path)}
               style={{
                 display: 'flex', alignItems: 'center', gap: 14,
                 padding: '14px 16px', cursor: 'pointer',
@@ -159,6 +161,13 @@ export default function Settings() {
       >
         <HiLogout size={20} /> {t('logout')}
       </button>
+
+      {boostOpen && currentUser && (
+        <BoostOrderModal
+          target={{ type: 'profile', id: currentUser.uid, ownerUid: currentUser.uid, title: userProfile?.fullName || 'Mon profil', thumbnailURL: userProfile?.photoURL || '' }}
+          onClose={() => setBoostOpen(false)}
+        />
+      )}
     </div>
   );
 }
