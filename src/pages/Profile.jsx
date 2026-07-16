@@ -12,6 +12,7 @@ import { timeAgo } from '../utils/timeAgo';
 import { isDataSaverOn, subscribeDataSaver } from '../utils/dataSaver';
 import { downloadMedia } from '../utils/download';
 import ShareModal from '../components/ShareModal';
+import BoostOrderModal from '../components/BoostOrderModal';
 import FollowListModal from '../components/FollowListModal';
 import { useActiveStoryUids } from '../hooks/useActiveStoryUids';
 import { NeonBriefcase, NeonGraduation, NeonPhone, NeonGlobe, NeonLocation, NeonHome, NeonMic, NeonArchive, NeonClock, NeonLike, NeonComment, NeonShare, NeonStar } from '../components/NeonIcons';
@@ -110,6 +111,7 @@ export default function Profile() {
   const [loadingFriends, setLoadingF]    = useState(false);
   const [zoomPhoto,      setZoomPhoto]   = useState(null);
   const [selectedPost,   setSelectedPost] = useState(null);
+  const [boostTarget,    setBoostTarget]   = useState(null); // { type, id, ownerUid, title, thumbnailURL }
   const [friendStatus,   setFriendStatus] = useState('none');
 
   const photoRef  = useRef();
@@ -459,7 +461,7 @@ export default function Profile() {
                 <div style={{ position:'absolute', top:'100%', right:0, background:'white', border:'1px solid #E4E6EB', borderRadius:12, boxShadow:'0 4px 20px rgba(0,0,0,.12)', minWidth:170, zIndex:50, overflow:'hidden' }}>
                   {isOwnPost && <>
                     <button onClick={() => { setEditPost(post); setEditContent(post.content); setPostMenu(null); }} style={{ width:'100%', display:'flex', alignItems:'center', gap:10, padding:'11px 16px', background:'none', border:'none', cursor:'pointer', color:'#050505', fontSize:14, borderBottom:'1px solid #F0F2F5', fontFamily:'Poppins' }}><HiPencil size={15} color="#1877F2"/> Modifier</button>
-                    <button onClick={() => { navigate('/boost'); setPostMenu(null); }} style={{ width:'100%', display:'flex', alignItems:'center', gap:10, padding:'11px 16px', background:'none', border:'none', cursor:'pointer', color:'#050505', fontSize:14, borderBottom:'1px solid #F0F2F5', fontFamily:'Poppins' }}><HiLightningBolt size={15} color="#a855f7"/> Booster</button>
+                    <button onClick={() => { setBoostTarget({ type:'post', id: post.id, ownerUid: post.uid, title: (post.content||'').slice(0,60) || 'Votre publication', thumbnailURL: post.mediaURL || '' }); setPostMenu(null); }} style={{ width:'100%', display:'flex', alignItems:'center', gap:10, padding:'11px 16px', background:'none', border:'none', cursor:'pointer', color:'#050505', fontSize:14, borderBottom:'1px solid #F0F2F5', fontFamily:'Poppins' }}><HiLightningBolt size={15} color="#a855f7"/> Booster</button>
                     <button onClick={() => { deletePost(post.id); setPostMenu(null); }} style={{ width:'100%', display:'flex', alignItems:'center', gap:10, padding:'11px 16px', background:'none', border:'none', cursor:'pointer', color:'#1877F2', fontSize:14, borderBottom:'1px solid #F0F2F5', fontFamily:'Poppins' }}><HiTrash size={15}/> Supprimer</button>
                   </>}
                   {post.mediaURL && <button onClick={() => { downloadMedia(post.mediaURL, post.mediaType); setPostMenu(null); }} style={{ width:'100%', display:'flex', alignItems:'center', gap:10, padding:'11px 16px', background:'none', border:'none', cursor:'pointer', color:'#050505', fontSize:14, fontFamily:'Poppins' }}><HiDownload size={15} color="#3b82f6"/> Télécharger</button>}
@@ -1022,6 +1024,9 @@ export default function Profile() {
           title={followListOpen === 'followers' ? 'Abonnés' : 'Suivi(e)s'}
           onClose={() => setFollowListOpen(null)}
         />
+      )}
+      {boostTarget && (
+        <BoostOrderModal target={boostTarget} onClose={() => setBoostTarget(null)} />
       )}
     </div>
     </>
