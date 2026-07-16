@@ -12,6 +12,7 @@ import { timeAgo } from '../utils/timeAgo';
 import { isDataSaverOn, subscribeDataSaver } from '../utils/dataSaver';
 import { downloadMedia } from '../utils/download';
 import ShareModal from '../components/ShareModal';
+import ReportModal from '../components/ReportModal';
 import BoostOrderModal from '../components/BoostOrderModal';
 import FollowListModal from '../components/FollowListModal';
 import { useActiveStoryUids } from '../hooks/useActiveStoryUids';
@@ -111,6 +112,7 @@ export default function Profile() {
   const [loadingFriends, setLoadingF]    = useState(false);
   const [zoomPhoto,      setZoomPhoto]   = useState(null);
   const [selectedPost,   setSelectedPost] = useState(null);
+  const [reportOpen,     setReportOpen]    = useState(false);
   const [boostTarget,    setBoostTarget]   = useState(null); // { type, id, ownerUid, title, thumbnailURL }
   const [friendStatus,   setFriendStatus] = useState('none');
 
@@ -260,15 +262,19 @@ export default function Profile() {
   }
 
   async function reportUser() {
-    if (!window.confirm(`Signaler le profil de ${profile.fullName} aux administrateurs ?`)) return;
+    setOtherMenu(false);
+    setReportOpen(true);
+  }
+  async function submitReportUser(motif, detail) {
     try {
       await addDoc(collection(db, 'reports'), {
         type: 'user', targetUid, targetName: profile.fullName,
         reportedBy: currentUser.uid, reportedByName: userProfile.fullName,
+        motif, detail: detail || '',
         createdAt: serverTimestamp(), status: 'pending',
       });
+      setReportOpen(false);
       alert('Signalement envoyé. Merci.');
-      setOtherMenu(false);
     } catch (err) { alert('Erreur : ' + (err?.message || err)); }
   }
 
@@ -1041,6 +1047,9 @@ export default function Profile() {
       )}
       {boostTarget && (
         <BoostOrderModal target={boostTarget} onClose={() => setBoostTarget(null)} />
+      )}
+      {reportOpen && (
+        <ReportModal title="Signaler le profil" onConfirm={submitReportUser} onClose={() => setReportOpen(false)} />
       )}
     </div>
     </>

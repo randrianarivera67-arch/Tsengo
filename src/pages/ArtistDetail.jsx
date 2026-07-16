@@ -13,6 +13,7 @@ import { timeAgo } from '../utils/timeAgo';
 import { NeonMic, NeonGlobe, NeonPhone, NeonLocation, NeonChart, NeonEye, NeonPeople, NeonLike, NeonComment } from '../components/NeonIcons';
 import FollowListModal from '../components/FollowListModal';
 import ShareModal from '../components/ShareModal';
+import ReportModal from '../components/ReportModal';
 import BoostOrderModal from '../components/BoostOrderModal';
 import { downloadMedia } from '../utils/download';
 import { parseAppLink } from '../utils/appLink';
@@ -69,6 +70,7 @@ export default function ArtistDetail() {
   const [trackQ, setTrackQ] = useState('');
   const [sharePost, setSharePost] = useState(null);   // recherche de chansons dans la page   // piste dont le menu est ouvert
   const [boostTarget, setBoostTarget] = useState(null);
+  const [reportTarget, setReportTarget] = useState(null); // 'artist' | { track }
   const [curTime, setCurTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const playerRef = useRef(null);
@@ -136,15 +138,7 @@ export default function ArtistDetail() {
 
   async function reportArtist() {
     setMenuOpen(false);
-    if (!window.confirm('Signaler cette page aux administrateurs ?')) return;
-    try {
-      await addDoc(collection(db, 'reports'), {
-        type: 'artist', targetId: artistId, targetUid: artist.createdBy || '', targetAuthor: artist.name,
-        reportedBy: currentUser.uid, reportedByName: userProfile?.fullName || '',
-        createdAt: serverTimestamp(), status: 'pending',
-      });
-      alert('Signalement envoyé. Merci.');
-    } catch (err) { alert('Erreur : ' + (err?.message || err)); }
+    setReportTarget('artist');
   }
 
   async function blockArtist() {
@@ -156,13 +150,25 @@ export default function ArtistDetail() {
 
   async function reportTrack(t) {
     setTrackMenu(null);
-    if (!window.confirm('Signaler ce contenu aux administrateurs ?')) return;
+    setReportTarget({ track: t });
+  }
+  async function submitReport(motif, detail) {
+    const t = reportTarget;
     try {
-      await addDoc(collection(db, 'reports'), {
-        type: 'post', targetId: t.id, targetUid: t.uid || '', targetAuthor: artist.name,
-        reportedBy: currentUser.uid, reportedByName: userProfile?.fullName || '',
-        createdAt: serverTimestamp(), status: 'pending',
-      });
+      if (t === 'artist') {
+        await addDoc(collection(db, 'reports'), {
+          type: 'artist', targetId: artistId, targetUid: artist.createdBy || '', targetAuthor: artist.name,
+          reportedBy: currentUser.uid, reportedByName: userProfile?.fullName || '',
+          motif, detail: detail || '', createdAt: serverTimestamp(), status: 'pending',
+        });
+      } else {
+        await addDoc(collection(db, 'reports'), {
+          type: 'post', targetId: t.track.id, targetUid: t.track.uid || '', targetAuthor: artist.name,
+          reportedBy: currentUser.uid, reportedByName: userProfile?.fullName || '',
+          motif, detail: detail || '', createdAt: serverTimestamp(), status: 'pending',
+        });
+      }
+      setReportTarget(null);
       alert('Signalement envoyé. Merci.');
     } catch (err) { alert('Erreur : ' + (err?.message || err)); }
   }
@@ -575,6 +581,7 @@ export default function ArtistDetail() {
       {/* ── Fiche titre (détails : équipe, art, studio…) ── */}
       {sharePost && <ShareModal post={sharePost} asPage={artist} onClose={() => setSharePost(null)} />}
       {boostTarget && <BoostOrderModal target={boostTarget} onClose={() => setBoostTarget(null)} />}
+      {reportTarget && <ReportModal title="Signaler" onConfirm={submitReport} onClose={() => setReportTarget(null)} />}
 
       {trackMenu && (
         <div onClick={() => setTrackMenu(null)} style={{ position:'fixed', inset:0, background:'rgba(0,0,0,.5)', zIndex:300, display:'flex', alignItems:'flex-end', justifyContent:'center' }}>

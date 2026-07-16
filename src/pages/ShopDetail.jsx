@@ -14,6 +14,7 @@ import { timeAgo } from '../utils/timeAgo';
 import { NeonPhone, NeonLocation, NeonPlaneWhite, NeonChart, NeonEye, NeonPeople, NeonLike, NeonComment } from '../components/NeonIcons';
 import FollowListModal from '../components/FollowListModal';
 import ShareModal from '../components/ShareModal';
+import ReportModal from '../components/ReportModal';
 import BoostOrderModal from '../components/BoostOrderModal';
 import { downloadMedia } from '../utils/download';
 import { parseAppLink } from '../utils/appLink';
@@ -66,6 +67,7 @@ export default function ShopDetail() {
   const [itemInfo, setItemInfo] = useState(null);   // fiche article
   const [sharePost, setSharePost] = useState(null);
   const [boostTarget, setBoostTarget] = useState(null);
+  const [reportTarget, setReportTarget] = useState(null); // 'shop' | { item }
 
   const photoInputRef = useRef(); const coverRef = useRef(); const logoRef = useRef();
 
@@ -133,15 +135,7 @@ export default function ShopDetail() {
 
   async function reportShop() {
     setMenuOpen(false);
-    if (!window.confirm('Signaler cette boutique aux administrateurs ?')) return;
-    try {
-      await addDoc(collection(db, 'reports'), {
-        type: 'shop', targetId: shopId, targetUid: shop.createdBy || '', targetAuthor: shop.name,
-        reportedBy: currentUser.uid, reportedByName: userProfile?.fullName || '',
-        createdAt: serverTimestamp(), status: 'pending',
-      });
-      alert('Signalement envoyé. Merci.');
-    } catch (err) { alert('Erreur : ' + (err?.message || err)); }
+    setReportTarget('shop');
   }
 
   async function blockShop() {
@@ -153,13 +147,25 @@ export default function ShopDetail() {
 
   async function reportItem(p) {
     setItemMenu(null);
-    if (!window.confirm('Signaler cet article aux administrateurs ?')) return;
+    setReportTarget({ item: p });
+  }
+  async function submitReport(motif, detail) {
+    const t = reportTarget;
     try {
-      await addDoc(collection(db, 'reports'), {
-        type: 'post', targetId: p.id, targetUid: p.uid || '', targetAuthor: shop.name,
-        reportedBy: currentUser.uid, reportedByName: userProfile?.fullName || '',
-        createdAt: serverTimestamp(), status: 'pending',
-      });
+      if (t === 'shop') {
+        await addDoc(collection(db, 'reports'), {
+          type: 'shop', targetId: shopId, targetUid: shop.createdBy || '', targetAuthor: shop.name,
+          reportedBy: currentUser.uid, reportedByName: userProfile?.fullName || '',
+          motif, detail: detail || '', createdAt: serverTimestamp(), status: 'pending',
+        });
+      } else {
+        await addDoc(collection(db, 'reports'), {
+          type: 'post', targetId: t.item.id, targetUid: t.item.uid || '', targetAuthor: shop.name,
+          reportedBy: currentUser.uid, reportedByName: userProfile?.fullName || '',
+          motif, detail: detail || '', createdAt: serverTimestamp(), status: 'pending',
+        });
+      }
+      setReportTarget(null);
       alert('Signalement envoyé. Merci.');
     } catch (err) { alert('Erreur : ' + (err?.message || err)); }
   }
@@ -550,6 +556,7 @@ export default function ShopDetail() {
       {/* ── Partager (mitovy amin'ny artiste) ── */}
       {sharePost && <ShareModal post={sharePost} asPage={shop} onClose={() => setSharePost(null)} />}
       {boostTarget && <BoostOrderModal target={boostTarget} onClose={() => setBoostTarget(null)} />}
+      {reportTarget && <ReportModal title="Signaler" onConfirm={submitReport} onClose={() => setReportTarget(null)} />}
 
       {/* ── Menu article (⋮) — flow mitovy amin'ny artiste ── */}
       {itemMenu && (

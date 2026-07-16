@@ -13,6 +13,7 @@ import { useAuth } from '../context/AuthContext';
 import { parseAppLink } from '../utils/appLink';
 import { NeonLocation, NeonPlane, NeonPlaneWhite } from '../components/NeonIcons';
 import ShareModal from '../components/ShareModal';
+import ReportModal from '../components/ReportModal';
 import { downloadMedia } from '../utils/download';
 import BoostOrderModal from '../components/BoostOrderModal';
 import { getCart, addToCart, removeFromCart, subscribeCart, firstPhone } from '../utils/cart';
@@ -51,6 +52,7 @@ export default function Shop() {
   const [cardMenu, setCardMenu] = useState(null);
   const [shareItem, setShareItem] = useState(null);
   const [boostTarget, setBoostTarget] = useState(null);
+  const [reportTarget, setReportTarget] = useState(null);
 
   // Menus mikatona rehefa scroll na clic ivelany
   useEffect(() => {
@@ -293,7 +295,7 @@ export default function Shop() {
                           <button onClick={() => { setCardMenu(null); setShareItem(p); }} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: '11px 14px', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'Poppins', fontSize: 13.5, fontWeight: 400, color: '#050505', borderBottom: '1px solid #F0F2F5' }}><HiShare size={16} color="#7A2DFF" /> Partager</button>
                           {p.uid === currentUser?.uid
                             ? <button onClick={async () => { setCardMenu(null); if (window.confirm('Supprimer cet article ?')) { try { await deleteDoc(doc(db, 'posts', p.id)); } catch (e) { alert('Erreur : ' + (e?.message || e)); } } }} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: '11px 14px', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'Poppins', fontSize: 13.5, fontWeight: 400, color: '#FF2D8D' }}><HiTrash size={16} /> Supprimer</button>
-                            : <button onClick={async () => { setCardMenu(null); if (!window.confirm('Signaler cet article aux administrateurs ?')) return; try { await addDoc(collection(db, 'reports'), { type: 'post', targetId: p.id, targetUid: p.uid, targetAuthor: p.shopName || p.authorName || '', reportedBy: currentUser.uid, createdAt: serverTimestamp(), status: 'pending' }); alert('Signalement envoyé. Merci.'); } catch (e) { alert('Erreur : ' + (e?.message || e)); } }} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: '11px 14px', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'Poppins', fontSize: 13.5, fontWeight: 400, color: '#050505' }}><HiFlag size={16} color="#F2B300" /> Signaler</button>}
+                            : <button onClick={() => { setCardMenu(null); setReportTarget(p); }} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: '11px 14px', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'Poppins', fontSize: 13.5, fontWeight: 400, color: '#050505' }}><HiFlag size={16} color="#F2B300" /> Signaler</button>}
                         </div>
                       )}
                     </div>
@@ -412,6 +414,13 @@ export default function Shop() {
       )}
       {shareItem && <ShareModal post={shareItem} onClose={() => setShareItem(null)} />}
       {boostTarget && <BoostOrderModal target={boostTarget} onClose={() => setBoostTarget(null)} />}
+      {reportTarget && <ReportModal title="Signaler l'article" onConfirm={async (motif, detail) => {
+        try {
+          await addDoc(collection(db, 'reports'), { type: 'post', targetId: reportTarget.id, targetUid: reportTarget.uid, targetAuthor: reportTarget.shopName || reportTarget.authorName || '', reportedBy: currentUser.uid, motif, detail: detail || '', createdAt: serverTimestamp(), status: 'pending' });
+          setReportTarget(null);
+          alert('Signalement envoyé. Merci.');
+        } catch (e) { alert('Erreur : ' + (e?.message || e)); }
+      }} onClose={() => setReportTarget(null)} />}
     </div>
   );
 }
