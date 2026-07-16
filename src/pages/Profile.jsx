@@ -566,6 +566,16 @@ export default function Profile() {
           </button>
         </div>
 
+        {isOwnPost && !boosted && (
+          <div style={{ padding:'0 16px 12px' }}>
+            <button
+              onClick={() => setBoostTarget({ type:'post', id: post.id, ownerUid: post.uid, title: (post.content||'').slice(0,60) || 'Votre publication', thumbnailURL: post.mediaURL || '' })}
+              style={{ width:'100%', padding:'9px 0', borderRadius:20, border:'none', background:'linear-gradient(135deg,#1B84FF,#1877F2)', color:'white', fontWeight:700, fontSize:13, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', gap:6, fontFamily:'Poppins' }}>
+              <HiLightningBolt size={16}/> Booster la publication
+            </button>
+          </div>
+        )}
+
         {openCmt[post.id] && (
           <div style={{ padding:'0 16px 14px', borderTop:'1px solid #E4E6EB' }}>
             {post.comments?.map(c => (
@@ -795,6 +805,10 @@ export default function Profile() {
               {isOwn ? (
                 <>
                 <button onClick={() => setEditing(true)} style={{ display:'inline-flex', alignItems:'center', gap:6, background:"linear-gradient(180deg,#1B84FF,#1877F2)", border:"none", borderRadius:20, padding:'8px 18px', color:"white", fontWeight:600, cursor:'pointer', fontSize:13, boxShadow:"0 3px 12px rgba(24,119,242,.35)" }}><HiPencil size={14}/>{t('editProfile')}</button>
+                <button onClick={() => setBoostTarget({ type:'profile', id: currentUser.uid, ownerUid: currentUser.uid, title: profile.fullName || 'Mon profil', thumbnailURL: profile.photoURL || '' })}
+                  style={{ display:'inline-flex', alignItems:'center', gap:6, background:'linear-gradient(135deg,#1B84FF,#1877F2)', border:'none', borderRadius:20, padding:'8px 16px', color:'white', fontWeight:700, cursor:'pointer', fontSize:13, fontFamily:'Poppins' }}>
+                  <HiLightningBolt size={14}/> Booster mon profil
+                </button>
                 <div style={{ position:'relative', display:'inline-block' }} onClick={e => e.stopPropagation()}>
                   <button onClick={() => setProfMenu(p => !p)} style={{ width:36, height:36, borderRadius:'50%', background:'#F0F2F5', border:'none', cursor:'pointer', color:'#050505', display:'flex', alignItems:'center', justifyContent:'center' }}><HiDotsVertical size={17}/></button>
                   {profMenu && (

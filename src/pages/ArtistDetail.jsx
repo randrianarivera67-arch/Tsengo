@@ -13,12 +13,14 @@ import { timeAgo } from '../utils/timeAgo';
 import { NeonMic, NeonGlobe, NeonPhone, NeonLocation, NeonChart, NeonEye, NeonPeople, NeonLike, NeonComment } from '../components/NeonIcons';
 import FollowListModal from '../components/FollowListModal';
 import ShareModal from '../components/ShareModal';
+import BoostOrderModal from '../components/BoostOrderModal';
 import { downloadMedia } from '../utils/download';
 import { parseAppLink } from '../utils/appLink';
 import {
   HiCamera, HiArrowLeft, HiPencil, HiX, HiTrash, HiDotsVertical, HiPaperAirplane,
   HiMusicNote, HiVideoCamera, HiPhotograph, HiCog, HiBan, HiFlag,
-  HiInformationCircle, HiDownload, HiLightningBolt, HiSearch, HiLink, HiShare, HiCheckCircle} from 'react-icons/hi';
+  HiInformationCircle, HiDownload, HiLightningBolt, HiSearch, HiLink, HiShare
+} from 'react-icons/hi';
 
 const GENRES = ['Salegy', 'Tsapiky', 'Kawitry', 'Pop', 'Hip-Hop', 'Gospel', 'Reggae', 'Rock', 'Autre'];
 const GENRE_COLORS = {
@@ -66,6 +68,7 @@ export default function ArtistDetail() {
   const [trackMenu, setTrackMenu] = useState(null);
   const [trackQ, setTrackQ] = useState('');
   const [sharePost, setSharePost] = useState(null);   // recherche de chansons dans la page   // piste dont le menu est ouvert
+  const [boostTarget, setBoostTarget] = useState(null);
   const [curTime, setCurTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const playerRef = useRef(null);
@@ -315,9 +318,8 @@ export default function ArtistDetail() {
       <div style={{ padding:'40px 16px 0' }}>
         <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start' }}>
           <div style={{ minWidth:0 }}>
-            <h2 style={{ fontWeight:800, fontSize:19, display:'flex', alignItems:'center', gap:6, flexWrap:'wrap' }}>
+            <h2 style={{ fontWeight:800, fontSize:19, display:'flex', alignItems:'center', gap:6 }}>
               {artist.name}
-              {artist.verified && <HiCheckCircle size={17} color="#1877F2" style={{ flexShrink:0 }} />}
               <span style={{ display:'inline-flex', alignItems:'center', gap:3, background:'linear-gradient(135deg,#FF6FA5,#FF2D8D)', color:'white', fontSize:10, fontWeight:800, borderRadius:8, padding:'2px 8px' }}><NeonMic size={10} color="white"/> ARTISTE</span>
             </h2>
             <p style={{ fontSize:12, color:'#65676B' }}>
@@ -337,6 +339,7 @@ export default function ArtistDetail() {
                 {isAdmin ? (<>
                   <button onClick={() => { setMenuOpen(false); openEdit(); }} style={{ width:'100%', display:'flex', alignItems:'center', gap:12, padding:'14px 18px', background:'none', border:'none', cursor:'pointer', fontSize:14.5, fontWeight:600, color:'#050505', borderBottom:'1px solid #F0F2F5' }}><HiPencil size={18} color="#1877F2"/> Modifier la page</button>
                   <button onClick={() => { setMenuOpen(false); deleteArtist(); }} style={{ width:'100%', display:'flex', alignItems:'center', gap:12, padding:'14px 18px', background:'none', border:'none', cursor:'pointer', fontSize:14.5, fontWeight:600, color:'#FF2D8D' }}><HiTrash size={18}/> Supprimer la page</button>
+                  <button onClick={() => { setMenuOpen(false); setBoostTarget({ type:'artist', id: artistId, ownerUid: currentUser.uid, title: artist.name || 'Mon artiste', thumbnailURL: artist.photoURL || '' }); }} style={{ width:'100%', display:'flex', alignItems:'center', gap:12, padding:'14px 18px', background:'none', border:'none', cursor:'pointer', fontSize:14.5, fontWeight:600, color:'#050505', borderTop:'1px solid #F0F2F5' }}><HiLightningBolt size={18} color="#a855f7"/> Booster mon artiste</button>
                   <button onClick={copyPageLink} style={{ width:'100%', display:'flex', alignItems:'center', gap:12, padding:'14px 18px', background:'none', border:'none', cursor:'pointer', fontSize:14.5, fontWeight:600, color:'#050505', borderTop:'1px solid #F0F2F5' }}><HiLink size={18} color="#12A48D"/> Copier le lien</button>
                 </>) : (<>
                   <button onClick={copyPageLink} style={{ width:'100%', display:'flex', alignItems:'center', gap:12, padding:'14px 18px', background:'none', border:'none', cursor:'pointer', fontSize:14.5, fontWeight:600, color:'#050505', borderBottom:'1px solid #F0F2F5' }}><HiLink size={18} color="#12A48D"/> Copier le lien</button>
@@ -571,6 +574,7 @@ export default function ArtistDetail() {
 
       {/* ── Fiche titre (détails : équipe, art, studio…) ── */}
       {sharePost && <ShareModal post={sharePost} asPage={artist} onClose={() => setSharePost(null)} />}
+      {boostTarget && <BoostOrderModal target={boostTarget} onClose={() => setBoostTarget(null)} />}
 
       {trackMenu && (
         <div onClick={() => setTrackMenu(null)} style={{ position:'fixed', inset:0, background:'rgba(0,0,0,.5)', zIndex:300, display:'flex', alignItems:'flex-end', justifyContent:'center' }}>
@@ -578,7 +582,7 @@ export default function ArtistDetail() {
             {isAdmin ? (<>
               <button onClick={() => { const t = trackMenu; setTrackMenu(null); setTrackInfo(t); }} style={{ width:'100%', display:'flex', alignItems:'center', gap:13, padding:'15px 20px', background:'none', border:'none', cursor:'pointer', fontSize:15, fontWeight:600, color:'#050505', borderBottom:'1px solid #F0F2F5' }}><HiPencil size={19} color="#1877F2"/> Modifier</button>
               <button onClick={() => { downloadMedia(trackMenu.mediaURL, trackMenu.mediaType || 'audio', trackMenu.songTitle || 'titre'); setTrackMenu(null); }} style={{ width:'100%', display:'flex', alignItems:'center', gap:13, padding:'15px 20px', background:'none', border:'none', cursor:'pointer', fontSize:15, fontWeight:600, color:'#050505', borderBottom:'1px solid #F0F2F5' }}><HiDownload size={19} color="#12A48D"/> Télécharger</button>
-              <button onClick={() => { setTrackMenu(null); navigate('/boost'); }} style={{ width:'100%', display:'flex', alignItems:'center', gap:13, padding:'15px 20px', background:'none', border:'none', cursor:'pointer', fontSize:15, fontWeight:600, color:'#050505', borderBottom:'1px solid #F0F2F5' }}><HiLightningBolt size={19} color="#a855f7"/> Booster</button>
+              <button onClick={() => { const tr = trackMenu; setTrackMenu(null); setBoostTarget({ type:'post', id: tr.id, ownerUid: tr.uid, title: tr.songTitle || artist.name, thumbnailURL: tr.mediaURL || '' }); }} style={{ width:'100%', display:'flex', alignItems:'center', gap:13, padding:'15px 20px', background:'none', border:'none', cursor:'pointer', fontSize:15, fontWeight:600, color:'#050505', borderBottom:'1px solid #F0F2F5' }}><HiLightningBolt size={19} color="#a855f7"/> Booster</button>
               <button onClick={() => { const t = trackMenu; setTrackMenu(null); setSharePost(t); }} style={{ width:'100%', display:'flex', alignItems:'center', gap:13, padding:'15px 20px', background:'none', border:'none', cursor:'pointer', fontSize:15, fontWeight:600, color:'#050505', borderBottom:'1px solid #F0F2F5' }}><HiShare size={19} color="#7A2DFF"/> Partager</button>
               <button onClick={() => deleteTrack(trackMenu)} style={{ width:'100%', display:'flex', alignItems:'center', gap:13, padding:'15px 20px', background:'none', border:'none', cursor:'pointer', fontSize:15, fontWeight:600, color:'#FF2D8D' }}><HiTrash size={19}/> Supprimer</button>
             </>) : (<>

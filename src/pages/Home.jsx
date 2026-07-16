@@ -7,6 +7,7 @@ import {
 } from 'firebase/firestore';
 import { db } from '../firebase';
 import MediaViewer from '../components/MediaViewer';
+import BoostOrderModal from '../components/BoostOrderModal';
 import PullToRefresh from '../components/PullToRefresh';
 import { useAuth } from '../context/AuthContext';
 import { useLang } from '../context/LanguageContext';
@@ -34,8 +35,7 @@ import {
   HiPhotograph, HiVideoCamera, HiTag, HiOutlineHeart, HiChat,
   HiTrash, HiPencil, HiX, HiShare, HiFilm, HiOutlineChat,
   HiDotsVertical, HiDownload, HiLightningBolt, HiPhone, HiLocationMarker,
-  HiReply, HiUserAdd, HiUserGroup, HiBookmark, HiFlag, HiBan, HiPaperAirplane, HiIdentification, HiShoppingBag, HiShoppingCart, HiCalendar, HiClipboardCopy, HiInformationCircle, HiCheck, HiGlobeAlt, HiStar, HiAtSymbol
-} from 'react-icons/hi';
+  HiReply, HiUserAdd, HiUserGroup, HiBookmark, HiFlag, HiBan, HiPaperAirplane, HiIdentification, HiShoppingBag, HiShoppingCart, HiCalendar, HiClipboardCopy, HiInformationCircle, HiCheck, HiGlobeAlt, HiStar, HiAtSymbol, HiTrendingUp} from 'react-icons/hi';
 import { addToCart } from '../utils/cart';
 import { increment } from 'firebase/firestore';
 
@@ -299,6 +299,7 @@ export default function Home() {
   const [visibleCount, setVisibleCount] = useState(10);   // affichage progressif
   const [expandedPosts, setExpandedPosts] = useState({});
   const [viewerState,   setViewerState]   = useState(null); // { post, index }
+  const [boostTarget,   setBoostTarget]    = useState(null); // { type, id, ownerUid, title, thumbnailURL }
   const [reactorNames, setReactorNames] = useState({});   // uid → prenom (ho an'ny "X et N autres")
   const [mentionQuery, setMentionQuery] = useState(null); // { postId, q } rehefa manoratra @
   const [mentionFriends, setMentionFriends] = useState([]);
@@ -1121,6 +1122,9 @@ const fields = {
   return (
     <div style={{ padding:0 }}>
       <PullToRefresh />
+      {boostTarget && (
+        <BoostOrderModal target={boostTarget} onClose={() => setBoostTarget(null)} />
+      )}
       {viewerState && (
         <MediaViewer
           post={viewerState.post}
@@ -1982,6 +1986,16 @@ const fields = {
                 <NeonShare size={18}/> Partager
               </button>
             </div>
+
+            {post.uid === currentUser.uid && !post.isBoosted && (
+              <div style={{ padding:'0 14px 12px' }}>
+                <button
+                  onClick={() => setBoostTarget({ type:'post', id: post.id, ownerUid: post.uid, title: post.content?.slice(0,60) || 'Votre publication', thumbnailURL: post.mediaURL || '' })}
+                  style={{ width:'100%', padding:'9px 0', borderRadius:20, border:'none', background:'linear-gradient(135deg,#1B84FF,#1877F2)', color:'white', fontWeight:700, fontSize:13, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', gap:6, fontFamily:'Poppins' }}>
+                  <HiTrendingUp size={16}/> Booster la publication
+                </button>
+              </div>
+            )}
 
             {/* Comments */}
             {openCmt[post.id] && (

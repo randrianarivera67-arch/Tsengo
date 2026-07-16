@@ -14,6 +14,7 @@ import { timeAgo } from '../utils/timeAgo';
 import { NeonPhone, NeonLocation, NeonPlaneWhite, NeonChart, NeonEye, NeonPeople, NeonLike, NeonComment } from '../components/NeonIcons';
 import FollowListModal from '../components/FollowListModal';
 import ShareModal from '../components/ShareModal';
+import BoostOrderModal from '../components/BoostOrderModal';
 import { downloadMedia } from '../utils/download';
 import { parseAppLink } from '../utils/appLink';
 import { addToCart } from '../utils/cart';
@@ -21,7 +22,8 @@ import {
   HiCamera, HiArrowLeft, HiPencil, HiX, HiTrash, HiDotsVertical, HiPaperAirplane,
   HiShoppingBag, HiPhotograph, HiTag, HiCog, HiBan, HiFlag, HiShoppingCart,
   HiInformationCircle, HiDownload, HiLightningBolt, HiSearch, HiLink, HiShare,
-  HiEye, HiCursorClick, HiHeart, HiOutlineHeart, HiChat, HiCheckCircle} from 'react-icons/hi';
+  HiEye, HiCursorClick, HiHeart, HiOutlineHeart, HiChat
+} from 'react-icons/hi';
 
 const CATEGORIES = ['Vêtements', 'Robes', 'Hauts', 'Pantalons', 'Chaussures', 'Accessoires', 'Électronique', 'Déco & Maison', 'Véhicules', 'Alimentation', 'Beauté', 'Autre'];
 
@@ -63,6 +65,7 @@ export default function ShopDetail() {
   const [itemMenu, setItemMenu] = useState(null);   // article misokatra menu
   const [itemInfo, setItemInfo] = useState(null);   // fiche article
   const [sharePost, setSharePost] = useState(null);
+  const [boostTarget, setBoostTarget] = useState(null);
 
   const photoInputRef = useRef(); const coverRef = useRef(); const logoRef = useRef();
 
@@ -295,7 +298,6 @@ export default function ShopDetail() {
           <div style={{ minWidth:0 }}>
             <h2 style={{ fontWeight:800, fontSize:19, display:'flex', alignItems:'center', gap:6, flexWrap:'wrap' }}>
               {shop.name}
-              {shop.verified && <HiCheckCircle size={17} color="#1877F2" style={{ flexShrink:0 }} />}
               {isAdmin && <span style={{ fontSize:10, fontWeight:800, color:'#F2B300', background:'#FFF6DB', borderRadius:8, padding:'2px 8px' }}>ADMIN</span>}
             </h2>
             <p style={{ fontSize:12, color:'#65676B' }}>
@@ -315,6 +317,7 @@ export default function ShopDetail() {
                 {isAdmin ? (<>
                   <button onClick={() => { setMenuOpen(false); openEdit(); }} style={{ width:'100%', display:'flex', alignItems:'center', gap:12, padding:'14px 18px', background:'none', border:'none', cursor:'pointer', fontSize:14.5, fontWeight:600, color:'#050505', borderBottom:'1px solid #F0F2F5' }}><HiPencil size={18} color="#1877F2"/> Modifier la boutique</button>
                   <button onClick={() => { setMenuOpen(false); deleteShop(); }} style={{ width:'100%', display:'flex', alignItems:'center', gap:12, padding:'14px 18px', background:'none', border:'none', cursor:'pointer', fontSize:14.5, fontWeight:600, color:'#FF2D8D' }}><HiTrash size={18}/> Supprimer la boutique</button>
+                  <button onClick={() => { setMenuOpen(false); setBoostTarget({ type:'shop', id: shopId, ownerUid: currentUser.uid, title: shop.name || 'Ma boutique', thumbnailURL: shop.photoURL || '' }); }} style={{ width:'100%', display:'flex', alignItems:'center', gap:12, padding:'14px 18px', background:'none', border:'none', cursor:'pointer', fontSize:14.5, fontWeight:600, color:'#050505', borderTop:'1px solid #F0F2F5' }}><HiLightningBolt size={18} color="#a855f7"/> Booster ma boutique</button>
                   <button onClick={copyPageLink} style={{ width:'100%', display:'flex', alignItems:'center', gap:12, padding:'14px 18px', background:'none', border:'none', cursor:'pointer', fontSize:14.5, fontWeight:600, color:'#050505', borderTop:'1px solid #F0F2F5' }}><HiLink size={18} color="#12A48D"/> Copier le lien</button>
                 </>) : (<>
                   <button onClick={copyPageLink} style={{ width:'100%', display:'flex', alignItems:'center', gap:12, padding:'14px 18px', background:'none', border:'none', cursor:'pointer', fontSize:14.5, fontWeight:600, color:'#050505', borderBottom:'1px solid #F0F2F5' }}><HiLink size={18} color="#12A48D"/> Copier le lien</button>
@@ -546,6 +549,7 @@ export default function ShopDetail() {
 
       {/* ── Partager (mitovy amin'ny artiste) ── */}
       {sharePost && <ShareModal post={sharePost} asPage={shop} onClose={() => setSharePost(null)} />}
+      {boostTarget && <BoostOrderModal target={boostTarget} onClose={() => setBoostTarget(null)} />}
 
       {/* ── Menu article (⋮) — flow mitovy amin'ny artiste ── */}
       {itemMenu && (
@@ -554,7 +558,7 @@ export default function ShopDetail() {
             {isAdmin ? (<>
               <button onClick={() => { const p = itemMenu; setItemMenu(null); setItemInfo(p); }} style={{ width:'100%', display:'flex', alignItems:'center', gap:13, padding:'15px 20px', background:'none', border:'none', cursor:'pointer', fontSize:15, fontWeight:600, color:'#050505', borderBottom:'1px solid #F0F2F5' }}><HiInformationCircle size={19} color="#1877F2"/> Informations</button>
               <button onClick={() => { downloadMedia(itemMenu.mediaURL, itemMenu.mediaType || 'image', (itemMenu.content||'article').slice(0,30)); setItemMenu(null); }} style={{ width:'100%', display:'flex', alignItems:'center', gap:13, padding:'15px 20px', background:'none', border:'none', cursor:'pointer', fontSize:15, fontWeight:600, color:'#050505', borderBottom:'1px solid #F0F2F5' }}><HiDownload size={19} color="#12A48D"/> Télécharger</button>
-              <button onClick={() => { setItemMenu(null); navigate('/boost'); }} style={{ width:'100%', display:'flex', alignItems:'center', gap:13, padding:'15px 20px', background:'none', border:'none', cursor:'pointer', fontSize:15, fontWeight:600, color:'#050505', borderBottom:'1px solid #F0F2F5' }}><HiLightningBolt size={19} color="#a855f7"/> Booster</button>
+              <button onClick={() => { const it = itemMenu; setItemMenu(null); setBoostTarget({ type:'post', id: it.id, ownerUid: it.uid, title: (it.content||'').slice(0,60) || shop.name, thumbnailURL: it.mediaURL || '' }); }} style={{ width:'100%', display:'flex', alignItems:'center', gap:13, padding:'15px 20px', background:'none', border:'none', cursor:'pointer', fontSize:15, fontWeight:600, color:'#050505', borderBottom:'1px solid #F0F2F5' }}><HiLightningBolt size={19} color="#a855f7"/> Booster</button>
               <button onClick={() => { const p = itemMenu; setItemMenu(null); setSharePost(p); }} style={{ width:'100%', display:'flex', alignItems:'center', gap:13, padding:'15px 20px', background:'none', border:'none', cursor:'pointer', fontSize:15, fontWeight:600, color:'#050505', borderBottom:'1px solid #F0F2F5' }}><HiShare size={19} color="#7A2DFF"/> Partager</button>
               <button onClick={() => deleteItem(itemMenu)} style={{ width:'100%', display:'flex', alignItems:'center', gap:13, padding:'15px 20px', background:'none', border:'none', cursor:'pointer', fontSize:15, fontWeight:600, color:'#FF2D8D' }}><HiTrash size={19}/> Supprimer</button>
             </>) : (<>
