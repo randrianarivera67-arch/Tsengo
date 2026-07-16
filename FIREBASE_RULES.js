@@ -165,6 +165,13 @@ service cloud.firestore {
             && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['clicks', 'impressions']));
     }
 
+    // Commandes de boost (client -> admin valide/refuse)
+    match /boostOrders/{orderId} {
+      allow read: if request.auth != null && (isAdmin() || resource.data.requesterUid == request.auth.uid);
+      allow create: if request.auth != null && request.resource.data.requesterUid == request.auth.uid;
+      allow update, delete: if isAdmin();
+    }
+
     // Notifications
     match /notifications/{notifId} {
       allow read: if request.auth != null && resource.data.toUid == request.auth.uid;
