@@ -43,9 +43,6 @@ export function AuthProvider({ children }) {
       createdAt: serverTimestamp(),
     };
     await setDoc(doc(db, 'users', res.user.uid), userData);
-    // ✅ FIX permissions: reserve usernames/{username} (lecture publique
-    // pre-auth pour la verif de disponibilite a l'etape 1 de l'inscription)
-    await setDoc(doc(db, 'usernames', username.toLowerCase()), { uid: res.user.uid });
     setUserProfile(userData);
     return res;
   }
@@ -55,6 +52,14 @@ export function AuthProvider({ children }) {
   }
 
   async function logout() {
+    // ⚠️ IMPORTANT : le nettoyage du token FCM doit se faire ICI, PENDANT que
+    // l'utilisateur est encore authentifié — pas dans le onAuthStateChanged
+    // ci-dessous, qui ne se déclenche qu'APRÈS signOut() (donc sans permission
+    // Firestore pour modifier son propre document -> le token restait bloqué
+    // sur l'ancien compte, et le prochain compte connecté sur cet appareil
+    // recevait AUSSI ses notifications).
+    try { removeOneSignalExternalId(); } catch (e) {}
+    try { await removeNativePush(); } catch (e) {}
     return signOut(auth);
   }
 
