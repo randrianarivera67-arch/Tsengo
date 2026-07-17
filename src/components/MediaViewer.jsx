@@ -21,6 +21,7 @@ const FB_REACTIONS = [
 
 export default function MediaViewer({
   post, startIndex = 0, onClose,
+  galleryUrls, onIndexChange,   // galerie : parcourir les photos de plusieurs publications
   currentUser, userProfile, navigate,
   myR, rc, total, reactorNames,
   onReact, onOpenReactionModal, onDownload, onShare,
@@ -29,7 +30,8 @@ export default function MediaViewer({
   onSubmitComment, onReactCmt, onDeleteCmt,
   VIPBadge,
 }) {
-  const images = post.mediaURLs?.length ? post.mediaURLs : (post.mediaURL ? [post.mediaURL] : []);
+  const images = galleryUrls?.length ? galleryUrls
+    : (post.mediaURLs?.length ? post.mediaURLs : (post.mediaURL ? [post.mediaURL] : []));
   const multi = images.length > 1;
 
   const [index, setIndex] = useState(Math.min(startIndex, Math.max(images.length - 1, 0)));
@@ -103,7 +105,9 @@ export default function MediaViewer({
       const el = scrollRef.current;
       if (!el || !el.clientWidth) return;
       const i = Math.round(el.scrollLeft / el.clientWidth);
-      setIndex(Math.max(0, Math.min(i, images.length - 1)));
+      const ni = Math.max(0, Math.min(i, images.length - 1));
+      setIndex(ni);
+      if (ni !== index) onIndexChange?.(ni);
     });
   }, [multi, images.length]);
 
@@ -113,6 +117,7 @@ export default function MediaViewer({
     const clamped = Math.max(0, Math.min(i, images.length - 1));
     el.scrollTo({ left: clamped * el.clientWidth, behavior: 'smooth' });
     setIndex(clamped);
+    onIndexChange?.(clamped);
   };
 
   function submitComment() {

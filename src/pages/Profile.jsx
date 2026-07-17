@@ -15,6 +15,7 @@ import ShareModal from '../components/ShareModal';
 import { SkeletonChannelPage } from '../components/Skeleton';
 import ReportModal from '../components/ReportModal';
 import BoostOrderModal from '../components/BoostOrderModal';
+import MediaViewer from '../components/MediaViewer';
 import FollowListModal from '../components/FollowListModal';
 import { useActiveStoryUids } from '../hooks/useActiveStoryUids';
 import { NeonBriefcase, NeonGraduation, NeonPhone, NeonGlobe, NeonLocation, NeonHome, NeonMic, NeonArchive, NeonClock, NeonLike, NeonComment, NeonShare, NeonStar } from '../components/NeonIcons';
@@ -115,6 +116,7 @@ export default function Profile() {
   const [selectedPost,   setSelectedPost] = useState(null);
   const [reportOpen,     setReportOpen]    = useState(false);
   const [boostTarget,    setBoostTarget]   = useState(null); // { type, id, ownerUid, title, thumbnailURL }
+  const [photoViewer,    setPhotoViewer]   = useState(null); // { index } dans allPhotos
   const [friendStatus,   setFriendStatus] = useState('none');
 
   const photoRef  = useRef();
@@ -431,8 +433,17 @@ export default function Profile() {
 
   if (!profile) return <SkeletonChannelPage />;
   const friendCount = profile.friends?.length||0;
-  const profilePhoto = profile.photoURL ? [{ id:'profile-photo', mediaURL:profile.photoURL, isProfilePhoto:true }] : [];
-  const coverPhotoArr = coverURL ? [{ id:'cover-photo', mediaURL:coverURL, isCoverPhoto:true }] : [];
+  const synth = (id, url, flag) => ({
+    id, mediaURL:url, mediaType:'image', [flag]:true,
+    uid:targetUid, authorName:profile.fullName, authorPhoto:profile.photoURL||'',
+    authorIsVip:profile.isVip||false, content:'', reactions:{}, comments:[],
+  });
+  const profilePhoto = profile.photoURL
+    ? [posts.find(p => p.isProfilePhoto && p.mediaURL === profile.photoURL) || synth('profile-photo', profile.photoURL, 'isProfilePhoto')]
+    : [];
+  const coverPhotoArr = coverURL
+    ? [posts.find(p => p.isCoverPhoto && p.mediaURL === coverURL) || synth('cover-photo', coverURL, 'isCoverPhoto')]
+    : [];
   const allPhotos = [...coverPhotoArr, ...profilePhoto, ...photoPosts];
 
   function renderPost(post) {
@@ -734,14 +745,14 @@ export default function Profile() {
       )}
       <div>
       <div style={{ height:200, background:'linear-gradient(135deg,#1877F2,#63A9FF,#FFB3D9)', position:'relative' }}>
-        {coverURL && <img src={coverURL} alt='cover' onClick={()=>setZoomPhoto(coverURL)} style={{ width:'100%', height:'100%', objectFit:'cover', position:'absolute', inset:0, cursor:'pointer' }}/>}
+        {coverURL && <img src={coverURL} alt='cover' onClick={()=>setPhotoViewer({ index: allPhotos.findIndex(p => p.mediaURL === coverURL) })} style={{ width:'100%', height:'100%', objectFit:'cover', position:'absolute', inset:0, cursor:'pointer' }}/>}
         {isOwn && <>
           <button onClick={()=>coverRef.current.click()} disabled={uploadingCover} style={{ position:'absolute', bottom:10, right:10, background:'#1877F2', border:'2px solid white', borderRadius:'50%', width:32, height:32, cursor:'pointer', color:'white', display:'flex', alignItems:'center', justifyContent:'center', zIndex:2 }}>{uploadingCover?'...':<HiCamera size={16}/>}</button>
           <input ref={coverRef} type='file' accept='image/*' onChange={uploadCoverPhoto} style={{ display:'none' }}/>
         </>}
         <div style={{ position:'absolute', bottom:-55, left:'50%', transform:'translateX(-50%)' }}>
           <div style={{ position:'relative' }}>
-            <img src={profile.photoURL||`https://ui-avatars.com/api/?name=${encodeURIComponent(profile.fullName)}&background=1877F2&color=fff&size=100`} alt="" className="avatar avatar-ring" onClick={()=>setZoomPhoto(profile.photoURL)} style={{ width:100, height:100, border: activeStoryUids.has(targetUid) ? '4px solid #1877F2' : '4px solid white', boxShadow: activeStoryUids.has(targetUid) ? '0 0 0 3px white, 0 0 0 6px #63A9FF' : 'none', objectFit:'cover', cursor:'pointer' }}/>
+            <img src={profile.photoURL||`https://ui-avatars.com/api/?name=${encodeURIComponent(profile.fullName)}&background=1877F2&color=fff&size=100`} alt="" className="avatar avatar-ring" onClick={()=>profile.photoURL && setPhotoViewer({ index: allPhotos.findIndex(p => p.mediaURL === profile.photoURL) })} style={{ width:100, height:100, border: activeStoryUids.has(targetUid) ? '4px solid #1877F2' : '4px solid white', boxShadow: activeStoryUids.has(targetUid) ? '0 0 0 3px white, 0 0 0 6px #63A9FF' : 'none', objectFit:'cover', cursor:'pointer' }}/>
             {isOwn&&<><button onClick={() => photoRef.current.click()} disabled={uploadingPhoto} style={{ position:'absolute', bottom:2, right:2, background:'#1877F2', border:'2px solid white', borderRadius:'50%', width:28, height:28, cursor:'pointer', color:'white', display:'flex', alignItems:'center', justifyContent:'center' }}>{uploadingPhoto?'...':<HiCamera size={14}/>}</button><input ref={photoRef} type="file" accept="image/*" onChange={uploadProfilePhoto} style={{ display:'none' }}/></>}
           </div>
         </div>
@@ -922,7 +933,7 @@ export default function Profile() {
         {activeTab==='photos'&&(photoPosts.length===0
           ? <div style={{ textAlign:'center', padding:40, color:'#65676B' }}>Aucune photo</div>
           : <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:4 }}>
-              {allPhotos.map(p => <div key={p.id} onClick={() => p.isProfilePhoto||p.isCoverPhoto ? setZoomPhoto(p.mediaURL) : navigate(`/post/${p.id}`)} style={{ aspectRatio:'1', overflow:'hidden', borderRadius:8, cursor:'pointer' }}><img src={p.mediaURL} alt="" style={{ width:'100%', height:'100%', objectFit:'cover' }}/></div>)}
+              {allPhotos.map((p, i) => <div key={p.id} onClick={() => setPhotoViewer({ index: i })} style={{ aspectRatio:'1', overflow:'hidden', borderRadius:8, cursor:'pointer' }}><img src={p.mediaURL} alt="" style={{ width:'100%', height:'100%', objectFit:'cover' }}/></div>)}
             </div>
         )}
 
@@ -1044,6 +1055,36 @@ export default function Profile() {
           onClose={() => setFollowListOpen(null)}
         />
       )}
+      {photoViewer && allPhotos[photoViewer.index] && (() => {
+        const cur = allPhotos[photoViewer.index];
+        return (
+          <MediaViewer
+            post={cur}
+            galleryUrls={allPhotos.map(p => p.mediaURL)}
+            startIndex={photoViewer.index}
+            onIndexChange={(i) => setPhotoViewer({ index: i })}
+            onClose={() => setPhotoViewer(null)}
+            currentUser={currentUser}
+            userProfile={userProfile}
+            navigate={navigate}
+            myR={cur.reactions?.[currentUser.uid]}
+            rc={countReactions(cur.reactions)}
+            total={Object.keys(cur.reactions || {}).length}
+            onReact={(emoji) => reactToPost(cur.id, emoji)}
+            onOpenReactionModal={() => openReactionModal(cur)}
+            onDownload={(url) => downloadMedia(url, 'image')}
+            onShare={() => sharePost(cur)}
+            reactToCmt={reactToCmt}
+            addComment={addComment}
+            deleteCmt={deleteCmt}
+            cmtText={cmtText}
+            setCmtText={setCmtText}
+            replyTo={replyTo}
+            setReplyTo={setReplyTo}
+            VIPBadge={VIPBadge}
+          />
+        );
+      })()}
       {boostTarget && (
         <BoostOrderModal target={boostTarget} onClose={() => setBoostTarget(null)} />
       )}

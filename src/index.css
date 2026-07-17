@@ -143,20 +143,22 @@ body {
 /* ══════ Apparition "ressort" des cartes pendant le défilement ══════
    Pilotée par <ScrollReveal/> (IntersectionObserver) : la carte est masquée
    juste avant d'entrer dans l'écran, puis surgit avec un rebond élastique. */
+/* On utilise une TRANSITION (et non une animation) : la propriete `animation`
+   est deja prise par .animate-fade sur certaines cartes, et une regle plus bas
+   dans le fichier l'emportait -> la carte restait a opacity:0 (carte blanche).
+   Avec :not(.reveal-in), des que la classe arrive l'element reprend son style
+   normal, en douceur. Aucun conflit possible. */
 .reveal-init {
+  transition: opacity .45s ease, transform .5s cubic-bezier(.34, 1.56, .64, 1);
+}
+.reveal-init:not(.reveal-in) {
   opacity: 0;
   transform: translateY(16px) scale(.985);
 }
-.reveal-in {
-  animation: revealSpring .5s cubic-bezier(.34, 1.56, .64, 1) forwards;
-}
-@keyframes revealSpring {
-  from { opacity: 0; transform: translateY(16px) scale(.985); }
-  to   { opacity: 1; transform: none; }
-}
 @media (prefers-reduced-motion: reduce) {
-  .reveal-init { opacity: 1 !important; transform: none !important; }
-  .reveal-in { animation: none !important; }
+  .reveal-init, .reveal-init:not(.reveal-in) {
+    opacity: 1 !important; transform: none !important; transition: none !important;
+  }
 }
 
 /* ══════════════ Skeleton loading (chargement façon Facebook) ══════════════ */
