@@ -162,9 +162,10 @@ export default function Shop() {
         </div>
         <div style={{ fontSize: 11, color: '#65676B', margin: '1px 0 9px' }}>{(s.followers || []).length} abonnés</div>
         <div style={{ display: 'flex', gap: 6 }}>
-          <button onClick={() => toggleFollowShop(s.id)} className={on ? '' : 'btn-primary'}
-            style={{ flex: 1, borderRadius: 16, padding: '6px 0', fontSize: 12, fontWeight: 700, cursor: 'pointer', border: on ? '1.5px solid #FF2D8D' : 'none',
-              ...(on ? { background: '#fff', color: '#FF2D8D', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 3 } : {}) }}>
+          <button onClick={() => toggleFollowShop(s.id)}
+            style={{ flex: 1, borderRadius: 16, padding: '6px 0', fontSize: 12, fontWeight: 700, cursor: 'pointer', border: 'none', fontFamily: 'Poppins',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 3,
+              background: on ? '#F0F2F5' : '#1877F2', color: on ? '#050505' : '#fff' }}>
             {on ? <><HiCheck size={13} /> Abonné</> : 'Suivre'}
           </button>
           <button onClick={() => navigate(`/shop/${s.id}/messages`)} style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5, background: '#F0F2F5', color: '#050505', border: 'none', borderRadius: 16, padding: '6px 0', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}><NeonPlane size={14} /> Message</button>

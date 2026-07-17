@@ -181,7 +181,7 @@ function MusicCard({ track, index, playing, onToggle, onArtist, onSave, onBlock,
           {dur && <div style={{ fontSize: 11, color: '#e6e6ea', fontWeight: 600, flexShrink: 0, marginLeft: 6 }}>{dur}</div>}
         </div>
         <div style={{ display: 'flex', gap: 6, marginTop: 8 }}>
-          <button onClick={() => onFollow?.(track.artistId)} style={{ flex: 1, background: isFollowing ? 'rgba(255,255,255,.14)' : 'linear-gradient(145deg,#FF6FA5,#FF2D8D)', color: '#fff', border: 'none', borderRadius: 14, padding: '5px 0', fontSize: 11.5, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 3 }}>
+          <button onClick={() => onFollow?.(track.artistId)} style={{ flex: 1, background: isFollowing ? 'rgba(255,255,255,.14)' : '#1877F2', color: '#fff', border: 'none', borderRadius: 14, padding: '5px 0', fontSize: 11.5, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 3 }}>
             {isFollowing ? <><HiCheck size={12} /> Abonné</> : 'Suivre'}
           </button>
           <button onClick={() => onMessage?.(track.artistId)} style={{ flex: 1, background: 'rgba(255,255,255,.14)', color: '#fff', border: 'none', borderRadius: 14, padding: '5px 0', fontSize: 11.5, fontWeight: 600, cursor: 'pointer' }}>Message</button>

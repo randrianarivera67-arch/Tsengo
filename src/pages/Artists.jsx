@@ -248,9 +248,10 @@ export default function Artists() {
                 <div style={{ display: 'flex', gap: 6 }}>
                   {(() => { const on = (a.followers || []).includes(currentUser?.uid);
                     return (
-                      <button onClick={() => toggleFollowArtist(a.id)} className={on ? '' : 'btn-primary'}
-                        style={{ flex: 1, borderRadius: 16, padding: '6px 0', fontSize: 12, fontWeight: 700, cursor: 'pointer', border: 'none',
-                          ...(on ? { background: '#F0F2F5', color: '#050505', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 3 } : {}) }}>
+                      <button onClick={() => toggleFollowArtist(a.id)}
+                        style={{ flex: 1, borderRadius: 16, padding: '6px 0', fontSize: 12, fontWeight: 700, cursor: 'pointer', border: 'none', fontFamily: 'Poppins',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 3,
+                          background: on ? '#F0F2F5' : '#1877F2', color: on ? '#050505' : '#fff' }}>
                         {on ? <><HiCheck size={13} /> Abonné</> : 'Suivre'}
                       </button>
                     ); })()}
