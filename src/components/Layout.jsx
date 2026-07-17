@@ -13,6 +13,7 @@ import { parseAppLink } from '../utils/appLink';
 // identity.js neutralisé — import retiré
 import { getCart, subscribeCart } from '../utils/cart';
 import { NeonChart } from './NeonIcons';
+import ScrollReveal from './ScrollReveal';
 import { subscribeUpload } from '../utils/uploadManager';
 import {
   HiHome, HiOutlineHome, HiUser, HiOutlineUser,
@@ -325,6 +326,9 @@ export default function Layout({ children }) {
 
   return (
     <div style={{ minHeight: '100vh', background: isDark ? '#0B0D12' : '#FFFFFF', paddingBottom: 96, color: text }}>
+
+      {/* Apparition "ressort" des cartes au defilement (toute l'app) */}
+      <ScrollReveal />
 
       {/* ── Menu plein écran (hamburger) ────────────────────────── */}
       <aside style={{

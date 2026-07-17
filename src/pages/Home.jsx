@@ -1170,13 +1170,6 @@ const fields = {
         />
       )}
 
-      {postsLoading && posts.length === 0 && (
-        <div style={{ padding: '0 0 8px' }}>
-          <SkeletonPost />
-          <SkeletonPost />
-        </div>
-      )}
-
       {/* ── Stories (format Facebook) ─────────────────────────── */}
       <div className="stories-strip">
         {/* Carte : Créer une story (menu unifié : texte / photo / vidéo) */}
@@ -1684,6 +1677,12 @@ const fields = {
       )}
 
       {/* Feed */}
+      {postsLoading && posts.length === 0 && (
+        <div style={{ padding: '0 0 8px' }}>
+          <SkeletonPost />
+          <SkeletonPost />
+        </div>
+      )}
       {posts.filter(p => !(p.mediaType === 'audio' && p.isMusic)).slice(0, visibleCount).map((post, pIdx) => {
         const rc     = countReactions(post.reactions);
         const myR    = post.reactions?.[currentUser.uid];

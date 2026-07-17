@@ -140,6 +140,25 @@ body {
 }
 .btn-gold:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(242,179,0,.6); }
 
+/* ══════ Apparition "ressort" des cartes pendant le défilement ══════
+   Pilotée par <ScrollReveal/> (IntersectionObserver) : la carte est masquée
+   juste avant d'entrer dans l'écran, puis surgit avec un rebond élastique. */
+.reveal-init {
+  opacity: 0;
+  transform: translateY(16px) scale(.985);
+}
+.reveal-in {
+  animation: revealSpring .5s cubic-bezier(.34, 1.56, .64, 1) forwards;
+}
+@keyframes revealSpring {
+  from { opacity: 0; transform: translateY(16px) scale(.985); }
+  to   { opacity: 1; transform: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .reveal-init { opacity: 1 !important; transform: none !important; }
+  .reveal-in { animation: none !important; }
+}
+
 /* ══════════════ Skeleton loading (chargement façon Facebook) ══════════════ */
 .skeleton-shimmer {
   position: relative;

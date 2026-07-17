@@ -57,9 +57,15 @@ export default function PullToRefresh({ onRefresh }) {
       if (pullRef.current >= THRESHOLD) doRefresh(true);
       else setPull(0);
     }
+    // La WebView Android peut envoyer "touchcancel" en plein geste (sur-defilement
+    // natif). On ne jette pas le geste : s'il avait deja atteint le seuil, on
+    // actualise quand meme -> le tirer-pour-actualiser marche aussi dans l'APK.
     function onTouchCancel() {
+      if (!dragging.current) return;
       dragging.current = false;
-      if (!spinningRef.current) setPull(0);
+      if (spinningRef.current) return;
+      if (pullRef.current >= THRESHOLD) doRefresh(true);
+      else setPull(0);
     }
 
     document.addEventListener('touchstart', onTouchStart, { passive: true });

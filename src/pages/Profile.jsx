@@ -479,7 +479,7 @@ export default function Profile() {
           </div>
         </div>
 
-        <div style={{ padding:'10px 16px', cursor:'pointer' }} onClick={() => setSelectedPost(post)}>
+        <div style={{ padding:'10px 16px', cursor:'pointer' }} onClick={() => navigate(`/post/${post.id}`)}>
           {post.content && (<>
             {post.textBg ? (
             <p style={{ background: post.textBg, minHeight:180, display:'flex', alignItems:'center', justifyContent:'center', textAlign:'center', color:'#fff', fontSize:24, fontWeight:800, padding:'24px 18px', lineHeight:1.4, wordBreak:'break-word', whiteSpace:'pre-wrap', margin:0, borderRadius:8 }}>{post.content}</p>
@@ -520,7 +520,7 @@ export default function Profile() {
           )}
           {post.mediaURL && (
             <div style={{ marginTop:8 }}>
-              {post.mediaType==='image' ? <img src={post.mediaURL} alt="" style={{ width:'100%', borderRadius:10, maxHeight:350, objectFit:'cover' }}/> : <div onClick={()=>navigate('/reels',{state:{startId:post.id}})} style={{ position:'relative', cursor:'pointer' }}><video src={post.mediaURL} poster={post.thumbURL || undefined} preload={(dataSaver || post.thumbURL) ? 'none' : 'metadata'} style={{ width:'100%', borderRadius:10, maxHeight:350, objectFit:'cover', background:'#000' }} muted playsInline/><div style={{ position:'absolute', inset:0, display:'flex', alignItems:'center', justifyContent:'center' }}><div style={{ width:50, height:50, background:'rgba(0,0,0,0.5)', borderRadius:'50%', display:'flex', alignItems:'center', justifyContent:'center' }}><span style={{ color:'white', fontSize:20 }}>▶</span></div></div></div>}
+              {post.mediaType==='image' ? <img src={post.mediaURL} alt="" onClick={()=>navigate(`/post/${post.id}`)} style={{ width:'100%', borderRadius:10, maxHeight:350, objectFit:'cover', cursor:'zoom-in' }}/> : <div onClick={()=>navigate('/reels',{state:{startId:post.id}})} style={{ position:'relative', cursor:'pointer' }}><video src={post.mediaURL} poster={post.thumbURL || undefined} preload={(dataSaver || post.thumbURL) ? 'none' : 'metadata'} style={{ width:'100%', borderRadius:10, maxHeight:350, objectFit:'cover', background:'#000' }} muted playsInline/><div style={{ position:'absolute', inset:0, display:'flex', alignItems:'center', justifyContent:'center' }}><div style={{ width:50, height:50, background:'rgba(0,0,0,0.5)', borderRadius:'50%', display:'flex', alignItems:'center', justifyContent:'center' }}><span style={{ color:'white', fontSize:20 }}>▶</span></div></div></div>}
             </div>
           )}
         </div>
@@ -796,8 +796,6 @@ export default function Profile() {
             )}
             <div style={{ display:'flex', justifyContent:'center', gap:24, marginTop:16 }}>
               {[
-                { label:'Publications', value:regularPosts.length },
-                { label:'Ventes', value:salePosts.length },
                 { label:'Amis', value:friendCount, onClick:()=>setActiveTab('amis') },
                 { label:'Abonnés', value:(profile.followers||[]).length, onClick:()=>(profile.followers||[]).length>0&&setFollowListOpen('followers') },
                 { label:'Suivi(e)s', value:(profile.following||[]).length, onClick:()=>(profile.following||[]).length>0&&setFollowListOpen('following') },
@@ -811,15 +809,15 @@ export default function Profile() {
             <div style={{ display:'flex', justifyContent:'center', alignItems:'center', flexWrap:'wrap', rowGap:8, gap:10, marginTop:14 }}>
               {isOwn ? (
                 <>
-                <button onClick={() => setEditing(true)} style={{ display:'inline-flex', alignItems:'center', gap:6, background:"linear-gradient(180deg,#1B84FF,#1877F2)", border:"none", borderRadius:20, padding:'8px 18px', color:"white", fontWeight:600, cursor:'pointer', fontSize:13, boxShadow:"0 3px 12px rgba(24,119,242,.35)" }}><HiPencil size={14}/>{t('editProfile')}</button>
+                <button onClick={() => setEditing(true)} style={{ display:'inline-flex', alignItems:'center', justifyContent:'center', gap:6, background:'#1877F2', border:'none', borderRadius:20, padding:'0 16px', height:36, color:'white', fontWeight:600, cursor:'pointer', fontSize:13 }}><HiPencil size={14}/> Modifier</button>
                 <button onClick={() => setBoostTarget({ type:'profile', id: currentUser.uid, ownerUid: currentUser.uid, title: profile.fullName || 'Mon profil', thumbnailURL: profile.photoURL || '' })}
-                  style={{ display:'inline-flex', alignItems:'center', gap:6, background:'linear-gradient(135deg,#1B84FF,#1877F2)', border:'none', borderRadius:20, padding:'8px 16px', color:'white', fontWeight:700, cursor:'pointer', fontSize:13, fontFamily:'Poppins' }}>
-                  <HiLightningBolt size={14}/> Booster mon profil
+                  style={{ display:'inline-flex', alignItems:'center', justifyContent:'center', gap:6, background:'#1877F2', border:'none', borderRadius:20, padding:'0 16px', height:36, color:'white', fontWeight:600, cursor:'pointer', fontSize:13, fontFamily:'Poppins' }}>
+                  <HiLightningBolt size={14}/> Booster
                 </button>
                 <div style={{ position:'relative', display:'inline-block' }} onClick={e => e.stopPropagation()}>
                   <button onClick={() => setProfMenu(p => !p)} style={{ width:36, height:36, borderRadius:'50%', background:'#F0F2F5', border:'none', cursor:'pointer', color:'#050505', display:'flex', alignItems:'center', justifyContent:'center' }}><HiDotsVertical size={17}/></button>
                   {profMenu && (
-                    <div style={{ position:'absolute', top:'110%', right:0, background:'white', border:'1px solid #E4E6EB', borderRadius:12, boxShadow:'0 4px 20px rgba(0,0,0,.14)', minWidth:210, zIndex:60, overflow:'hidden' }}>
+                    <div style={{ position:'absolute', top:'110%', right:0, background:'white', border:'1px solid #E4E6EB', borderRadius:12, boxShadow:'0 4px 20px rgba(0,0,0,.14)', minWidth:230, zIndex:60, overflow:'hidden' }}>
                       <button onClick={openStoryArchive} style={{ width:'100%', display:'flex', alignItems:'center', gap:10, padding:'12px 16px', background:'none', border:'none', cursor:'pointer', fontFamily:'Poppins', fontSize:14, fontWeight:400, color:'#050505', borderBottom:'1px solid #F0F2F5', whiteSpace:'nowrap' }}><NeonArchive/> Archive</button>
                       <button onClick={openSouvenirs} style={{ width:'100%', display:'flex', alignItems:'center', gap:10, padding:'12px 16px', background:'none', border:'none', cursor:'pointer', fontFamily:'Poppins', fontSize:14, color:'#050505', borderBottom:'1px solid #F0F2F5' }}><NeonClock/> Souvenirs</button>
                       <button onClick={copyProfileLink} style={{ width:'100%', display:'flex', alignItems:'center', gap:10, padding:'12px 16px', background:'none', border:'none', cursor:'pointer', fontFamily:'Poppins', fontSize:14, color:'#050505' }}><HiLink size={16} color="#12A48D"/> Copier le lien</button>
@@ -829,20 +827,20 @@ export default function Profile() {
                 </>
               ) : (
                 <>
-                  <button onClick={toggleFollow} className={isFollowing ? 'btn-secondary' : 'btn-gold'} style={{ fontSize:13, padding:'0 16px', height:36, display:'inline-flex', alignItems:'center', justifyContent:'center' }}>
-                    {isFollowing ? '✓ Abonné' : <><NeonStar size={13} color="#4A3400"/> Suivre</>}
+                  <button onClick={toggleFollow} style={{ fontSize:13, fontWeight:600, fontFamily:'Poppins', padding:'0 16px', height:36, display:'inline-flex', alignItems:'center', justifyContent:'center', gap:5, borderRadius:20, border:'none', cursor:'pointer', background: isFollowing ? '#E4E6EB' : '#1877F2', color: isFollowing ? '#050505' : 'white' }}>
+                    {isFollowing ? '✓ Abonné' : 'Suivre'}
                   </button>
-                  <button onClick={() => navigate(`/messages/${getChatId(currentUser.uid,targetUid)}`)} className="btn-primary" style={{ fontSize:13, padding:'0 18px', height:36, display:'inline-flex', alignItems:'center', justifyContent:'center' }}><HiPaperAirplane size={14} style={{ marginRight:4 }}/>Message</button>
-                  {friendStatus==='none'&&<button onClick={sendFriendRequest} style={{ display:'inline-flex', alignItems:'center', justifyContent:'center', gap:6, background:"linear-gradient(180deg,#1B84FF,#1877F2)", border:"none", borderRadius:20, padding:'0 16px', height:36, color:"white", fontWeight:600, cursor:'pointer', fontSize:13, boxShadow:"0 3px 12px rgba(24,119,242,.35)" }}><HiUserAdd size={14}/>Ajouter</button>}
+                  <button onClick={() => navigate(`/messages/${getChatId(currentUser.uid,targetUid)}`)} style={{ fontSize:13, fontWeight:600, fontFamily:'Poppins', padding:'0 16px', height:36, display:'inline-flex', alignItems:'center', justifyContent:'center', gap:5, borderRadius:20, border:'none', cursor:'pointer', background:'#1877F2', color:'white' }}><HiPaperAirplane size={14}/>Message</button>
+                  {friendStatus==='none'&&<button onClick={sendFriendRequest} style={{ display:'inline-flex', alignItems:'center', justifyContent:'center', gap:5, background:'#1877F2', border:'none', borderRadius:20, padding:'0 16px', height:36, color:'white', fontWeight:600, cursor:'pointer', fontSize:13, fontFamily:'Poppins' }}><HiUserAdd size={14}/>Ajouter</button>}
                   {friendStatus==='requested'&&<button onClick={cancelFriendRequest} style={{ display:'inline-flex', alignItems:'center', justifyContent:'center', background:'#F3F4F6', border:'none', borderRadius:20, padding:'0 16px', height:36, color:'#65676B', fontSize:13, fontWeight:600, cursor:'pointer', fontFamily:'Poppins' }}>Annulé</button>}
-                  {friendStatus==='friend'&&<span style={{ display:'inline-flex', alignItems:'center', justifyContent:'center', background:'#D1FAE5', borderRadius:20, padding:'0 16px', height:36, color:'#065F46', fontSize:13, fontWeight:600 }}>✓ Ami</span>}
+                  {friendStatus==='friend'&&<span style={{ display:'inline-flex', alignItems:'center', justifyContent:'center', background:'#E4E6EB', borderRadius:20, padding:'0 16px', height:36, color:'#050505', fontSize:13, fontWeight:600, fontFamily:'Poppins' }}>✓ Ami</span>}
                   <div style={{ position:'relative', display:'inline-block' }} onClick={e => e.stopPropagation()}>
                     <button onClick={() => setOtherMenu(p => !p)} style={{ width:36, height:36, borderRadius:'50%', background:'#F0F2F5', border:'none', cursor:'pointer', color:'#050505', display:'flex', alignItems:'center', justifyContent:'center' }}><HiDotsVertical size={17}/></button>
                     {otherMenu && (
-                      <div style={{ position:'absolute', top:'110%', right:0, background:'white', border:'1px solid #E4E6EB', borderRadius:12, boxShadow:'0 4px 20px rgba(0,0,0,.14)', minWidth:210, zIndex:60, overflow:'hidden' }}>
-                        <button onClick={copyProfileLink} style={{ width:'100%', display:'flex', alignItems:'center', gap:10, padding:'12px 16px', background:'none', border:'none', cursor:'pointer', fontFamily:'Poppins', fontSize:14, color:'#050505', borderBottom:'1px solid #F0F2F5' }}><HiLink size={16} color="#12A48D"/> Copier le lien</button>
-                        <button onClick={reportUser} style={{ width:'100%', display:'flex', alignItems:'center', gap:10, padding:'12px 16px', background:'none', border:'none', cursor:'pointer', fontFamily:'Poppins', fontSize:14, color:'#050505', borderBottom:'1px solid #F0F2F5' }}><HiFlag size={16} color="#F2B300"/> Signaler à l'admin</button>
-                        <button onClick={toggleBlockUser} style={{ width:'100%', display:'flex', alignItems:'center', gap:10, padding:'12px 16px', background:'none', border:'none', cursor:'pointer', fontFamily:'Poppins', fontSize:14, color:'#FF2D8D' }}><HiBan size={16}/> {isBlockedByMe ? 'Débloquer' : 'Bloquer'} cette personne</button>
+                      <div style={{ position:'absolute', top:'110%', right:0, background:'white', border:'1px solid #E4E6EB', borderRadius:12, boxShadow:'0 4px 20px rgba(0,0,0,.14)', minWidth:230, zIndex:60, overflow:'hidden' }}>
+                        <button onClick={copyProfileLink} style={{ width:'100%', display:'flex', alignItems:'center', gap:10, padding:'12px 16px', background:'none', border:'none', cursor:'pointer', fontFamily:'Poppins', fontSize:14, textAlign:'left', whiteSpace:'nowrap', color:'#050505', borderBottom:'1px solid #F0F2F5' }}><HiLink size={16} color="#12A48D" style={{ flexShrink:0 }}/> Copier le lien</button>
+                        <button onClick={reportUser} style={{ width:'100%', display:'flex', alignItems:'center', gap:10, padding:'12px 16px', background:'none', border:'none', cursor:'pointer', fontFamily:'Poppins', fontSize:14, textAlign:'left', whiteSpace:'nowrap', color:'#050505', borderBottom:'1px solid #F0F2F5' }}><HiFlag size={16} color="#F2B300" style={{ flexShrink:0 }}/> Signaler à l'admin</button>
+                        <button onClick={toggleBlockUser} style={{ width:'100%', display:'flex', alignItems:'center', gap:10, padding:'12px 16px', background:'none', border:'none', cursor:'pointer', fontFamily:'Poppins', fontSize:14, textAlign:'left', whiteSpace:'nowrap', color:'#FF2D8D' }}><HiBan size={16} style={{ flexShrink:0 }}/> {isBlockedByMe ? 'Débloquer' : 'Bloquer'}</button>
                       </div>
                     )}
                   </div>

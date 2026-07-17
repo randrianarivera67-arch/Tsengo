@@ -368,7 +368,7 @@ export default function ArtistDetail() {
         </div>
 
         {!isAdmin && (
-          <button onClick={toggleFollowArtist} className={isFollowing ? 'btn-secondary' : 'btn-gold'} style={{ width:'100%', marginTop:12, padding:'10px 0', fontSize:14, borderRadius:10 }}>
+          <button onClick={toggleFollowArtist} style={{ width:'100%', marginTop:12, padding:'10px 0', fontSize:14, fontWeight:600, fontFamily:'Poppins', borderRadius:10, border:'none', cursor:'pointer', background: isFollowing ? '#E4E6EB' : '#1877F2', color: isFollowing ? '#050505' : 'white' }}>
             {isFollowing ? '✓ Abonné' : '⭐ Suivre cet artiste'}
           </button>
         )}

@@ -5,7 +5,7 @@ import { doc, getDoc, updateDoc, arrayRemove } from 'firebase/firestore';
 import { db } from '../firebase';
 import { SkeletonList } from '../components/Skeleton';
 import { useAuth } from '../context/AuthContext';
-import { HiBookmark, HiTrash, HiChevronRight, HiUserGroup } from 'react-icons/hi';
+import { HiBookmark, HiTrash, HiChevronRight, HiUserGroup, HiArrowLeft } from 'react-icons/hi';
 
 export default function Saved() {
   const { currentUser, userProfile, setUserProfile } = useAuth();
@@ -37,9 +37,15 @@ export default function Saved() {
 
   return (
     <div style={{ padding: '14px 12px' }}>
-      <h2 style={{ fontWeight: 800, fontSize: 20, display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
-        <HiBookmark size={24} color="#F2B300" /> Enregistrements
-      </h2>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
+        <button onClick={() => navigate(-1)} aria-label="Retour"
+          style={{ width: 36, height: 36, borderRadius: '50%', background: '#F0F2F5', border: 'none', cursor: 'pointer', color: '#050505', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+          <HiArrowLeft size={19} />
+        </button>
+        <h2 style={{ fontWeight: 800, fontSize: 20, display: 'flex', alignItems: 'center', gap: 8 }}>
+          <HiBookmark size={24} color="#F2B300" /> Enregistrements
+        </h2>
+      </div>
 
       {!loaded && <SkeletonList rows={5} avatar={false} />}
 
