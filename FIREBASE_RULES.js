@@ -182,6 +182,15 @@ service cloud.firestore {
       allow delete: if request.auth != null && resource.data.toUid == request.auth.uid;
     }
 
+    // Noms d'utilisateur : lecture publique (verification de disponibilite AVANT
+    // la creation du compte, donc sans authentification). Ecriture : seul le
+    // proprietaire peut creer SA propre entree, jamais modifiable ensuite.
+    match /usernames/{username} {
+      allow read: if true;
+      allow create: if request.auth != null && request.resource.data.uid == request.auth.uid;
+      allow update, delete: if false;
+    }
+
     // Friend requests
     match /friendRequests/{reqId} {
       allow read: if request.auth != null &&

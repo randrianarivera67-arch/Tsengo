@@ -6,7 +6,7 @@ import { useState, useRef } from 'react';
 import { useNavigate, Link, Navigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useLang } from '../context/LanguageContext';
-import { collection, query, where, getDocs, doc, updateDoc } from 'firebase/firestore';
+import { collection, query, where, getDocs, doc, updateDoc, getDoc } from 'firebase/firestore';
 import { db } from '../firebase';
 import { uploadToCloudinary } from '../utils/cloudinary';
 
@@ -71,9 +71,9 @@ export default function Register() {
 
     setLoading(true);
     try {
-      const q = query(collection(db, 'users'), where('username', '==', form.username.toLowerCase()));
-      const snap = await getDocs(q);
-      if (!snap.empty) {
+      // ✅ FIX permissions: verif username via doc usernames (etape1)
+      const unameSnap = await getDoc(doc(db, 'usernames', form.username.toLowerCase()));
+      if (unameSnap.exists()) {
         setLoading(false);
         return setError('Username efa ampiasaina / Username déjà utilisé');
       }
@@ -133,9 +133,9 @@ export default function Register() {
     setCreating(true);
     try {
       // Fanamarinana farany, sao efa nalain'olona ilay username nandritra ny fenoana étape 2-3
-      const q = query(collection(db, 'users'), where('username', '==', form.username.toLowerCase()));
-      const snap = await getDocs(q);
-      if (!snap.empty) {
+      // ✅ FIX permissions: verif username via doc usernames (finalize)
+      const unameSnap2 = await getDoc(doc(db, 'usernames', form.username.toLowerCase()));
+      if (unameSnap2.exists()) {
         setCreating(false);
         setLoading(false);
         setStep(1);

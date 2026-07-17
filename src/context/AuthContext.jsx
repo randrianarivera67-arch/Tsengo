@@ -43,6 +43,9 @@ export function AuthProvider({ children }) {
       createdAt: serverTimestamp(),
     };
     await setDoc(doc(db, 'users', res.user.uid), userData);
+    // ✅ FIX permissions: reserve usernames/{username} (lecture publique
+    // pre-auth pour la verif de disponibilite a l'etape 1 de l'inscription)
+    await setDoc(doc(db, 'usernames', username.toLowerCase()), { uid: res.user.uid });
     setUserProfile(userData);
     return res;
   }
