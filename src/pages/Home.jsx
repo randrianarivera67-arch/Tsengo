@@ -181,7 +181,7 @@ function MusicCard({ track, index, playing, onToggle, onArtist, onSave, onBlock,
           {dur && <div style={{ fontSize: 11, color: '#e6e6ea', fontWeight: 600, flexShrink: 0, marginLeft: 6 }}>{dur}</div>}
         </div>
         <div style={{ display: 'flex', gap: 6, marginTop: 8 }}>
-          <button onClick={() => onFollow?.(track.artistId)} style={{ flex: 1, background: isFollowing ? 'rgba(255,255,255,.14)' : '#1877F2', color: '#fff', border: 'none', borderRadius: 14, padding: '5px 0', fontSize: 11.5, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 3 }}>
+          <button onClick={() => onFollow?.(track.artistId)} style={{ flex: 1, background: isFollowing ? 'rgba(255,255,255,.14)' : 'linear-gradient(145deg,#FF6FA5,#FF2D8D)', color: '#fff', border: 'none', borderRadius: 14, padding: '5px 0', fontSize: 11.5, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 3 }}>
             {isFollowing ? <><HiCheck size={12} /> Abonné</> : 'Suivre'}
           </button>
           <button onClick={() => onMessage?.(track.artistId)} style={{ flex: 1, background: 'rgba(255,255,255,.14)', color: '#fff', border: 'none', borderRadius: 14, padding: '5px 0', fontSize: 11.5, fontWeight: 600, cursor: 'pointer' }}>Message</button>
@@ -302,7 +302,9 @@ export default function Home() {
   const [posts, setPosts]           = useState([]);
   const [postsLoading, setPostsLoading] = useState(true);
   const feedAds = useFeedAds();
-  const [visibleCount, setVisibleCount] = useState(10);   // affichage progressif
+  const [visibleCount, setVisibleCount] = useState(20);   // affichage progressif (20 au depart)
+  const [postLimit, setPostLimit] = useState(30);         // nb de posts recuperes depuis Firestore
+  const [reachedEnd, setReachedEnd] = useState(false);    // plus rien a charger cote serveur
   const [expandedPosts, setExpandedPosts] = useState({});
   const [viewerState,   setViewerState]   = useState(null); // { post, index }
   const [boostTarget,   setBoostTarget]    = useState(null); // { type, id, ownerUid, title, thumbnailURL }
@@ -473,10 +475,13 @@ export default function Home() {
     return () => { alive = false; };
   }, [currentUser, userProfile?.friends?.length]);
 
-  // Load posts
+  // Load posts — pagination progressive : on augmente `postLimit` au scroll,
+  // ce qui recharge la requete avec plus de publications depuis Firestore.
   useEffect(() => {
-    const q = query(collection(db, 'posts'), orderBy('createdAt', 'desc'), limit(60));
+    const q = query(collection(db, 'posts'), orderBy('createdAt', 'desc'), limit(postLimit));
     return onSnapshot(q, snap => {
+      // Si Firestore renvoie moins que demande, c'est qu'on a atteint la fin.
+      setReachedEnd(snap.docs.length < postLimit);
       const blocked = userProfile?.blocked || [];
       const myFriends = userProfile?.friends || [];
       const all = snap.docs.map(d => ({ id: d.id, ...d.data() }))
@@ -495,7 +500,7 @@ export default function Home() {
       setReelPosts(all.filter(p => p.mediaType === 'video' && p.mediaURL));
       setPostsLoading(false);
     });
-  }, [viewerLoc?.lat, viewerLoc?.lng]);
+  }, [viewerLoc?.lat, viewerLoc?.lng, postLimit]);
 
   const [multiPhotos, setMultiPhotos] = useState([]);   // File[] — mode "plusieurs photos" (2 à 10)
   function handleMedia(e, type) {
@@ -1170,6 +1175,13 @@ const fields = {
         />
       )}
 
+      {postsLoading && posts.length === 0 && (
+        <div style={{ padding: '0 0 8px' }}>
+          <SkeletonPost />
+          <SkeletonPost />
+        </div>
+      )}
+
       {/* ── Stories (format Facebook) ─────────────────────────── */}
       <div className="stories-strip">
         {/* Carte : Créer une story (menu unifié : texte / photo / vidéo) */}
@@ -1677,12 +1689,6 @@ const fields = {
       )}
 
       {/* Feed */}
-      {postsLoading && posts.length === 0 && (
-        <div style={{ padding: '0 0 8px' }}>
-          <SkeletonPost />
-          <SkeletonPost />
-        </div>
-      )}
       {posts.filter(p => !(p.mediaType === 'audio' && p.isMusic)).slice(0, visibleCount).map((post, pIdx) => {
         const rc     = countReactions(post.reactions);
         const myR    = post.reactions?.[currentUser.uid];
@@ -2263,15 +2269,26 @@ const fields = {
       )}
 
 
-      {posts.filter(p => !(p.mediaType === 'audio' && p.isMusic)).length > visibleCount && (
-        <div ref={el => {
-          if (!el) return;
-          const io = new IntersectionObserver(es => { if (es[0].isIntersecting) setVisibleCount(c => c + 10); }, { rootMargin: '400px' });
-          io.observe(el);
-        }} style={{ padding: 18, textAlign: 'center', color: '#65676B', fontSize: 13 }}>
-          Chargement…
-        </div>
-      )}
+      {(() => {
+        const feedLen = posts.filter(p => !(p.mediaType === 'audio' && p.isMusic)).length;
+        // Il reste des posts a afficher, OU il faut en recharger davantage depuis le serveur.
+        if (feedLen <= visibleCount && reachedEnd) return null;
+        return (
+          <div ref={el => {
+            if (!el) return;
+            const io = new IntersectionObserver(es => {
+              if (!es[0].isIntersecting) return;
+              // 1) On revele plus de posts deja charges.
+              setVisibleCount(c => c + 20);
+              // 2) Si on approche de la limite serveur actuelle, on en demande plus.
+              if (feedLen >= postLimit - 5 && !reachedEnd) setPostLimit(l => l + 30);
+            }, { rootMargin: '600px' });
+            io.observe(el);
+          }} style={{ padding: 18, textAlign: 'center', color: '#65676B', fontSize: 13 }}>
+            Chargement…
+          </div>
+        );
+      })()}
 
       {shareModalPost && <ShareModal post={shareModalPost} onClose={() => setShareModalPost(null)} />}
 
