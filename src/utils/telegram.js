@@ -19,7 +19,7 @@ async function compressImage(file, maxWidth=720, quality=0.62) {
 }
 
 const MAX_SIZE        = 500 * 1024 * 1024;  // 500 Mo maximum
-const CHUNK_SIZE      = 18 * 1024 * 1024;   // morceaux 18 Mo (limite Bot API 20 Mo)
+const CHUNK_SIZE      = 9 * 1024 * 1024;    // morceaux 9 Mo — kely kokoa = lecture/pré-chargement fluide kokoa
 const CHUNK_THRESHOLD = 12 * 1024 * 1024;   // vidéo > 12 Mo → envoi en morceaux
 
 // Envoi d'un FormData avec progression réelle (XHR)
