@@ -20,7 +20,7 @@ export default function PhotoCarousel({ urls = [], onOpen }) {
   if (n === 1) {
     return (
       <div onClick={open(list[0])} style={{ cursor: 'pointer' }}>
-        <img src={list[0]} alt="" style={{ width: '100%', maxHeight: 520, objectFit: 'cover', display: 'block' }} />
+        <img src={list[0]} alt="" loading="lazy" decoding="async" style={{ width: '100%', maxHeight: 520, objectFit: 'cover', display: 'block' }} />
       </div>
     );
   }

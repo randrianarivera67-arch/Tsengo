@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { NeonMic } from './NeonIcons';
+import { claimPlayback } from '../utils/mediaBus';
 
 const GRADS = [['#FF6FA5', '#FF2D8D'], ['#A66BFF', '#7A2DFF'], ['#3DBEFF', '#1877F2']];
 
@@ -32,18 +33,32 @@ export default function MusicPostCard({ post, index = 0, height = 130 }) {
 
   useEffect(() => () => { audioRef.current?.pause(); }, []);
 
+  const cardRef = useRef(null);
+  useEffect(() => {
+    const el = cardRef.current;
+    if (!el) return;
+    const io = new IntersectionObserver(([e]) => {
+      if (!e.isIntersecting && audioRef.current && !audioRef.current.paused) {
+        audioRef.current.pause();
+        setPlaying(false);
+      }
+    }, { threshold: 0.05 });
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
+
   function toggle(e) {
     e?.stopPropagation();
     if (!post.mediaURL) return;
     if (!audioRef.current) { audioRef.current = new Audio(post.mediaURL); audioRef.current.onended = () => setPlaying(false); }
     if (playing) { audioRef.current.pause(); setPlaying(false); }
-    else { audioRef.current.play().catch(() => {}); setPlaying(true); }
+    else { claimPlayback(() => { audioRef.current?.pause(); setPlaying(false); }); audioRef.current.play().catch(() => {}); setPlaying(true); }
   }
 
   if (isVideo) {
     return (
       <div style={{ borderRadius: 12, overflow: 'hidden', background: '#000', position: 'relative' }}>
-        <video src={post.mediaURL} poster={post.thumbURL} controls playsInline style={{ width: '100%', maxHeight: 420, objectFit: 'cover', display: 'block' }} />
+        <video src={post.mediaURL} poster={post.thumbURL} controls playsInline onPlay={e => { const v = e.currentTarget; claimPlayback(() => { try { v.pause(); } catch {} }); }} style={{ width: '100%', maxHeight: 420, objectFit: 'cover', display: 'block' }} />
         {(post.songTitle || post.artistName) && (
           <div style={{ position: 'absolute', left: 10, bottom: 10, color: '#fff', textShadow: '0 1px 4px rgba(0,0,0,.7)', pointerEvents: 'none' }}>
             <div style={{ fontWeight: 800, fontSize: 14 }}>{post.songTitle}</div>
@@ -55,7 +70,7 @@ export default function MusicPostCard({ post, index = 0, height = 130 }) {
   }
 
   return (
-    <div style={{ borderRadius: 12, overflow: 'hidden', background: '#0c0c12' }}>
+    <div ref={cardRef} style={{ borderRadius: 12, overflow: 'hidden', background: '#0c0c12' }}>
       <div style={{ position: 'relative', height, display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
         {post.thumbURL && <div style={{ position: 'absolute', inset: 0, backgroundImage: `url(${post.thumbURL})`, backgroundSize: 'cover', backgroundPosition: 'center', filter: 'brightness(.45)', zIndex: 0 }} />}
 

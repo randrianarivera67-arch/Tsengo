@@ -94,7 +94,7 @@ function processClip(file, { startSec = 0, endSec = null, speed = 1, filterCss =
           try { elStream = video.captureStream ? video.captureStream() : (video.mozCaptureStream ? video.mozCaptureStream() : null); } catch {}
           if (elStream) elStream.getAudioTracks().forEach(t => tracks.push(t));
           const stream = new MediaStream(tracks);
-          const rec = new MediaRecorder(stream, { mimeType: mime, videoBitsPerSecond: 4_000_000 });
+          const rec = new MediaRecorder(stream, { mimeType: mime, videoBitsPerSecond: 2_200_000 });
           const chunks = [];
           rec.ondataavailable = ev => { if (ev.data && ev.data.size) chunks.push(ev.data); };
           rec.onerror = () => finish(null);
@@ -199,7 +199,7 @@ export default function JejoStudio({ currentUser, userProfile, onClose, onPublis
       stopStream();
       const portrait = ori === 'portrait';
       const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: face, width: { ideal: portrait ? 1080 : 1920 }, height: { ideal: portrait ? 1920 : 1080 } },
+        video: { facingMode: face, width: { ideal: portrait ? 720 : 1280 }, height: { ideal: portrait ? 1280 : 720 } },
         audio: true,
       });
       streamRef.current = stream;
@@ -302,7 +302,7 @@ export default function JejoStudio({ currentUser, userProfile, onClose, onPublis
     try { stream = await buildRecordStream(); } catch { setCamError(true); return; }
     try {
       chunksRef.current = [];
-      const rec = new MediaRecorder(stream, mime ? { mimeType: mime, videoBitsPerSecond: 5_000_000 } : undefined);
+      const rec = new MediaRecorder(stream, mime ? { mimeType: mime, videoBitsPerSecond: 2_500_000 } : undefined);
       recorderRef.current = rec;
       rec.ondataavailable = e => { if (e.data && e.data.size) chunksRef.current.push(e.data); };
       rec.onstop = () => {

@@ -10,6 +10,7 @@ import MediaViewer from '../components/MediaViewer';
 import { useViewerLocation } from '../hooks/useViewerLocation';
 import { isInZones } from '../utils/geo';
 import { SkeletonPost } from '../components/Skeleton';
+import { claimPlayback } from '../utils/mediaBus';
 import ReportModal from '../components/ReportModal';
 import BoostOrderModal from '../components/BoostOrderModal';
 import PullToRefresh from '../components/PullToRefresh';
@@ -106,6 +107,7 @@ function FeedVideo({ src, poster, dataSaver, style, onOpenReels }) {
       <video
         ref={vidRef}
         src={src}
+        onPlay={() => claimPlayback(() => { vidRef.current?.pause?.(); setPlaying(false); })}
         poster={poster || undefined}
         preload={(dataSaver || poster) ? 'none' : 'metadata'}
         style={style}
@@ -387,6 +389,7 @@ export default function Home() {
     if (playingTrackId === track.id) { a.pause(); setPlayingTrackId(null); return; }
     a.src = track.mediaURL;
     a.onended = () => setPlayingTrackId(null);
+    claimPlayback(() => { a.pause(); setPlayingTrackId(null); });
     a.play().catch(() => {});
     setPlayingTrackId(track.id);
   }
@@ -1911,7 +1914,7 @@ const fields = {
                 </div>
               ) : post.mediaURL && (
                 <div style={{ marginTop:8, marginLeft:-16, marginRight:-16 }}>
-                  {post.isMusic ? <MusicPostCard post={post} height={140}/> : post.mediaType==='image' ? <img src={post.mediaURL} alt="" onClick={e=>{e.stopPropagation();navigate(`/post/${post.id}`);}} style={{ width:'100%', borderRadius:0, maxHeight:520, objectFit:'cover', display:'block', cursor:'zoom-in' }}/> : <FeedVideo src={post.mediaURL} poster={post.thumbURL} dataSaver={dataSaver} onOpenReels={()=>navigate('/reels',{state:{startId:post.id}})} style={{ width:'100%', borderRadius:0, maxHeight:520, objectFit:'cover', display:'block', background:'#000' }} />}
+                  {post.isMusic ? <MusicPostCard post={post} height={140}/> : post.mediaType==='image' ? <img src={post.mediaURL} alt="" loading="lazy" decoding="async" onClick={e=>{e.stopPropagation();navigate(`/post/${post.id}`);}} style={{ width:'100%', borderRadius:0, maxHeight:520, objectFit:'cover', display:'block', cursor:'zoom-in' }}/> : <FeedVideo src={post.mediaURL} poster={post.thumbURL} dataSaver={dataSaver} onOpenReels={()=>navigate('/reels',{state:{startId:post.id}})} style={{ width:'100%', borderRadius:0, maxHeight:520, objectFit:'cover', display:'block', background:'#000' }} />}
                 </div>
               )}
               {/* ── Article boutique : informations ambanin'ny sary (sary 3) ── */}

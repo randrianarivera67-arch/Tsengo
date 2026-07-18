@@ -1,6 +1,6 @@
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'https://tsengo-backend.onrender.com';
 
-async function compressImage(file, maxWidth=1080, quality=0.8) {
+async function compressImage(file, maxWidth=720, quality=0.62) {
   if (!file.type.startsWith('image/')) return file;
   return new Promise(resolve => {
     const img = new Image();
