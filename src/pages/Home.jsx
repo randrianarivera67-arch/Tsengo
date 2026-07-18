@@ -452,7 +452,7 @@ export default function Home() {
   // Boutiques suggestions
   useEffect(() => {
     if (!currentUser) return;
-    getDocs(query(collection(db, 'shops'), orderBy('createdAt', 'desc')))
+    getDocs(query(collection(db, 'shops'), orderBy('createdAt', 'desc'), limit(20)))
       .then(snap => setShopSuggestions(snap.docs.map(d => ({ id: d.id, ...d.data() })).slice(0, 16)))
       .catch(() => {});
   }, [currentUser]);
@@ -461,7 +461,7 @@ export default function Home() {
   useEffect(() => {
     if (!currentUser || !userProfile) return;
     let alive = true;
-    getDocs(collection(db, 'users')).then(snap => {
+    getDocs(query(collection(db, 'users'), limit(80))).then(snap => {
       if (!alive) return;
       const friends = userProfile.friends || [];
       const sent = userProfile.sentRequests || [];
@@ -1175,13 +1175,6 @@ const fields = {
         />
       )}
 
-      {postsLoading && posts.length === 0 && (
-        <div style={{ padding: '0 0 8px' }}>
-          <SkeletonPost />
-          <SkeletonPost />
-        </div>
-      )}
-
       {/* ── Stories (format Facebook) ─────────────────────────── */}
       <div className="stories-strip">
         {/* Carte : Créer une story (menu unifié : texte / photo / vidéo) */}
@@ -1685,6 +1678,13 @@ const fields = {
               );
             })}
           </div>
+        </div>
+      )}
+
+      {postsLoading && posts.length === 0 && (
+        <div style={{ padding: '0 0 8px' }}>
+          <SkeletonPost />
+          <SkeletonPost />
         </div>
       )}
 

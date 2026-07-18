@@ -1,6 +1,6 @@
 // src/hooks/useNotifications.js
 import { useState, useEffect } from 'react';
-import { collection, query, where, onSnapshot, orderBy,
+import { collection, query, where, onSnapshot, orderBy, limit,
          updateDoc, deleteDoc, doc, writeBatch } from 'firebase/firestore';
 import { db } from '../firebase';
 import { useAuth } from '../context/AuthContext';
@@ -15,7 +15,8 @@ export function useNotifications() {
     const q = query(
       collection(db, 'notifications'),
       where('toUid', '==', currentUser.uid),
-      orderBy('createdAt', 'desc')
+      orderBy('createdAt', 'desc'),
+      limit(50)
     );
     return onSnapshot(q, snap => {
       const notifs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
