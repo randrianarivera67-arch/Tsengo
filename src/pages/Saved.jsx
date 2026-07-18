@@ -72,7 +72,7 @@ export default function Saved() {
                     </div>
                   </div>
                 : p.mediaType === 'video'
-                  ? <video src={p.mediaURL} muted playsInline preload="metadata" style={{ width: 64, height: 64, borderRadius: 10, objectFit: 'cover', flexShrink: 0, background: '#000' }} />
+                  ? (p.thumbURL ? <img src={p.thumbURL} alt="" style={{ width: 64, height: 64, borderRadius: 10, objectFit: 'cover', flexShrink: 0 }} /> : <video src={p.mediaURL} muted playsInline preload="metadata" style={{ width: 64, height: 64, borderRadius: 10, objectFit: 'cover', flexShrink: 0, background: '#000' }} />)
                   : <img src={p.mediaURL} alt="" style={{ width: 64, height: 64, borderRadius: 10, objectFit: 'cover', flexShrink: 0 }} />
             ) : (
               <div style={{ width: 64, height: 64, borderRadius: 10, background: '#E7F0FE', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: 24 }}>📝</div>

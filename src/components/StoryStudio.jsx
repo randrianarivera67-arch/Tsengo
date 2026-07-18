@@ -11,6 +11,7 @@ import {
 import { db } from '../firebase';
 import { uploadToTelegram } from '../utils/telegram';
 import { trimVideoTo30s } from '../utils/trimVideo';
+import { captureVideoThumb } from '../utils/videoThumb';
 
 // ── Fonds texte (mitovy amin'ny efa misy) ──
 const BG = [
@@ -107,6 +108,8 @@ export default function StoryStudio({ mode: initialMode = 'menu', currentUser, u
   const [caption, setCaption]       = useState('');
   const [captionPos, setCaptionPos] = useState({ x: 0.5, y: 0.8 });
   const [sonMode, setSonMode]       = useState('music'); // 'music' (muet+musique) | 'original'
+  // Vidéo : feo ORIGINAL no par défaut — tsy asiana hira raha tsy safidin'ny mpampiasa
+  useEffect(() => { if (mode === 'video') { setSonMode('original'); setMusic(null); } }, [mode]);
   const previewRef = useRef(null);
   const capDragRef = useRef(false);
   const [audience, setAudience]     = useState('public');  // 'public'|'friends'|'me'
@@ -151,7 +154,7 @@ export default function StoryStudio({ mode: initialMode = 'menu', currentUser, u
         .filter(p => p.isMusic && p.mediaType === 'audio' && p.mediaURL && (p.artistId || p.artistName))
         .map(p => ({ id: p.id, url: p.mediaURL, title: p.songTitle || p.content || 'Sans titre', artist: p.artistName || '', _pop: Object.keys(p.reactions || {}).length + ((p.comments || []).length) }));
       setTracks(list);
-      if (list.length && !music && (mode === 'photo' || mode === 'video')) setMusic(chooseDefaultTrack(list));
+      if (list.length && !music && mode === 'photo') setMusic(chooseDefaultTrack(list));
     } catch (e) { /* silencieux */ }
     setTracksLoaded(true);
   }
@@ -300,10 +303,16 @@ export default function StoryStudio({ mode: initialMode = 'menu', currentUser, u
         const trimmed = await trimVideoTo30s(file).catch(() => null);
         if (trimmed) f = trimmed;
         const r = await uploadToTelegram(f, p => setProgress(p));
+        let _thumbURL = '';
+        try {
+          const tf = await captureVideoThumb(f);
+          if (tf) { const tr = await uploadToTelegram(tf); _thumbURL = tr.url || ''; }
+        } catch {}
         await addDoc(collection(db, 'stories'), {
           ...baseDoc(),
           mediaType: 'video',
           mediaURL: r.url,
+          thumbURL: _thumbURL,
           filter: cssFor(filterKey),
           caption: caption.trim().slice(0, 200),
           captionPos,

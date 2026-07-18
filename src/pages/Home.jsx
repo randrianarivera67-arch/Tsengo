@@ -921,11 +921,19 @@ const fields = {
         if (trimmed) finalFile = trimmed;
       }
       const r = await uploadToTelegram(finalFile);
+      let storyThumbURL = '';
+      if (r.type === 'video') {
+        try {
+          const tf = await captureVideoThumb(finalFile);
+          if (tf) { const tr = await uploadToTelegram(tf); storyThumbURL = tr.url || ''; }
+        } catch {}
+      }
       await addDoc(collection(db, 'stories'), {
         uid: currentUser.uid,
         authorName: userProfile.fullName,
         authorPhoto: userProfile.photoURL || '',
         mediaURL: r.url,
+        thumbURL: storyThumbURL,
         mediaType: r.type === 'video' ? 'video' : 'image',
         ts: Date.now(),
         createdAt: serverTimestamp(),
@@ -1199,7 +1207,7 @@ const fields = {
           return (
             <div key={g.uid} className="story-card" onClick={() => openStories(g)} style={last.mediaType === 'text' ? { background: last.bgColor || '#1877F2' } : undefined}>
               {last.mediaType === 'video'
-                ? <video src={last.mediaURL} muted playsInline preload="metadata" />
+                ? (last.thumbURL ? <img src={last.thumbURL} alt="" /> : <video src={last.mediaURL} muted playsInline preload="metadata" />)
                 : last.mediaType === 'text'
                 ? <div style={{ width:'100%', height:'100%', display:'flex', alignItems:'center', justifyContent:'center', padding:10 }}>
                     <p style={{ color:'white', fontSize:13, fontWeight:700, textAlign:'center', overflow:'hidden', display:'-webkit-box', WebkitLineClamp:5, WebkitBoxOrient:'vertical' }}>{last.text}</p>
@@ -1303,7 +1311,7 @@ const fields = {
             {/* Média + zones tactiles gauche/droite */}
             <div style={{ flex:1, position:'relative', display:'flex', alignItems:'center', justifyContent:'center', overflow:'hidden', background: cur.mediaType === 'text' ? (cur.bgColor || '#1877F2') : 'transparent' }}>
               {cur.mediaType === 'video'
-                ? <video ref={storyVideoRef} key={cur.id} src={cur.mediaURL} autoPlay={!dataSaver} controls={dataSaver} playsInline muted={!!cur.music?.url} onEnded={nextStory} style={{ maxWidth:'100%', maxHeight:'100%', filter: cur.filter || 'none' }} />
+                ? <video ref={storyVideoRef} key={cur.id} src={cur.mediaURL} poster={cur.thumbURL || undefined} autoPlay={!dataSaver} controls={dataSaver} playsInline muted={!!cur.music?.url} onEnded={nextStory} style={{ maxWidth:'100%', maxHeight:'100%', filter: cur.filter || 'none' }} />
                 : cur.mediaType === 'text'
                 ? <p style={{ color: cur.textColor || 'white', fontSize: cur.fontSize || 30, fontWeight:800, textAlign: cur.align || 'center', padding:'0 30px', wordBreak:'break-word', whiteSpace:'pre-wrap' }}>{cur.text}</p>
                 : <img key={cur.id} src={cur.mediaURL} alt="" style={{ maxWidth:'100%', maxHeight:'100%', objectFit:'contain', filter: cur.filter || 'none' }} />}
@@ -1890,7 +1898,7 @@ const fields = {
                       ? <div style={{ padding:'0 10px 10px' }}><MusicPostCard post={post.sharedFrom} height={115}/></div>
                       : post.sharedFrom.mediaType === 'image'
                         ? <img src={post.sharedFrom.mediaURL} alt="" style={{ width:'100%', maxHeight:320, objectFit:'cover', display:'block' }}/>
-                        : <video src={post.sharedFrom.mediaURL} muted playsInline style={{ width:'100%', maxHeight:320, objectFit:'cover', display:'block', background:'#000' }}/>
+                        : <FeedVideo src={post.sharedFrom.mediaURL} poster={post.sharedFrom.thumbURL} dataSaver={dataSaver} style={{ width:'100%', maxHeight:320, objectFit:'cover', display:'block', background:'#000' }}/>
                   )}
                 </div>
               )}
@@ -2211,7 +2219,7 @@ const fields = {
                       return (
                         <div key={g.uid} className="story-card" onClick={() => openStories(g)} style={{ width:92, height:150 }}>
                           {last.mediaType === 'video'
-                            ? <video src={last.mediaURL} muted playsInline preload="metadata" />
+                            ? (last.thumbURL ? <img src={last.thumbURL} alt="" /> : <video src={last.mediaURL} muted playsInline preload="metadata" />)
                             : <img src={last.mediaURL} alt="" />}
                           <div className="story-gradient" />
                           <img className="story-avatar" src={g.photo || `https://ui-avatars.com/api/?name=${encodeURIComponent(g.name||'U')}&background=1877F2&color=fff`} alt="" />
