@@ -36,11 +36,20 @@ export default function Login() {
     e.preventDefault();
     if (!resetEmail.trim()) return;
     setLoading(true);
+    setError('');
     try {
       await sendPasswordResetEmail(auth, resetEmail.trim());
       setResetSent(true);
     } catch (err) {
-      setError('Email tsy hita / Email introuvable');
+      // On affiche le VRAI code d'erreur Firebase (au lieu d'un message
+      // générique qui masquait la cause réelle, ex: domaine non autorisé,
+      // trop de tentatives, etc.) — indispensable pour diagnostiquer.
+      const code = err?.code || '';
+      if (code === 'auth/user-not-found') setError('Aucun compte avec cet email / Email introuvable');
+      else if (code === 'auth/invalid-email') setError('Adresse email invalide');
+      else if (code === 'auth/too-many-requests') setError('Trop de tentatives. Réessayez dans quelques minutes.');
+      else if (code === 'auth/unauthorized-domain') setError("Ce domaine n'est pas autorisé dans Firebase (Authentication → Settings → Authorized domains)");
+      else setError('Erreur : ' + (code || err?.message || 'inconnue'));
     }
     setLoading(false);
   }

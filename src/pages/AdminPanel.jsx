@@ -6,7 +6,8 @@ import {
   collection, query, getDocs, doc, updateDoc, deleteDoc,
   orderBy, getDoc, addDoc, serverTimestamp
 } from 'firebase/firestore';
-import { db } from '../firebase';
+import { db, auth } from '../firebase';
+import { sendPasswordResetEmail } from 'firebase/auth';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -17,6 +18,7 @@ import {
 } from 'react-icons/hi';
 import { isStandalone, canInstall, onInstallChange, promptInstall } from '../utils/pwaInstall';
 import PushDiagnostic from '../components/PushDiagnostic';
+import { HiMail, HiKey } from 'react-icons/hi';
 import { SkeletonList } from '../components/Skeleton';
 
 export default function AdminPanel() {
@@ -25,6 +27,8 @@ export default function AdminPanel() {
 
   const [isAdmin, setIsAdmin] = useState(null);
   const [activeTab, setActiveTab] = useState('users');
+  const [expandedUser, setExpandedUser] = useState(null);
+  const [resetSentFor, setResetSentFor] = useState(null);
 
   const [users, setUsers] = useState([]);
   const [search, setSearch] = useState('');
@@ -322,6 +326,19 @@ export default function AdminPanel() {
     { key: 'reports', label: 'Signalements', icon: '🚩', badge: reports.filter(r=>r.status==='pending'||!r.status).length },
   ];
 
+  async function resetUserPassword(user) {
+    if (!user.email) { showMsg('❌ Ce compte n\'a pas d\'email associé'); return; }
+    if (!window.confirm(`Envoyer un email de réinitialisation de mot de passe à ${user.email} ?`)) return;
+    try {
+      await sendPasswordResetEmail(auth, user.email);
+      setResetSentFor(user.id);
+      showMsg('✅ Email de réinitialisation envoyé à ' + user.email);
+      setTimeout(() => setResetSentFor(null), 4000);
+    } catch (err) {
+      showMsg('❌ Erreur : ' + (err?.message || err));
+    }
+  }
+
   const tabBtn = (key, label) => (
     <button key={key} onClick={() => setActiveTab(key)}
       style={{
@@ -461,7 +478,7 @@ export default function AdminPanel() {
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                 {filteredUsers.map(user => (
                   <div key={user.id} style={{ background: '#FFFFFF', borderRadius: 14, padding: '12px 14px', border: user.isBanned ? '1px solid #ef4444' : user.disabled ? '1px solid #f59e0b' : user.isVip ? '1px solid #1877F2' : '1px solid #E4E6EB' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer' }} onClick={() => setExpandedUser(expandedUser === user.id ? null : user.id)}>
                       <img src={user.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.fullName || 'U')}&background=1877F2&color=fff`} alt="" style={{ width: 44, height: 44, borderRadius: '50%', objectFit: 'cover', flexShrink: 0, opacity: user.disabled ? 0.5 : 1 }} />
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 5, flexWrap: 'wrap' }}>
@@ -471,12 +488,24 @@ export default function AdminPanel() {
                           {user.isBanned && pill('BLOQUÉ', '#7f1d1d', '#fca5a5')}
                           {user.disabled && pill('DÉSACTIVÉ', '#78350f', '#fcd34d')}
                         </div>
-                        <p style={{ fontSize: 12, color: '#65676B' }}>@{user.username} · {user.email}</p>
-                        <p onClick={() => copyId(user.id)} style={{ fontSize: 10.5, color: '#4b5563', display: 'flex', alignItems: 'center', gap: 4, cursor: 'pointer', marginTop: 2 }}>
-                          <HiDuplicate size={11} /> ID : {user.id}
-                        </p>
+                        <p style={{ fontSize: 12, color: '#65676B' }}>@{user.username}</p>
                       </div>
+                      {expandedUser === user.id ? <HiChevronUp size={18} color="#65676B" style={{ flexShrink: 0 }} /> : <HiChevronDown size={18} color="#65676B" style={{ flexShrink: 0 }} />}
                     </div>
+                    {expandedUser === user.id && (
+                      <div style={{ marginTop: 10, paddingTop: 10, borderTop: '1px solid #F0F2F5' }}>
+                        <p onClick={() => copyId(user.email)} style={{ fontSize: 12.5, color: '#050505', display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', marginBottom: 6 }}>
+                          <HiMail size={14} color="#1877F2" /> {user.email || '— aucun email —'}
+                        </p>
+                        <p onClick={() => copyId(user.id)} style={{ fontSize: 11, color: '#65676B', display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', marginBottom: 10 }}>
+                          <HiDuplicate size={12} /> ID : {user.id}
+                        </p>
+                        <button onClick={() => resetUserPassword(user)} disabled={resetSentFor === user.id}
+                          style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, background: resetSentFor === user.id ? '#dcfce7' : '#F0F2F5', border: 'none', borderRadius: 12, padding: '9px 0', color: resetSentFor === user.id ? '#16a34a' : '#050505', cursor: 'pointer', fontSize: 12.5, fontWeight: 700, fontFamily: 'Poppins', marginBottom: 10 }}>
+                          <HiKey size={14} /> {resetSentFor === user.id ? 'Email envoyé ✓' : 'Réinitialiser le mot de passe'}
+                        </button>
+                      </div>
+                    )}
                     {/* Actions */}
                     <div style={{ display: 'flex', gap: 6, marginTop: 10, flexWrap: 'wrap' }}>
                       <button onClick={() => toggleVip(user)} style={{ flex: 1, minWidth: 90, background: user.isVip ? '#E4E6EB' : 'linear-gradient(135deg,#FF2D8D,#FF7AB8)', border: 'none', borderRadius: 18, padding: '7px 10px', color: user.isVip ? '#1877F2' : 'white', cursor: 'pointer', fontSize: 12, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4, fontFamily: 'Poppins' }}>
