@@ -20,7 +20,7 @@ async function compressImage(file, maxWidth=720, quality=0.62) {
 
 const MAX_SIZE        = 500 * 1024 * 1024;  // 500 Mo maximum
 const CHUNK_SIZE      = 18 * 1024 * 1024;   // morceaux 18 Mo (limite Bot API 20 Mo)
-const CHUNK_THRESHOLD = 45 * 1024 * 1024;   // vidéo > 45 Mo → envoi en morceaux (≤45 Mo : upload tokana → compression ffmpeg + faststart ao amin'ny backend)
+const CHUNK_THRESHOLD = 12 * 1024 * 1024;   // vidéo > 12 Mo → envoi en morceaux
 
 // Envoi d'un FormData avec progression réelle (XHR)
 function sendForm(endpoint, form, onPct, timeout = 10 * 60 * 1000) {

@@ -16,7 +16,6 @@ import { startBackgroundUpload } from '../utils/uploadManager';
 import { isDataSaverOn, subscribeDataSaver } from '../utils/dataSaver';
 import { downloadMedia } from '../utils/download';
 import ShareModal from '../components/ShareModal';
-import FeedVideo from '../components/FeedVideo';
 import { SkeletonChannelPage } from '../components/Skeleton';
 import MediaViewer from '../components/MediaViewer';
 import {
@@ -663,7 +662,7 @@ export default function GroupPage() {
                       ? <div style={{ padding: '0 10px 10px' }}><MusicPostCard post={post.sharedFrom} height={110} /></div>
                       : post.sharedFrom.mediaType === 'image'
                         ? <img src={post.sharedFrom.mediaURL} alt="" style={{ width: '100%', maxHeight: 320, objectFit: 'cover', display: 'block' }} />
-                        : <FeedVideo src={post.sharedFrom.mediaURL} poster={post.sharedFrom.thumbURL} dataSaver={dataSaver} style={{ width: '100%', maxHeight: 320, objectFit: 'cover', display: 'block', background: '#000' }} />
+                        : <video src={post.sharedFrom.mediaURL} muted playsInline style={{ width: '100%', maxHeight: 320, objectFit: 'cover', display: 'block', background: '#000' }} />
                   )}
                 </div>
               )}
