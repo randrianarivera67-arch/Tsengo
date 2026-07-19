@@ -494,7 +494,7 @@ export default function Home() {
       const snap = await getDocs(q);
       if (snap.docs.length < 30) setReachedEnd(true);
       if (snap.docs.length) cursorRef.current = snap.docs[snap.docs.length - 1];
-      const rows = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      const rows = snap.docs.map(d => ({ id: d.id, ...d.data({ serverTimestamps: 'estimate' }) }));
       setFeedRaw(prev => {
         if (first) return rows;
         const seen = new Set(prev.map(x => x.id));
@@ -511,7 +511,7 @@ export default function Home() {
   useEffect(() => {
     const q = query(collection(db, 'posts'), orderBy('createdAt', 'desc'), limit(20));
     return onSnapshot(q, snap => {
-      const fresh = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      const fresh = snap.docs.map(d => ({ id: d.id, ...d.data({ serverTimestamps: 'estimate' }) }));
       setFeedRaw(prev => {
         const map = new Map(prev.map(x => [x.id, x]));
         const news = [];

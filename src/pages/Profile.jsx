@@ -148,9 +148,10 @@ export default function Profile() {
 
   useEffect(() => {
     if (!targetUid) return;
-    const q = query(collection(db,'posts'), where('uid','==',targetUid), orderBy('createdAt','desc'), limit(60));
-    // ✅ Les publications d'une page artiste restent sur la page (pas sur le profil perso)
-    return onSnapshot(q, snap => setPosts(snap.docs.map(d=>({id:d.id,...d.data()})).filter(p => !p.artistId && !p.isMusic && !p.shopId && !p.pageId)));
+    const q = query(collection(db,'posts'), where('uid','==',targetUid), limit(100));
+    // ✅ Sans orderBy (pas d'index composite, inclut les posts en attente) — tri client
+    const _ms = (v) => !v ? 0 : (v.toDate ? v.toDate().getTime() : (typeof v.seconds==='number' ? v.seconds*1000 : (typeof v._seconds==='number' ? v._seconds*1000 : (new Date(v).getTime()||0))));
+    return onSnapshot(q, snap => setPosts(snap.docs.map(d=>({id:d.id,...d.data({serverTimestamps:'estimate'})})).filter(p => !p.artistId && !p.isMusic && !p.shopId && !p.pageId).sort((a,b)=>_ms(b.createdAt)-_ms(a.createdAt)).slice(0,60)));
   }, [targetUid]);
 
   useEffect(() => {
