@@ -614,6 +614,9 @@ const fields = {
         ...fields, mediaURL, mediaType: finalMT, thumbURL,
         reactions: {}, comments: [], createdAt: serverTimestamp(),
       });
+      // Aseho avy hatrany (optimistic) — averin'ny listener realtime amin'ny id
+      setFeedRaw(prev => [{ id: postRef.id, ...fields, mediaURL, mediaType: finalMT, thumbURL, reactions: {}, comments: [], createdAt: { seconds: Math.floor(Date.now() / 1000) } }, ...prev.filter(x => x.id !== postRef.id)]);
+      setTimeout(() => window.scrollTo({ top: 0, behavior: 'smooth' }), 60);
       if (friendTargets.length > 0) {
         const batch = writeBatch(db);
         friendTargets.forEach(fUid => batch.set(doc(collection(db,'notifications')), {
@@ -639,6 +642,9 @@ const fields = {
           ...fields, mediaURL: urls[0], mediaType: 'image', mediaURLs: urls, thumbURL: '',
           reactions: {}, comments: [], createdAt: serverTimestamp(),
         });
+        // Aseho avy hatrany (optimistic)
+        setFeedRaw(prev => [{ id: postRef.id, ...fields, mediaURL: urls[0], mediaType: 'image', mediaURLs: urls, thumbURL: '', reactions: {}, comments: [], createdAt: { seconds: Math.floor(Date.now() / 1000) } }, ...prev.filter(x => x.id !== postRef.id)]);
+        setTimeout(() => window.scrollTo({ top: 0, behavior: 'smooth' }), 60);
         if (friendTargets.length > 0) {
           const batch = writeBatch(db);
           friendTargets.forEach(fUid => batch.set(doc(collection(db,'notifications')), {
