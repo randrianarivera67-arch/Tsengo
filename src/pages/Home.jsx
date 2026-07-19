@@ -4,7 +4,7 @@ import SmartImage from '../components/SmartImage';
 import Avatar from '../components/Avatar';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
-  collection, addDoc, serverTimestamp, query, orderBy, onSnapshot, limit,
+  collection, addDoc, serverTimestamp, Timestamp, query, orderBy, onSnapshot, limit,
   doc, updateDoc, arrayUnion, arrayRemove, deleteDoc, writeBatch, getDoc, getDocs, where, startAfter
 } from 'firebase/firestore';
 import { db } from '../firebase';
@@ -612,7 +612,7 @@ const fields = {
       }
       const postRef = await addDoc(collection(db, 'posts'), {
         ...fields, mediaURL, mediaType: finalMT, thumbURL,
-        reactions: {}, comments: [], createdAt: serverTimestamp(),
+        reactions: {}, comments: [], createdAt: Timestamp.now(),
       });
       // Aseho avy hatrany (optimistic) — averin'ny listener realtime amin'ny id
       setFeedRaw(prev => [{ id: postRef.id, ...fields, mediaURL, mediaType: finalMT, thumbURL, reactions: {}, comments: [], createdAt: { seconds: Math.floor(Date.now() / 1000) } }, ...prev.filter(x => x.id !== postRef.id)]);
@@ -640,7 +640,7 @@ const fields = {
         }
         const postRef = await addDoc(collection(db, 'posts'), {
           ...fields, mediaURL: urls[0], mediaType: 'image', mediaURLs: urls, thumbURL: '',
-          reactions: {}, comments: [], createdAt: serverTimestamp(),
+          reactions: {}, comments: [], createdAt: Timestamp.now(),
         });
         // Aseho avy hatrany (optimistic)
         setFeedRaw(prev => [{ id: postRef.id, ...fields, mediaURL: urls[0], mediaType: 'image', mediaURLs: urls, thumbURL: '', reactions: {}, comments: [], createdAt: { seconds: Math.floor(Date.now() / 1000) } }, ...prev.filter(x => x.id !== postRef.id)]);
