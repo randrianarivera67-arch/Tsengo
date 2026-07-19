@@ -1,7 +1,8 @@
 // src/pages/Home.jsx
 import { useState, useEffect, useRef } from 'react';
 import SmartImage from '../components/SmartImage';
-import { useNavigate } from 'react-router-dom';
+import Avatar from '../components/Avatar';
+import { useNavigate, useLocation } from 'react-router-dom';
 import {
   collection, addDoc, serverTimestamp, query, orderBy, onSnapshot, limit,
   doc, updateDoc, arrayUnion, arrayRemove, deleteDoc, writeBatch, getDoc, getDocs, where
@@ -1013,6 +1014,17 @@ const fields = {
     setStoryViewer({ group, index: 0 });
   }
 
+  // Manokatra story avy amin'ny navigation ("Voir la story" an'ny Avatar)
+  const _location = useLocation();
+  const _handledStory = useRef(null);
+  useEffect(() => {
+    const uid = _location.state?.openStoryUid;
+    if (!uid || !storyGroups.length) return;
+    if (_handledStory.current === uid) return;
+    const g = storyGroups.find(x => x.uid === uid);
+    if (g) { _handledStory.current = uid; setStoryViewer({ group: g, index: 0 }); }
+  }, [_location.state, storyGroups]);
+
   // ── Fanamarihana fa hitan'ilay olona ny story (Vu) ──
   async function markStoryViewed(st) {
     if (!st || st.uid === currentUser.uid) return;
@@ -1787,7 +1799,7 @@ const fields = {
               ) : (
                 <div style={{ display:'flex', alignItems:'center', gap:10, cursor:'pointer', flex:1, minWidth:0 }} onClick={() => navigate(`/profile/${post.uid}`)}>
                   <StoryRing active={activeStoryUids.has(post.uid)}>
-                    <img src={post.authorPhoto||`https://ui-avatars.com/api/?name=${encodeURIComponent(post.authorName||'U')}&background=1877F2&color=fff`} alt="" className="avatar" style={{ width:40, height:40, flexShrink:0 }}/>
+                    <Avatar uid={post.uid} src={post.authorPhoto} name={post.authorName} size={40} />
                   </StoryRing>
                   <div style={{ minWidth:0 }}>
                     <p style={{ fontWeight:600, fontSize:14, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{post.authorName}{post.authorIsVip&&<VIPBadge/>}</p>
