@@ -1,5 +1,6 @@
 // src/pages/Messages.jsx
 import { useState, useEffect, useRef } from 'react';
+import SmartImage from '../components/SmartImage';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { ref, push, onValue, update, set, remove } from 'firebase/database';
 import { doc, getDoc, addDoc, collection, serverTimestamp, query, where, onSnapshot, updateDoc, deleteDoc, arrayRemove, arrayUnion, writeBatch } from 'firebase/firestore';
@@ -898,7 +899,7 @@ export default function Messages() {
                         {msg.edited && <span style={{ fontSize: 9, opacity: 0.6, marginLeft: 4 }}>modifié</span>}
                         {msg.mediaURL && (
                           <div style={{ marginTop: msg.text ? 6 : 0 }}>
-                            {msg.mediaType === 'image' && <img src={msg.mediaURL} alt="" onClick={()=>setZoomMedia({url:msg.mediaURL,type:'image'})} style={{ maxWidth: '100%', borderRadius: 8, display: 'block', cursor:'pointer' }} />}
+                            {msg.mediaType === 'image' && <SmartImage src={msg.mediaURL} onClick={()=>setZoomMedia({url:msg.mediaURL,type:'image'})} minH={140} style={{ maxWidth: '100%', width:'100%', borderRadius: 8, display: 'block', cursor:'pointer' }} />}
                             {msg.mediaType === 'video' && <div style={{position:'relative'}} onClick={()=>setZoomMedia({url:msg.mediaURL,type:'video'})}><video src={msg.mediaURL} style={{ maxWidth: '100%', borderRadius: 8, cursor:'pointer' }} /><div style={{position:'absolute',inset:0,display:'flex',alignItems:'center',justifyContent:'center'}}><div style={{width:36,height:36,background:'rgba(0,0,0,0.5)',borderRadius:'50%',display:'flex',alignItems:'center',justifyContent:'center'}}><span style={{color:'white',fontSize:16}}>▶</span></div></div></div>}
                             {msg.mediaType === 'audio' && (
                               <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '4px 0' }}>

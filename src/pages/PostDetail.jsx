@@ -1,6 +1,7 @@
 // src/pages/PostDetail.jsx
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import Avatar from '../components/Avatar';
 import {
   doc, onSnapshot, updateDoc, addDoc, serverTimestamp,
   arrayUnion, arrayRemove, collection, getDoc
@@ -214,7 +215,7 @@ export default function PostDetail() {
             </div>
           ) : (
             <div style={{ display:'flex', alignItems:'center', gap:10, cursor:'pointer', flex:1, minWidth:0 }} onClick={() => navigate(`/profile/${post.uid}`)}>
-              <img src={post.authorPhoto||`https://ui-avatars.com/api/?name=${encodeURIComponent(post.authorName||'U')}&background=1877F2&color=fff`} alt="" className="avatar" style={{ width:42, height:42, flexShrink:0 }}/>
+              <Avatar uid={post.uid} src={post.authorPhoto} name={post.authorName} size={42} />
               <div>
                 <p style={{ fontWeight:700, fontSize:15 }}>{post.authorName}{post.authorIsVip&&<VIPBadge/>}</p>
                 <p style={{ fontSize:12, color:'#65676B' }}>@{post.authorUsername} · {post.createdAt?timeAgo(post.createdAt):''}</p>
@@ -346,7 +347,7 @@ export default function PostDetail() {
 
           {post.comments?.map(c => (
             <div key={c.id} style={{ display:'flex', gap:8, marginBottom:12 }}>
-              <img src={c.authorPhoto||`https://ui-avatars.com/api/?name=${encodeURIComponent(c.authorName||'U')}&background=1877F2&color=fff`} alt="" className="avatar" style={{ width:32, height:32, flexShrink:0, cursor:'pointer' }} onClick={() => navigate(`/profile/${c.uid}`)}/>
+              <Avatar uid={c.uid} src={c.authorPhoto} name={c.authorName} size={32} />
               <div style={{ background:'#F0F2F5', borderRadius:12, padding:'8px 12px', flex:1 }}>
                 <p style={{ fontWeight:700, fontSize:13 }}>{c.authorName}{c.authorIsVip&&<VIPBadge/>}</p>
                 {c.text&&<p style={{ fontSize:13, lineHeight:1.5, marginTop:2 }}>{c.text}</p>}
