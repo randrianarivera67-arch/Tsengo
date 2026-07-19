@@ -1,5 +1,6 @@
 // src/pages/Home.jsx
 import { useState, useEffect, useRef } from 'react';
+import SmartImage from '../components/SmartImage';
 import { useNavigate } from 'react-router-dom';
 import {
   collection, addDoc, serverTimestamp, query, orderBy, onSnapshot, limit,
@@ -1922,7 +1923,7 @@ const fields = {
                 </div>
               ) : post.mediaURL && (
                 <div style={{ marginTop:8, marginLeft:-16, marginRight:-16 }}>
-                  {post.isMusic ? <MusicPostCard post={post} height={140}/> : post.mediaType==='image' ? <img src={post.mediaURL} alt="" loading="lazy" decoding="async" onClick={e=>{e.stopPropagation();navigate(`/post/${post.id}`);}} style={{ width:'100%', borderRadius:0, maxHeight:520, objectFit:'cover', display:'block', cursor:'zoom-in' }}/> : <FeedVideo src={post.mediaURL} poster={post.thumbURL} dataSaver={dataSaver} onOpenReels={()=>navigate('/reels',{state:{startId:post.id}})} style={{ width:'100%', borderRadius:0, maxHeight:520, objectFit:'cover', display:'block', background:'#000' }} />}
+                  {post.isMusic ? <MusicPostCard post={post} height={140}/> : post.mediaType==='image' ? <SmartImage src={post.mediaURL} onClick={e=>{e.stopPropagation();navigate(`/post/${post.id}`);}} style={{ width:'100%', borderRadius:0, maxHeight:520, objectFit:'cover', display:'block', cursor:'zoom-in' }}/> : <FeedVideo src={post.mediaURL} poster={post.thumbURL} dataSaver={dataSaver} onOpenReels={()=>navigate('/reels',{state:{startId:post.id}})} style={{ width:'100%', borderRadius:0, maxHeight:520, objectFit:'cover', display:'block', background:'#000' }} />}
                 </div>
               )}
               {/* ── Article boutique : informations ambanin'ny sary (sary 3) ── */}
