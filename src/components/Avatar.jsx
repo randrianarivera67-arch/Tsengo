@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useActiveStoryUids } from '../hooks/useActiveStoryUids';
 import { useOnline } from '../hooks/useOnline';
+import { NeonEye, NeonPeople } from './NeonIcons';
 
 export default function Avatar({ uid, src, name = 'U', size = 40, showStory = true, showOnline = true, style = {} }) {
   const navigate = useNavigate();
@@ -12,8 +13,7 @@ export default function Avatar({ uid, src, name = 'U', size = 40, showStory = tr
   const hasStory = !!(showStory && uid && storyUids.has(uid));
   const isOnline = !!(showOnline && uid && online[uid] === true);
   const photo = src || `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=1877F2&color=fff`;
-  const ring = hasStory ? 2 : 0;
-  const dot = Math.max(9, Math.round(size * 0.26));
+  const dot = Math.max(10, Math.round(size * 0.26));
 
   const handleClick = (e) => {
     e.stopPropagation();
@@ -22,9 +22,9 @@ export default function Avatar({ uid, src, name = 'U', size = 40, showStory = tr
   };
 
   const btnStyle = {
-    display: 'block', width: '100%', textAlign: 'left', padding: '11px 14px',
-    background: 'none', border: 'none', borderBottom: '1px solid #f0f2f5',
-    fontSize: 13, fontFamily: 'Poppins', color: '#050505', cursor: 'pointer', whiteSpace: 'nowrap',
+    display: 'flex', alignItems: 'center', gap: 12, width: '100%', textAlign: 'left',
+    padding: '15px 18px', background: 'none', border: 'none', borderBottom: '1px solid #eef0f2',
+    fontSize: 15, fontWeight: 600, fontFamily: 'Poppins', color: '#050505', cursor: 'pointer', whiteSpace: 'nowrap',
   };
 
   return (
@@ -32,20 +32,18 @@ export default function Avatar({ uid, src, name = 'U', size = 40, showStory = tr
       <div
         onClick={handleClick}
         style={{
-          width: size, height: size, borderRadius: '50%', cursor: 'pointer',
-          padding: ring, boxSizing: 'border-box',
-          background: hasStory ? '#1877F2' : 'transparent',
+          width: size, height: size, borderRadius: '50%', cursor: 'pointer', boxSizing: 'border-box',
+          padding: hasStory ? 2.5 : 0,
+          background: hasStory ? 'linear-gradient(135deg,#1B84FF,#1877F2)' : 'transparent',
         }}
       >
-        <img
-          src={photo}
-          alt=""
-          loading="lazy"
-          style={{
-            width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover',
-            border: hasStory ? '2px solid white' : 'none', display: 'block',
-          }}
-        />
+        <div style={{
+          width: '100%', height: '100%', borderRadius: '50%', boxSizing: 'border-box',
+          padding: hasStory ? 2 : 0, background: '#fff',
+        }}>
+          <img src={photo} alt="" loading="lazy"
+            style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover', display: 'block' }} />
+        </div>
       </div>
 
       {isOnline && (
@@ -60,16 +58,16 @@ export default function Avatar({ uid, src, name = 'U', size = 40, showStory = tr
           <div onClick={(e) => { e.stopPropagation(); setMenu(false); }}
                style={{ position: 'fixed', inset: 0, zIndex: 998 }} />
           <div style={{
-            position: 'absolute', top: size + 6, left: 0, zIndex: 999, background: 'white',
-            borderRadius: 10, boxShadow: '0 6px 20px rgba(0,0,0,.18)', overflow: 'hidden', minWidth: 150,
+            position: 'absolute', top: size + 8, left: 0, zIndex: 999, background: 'white',
+            borderRadius: 14, boxShadow: '0 8px 28px rgba(0,0,0,.22)', overflow: 'hidden', minWidth: 200,
           }}>
             <button style={btnStyle}
               onClick={(e) => { e.stopPropagation(); setMenu(false); navigate('/', { state: { openStoryUid: uid } }); }}>
-              📖 Voir la story
+              <NeonEye size={20} color="#1877F2" /> Voir la story
             </button>
             <button style={{ ...btnStyle, borderBottom: 'none' }}
               onClick={(e) => { e.stopPropagation(); setMenu(false); navigate(`/profile/${uid}`); }}>
-              👤 Voir le profil
+              <NeonPeople size={20} color="#1877F2" /> Voir le profil
             </button>
           </div>
         </>
