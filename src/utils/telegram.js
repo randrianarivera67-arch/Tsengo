@@ -1,4 +1,6 @@
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'https://tsengo-backend.onrender.com';
+// Proxy media (lecture) : Cloudflare Worker (edge, cache) — fa tsy Render
+const MEDIA_URL = import.meta.env.VITE_MEDIA_URL || 'https://tsengo-upload.randrianarivera67.workers.dev';
 
 async function compressImage(file, maxWidth=720, quality=0.62) {
   if (!file.type.startsWith('image/')) return file;
@@ -112,6 +114,6 @@ export async function uploadToTelegram(file, onProgress) {
   if (!data.url && !data.fileId) throw new Error("Upload échoué : réponse du serveur sans URL");
   if (onProgress) onProgress(100);
 
-  const url = data.url || (data.fileId ? `${BACKEND_URL}/media-id?file_id=${data.fileId}` : null);
+  const url = data.url || (data.fileId ? `${MEDIA_URL}/media-id?file_id=${data.fileId}` : null);
   return { url, fileId: data.fileId, messageId: data.messageId, type: data.type };
 }
