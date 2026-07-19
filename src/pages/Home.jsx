@@ -2291,10 +2291,10 @@ const fields = {
             const io = new IntersectionObserver(es => {
               if (!es[0].isIntersecting) return;
               // 1) On revele plus de posts deja charges.
-              setVisibleCount(c => c + 20);
+              setVisibleCount(c => c + 26);
               // 2) Si on approche de la limite serveur actuelle, on en demande plus.
-              if (feedLen >= postLimit - 5 && !reachedEnd) setPostLimit(l => l + 30);
-            }, { rootMargin: '600px' });
+              if (feedLen >= postLimit - 15 && !reachedEnd) setPostLimit(l => l + 40);
+            }, { rootMargin: '1600px' });
             io.observe(el);
           }} style={{ padding: 18, textAlign: 'center', color: '#65676B', fontSize: 13 }}>
             Chargement…
