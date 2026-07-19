@@ -1806,13 +1806,13 @@ const fields = {
                 {!isOwn && (
                   <button onClick={() => toggleFollowAuthor(post.uid, post.authorName)}
                     style={{ background: isFollowingUid(post.uid) ? '#F0F2F5' : 'linear-gradient(135deg,#FFE066,#F2B300)', border:'none', borderRadius:20, padding:'5px 12px', cursor:'pointer', color: isFollowingUid(post.uid) ? '#65676B' : '#4A3400', fontSize:12, fontWeight:700, display:'flex', alignItems:'center', gap:4 }}>
-                    {isFollowingUid(post.uid) ? <><HiCheck size={13}/> Suivi</> : <><NeonStar size={13} color="#4A3400"/> Suivre</>}
+                    {isFollowingUid(post.uid) ? <><HiCheck size={13}/> Suivi</> : <>Suivre</>}
                   </button>
                 )}
                 {!isOwn && !isMyFriend && !sentReq && (
                   <button onClick={() => sendFriendReq(post.uid, post.authorName)}
                     style={{ background:'none', border:'1px solid #E4E6EB', borderRadius:20, padding:'5px 10px', cursor:'pointer', color:'#65676B', fontSize:12, display:'flex', alignItems:'center', gap:4 }}>
-                    <HiUserAdd size={13}/> Ajouter
+                    <HiUserAdd size={13}/>
                   </button>
                 )}
 

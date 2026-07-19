@@ -345,7 +345,7 @@ export default function ShopDetail() {
 
         {!isAdmin && (
           <button onClick={toggleFollowShop} style={{ width:'100%', marginTop:12, padding:'10px 0', fontSize:14, fontWeight:600, fontFamily:'Poppins', borderRadius:10, border:'none', cursor:'pointer', background: isFollowing ? '#E4E6EB' : '#1877F2', color: isFollowing ? '#050505' : 'white' }}>
-            {isFollowing ? '✓ Abonné' : '⭐ Suivre cette boutique'}
+            {isFollowing ? '✓ Abonné' : 'Suivre cette boutique'}
           </button>
         )}
       </div>

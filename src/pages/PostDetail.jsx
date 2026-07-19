@@ -228,7 +228,7 @@ export default function PostDetail() {
                 <button onClick={async()=>{
                   await addDoc(collection(db,'friendRequests'),{fromUid:currentUser.uid,toUid:post.uid,fromName:userProfile.fullName,fromPhoto:userProfile.photoURL||'',status:'pending',createdAt:serverTimestamp()});
                   alert('Demande envoyée !');
-                }} style={{ background:'none', border:'1px solid #E4E6EB', borderRadius:20, padding:'6px 12px', cursor:'pointer', color:'#65676B', fontSize:12, display:'flex', alignItems:'center', gap:4 }}><HiUserAdd size={13}/> Ajouter</button>
+                }} style={{ background:'none', border:'1px solid #E4E6EB', borderRadius:20, padding:'6px 12px', cursor:'pointer', color:'#65676B', fontSize:12, display:'flex', alignItems:'center', gap:4 }}><HiUserAdd size={13}/></button>
               )}
             </div>
           )}
