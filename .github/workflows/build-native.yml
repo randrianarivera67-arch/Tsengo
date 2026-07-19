@@ -71,6 +71,18 @@ jobs:
             --ks-key-alias trengo \
             --out trengo-native.apk aligned.apk
 
+      - name: Create/Update GitHub Release (latest)
+        uses: ncipollo/release-action@v1
+        with:
+          tag: latest
+          name: "Trengo — dernier build natif"
+          body: "APK natif Trengo, généré automatiquement à chaque push sur main."
+          artifacts: trengo-native.apk
+          allowUpdates: true
+          replacesArtifacts: true
+          makeLatest: true
+          token: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
