@@ -131,13 +131,7 @@ export default function Layout({ children }) {
 
   // Page Sera supprimée — subscribeIdentity retiré
 
-  // Page Sera supprimée
-  useEffect(() => {
-    if (!currentUser) return;
-    const q = query(collection(db, 'pages'), where('admins', 'array-contains', currentUser.uid));
-    const unsub = onSnapshot(q, snap => setMyPagesList(snap.docs.map(d => ({ id: d.id, ...d.data() }))), () => {});
-    return () => unsub();
-  }, [currentUser]);
+  // Page Sera supprimee (ancien listener retire)
 
   // ── Lecture tokana : rehefa misy audio/vidéo miainga dia ajanona ny hafa rehetra ──
   useEffect(() => {
