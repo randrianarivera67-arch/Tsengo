@@ -311,6 +311,7 @@ export default function Home() {
   const cursorRef = useRef(null);                         // dernier doc charge (startAfter)
   const loadingMoreRef = useRef(false);
   const [reachedEnd, setReachedEnd] = useState(false);    // plus rien a charger cote serveur
+  const [shuffleSeed, setShuffleSeed] = useState(() => Date.now());
   const [expandedPosts, setExpandedPosts] = useState({});
   const [viewerState,   setViewerState]   = useState(null); // { post, index }
   const [boostTarget,   setBoostTarget]    = useState(null); // { type, id, ownerUid, title, thumbnailURL }
@@ -531,17 +532,33 @@ export default function Home() {
     const all = feedRaw
       .filter(p => !blocked.includes(p.uid))
       .filter(p => p.uid === currentUser?.uid || (p.audience === 'friends' ? myFriends.includes(p.uid) : p.audience !== 'me'));
-    const now = new Date();
-    const sorted = [...all].sort((a, b) => {
-      const aB = a.isBoosted && a.boostUntil && new Date(a.boostUntil) > now
-        && isInZones(viewerLoc?.lat, viewerLoc?.lng, a.boostZones);
-      const bB = b.isBoosted && b.boostUntil && new Date(b.boostUntil) > now
-        && isInZones(viewerLoc?.lat, viewerLoc?.lng, b.boostZones);
-      return (aB && !bB) ? -1 : (!aB && bB) ? 1 : 0;
-    });
+    const nowMs = Date.now();
+    const nowD = new Date();
+    const aff = new Set([...(userProfile?.friends || []), ...(userProfile?.following || [])]);
+    const tsMs = (v) => {
+      if (!v) return 0;
+      if (typeof v.toDate === 'function') return v.toDate().getTime();
+      if (typeof v.seconds === 'number') return v.seconds * 1000;
+      if (typeof v._seconds === 'number') return v._seconds * 1000;
+      if (v instanceof Date) return v.getTime();
+      const t = new Date(v).getTime();
+      return isNaN(t) ? 0 : t;
+    };
+    const rnd = (id) => {
+      let h = 2166136261; const str = String(id) + ':' + shuffleSeed;
+      for (let i = 0; i < str.length; i++) { h ^= str.charCodeAt(i); h = Math.imul(h, 16777619); }
+      return ((h >>> 0) % 1000) / 1000;
+    };
+    const scoreOf = (pp) => {
+      const boosted = pp.isBoosted && pp.boostUntil && new Date(pp.boostUntil) > nowD
+        && isInZones(viewerLoc?.lat, viewerLoc?.lng, pp.boostZones);
+      const hoursAgo = (nowMs - tsMs(pp.createdAt)) / 3600000;
+      return (boosted ? 1e6 : 0) - hoursAgo + (aff.has(pp.uid) ? 14 : 0) + rnd(pp.id) * 8;
+    };
+    const sorted = [...all].sort((a, b) => scoreOf(b) - scoreOf(a));
     setPosts(sorted);
     setReelPosts(all.filter(p => p.mediaType === 'video' && p.mediaURL));
-  }, [feedRaw, userProfile?.blocked, userProfile?.friends, viewerLoc?.lat, viewerLoc?.lng]);
+  }, [feedRaw, userProfile?.blocked, userProfile?.friends, userProfile?.following, viewerLoc?.lat, viewerLoc?.lng, shuffleSeed]);
 
   const [multiPhotos, setMultiPhotos] = useState([]);   // File[] — mode "plusieurs photos" (2 à 10)
   function handleMedia(e, type) {
@@ -1207,7 +1224,7 @@ const fields = {
 
   return (
     <div style={{ padding:0 }}>
-      <PullToRefresh />
+      <PullToRefresh onRefresh={() => { cursorRef.current = null; setReachedEnd(false); setVisibleCount(20); setShuffleSeed(Date.now()); loadFeedPage(true); }} />
       {boostTarget && (
         <BoostOrderModal target={boostTarget} onClose={() => setBoostTarget(null)} />
       )}
