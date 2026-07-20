@@ -308,7 +308,8 @@ export default function Home() {
   const feedAds = useFeedAds();
   const [visibleCount, setVisibleCount] = useState(20);   // affichage progressif (20 au depart)
   const [feedRaw, setFeedRaw] = useState([]);             // posts bruts
-  const [feedLimit, setFeedLimit] = useState(30);         // nb recupere (grandit au scroll)
+  const cursorRef = useRef(null);                         // dernier doc (startAfter) — pagination 20/page
+  const loadingRef = useRef(false);                       // anti double-chargement
   const [reachedEnd, setReachedEnd] = useState(false);    // plus rien a charger cote serveur
   const [shuffleSeed, setShuffleSeed] = useState(() => Date.now());
   const [expandedPosts, setExpandedPosts] = useState({});
@@ -482,21 +483,50 @@ export default function Home() {
     return () => { alive = false; };
   }, [currentUser, userProfile?.friends?.length]);
 
-  // Feed : onSnapshot temps reel unique (limit grandit au scroll) — pas de flicker
-  const loadFeedPage = () => setFeedLimit(l => l + 30); // "charger plus" = agrandir la fenetre
-  useEffect(() => {
-    const q = query(collection(db, 'posts'), orderBy('createdAt', 'desc'), limit(feedLimit));
-    return onSnapshot(q, snap => {
-      setReachedEnd(snap.docs.length < feedLimit);
+  // Feed : pagination CURSOR 20/page (getDocs + startAfter, PAS de re-lecture) + temps reel
+  const PAGE_SIZE = 20;
+  const loadFeedPage = async (first) => {
+    if (loadingRef.current) return;
+    if (!first && (reachedEnd || !cursorRef.current)) return;
+    loadingRef.current = true;
+    try {
+      const q = first
+        ? query(collection(db, 'posts'), orderBy('createdAt', 'desc'), limit(PAGE_SIZE))
+        : query(collection(db, 'posts'), orderBy('createdAt', 'desc'), startAfter(cursorRef.current), limit(PAGE_SIZE));
+      const snap = await getDocs(q);
+      if (snap.docs.length < PAGE_SIZE) setReachedEnd(true);
+      if (snap.docs.length) cursorRef.current = snap.docs[snap.docs.length - 1];
       const rows = snap.docs.map(d => ({ id: d.id, ...d.data({ serverTimestamps: 'estimate' }) }));
       setFeedRaw(prev => {
-        const ids = new Set(rows.map(r => r.id));
-        const keptOptimistic = prev.filter(pp => pp._optimistic && !ids.has(pp.id));
-        return [...keptOptimistic, ...rows];
+        if (first) {
+          const ids = new Set(rows.map(r => r.id));
+          const opt = prev.filter(pp => pp._optimistic && !ids.has(pp.id));
+          return [...opt, ...rows];
+        }
+        const seen = new Set(prev.map(x => x.id));
+        return [...prev, ...rows.filter(x => !seen.has(x.id))];
+      });
+      setPostsLoading(false);
+    } catch (e) { setPostsLoading(false); } finally { loadingRef.current = false; }
+  };
+  // Premiere page (20)
+  useEffect(() => { loadFeedPage(true); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, []);
+  // Temps reel : 20 plus recents -> nouveaux posts + reactions (merge, pas de re-lecture)
+  useEffect(() => {
+    const q = query(collection(db, 'posts'), orderBy('createdAt', 'desc'), limit(PAGE_SIZE));
+    return onSnapshot(q, snap => {
+      const fresh = snap.docs.map(d => ({ id: d.id, ...d.data({ serverTimestamps: 'estimate' }) }));
+      setFeedRaw(prev => {
+        const map = new Map(prev.map(x => [x.id, x]));
+        const news = [];
+        for (const f of fresh) { if (map.has(f.id)) map.set(f.id, f); else news.push(f); }
+        let arr = Array.from(map.values());
+        if (news.length) arr = [...news, ...arr];
+        return arr;
       });
       setPostsLoading(false);
     }, () => setPostsLoading(false));
-  }, [feedLimit]);
+  }, []);
 
   // Dérivé : filtre (bloqués/audience) + tri boost
   useEffect(() => {
@@ -1206,7 +1236,7 @@ const fields = {
 
   return (
     <div style={{ padding:0 }}>
-      <PullToRefresh onRefresh={() => { setFeedLimit(30); setReachedEnd(false); setVisibleCount(20); setShuffleSeed(Date.now()); }} />
+      <PullToRefresh onRefresh={() => { cursorRef.current = null; setReachedEnd(false); setVisibleCount(20); setShuffleSeed(Date.now()); loadFeedPage(true); }} />
       {boostTarget && (
         <BoostOrderModal target={boostTarget} onClose={() => setBoostTarget(null)} />
       )}
@@ -2346,7 +2376,7 @@ const fields = {
               // 1) On revele plus de posts deja charges.
               setVisibleCount(c => c + 26);
               // 2) Charger plus SEULEMENT si une page pleine est deja recue (evite la boucle infinie).
-              if (!reachedEnd && feedRaw.length >= feedLimit) loadFeedPage();
+              if (!reachedEnd) loadFeedPage(false);
             }, { rootMargin: '1200px' });
             io.observe(el);
           }} style={{ padding: 18, textAlign: 'center', color: '#65676B', fontSize: 13 }}>

@@ -1,21 +1,11 @@
-// src/components/PullToRefresh.jsx
-// Rafitra "tirer pour actualiser" mahomby amin'ny WEB **sy** ny APK natif
-// (JS/touch tsotra — tsy miankina amin'ny overscroll an'ny navigateur, izay
-// tsy misy ao anaty WebView Capacitor). Mamaly koa ny "tapotra Accueil
-// rehefa efa ao Accueil" (événement window "trengo:refresh-home").
-//
-// v2 : listeners enregistrés UNE SEULE FOIS (montage) + refs pour éviter les
-// closures obsolètes — la v1 ré-enregistrait les listeners à chaque pixel de
-// glissement, ce qui perdait des événements sur certains WebView Android.
 import { useEffect, useRef, useState } from 'react';
 
 const THRESHOLD = 70;
-const MAX_PULL  = 110;
+const MAX_PULL = 110;
 
 export default function PullToRefresh({ onRefresh }) {
   const [pull, setPullState] = useState(0);
   const [spinning, setSpinning] = useState(false);
-
   const pullRef = useRef(0);
   const spinningRef = useRef(false);
   const startY = useRef(0);
@@ -23,99 +13,91 @@ export default function PullToRefresh({ onRefresh }) {
 
   function setPull(v) { pullRef.current = v; setPullState(v); }
 
-  function scrollTop() {
-    return window.scrollY || document.documentElement.scrollTop || document.body.scrollTop || 0;
+  function scrollTopOf(target) {
+    let el = target;
+    while (el && el.nodeType === 1 && el !== document.body) {
+      try {
+        const oy = getComputedStyle(el).overflowY;
+        if ((oy === 'auto' || oy === 'scroll') && el.scrollHeight > el.clientHeight + 2) {
+          return el.scrollTop;
+        }
+      } catch (e) { /* ignore */ }
+      el = el.parentElement;
+    }
+    return window.scrollY || document.documentElement.scrollTop || 0;
   }
 
-  function doRefresh(fromGesture) {
+  function doRefresh() {
     spinningRef.current = true;
     setSpinning(true);
-    window.scrollTo({ top: 0, behavior: fromGesture ? 'auto' : 'smooth' });
     try { onRefresh && onRefresh(); } catch (e) { /* ignore */ }
-    setTimeout(() => { spinningRef.current = false; setSpinning(false); setPull(0); }, 700);
+    setTimeout(() => { spinningRef.current = false; setSpinning(false); setPull(0); }, 800);
   }
 
   useEffect(() => {
-    function onTouchStart(e) {
+    function onStart(e) {
       if (spinningRef.current) return;
-      if (scrollTop() > 2) { dragging.current = false; return; }
+      if (scrollTopOf(e.target) > 2) { dragging.current = false; return; }
       startY.current = e.touches[0].clientY;
       dragging.current = true;
     }
-    function onTouchMove(e) {
+    function onMove(e) {
       if (!dragging.current || spinningRef.current) return;
-      if (scrollTop() > 2) { dragging.current = false; setPull(0); return; }
+      if (scrollTopOf(e.target) > 2) { dragging.current = false; setPull(0); return; }
       const dy = e.touches[0].clientY - startY.current;
       if (dy <= 0) { setPull(0); return; }
-      const p = Math.min(MAX_PULL, dy * 0.5);
-      setPull(p);
-      if (p > 12 && e.cancelable) e.preventDefault();
+      setPull(Math.min(MAX_PULL, dy * 0.5));
+      if (pullRef.current > 12 && e.cancelable) e.preventDefault();
     }
-    function onTouchEnd() {
+    function onEnd() {
       if (!dragging.current) return;
       dragging.current = false;
-      if (pullRef.current >= THRESHOLD) doRefresh(true);
-      else setPull(0);
+      if (pullRef.current >= THRESHOLD) doRefresh(); else setPull(0);
     }
-    // La WebView Android peut envoyer "touchcancel" en plein geste (sur-defilement
-    // natif). On ne jette pas le geste : s'il avait deja atteint le seuil, on
-    // actualise quand meme -> le tirer-pour-actualiser marche aussi dans l'APK.
-    function onTouchCancel() {
-      if (!dragging.current) return;
-      dragging.current = false;
-      if (spinningRef.current) return;
-      if (pullRef.current >= THRESHOLD) doRefresh(true);
-      else setPull(0);
-    }
-
-    document.addEventListener('touchstart', onTouchStart, { passive: true });
-    document.addEventListener('touchmove', onTouchMove, { passive: false });
-    document.addEventListener('touchend', onTouchEnd, { passive: true });
-    document.addEventListener('touchcancel', onTouchCancel, { passive: true });
+    document.addEventListener('touchstart', onStart, { passive: true });
+    document.addEventListener('touchmove', onMove, { passive: false });
+    document.addEventListener('touchend', onEnd, { passive: true });
+    document.addEventListener('touchcancel', onEnd, { passive: true });
     return () => {
-      document.removeEventListener('touchstart', onTouchStart);
-      document.removeEventListener('touchmove', onTouchMove);
-      document.removeEventListener('touchend', onTouchEnd);
-      document.removeEventListener('touchcancel', onTouchCancel);
+      document.removeEventListener('touchstart', onStart);
+      document.removeEventListener('touchmove', onMove);
+      document.removeEventListener('touchend', onEnd);
+      document.removeEventListener('touchcancel', onEnd);
     };
-  }, []); // ← enregistré UNE SEULE FOIS (plus de perte d'événements)
+  }, []);
 
-  // Tapotra "Accueil" rehefa efa ao Accueil -> mitovy fihetsika
   useEffect(() => {
-    function onHomeTap() { doRefresh(false); }
+    function onHomeTap() { doRefresh(); }
     window.addEventListener('trengo:refresh-home', onHomeTap);
     return () => window.removeEventListener('trengo:refresh-home', onHomeTap);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const visible = pull > 0 || spinning;
-  const size = spinning ? 34 : Math.min(34, 14 + pull * 0.2);
-  const rotation = spinning ? undefined : Math.min(180, (pull / THRESHOLD) * 180);
+  const size = spinning ? 46 : Math.min(46, 20 + pull * 0.28);
+  const progress = Math.min(1, pull / THRESHOLD);
 
   return (
-    <div
-      aria-hidden="true"
-      style={{
-        position: 'fixed', top: 0, left: 0, right: 0, zIndex: 90,
-        display: 'flex', justifyContent: 'center',
-        height: visible ? Math.max(pull, spinning ? 50 : 0) : 0,
-        overflow: 'hidden', transition: dragging.current ? 'none' : 'height .25s ease',
-        pointerEvents: 'none',
-      }}
-    >
+    <div aria-hidden="true" style={{
+      position: 'fixed', top: 0, left: 0, right: 0, zIndex: 90,
+      display: 'flex', justifyContent: 'center',
+      height: visible ? Math.max(pull, spinning ? 64 : 0) : 0,
+      overflow: 'hidden', transition: dragging.current ? 'none' : 'height .25s ease',
+      pointerEvents: 'none',
+    }}>
       <div style={{
-        marginTop: 10, width: size, height: size, borderRadius: '50%',
-        background: '#fff', boxShadow: '0 2px 10px rgba(0,0,0,.18)',
+        marginTop: 12, width: size, height: size, borderRadius: '50%',
+        background: '#fff', boxShadow: '0 3px 14px rgba(0,0,0,.20)',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
-        transform: rotation !== undefined ? `rotate(${rotation}deg)` : 'none',
+        opacity: spinning ? 1 : 0.4 + progress * 0.6,
       }}>
-        <svg width={size * 0.55} height={size * 0.55} viewBox="0 0 24 24" fill="none"
-          style={spinning ? { animation: 'trengo-spin .7s linear infinite' } : undefined}>
-          <path d="M12 4a8 8 0 1 1-7.446 5.032" stroke="#FF2D8D" strokeWidth="2.6" strokeLinecap="round" />
-          <path d="M4 4v5h5" stroke="#FF2D8D" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" />
-        </svg>
+        <img src="/icon-192.png" alt="" width={size * 0.66} height={size * 0.66}
+          style={{
+            borderRadius: '50%',
+            transform: spinning ? undefined : `scale(${0.7 + progress * 0.3})`,
+            animation: spinning ? 'trengo-breathe .9s ease-in-out infinite' : undefined,
+          }} />
       </div>
-      <style>{`@keyframes trengo-spin { to { transform: rotate(360deg); } }`}</style>
+      <style>{`@keyframes trengo-breathe { 0%,100% { transform: scale(0.82); opacity: .7; } 50% { transform: scale(1.12); opacity: 1; } }`}</style>
     </div>
   );
 }
