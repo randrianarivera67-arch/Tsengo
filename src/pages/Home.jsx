@@ -2337,7 +2337,7 @@ const fields = {
       {(() => {
         const feedLen = posts.filter(p => !(p.mediaType === 'audio' && p.isMusic)).length;
         // Il reste des posts a afficher, OU il faut en recharger davantage depuis le serveur.
-        if (feedLen <= visibleCount && reachedEnd) return null;
+        if (postsLoading || (feedLen <= visibleCount && reachedEnd)) return null;
         return (
           <div ref={el => {
             if (!el) return;
@@ -2345,9 +2345,9 @@ const fields = {
               if (!es[0].isIntersecting) return;
               // 1) On revele plus de posts deja charges.
               setVisibleCount(c => c + 26);
-              // 2) Si on approche de la limite serveur actuelle, on en demande plus.
-              if (!reachedEnd) loadFeedPage();
-            }, { rootMargin: '1600px' });
+              // 2) Charger plus SEULEMENT si une page pleine est deja recue (evite la boucle infinie).
+              if (!reachedEnd && feedRaw.length >= feedLimit) loadFeedPage();
+            }, { rootMargin: '1200px' });
             io.observe(el);
           }} style={{ padding: 18, textAlign: 'center', color: '#65676B', fontSize: 13 }}>
             Chargement…
