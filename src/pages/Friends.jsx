@@ -27,6 +27,7 @@ export default function Friends() {
   const [searchResults, setSearchResults] = useState([]);
   const [friends, setFriends] = useState([]);
   const [requests, setRequests] = useState([]);
+  const [acceptedIds, setAcceptedIds] = useState({});
   const [activeTab, setActiveTab] = useState('friends');
   const [loading, setLoading] = useState(false);
   const [actionLoading, setActionLoading] = useState({});
@@ -147,33 +148,40 @@ export default function Friends() {
   }
 
   async function acceptRequest(req) {
+    if (actionLoading[req.reqId] || acceptedIds[req.reqId]) return;
     setActionLoading(p => ({ ...p, [req.reqId]: true }));
+    // Critique : ajouter l'ami de MON cote (autorise). Si echec -> alerte.
     try {
-      // 1. Côté MOI (autorisé) + suppression de la demande — l'accept marche toujours
       await updateDoc(doc(db, 'users', currentUser.uid), { friends: arrayUnion(req.fromUid) });
       setUserProfile(p => ({ ...p, friends: [...(p.friends || []), req.fromUid] }));
-      await deleteDoc(doc(db, 'friendRequests', req.reqId));
-      // 2. Côté AUTRE (peut être bloqué par les règles) — NON bloquant
-      try { await updateDoc(doc(db, 'users', req.fromUid), { friends: arrayUnion(currentUser.uid) }); }
-      catch (e2) { console.warn('reciprocal add bloque:', e2?.message || e2); }
-      // 3. Notif + push — NON bloquant
-      try {
-        await addDoc(collection(db, 'notifications'), {
-          toUid: req.fromUid, fromUid: currentUser.uid,
-          fromName: userProfile.fullName, fromPhoto: userProfile.photoURL || '',
-          type: 'friendAccepted',
-          message: `${userProfile.fullName} a accepté votre demande d'ami`,
-          read: false, createdAt: serverTimestamp(),
-        });
-        sendPushNotification({
-          toExternalId: req.fromUid,
-          title: userProfile.fullName,
-          message: 'a accepté votre demande d\'ami 🎉',
-          data: { type: 'friendAccepted', fromUid: currentUser.uid },
-        });
-      } catch (e3) { console.warn('notif accept:', e3?.message || e3); }
-    } catch (err) { console.error(err); alert("Erreur lors de l'acceptation. Reessayez."); }
+    } catch (err) {
+      console.error(err);
+      setActionLoading(p => ({ ...p, [req.reqId]: false }));
+      alert("Erreur lors de l'acceptation. Reessayez.");
+      return;
+    }
+    // Succes -> animation VERTE
+    setAcceptedIds(p => ({ ...p, [req.reqId]: true }));
+    // Le reste NON bloquant (les regles peuvent bloquer)
+    try { await deleteDoc(doc(db, 'friendRequests', req.reqId)); } catch (e) { console.warn('delete req:', e?.message || e); }
+    try { await updateDoc(doc(db, 'users', req.fromUid), { friends: arrayUnion(currentUser.uid) }); } catch (e) { console.warn('reciprocal:', e?.message || e); }
+    try {
+      await addDoc(collection(db, 'notifications'), {
+        toUid: req.fromUid, fromUid: currentUser.uid,
+        fromName: userProfile.fullName, fromPhoto: userProfile.photoURL || '',
+        type: 'friendAccepted',
+        message: `${userProfile.fullName} a accepté votre demande d'ami`,
+        read: false, createdAt: serverTimestamp(),
+      });
+      sendPushNotification({
+        toExternalId: req.fromUid, title: userProfile.fullName,
+        message: 'a accepté votre demande d\'ami 🎉',
+        data: { type: 'friendAccepted', fromUid: currentUser.uid },
+      });
+    } catch (e) { console.warn('notif accept:', e?.message || e); }
     setActionLoading(p => ({ ...p, [req.reqId]: false }));
+    // Retirer de la liste apres l'animation
+    setTimeout(() => setRequests(prev => prev.filter(r => r.reqId !== req.reqId)), 900);
   }
 
   async function declineRequest(req) {
@@ -433,8 +441,8 @@ export default function Friends() {
                 <div style={{ display: 'flex', gap: 8 }}>
                   <button
                     onClick={() => acceptRequest(req)}
-                    disabled={actionLoading[req.reqId]}
-                    style={{ background: '#1877F2', border: 'none', borderRadius: '50%', width: 36, height: 36, cursor: 'pointer', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                    disabled={actionLoading[req.reqId] || acceptedIds[req.reqId]}
+                    style={{ background: acceptedIds[req.reqId] ? '#22c55e' : '#1877F2', border: 'none', borderRadius: '50%', width: 36, height: 36, cursor: 'pointer', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'background .3s ease', animation: acceptedIds[req.reqId] ? 'accept-pop .45s ease' : undefined }}
                   >
                     <HiCheck size={18} />
                   </button>

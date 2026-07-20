@@ -601,3 +601,5 @@ input::placeholder, textarea::placeholder { color: #8A8D91 !important; font-size
   .btn-primary::after, .btn-secondary, .btn-gold, .logo-shimmer, .text-gold-shine { animation: none !important; }
   button, button:active, .btn-primary:active, .btn-secondary:active, .btn-gold:active, .dock-item:active, .post-action-btn:active { transform: none !important; transition: none !important; }
 }
+
+@keyframes accept-pop { 0% { transform: scale(1); } 40% { transform: scale(1.35); } 100% { transform: scale(1); } }
