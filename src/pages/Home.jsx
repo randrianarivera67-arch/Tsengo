@@ -570,7 +570,8 @@ export default function Home() {
       const boosted = pp.isBoosted && pp.boostUntil && new Date(pp.boostUntil) > nowD
         && isInZones(viewerLoc?.lat, viewerLoc?.lng, pp.boostZones);
       const hoursAgo = (nowMs - tsMs(pp.createdAt)) / 3600000;
-      return (boosted ? 1e6 : 0) - hoursAgo + (aff.has(pp.uid) ? 14 : 0) + rnd(pp.id) * 8;
+      const mine = pp.uid === currentUser?.uid ? 30 : 0;
+      return (boosted ? 1e6 : 0) - hoursAgo + mine + (aff.has(pp.uid) ? 14 : 0) + rnd(pp.id) * 8;
     };
     const sorted = [...all].sort((a, b) => scoreOf(b) - scoreOf(a));
     setPosts(sorted);
