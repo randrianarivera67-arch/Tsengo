@@ -526,8 +526,16 @@ export default function Home() {
       const boosted = pp.isBoosted && pp.boostUntil && new Date(pp.boostUntil) > nowD
         && isInZones(viewerLoc?.lat, viewerLoc?.lng, pp.boostZones);
       const hoursAgo = (nowMs - tsMs(pp.createdAt)) / 3600000;
-      const mine = pp.uid === currentUser?.uid ? 30 : 0;
-      return (boosted ? 1e6 : 0) - hoursAgo + mine + (aff.has(pp.uid) ? 14 : 0) + rnd(pp.id) * 8;
+      const mine = pp.uid === currentUser?.uid ? 40 : 0;          // mon post = tres haut
+      const friend = aff.has(pp.uid) ? 12 : 0;                    // amis/following
+      const reacts = Object.keys(pp.reactions || {}).length;      // popularité réactions
+      const vues = Math.min(pp.views || 0, 300);                  // popularité vues (capé)
+      const shopGroup = (pp.shopId || pp.groupId || pp.isShop || pp.artistId) ? rnd(pp.id + 'sg') * 10 : 0; // boutique/groupe/artiste mihodina
+      const engage = reacts * 1.2 + vues * 0.02;                  // engagement
+      return (boosted ? 1e6 : 0)
+        - hoursAgo * 1.5           // récence = dominant (post vaovao ambony)
+        + mine + friend + engage + shopGroup
+        + rnd(pp.id) * 7;          // jitter = variation isaky ny refresh
     };
     const sorted = [...all].sort((a, b) => scoreOf(b) - scoreOf(a));
     setPosts(sorted);
