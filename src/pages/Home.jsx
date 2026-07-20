@@ -525,6 +525,23 @@ export default function Home() {
     });
   }, []);
 
+  // Sécurité : mes propres posts (securite) → toujours dans le feed (where uid, sans orderBy)
+  useEffect(() => {
+    if (!currentUser?.uid) return;
+    const q = query(collection(db, 'posts'), where('uid', '==', currentUser.uid));
+    return onSnapshot(q, snap => {
+      const mine = snap.docs.map(d => ({ id: d.id, ...d.data({ serverTimestamps: 'estimate' }) }));
+      setFeedRaw(prev => {
+        const map = new Map(prev.map(x => [x.id, x]));
+        const news = [];
+        for (const m of mine) { if (map.has(m.id)) map.set(m.id, m); else news.push(m); }
+        let arr = Array.from(map.values());
+        if (news.length) arr = [...news, ...arr];
+        return arr;
+      });
+    }, () => {});
+  }, [currentUser?.uid]);
+
   // Dérivé : filtre (bloqués/audience) + tri boost
   useEffect(() => {
     const blocked = userProfile?.blocked || [];
