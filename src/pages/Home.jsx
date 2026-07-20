@@ -307,9 +307,8 @@ export default function Home() {
   const [postsLoading, setPostsLoading] = useState(true);
   const feedAds = useFeedAds();
   const [visibleCount, setVisibleCount] = useState(20);   // affichage progressif (20 au depart)
-  const [feedRaw, setFeedRaw] = useState([]);             // posts bruts (pagination cursor)
-  const cursorRef = useRef(null);                         // dernier doc charge (startAfter)
-  const loadingMoreRef = useRef(false);
+  const [feedRaw, setFeedRaw] = useState([]);             // posts bruts
+  const [feedLimit, setFeedLimit] = useState(30);         // nb recupere (grandit au scroll)
   const [reachedEnd, setReachedEnd] = useState(false);    // plus rien a charger cote serveur
   const [shuffleSeed, setShuffleSeed] = useState(() => Date.now());
   const [expandedPosts, setExpandedPosts] = useState({});
@@ -483,64 +482,21 @@ export default function Home() {
     return () => { alive = false; };
   }, [currentUser, userProfile?.friends?.length]);
 
-  // ── Pagination CURSOR : 30 vaovao ihany isaky ny page (startAfter), tsy re-lecture ──
-  const loadFeedPage = async (first) => {
-    if (loadingMoreRef.current) return;
-    if (!first && (reachedEnd || !cursorRef.current)) return;
-    loadingMoreRef.current = true;
-    try {
-      const q = first
-        ? query(collection(db, 'posts'), orderBy('createdAt', 'desc'), limit(30))
-        : query(collection(db, 'posts'), orderBy('createdAt', 'desc'), startAfter(cursorRef.current), limit(30));
-      const snap = await getDocs(q);
-      if (snap.docs.length < 30) setReachedEnd(true);
-      if (snap.docs.length) cursorRef.current = snap.docs[snap.docs.length - 1];
+  // Feed : onSnapshot temps reel unique (limit grandit au scroll) — pas de flicker
+  const loadFeedPage = () => setFeedLimit(l => l + 30); // "charger plus" = agrandir la fenetre
+  useEffect(() => {
+    const q = query(collection(db, 'posts'), orderBy('createdAt', 'desc'), limit(feedLimit));
+    return onSnapshot(q, snap => {
+      setReachedEnd(snap.docs.length < feedLimit);
       const rows = snap.docs.map(d => ({ id: d.id, ...d.data({ serverTimestamps: 'estimate' }) }));
       setFeedRaw(prev => {
-        if (first) return rows;
-        const seen = new Set(prev.map(x => x.id));
-        return [...prev, ...rows.filter(x => !seen.has(x.id))];
+        const ids = new Set(rows.map(r => r.id));
+        const keptOptimistic = prev.filter(pp => pp._optimistic && !ids.has(pp.id));
+        return [...keptOptimistic, ...rows];
       });
       setPostsLoading(false);
-    } catch (e) { setPostsLoading(false); } finally { loadingMoreRef.current = false; }
-  };
-
-  // Première page
-  useEffect(() => { loadFeedPage(true); /* eslint-disable-next-line */ }, []);
-
-  // Temps réel : 20 plus récents → maj reactions + prepend post vaovao
-  useEffect(() => {
-    const q = query(collection(db, 'posts'), orderBy('createdAt', 'desc'), limit(20));
-    return onSnapshot(q, snap => {
-      const fresh = snap.docs.map(d => ({ id: d.id, ...d.data({ serverTimestamps: 'estimate' }) }));
-      setFeedRaw(prev => {
-        const map = new Map(prev.map(x => [x.id, x]));
-        const news = [];
-        for (const f of fresh) { if (map.has(f.id)) map.set(f.id, f); else news.push(f); }
-        let arr = Array.from(map.values());
-        if (news.length) arr = [...news, ...arr];
-        return arr;
-      });
-      setPostsLoading(false);
-    });
-  }, []);
-
-  // Sécurité : mes propres posts (securite) → toujours dans le feed (where uid, sans orderBy)
-  useEffect(() => {
-    if (!currentUser?.uid) return;
-    const q = query(collection(db, 'posts'), where('uid', '==', currentUser.uid));
-    return onSnapshot(q, snap => {
-      const mine = snap.docs.map(d => ({ id: d.id, ...d.data({ serverTimestamps: 'estimate' }) }));
-      setFeedRaw(prev => {
-        const map = new Map(prev.map(x => [x.id, x]));
-        const news = [];
-        for (const m of mine) { if (map.has(m.id)) map.set(m.id, m); else news.push(m); }
-        let arr = Array.from(map.values());
-        if (news.length) arr = [...news, ...arr];
-        return arr;
-      });
-    }, () => {});
-  }, [currentUser?.uid]);
+    }, () => setPostsLoading(false));
+  }, [feedLimit]);
 
   // Dérivé : filtre (bloqués/audience) + tri boost
   useEffect(() => {
@@ -650,7 +606,7 @@ const fields = {
         reactions: {}, comments: [], createdAt: Timestamp.now(),
       });
       // Aseho avy hatrany (optimistic) — averin'ny listener realtime amin'ny id
-      setFeedRaw(prev => [{ id: postRef.id, ...fields, mediaURL, mediaType: finalMT, thumbURL, reactions: {}, comments: [], createdAt: { seconds: Math.floor(Date.now() / 1000) } }, ...prev.filter(x => x.id !== postRef.id)]);
+      setFeedRaw(prev => [{ id: postRef.id, ...fields, mediaURL, mediaType: finalMT, thumbURL, reactions: {}, comments: [], createdAt: { seconds: Math.floor(Date.now() / 1000) }, _optimistic: true }, ...prev.filter(x => x.id !== postRef.id)]);
       setTimeout(() => window.scrollTo({ top: 0, behavior: 'smooth' }), 60);
       if (friendTargets.length > 0) {
         const batch = writeBatch(db);
@@ -678,7 +634,7 @@ const fields = {
           reactions: {}, comments: [], createdAt: Timestamp.now(),
         });
         // Aseho avy hatrany (optimistic)
-        setFeedRaw(prev => [{ id: postRef.id, ...fields, mediaURL: urls[0], mediaType: 'image', mediaURLs: urls, thumbURL: '', reactions: {}, comments: [], createdAt: { seconds: Math.floor(Date.now() / 1000) } }, ...prev.filter(x => x.id !== postRef.id)]);
+        setFeedRaw(prev => [{ id: postRef.id, ...fields, mediaURL: urls[0], mediaType: 'image', mediaURLs: urls, thumbURL: '', reactions: {}, comments: [], createdAt: { seconds: Math.floor(Date.now() / 1000) }, _optimistic: true }, ...prev.filter(x => x.id !== postRef.id)]);
         setTimeout(() => window.scrollTo({ top: 0, behavior: 'smooth' }), 60);
         if (friendTargets.length > 0) {
           const batch = writeBatch(db);
@@ -1242,7 +1198,7 @@ const fields = {
 
   return (
     <div style={{ padding:0 }}>
-      <PullToRefresh onRefresh={() => { cursorRef.current = null; setReachedEnd(false); setVisibleCount(20); setShuffleSeed(Date.now()); loadFeedPage(true); }} />
+      <PullToRefresh onRefresh={() => { setFeedLimit(30); setReachedEnd(false); setVisibleCount(20); setShuffleSeed(Date.now()); }} />
       {boostTarget && (
         <BoostOrderModal target={boostTarget} onClose={() => setBoostTarget(null)} />
       )}
@@ -2382,7 +2338,7 @@ const fields = {
               // 1) On revele plus de posts deja charges.
               setVisibleCount(c => c + 26);
               // 2) Si on approche de la limite serveur actuelle, on en demande plus.
-              if (!reachedEnd) loadFeedPage(false);
+              if (!reachedEnd) loadFeedPage();
             }, { rootMargin: '1600px' });
             io.observe(el);
           }} style={{ padding: 18, textAlign: 'center', color: '#65676B', fontSize: 13 }}>
