@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/png" href="/trengo-logo.png">
+    <link rel="apple-touch-icon" href="/trengo-logo.png">
+    <link rel="apple-touch-icon" href="/trengo-logo.png">
+    <link rel="manifest" href="/manifest.json" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, interactive-widget=resizes-content" />
+    <meta name="theme-color" content="#FFFFFF" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="Trengo" />
+    <title>Trengo - Réseau social malgache</title>
+    <meta name="google-site-verification" content="5MLcENlngzdtI1-FS5vj7iqGtbX-1wG_FuQ88rL9Sl4" />
+    <meta name="description" content="Trengo - Le réseau social malgache. Partagez, connectez-vous et communiquez avec vos amis à Madagascar." />
+    <meta name="keywords" content="Trengo, réseau social, Madagascar, malgache, chat, amis" />
+    <meta property="og:title" content="Trengo - Réseau social malgache" />
+    <meta property="og:description" content="Le réseau social malgache. Partagez, connectez-vous et communiquez avec vos amis." />
+    <meta property="og:url" content="https://trengo-mg.vercel.app" />
+    <meta property="og:type" content="website" />
+    <meta property="og:image" content="https://trengo-mg.vercel.app/icon-512.png" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Trengo - Réseau social malgache" />
+    <meta name="twitter:description" content="Le réseau social malgache." />
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+  <script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', function() {
+      navigator.serviceWorker.register('/firebase-messaging-sw.js');
+    });
+  }
+</script>
+</body>
+</html>

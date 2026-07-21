@@ -1,0 +1,4 @@
+# Cloudflare Pages — routage SPA (React Router)
+# Les fichiers statiques existants (assets, service workers, .well-known...)
+# sont servis en priorite par Cloudflare ; tout le reste retombe sur index.html.
+/*    /index.html   200
