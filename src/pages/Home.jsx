@@ -310,6 +310,7 @@ export default function Home() {
   const [feedRaw, setFeedRaw] = useState([]);             // posts bruts
   const cursorRef = useRef(null);                         // dernier doc (startAfter) — pagination 20/page
   const loadingRef = useRef(false);                       // anti double-chargement
+  const orderSeedRef = useRef(null);
   const [reachedEnd, setReachedEnd] = useState(false);    // plus rien a charger cote serveur
   const [shuffleSeed, setShuffleSeed] = useState(() => Date.now());
   const [expandedPosts, setExpandedPosts] = useState({});
@@ -567,8 +568,18 @@ export default function Home() {
         + mine + friend + engage + shopGroup
         + rnd(pp.id) * 7;          // jitter = variation isaky ny refresh
     };
-    const sorted = [...all].sort((a, b) => scoreOf(b) - scoreOf(a));
-    setPosts(sorted);
+    const byId = new Map(all.map(pp => [pp.id, pp]));
+    setPosts(prev => {
+      if (orderSeedRef.current !== shuffleSeed || prev.length === 0) {
+        orderSeedRef.current = shuffleSeed;
+        return [...all].sort((a, b) => scoreOf(b) - scoreOf(a));
+      }
+      // ORDRE GELÉ
+      const prevIds = new Set(prev.map(pp => pp.id));
+      const kept = prev.filter(pp => byId.has(pp.id)).map(pp => byId.get(pp.id));
+      const news = all.filter(pp => !prevIds.has(pp.id)).sort((a, b) => scoreOf(b) - scoreOf(a));
+      return news.length ? [...news, ...kept] : kept;
+    });
     setReelPosts(all.filter(p => p.mediaType === 'video' && p.mediaURL));
   }, [feedRaw, userProfile?.blocked, userProfile?.friends, userProfile?.following, viewerLoc?.lat, viewerLoc?.lng, shuffleSeed]);
 

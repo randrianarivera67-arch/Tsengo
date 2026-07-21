@@ -114,6 +114,6 @@ export async function uploadToTelegram(file, onProgress) {
   if (!data.url && !data.fileId) throw new Error("Upload échoué : réponse du serveur sans URL");
   if (onProgress) onProgress(100);
 
-  const url = data.url || (data.fileId ? `${MEDIA_URL}/media-id?file_id=${data.fileId}` : null);
+  const url = (data.fileId ? `${MEDIA_URL}/media-id?file_id=${data.fileId}` : data.url) || null;
   return { url, fileId: data.fileId, messageId: data.messageId, type: data.type };
 }
