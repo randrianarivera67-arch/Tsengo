@@ -13,6 +13,7 @@ import { parseAppLink } from '../utils/appLink';
 // identity.js neutralisé — import retiré
 import { getCart, subscribeCart } from '../utils/cart';
 import { NeonChart } from './NeonIcons';
+import PullToRefresh from './PullToRefresh';
 import ScrollReveal from './ScrollReveal';
 import { subscribeUpload } from '../utils/uploadManager';
 import {
@@ -323,6 +324,11 @@ export default function Layout({ children }) {
 
       {/* Apparition "ressort" des cartes au defilement (toute l'app) */}
       <ScrollReveal />
+
+      {/* Pull-to-refresh sur toutes les pages (Home a le sien en soft ; Reels exclu) */}
+      {location.pathname !== '/' && !isReels && (
+        <PullToRefresh onRefresh={() => { window.location.reload(); }} />
+      )}
 
       {/* ── Menu plein écran (hamburger) ────────────────────────── */}
       <aside style={{
