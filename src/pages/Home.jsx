@@ -1342,7 +1342,7 @@ const fields = {
 
   return (
     <div style={{ padding:0 }}>
-      <PullToRefresh onRefresh={refreshFeed} />
+      {/* PullToRefresh gere par Layout */}
       {/* Bouton "nouvelles publications" (façon Facebook) — miseho rehefa misy
           post vaovao avy amin'olon-kafa, tsy manakorontana ny lecture mandeha */}
       {pendingNew.length > 0 && (

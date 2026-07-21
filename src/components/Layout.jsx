@@ -112,6 +112,13 @@ export default function Layout({ children }) {
   const { theme } = useTheme();
   const { unreadCount: notifCount } = useNotifications();
   const { unreadCount: msgCount }   = useMessages();
+  const [refreshKey, setRefreshKey] = useState(0);
+  const [refreshing, setRefreshing] = useState(false);
+  const doSoftRefresh = () => {
+    setRefreshing(true);
+    setRefreshKey(k => k + 1);
+    return new Promise(res => setTimeout(() => { setRefreshing(false); res(); }, 850));
+  };
 
   // ✅ Badge demandes d'amis reçues
   const [friendReqCount, setFriendReqCount] = useState(0);
@@ -325,9 +332,17 @@ export default function Layout({ children }) {
       {/* Apparition "ressort" des cartes au defilement (toute l'app) */}
       <ScrollReveal />
 
-      {/* Pull-to-refresh sur toutes les pages (Home a le sien en soft ; Reels exclu) */}
-      {location.pathname !== '/' && !isReels && (
-        <PullToRefresh onRefresh={() => { window.location.reload(); }} />
+      {!isReels && <PullToRefresh onRefresh={doSoftRefresh} />}
+      {refreshing && (
+        <div style={{
+          position: 'fixed', inset: 0, zIndex: 9998,
+          background: isDark ? 'rgba(11,13,18,0.55)' : 'rgba(255,255,255,0.55)',
+          backdropFilter: 'blur(7px)', WebkitBackdropFilter: 'blur(7px)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none',
+        }}>
+          <img src="/icon-192.png" alt="" width={62} height={62}
+            style={{ borderRadius: '50%', boxShadow: '0 4px 18px rgba(0,0,0,.18)', animation: 'trengo-spin .8s linear infinite' }} />
+        </div>
       )}
 
       {/* ── Menu plein écran (hamburger) ────────────────────────── */}
@@ -564,7 +579,7 @@ export default function Layout({ children }) {
 
       </header>
 
-      <main style={{ maxWidth: 680, margin: '0 auto', padding: 0, width: '100%' }}>{children}</main>
+      <main key={refreshKey} style={{ maxWidth: 680, margin: '0 auto', padding: 0, width: '100%' }}>{children}</main>
 
       {/* ── Indicateur d'upload en arrière-plan ────────────────── */}
       {uploadState && (
