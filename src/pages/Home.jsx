@@ -513,17 +513,7 @@ export default function Home() {
   const PAGE_SIZE = 20;
   const [order, setOrder] = useState([]);            // ids araka ny filaharana miseho
   const orderSetRef = useRef(new Set());
-  const firstLoadedRef = useRef(false);              // vita ve ny pejy voalohany ?
-  // ✅ FIX race : ny orderSetRef dia ovaina AVY HATRANY (synchrone) miaraka amin'ny setOrder,
-  // fa tsy amin'ny effet mitaredretra — izay no nahatonga ny listener temps réel handray
-  // ny 20 posts REHETRA ho "pendingNew" tamin'ny fotoana fisokafana ("20 nouvelles publications" diso).
-  const applyOrder = (updater) => {
-    setOrder(prev => {
-      const next = typeof updater === 'function' ? updater(prev) : updater;
-      orderSetRef.current = new Set(next);
-      return next;
-    });
-  };
+  useEffect(() => { orderSetRef.current = new Set(order); }, [order]);
   const [pendingNew, setPendingNew] = useState([]);  // posts vaovao (olon-kafa) miandry refresh
   const optimisticIdsRef = useRef(new Set());        // posts-nao mbola tsy voamarin'ny serveur
   const myUidRef = useRef(null);
@@ -604,34 +594,22 @@ export default function Home() {
       if (snap.docs.length < PAGE_SIZE) setReachedEnd(true);
       if (snap.docs.length) cursorRef.current = snap.docs[snap.docs.length - 1];
       const rows = snap.docs.map(d => ({ id: d.id, ...d.data({ serverTimestamps: 'estimate' }) }));
-
-      // Atambatra amin'ny feedRaw (tsy very mihitsy)
-      let mergedAll = [];
       setFeedRaw(prev => {
         const map = new Map(prev.map(x => [x.id, x]));
         for (const r of rows) map.set(r.id, { ...r });
-        mergedAll = Array.from(map.values());
-        return mergedAll;
+        return Array.from(map.values());
       });
-
-      if (first) {
-        // ✅ FIX "mijanona amin'ny post iray" : amin'ny fisokafana / refresh, ny filaharana
-        // dia rafitra amin'ny posts REHETRA efa fantatra (nampidirin'ny temps réel koa),
-        // voalahatra amin'ny tsMs() MATOTRA (tsy simban'ny timestamp corrompu),
-        // ka ny publication vaovao rehetra dia miseho — fa tsy ny post taloha iray ihany.
-        const pool = mergedAll.length ? mergedAll : rows;
-        const rankedIds = rankPosts(pool).map(r => r.id);
-        const opt = order.filter(id => optimisticIdsRef.current.has(id) && !rankedIds.includes(id));
-        applyOrder([...opt, ...rankedIds]);
-        firstLoadedRef.current = true;
-        setPendingNew([]);            // efa tafiditra izy ireo → foanana ny bouton
-      } else {
-        const rankedIds = rankPosts(rows).map(r => r.id);
-        applyOrder(prev => {
-          const seen = new Set(prev);
-          return [...prev, ...rankedIds.filter(id => !seen.has(id))];
-        });
-      }
+      const rankedIds = rankPosts(rows).map(r => r.id);
+      const serverIds = new Set(rankedIds);
+      setOrder(prev => {
+        if (first) {
+          // Tazonina eo ambony ny post optimiste mbola tsy hitan'ny serveur
+          const opt = prev.filter(id => optimisticIdsRef.current.has(id) && !serverIds.has(id));
+          return [...opt, ...rankedIds];
+        }
+        const seen = new Set(prev);
+        return [...prev, ...rankedIds.filter(id => !seen.has(id))];
+      });
       setPostsLoading(false);
     } catch (e) { setPostsLoading(false); } finally { loadingRef.current = false; }
   };
@@ -644,12 +622,10 @@ export default function Home() {
     cursorRef.current = null;
     setReachedEnd(false);
     setVisibleCount(20);
+    setPendingNew([]);                              // ho tafiditra ao anaty top-20 vaovao izy ireo
     // Raha misy chargement mandeha dia andrasana kely — TSY hadinoina mangina toy ny taloha
     for (let i = 0; i < 40 && loadingRef.current; i++) await new Promise(r => setTimeout(r, 100));
     await loadFeedPage(true);
-    // Rehefa avy nateraka indray, foanana ny bouton (efa tafiditra ny vaovao rehetra)
-    setPendingNew([]);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   // Premiere page (20)
@@ -666,16 +642,13 @@ export default function Home() {
         for (const f of fresh) map.set(f.id, f);   // mise à jour in place (réactions, vues, commentaires)
         return Array.from(map.values());
       });
-      // ✅ FIX race : mandra-pahavitan'ny pejy voalohany, tsy manisy "pendingNew" —
-      // fandrao ny posts izay efa ho ao amin'ny feed dia diso lazaina hoe "vaovao".
-      if (!firstLoadedRef.current) { setPostsLoading(false); return; }
       const news = fresh.filter(f => !orderSetRef.current.has(f.id));
       if (news.length) {
         const mine   = news.filter(f => f.uid === myUidRef.current);
         const others = news.filter(f => f.uid !== myUidRef.current);
         if (mine.length) {
           mine.forEach(m => optimisticIdsRef.current.delete(m.id));
-          applyOrder(prev => [...mine.map(m => m.id).filter(id => !prev.includes(id)), ...prev]);
+          setOrder(prev => [...mine.map(m => m.id).filter(id => !prev.includes(id)), ...prev]);
         }
         if (others.length) {
           setPendingNew(prev => {
@@ -775,7 +748,7 @@ const fields = {
       // Aseho avy hatrany (optimistic) — averin'ny listener realtime amin'ny id
       setFeedRaw(prev => [{ id: postRef.id, ...fields, mediaURL, mediaType: finalMT, thumbURL, reactions: {}, comments: [], createdAt: { seconds: Math.floor(Date.now() / 1000) }, _optimistic: true }, ...prev.filter(x => x.id !== postRef.id)]);
       optimisticIdsRef.current.add(postRef.id);
-      applyOrder(prev => [postRef.id, ...prev.filter(id => id !== postRef.id)]);
+      setOrder(prev => [postRef.id, ...prev.filter(id => id !== postRef.id)]);
       setTimeout(() => window.scrollTo({ top: 0, behavior: 'smooth' }), 60);
       if (friendTargets.length > 0) {
         const batch = writeBatch(db);
@@ -805,7 +778,7 @@ const fields = {
         // Aseho avy hatrany (optimistic)
         setFeedRaw(prev => [{ id: postRef.id, ...fields, mediaURL: urls[0], mediaType: 'image', mediaURLs: urls, thumbURL: '', reactions: {}, comments: [], createdAt: { seconds: Math.floor(Date.now() / 1000) }, _optimistic: true }, ...prev.filter(x => x.id !== postRef.id)]);
         optimisticIdsRef.current.add(postRef.id);
-        applyOrder(prev => [postRef.id, ...prev.filter(id => id !== postRef.id)]);
+        setOrder(prev => [postRef.id, ...prev.filter(id => id !== postRef.id)]);
         setTimeout(() => window.scrollTo({ top: 0, behavior: 'smooth' }), 60);
         if (friendTargets.length > 0) {
           const batch = writeBatch(db);
