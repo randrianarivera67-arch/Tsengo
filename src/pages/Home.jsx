@@ -2,7 +2,7 @@
 import { useState, useEffect, useRef } from 'react';
 import SmartImage from '../components/SmartImage';
 import Avatar from '../components/Avatar';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation, useNavigationType } from 'react-router-dom';
 import {
   collection, addDoc, serverTimestamp, Timestamp, query, orderBy, onSnapshot, limit,
   doc, updateDoc, arrayUnion, arrayRemove, deleteDoc, writeBatch, getDoc, getDocs, where, startAfter
@@ -72,6 +72,30 @@ const SALE_CATEGORIES = ['Vêtements', 'Électronique', 'Déco & Maison', 'Véhi
 
 function VIPBadge() {
   return <img src='/vip-badge.png' style={{ width:32, height:32, marginLeft:5, verticalAlign:'middle', display:'inline-block', flexShrink:0, objectFit:'contain' }} alt='VIP'/>;
+}
+
+// ── Snapshot an'ny fil d'actualités (mitahiry ny toetra manontolo) ──
+// Rehefa manindry publication (mankany /post/:id) dia tehirizina eto ny order +
+// contenu + cursor + visibleCount + seed + toerana scroll. Rehefa miverina (retour
+// = navigation POP) dia averina TSY MIOVA ny fil ka mijanona AMIN'NY publication
+// nokitihina — fa TSY miakatra any an-tampony.
+let feedSnapshot = null;
+
+// ── Miniature an'ny story vidéo — mety FOANA amin'ny APK (Android WebView) ──
+// Raha misy thumbURL → <img> ; raha tsy misy → fragment "#t=0.1" + seek an-tery
+// mba haneho ny frame voalohany (fa tsy mainty). Tsy mila canvas na CORS.
+function StoryVideoThumb({ thumbURL, mediaURL }) {
+  if (thumbURL) return <img src={thumbURL} alt="" />;
+  const src = mediaURL ? (mediaURL.includes('#') ? mediaURL : mediaURL + '#t=0.1') : mediaURL;
+  return (
+    <video
+      src={src}
+      muted
+      playsInline
+      preload="metadata"
+      onLoadedMetadata={(e) => { try { if (e.target.currentTime < 0.1) e.target.currentTime = 0.1; } catch {} }}
+    />
+  );
 }
 
 // Video ao amin'ny fil d'actualités — milalao ho azy rehefa hita ~60% amin'ny écran
@@ -251,6 +275,9 @@ export default function Home() {
   const activeStoryUids = useActiveStoryUids();
   const { t } = useLang();
   const navigate = useNavigate();
+  const navType  = useNavigationType();   // 'POP' rehefa retour
+  // Hamerina ny fil (order+scroll) ve? Eny raha retour (POP) ary misy snapshot.
+  const willRestoreFeed = useRef(navType === 'POP' && !!feedSnapshot);
 
   const [content, setContent]   = useState('');
   const [mediaFile, setMF]      = useState(null);
@@ -311,7 +338,8 @@ export default function Home() {
   const cursorRef = useRef(null);                         // dernier doc (startAfter) — pagination 20/page
   const loadingRef = useRef(false);                       // anti double-chargement
   const [reachedEnd, setReachedEnd] = useState(false);    // plus rien a charger cote serveur
-  const [shuffleSeed, setShuffleSeed] = useState(() => Date.now());
+  const [shuffleSeed, setShuffleSeed] = useState(() =>
+    (willRestoreFeed.current && feedSnapshot) ? feedSnapshot.seed : Date.now());
   const [expandedPosts, setExpandedPosts] = useState({});
   const [viewerState,   setViewerState]   = useState(null); // { post, index }
   const [boostTarget,   setBoostTarget]    = useState(null); // { type, id, ownerUid, title, thumbnailURL }
@@ -511,6 +539,9 @@ export default function Home() {
   //    engagement → localisation + inscriptions vaovao → fiovaovana isaky ny refresh
   // ═══════════════════════════════════════════════════════════════════════════
   const PAGE_SIZE = 20;
+  // Chargement voalohany : 30 (mba hisian'ny récence samy hafa hifangaro), avy eo
+  // 20 isaky ny pagination (scroll). Mitsitsy forfait, tsy misy loading tsy mijanona.
+  const FIRST_PAGE = 30;
   const [order, setOrder] = useState([]);            // ids araka ny filaharana miseho
   const orderSetRef = useRef(new Set());
   useEffect(() => { orderSetRef.current = new Set(order); }, [order]);
@@ -565,19 +596,31 @@ export default function Home() {
       const boosted = pp.isBoosted && pp.boostUntil && new Date(pp.boostUntil) > nowD
         && isInZones(ctx.lat, ctx.lng, pp.boostZones);
       const hoursAgo = (nowMs - tsMs(pp.createdAt)) / 3600000;
-      const mine   = pp.uid === ctx.myUid ? 45 : 0;                 // post-nao = ambony indrindra
-      const friend = ctx.aff.has(pp.uid) ? 16 : 0;                  // namana/arahina → miseho matetika
+      const mine   = pp.uid === ctx.myUid ? 24 : 0;
+      const friend = ctx.aff.has(pp.uid) ? 14 : 0;
       const reacts = Object.keys(pp.reactions || {}).length;
       const vues   = Math.min(pp.views || 0, 300);
-      const engage = reacts * 1.2 + vues * 0.02;                    // engagement
+      const engage = reacts * 1.0 + vues * 0.02;
       const city   = (pp.authorCity || pp.location || '').trim().toLowerCase();
       const local  = ctx.myCity && city && (city.includes(ctx.myCity) || ctx.myCity.includes(city)) ? 6 : 0;
-      const newReg = ctx.newUids.has(pp.uid) ? 5 + local : 0;       // vao nisoratra → récent + localisation
-      const shopGroup = (pp.shopId || pp.groupId || pp.isShop || pp.artistId) ? rnd(pp.id + 'sg') * 8 : 0;
+      const newReg = ctx.newUids.has(pp.uid) ? 5 + local : 0;
+      const shopGroup = (pp.shopId || pp.groupId || pp.isShop || pp.artistId) ? rnd(pp.id + 'sg') * 6 : 0;
+
+      // RÉCENCE "douce" par paliers : mankasitraka ny vaovao NEFA tsy mamatotra azy
+      // ho fixe ambony indrindra → mamela ny shuffle hanova filaharana isaky ny refresh
+      let recency;
+      if      (hoursAgo < 6)   recency = 34;
+      else if (hoursAgo < 24)  recency = 27;
+      else if (hoursAgo < 72)  recency = 20;
+      else if (hoursAgo < 168) recency = 12;
+      else                     recency = 5;
+      recency -= hoursAgo * 0.03;
+
+      const shuffle = rnd(pp.id) * 22;   // fiovaovana matanjaka isaky ny refresh
+
       return (boosted ? 1e6 : 0)
-        - hoursAgo * 2.2            // RÉCENCE mibahana (publication vaovao ambony foana)
         + mine + friend + engage + local + newReg + shopGroup
-        + rnd(pp.id) * 6;           // fiovaovana kely isaky ny refresh (toy ny Facebook)
+        + recency + shuffle;
     };
     return [...rows].sort((a, b) => scoreOf(b) - scoreOf(a));
   }
@@ -587,11 +630,12 @@ export default function Home() {
     if (!first && (reachedEnd || !cursorRef.current)) return;
     loadingRef.current = true;
     try {
+      const pageLimit = first ? FIRST_PAGE : PAGE_SIZE;
       const q = first
-        ? query(collection(db, 'posts'), orderBy('createdAt', 'desc'), limit(PAGE_SIZE))
+        ? query(collection(db, 'posts'), orderBy('createdAt', 'desc'), limit(FIRST_PAGE))
         : query(collection(db, 'posts'), orderBy('createdAt', 'desc'), startAfter(cursorRef.current), limit(PAGE_SIZE));
       const snap = await getDocs(q);
-      if (snap.docs.length < PAGE_SIZE) setReachedEnd(true);
+      if (snap.docs.length < pageLimit) setReachedEnd(true);
       if (snap.docs.length) cursorRef.current = snap.docs[snap.docs.length - 1];
       const rows = snap.docs.map(d => ({ id: d.id, ...d.data({ serverTimestamps: 'estimate' }) }));
       setFeedRaw(prev => {
@@ -617,6 +661,7 @@ export default function Home() {
   // Refresh feno (PTR / bouton "nouvelles publications" / tap Accueil) —
   // mamerina Promise ka ny spinner dia miandry ny fahavitany MARINA
   const refreshFeed = async () => {
+    feedSnapshot = null;                            // refresh = fil vaovao
     scoreCtxRef.current.seed = Date.now();          // fiovaovana avy hatrany (synchrone)
     setShuffleSeed(scoreCtxRef.current.seed);
     cursorRef.current = null;
@@ -629,7 +674,48 @@ export default function Home() {
   };
 
   // Premiere page (20)
-  useEffect(() => { loadFeedPage(true); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, []);
+  // Manindry publication → tehirizina ny toetry ny fil sy ny toerana scroll
+  const openPost = (id) => {
+    feedSnapshot = {
+      order, feedRaw, visibleCount,
+      cursor: cursorRef.current, reachedEnd,
+      seed: shuffleSeed,
+      scrollY: window.scrollY || document.documentElement.scrollTop || 0,
+      ts: Date.now(),
+    };
+    navigate('/post/' + id);
+  };
+
+  useEffect(() => {
+    if (willRestoreFeed.current && feedSnapshot) {
+      const s = feedSnapshot; feedSnapshot = null;   // consomée indray mandeha
+      setFeedRaw(s.feedRaw);
+      setOrder(s.order);
+      setVisibleCount(s.visibleCount);
+      setReachedEnd(s.reachedEnd);
+      cursorRef.current = s.cursor;
+      // setPosts mivantana (filtre mitovy amin'ny effet dérivé) → tsy misy flash empty
+      const blocked = userProfile?.blocked || [];
+      const myFriends = userProfile?.friends || [];
+      const byId = new Map(s.feedRaw.map(x => [x.id, x]));
+      const visible = (p) => !!p && !blocked.includes(p.uid)
+        && (p.uid === currentUser?.uid || (p.audience === 'friends' ? myFriends.includes(p.uid) : p.audience !== 'me'));
+      setPosts(s.order.map(id => byId.get(id)).filter(visible));
+      setPostsLoading(false);
+      let tries = 0;
+      const restoreScroll = () => {
+        window.scrollTo(0, s.scrollY);
+        if (++tries < 8) requestAnimationFrame(restoreScroll);
+      };
+      requestAnimationFrame(restoreScroll);
+      const t1 = setTimeout(() => window.scrollTo(0, s.scrollY), 180);
+      const t2 = setTimeout(() => window.scrollTo(0, s.scrollY), 400);
+      return () => { clearTimeout(t1); clearTimeout(t2); };
+    }
+    feedSnapshot = null;   // fidirana vaovao → hadino ny snapshot
+    loadFeedPage(true);
+    /* eslint-disable-next-line react-hooks/exhaustive-deps */
+  }, []);
 
   // Temps réel : manavao ny votoatin'ny posts efa miseho EO AMIN'NY TOERANY ;
   // ny post vaovao dia tsy manakorontana ny filaharana (buffer + bouton)
@@ -1410,7 +1496,7 @@ const fields = {
           return (
             <div key={g.uid} className="story-card" onClick={() => openStories(g)} style={last.mediaType === 'text' ? { background: last.bgColor || '#1877F2' } : undefined}>
               {last.mediaType === 'video'
-                ? (last.thumbURL ? <img src={last.thumbURL} alt="" /> : <video src={last.mediaURL} muted playsInline preload="metadata" />)
+                ? <StoryVideoThumb thumbURL={last.thumbURL} mediaURL={last.mediaURL} />
                 : last.mediaType === 'text'
                 ? <div style={{ width:'100%', height:'100%', display:'flex', alignItems:'center', justifyContent:'center', padding:10 }}>
                     <p style={{ color:'white', fontSize:13, fontWeight:700, textAlign:'center', overflow:'hidden', display:'-webkit-box', WebkitLineClamp:5, WebkitBoxOrient:'vertical' }}>{last.text}</p>
@@ -2059,7 +2145,7 @@ const fields = {
             </div>
 
             {/* Content */}
-            <div style={{ padding: post.textBg ? 0 : '10px 16px', cursor:'pointer' }} onClick={() => navigate(`/post/${post.id}`)}>
+            <div style={{ padding: post.textBg ? 0 : '10px 16px', cursor:'pointer' }} onClick={() => openPost(post.id)}>
               {post.content && (
                 <p
                   onClick={e => {
@@ -2089,7 +2175,7 @@ const fields = {
               )}
               {/* Publication partagée (format Facebook) */}
               {post.sharedFrom && (
-                <div onClick={e => { e.stopPropagation(); navigate(`/post/${post.sharedFrom.id}`); }}
+                <div onClick={e => { e.stopPropagation(); openPost(post.sharedFrom.id); }}
                   style={{ marginTop:8, border:'1px solid #E4E6EB', borderRadius:12, overflow:'hidden', cursor:'pointer' }}>
                   <div style={{ display:'flex', alignItems:'center', gap:8, padding:'9px 12px' }}>
                     <img src={post.sharedFrom.authorPhoto||`https://ui-avatars.com/api/?name=${encodeURIComponent(post.sharedFrom.authorName||'U')}&background=1877F2&color=fff`}
@@ -2122,11 +2208,11 @@ const fields = {
               )}
               {post.mediaURLs?.length > 1 ? (
                 <div style={{ marginTop:8, marginLeft:-16, marginRight:-16 }}>
-                  <PhotoCarousel urls={post.mediaURLs} onOpen={() => navigate(`/post/${post.id}`)} />
+                  <PhotoCarousel urls={post.mediaURLs} onOpen={() => openPost(post.id)} />
                 </div>
               ) : post.mediaURL && (
                 <div style={{ marginTop:8, marginLeft:-16, marginRight:-16 }}>
-                  {post.isMusic ? <MusicPostCard post={post} height={140}/> : post.mediaType==='image' ? <SmartImage src={post.mediaURL} onClick={e=>{e.stopPropagation();navigate(`/post/${post.id}`);}} style={{ width:'100%', borderRadius:0, maxHeight:520, objectFit:'cover', display:'block', cursor:'zoom-in' }}/> : <FeedVideo src={post.mediaURL} poster={post.thumbURL} dataSaver={dataSaver} onOpenReels={()=>navigate('/reels',{state:{startId:post.id}})} style={{ width:'100%', borderRadius:0, maxHeight:520, objectFit:'cover', display:'block', background:'#000' }} />}
+                  {post.isMusic ? <MusicPostCard post={post} height={140}/> : post.mediaType==='image' ? <SmartImage src={post.mediaURL} onClick={e=>{e.stopPropagation();openPost(post.id);}} style={{ width:'100%', borderRadius:0, maxHeight:520, objectFit:'cover', display:'block', cursor:'zoom-in' }}/> : <FeedVideo src={post.mediaURL} poster={post.thumbURL} dataSaver={dataSaver} onOpenReels={()=>navigate('/reels',{state:{startId:post.id}})} style={{ width:'100%', borderRadius:0, maxHeight:520, objectFit:'cover', display:'block', background:'#000' }} />}
                 </div>
               )}
               {/* ── Article boutique : informations ambanin'ny sary (sary 3) ── */}
@@ -2184,7 +2270,7 @@ const fields = {
                     </span>
                   )}
                   {post.comments?.length > 0 && (
-                    <span onClick={(e) => { e.stopPropagation(); navigate('/post/' + post.id); }} style={{ fontSize:12.5, color:'#65676B', cursor:'pointer' }}>
+                    <span onClick={(e) => { e.stopPropagation(); openPost(post.id); }} style={{ fontSize:12.5, color:'#65676B', cursor:'pointer' }}>
                       {post.comments.length} commentaire{post.comments.length>1?'s':''}
                     </span>
                   )}
@@ -2224,7 +2310,7 @@ const fields = {
                   </div>
                 )}
               </div>
-              <button onClick={() => navigate('/post/' + post.id)} className='post-action-btn'>
+              <button onClick={() => openPost(post.id)} className='post-action-btn'>
                 <NeonComment size={18}/> Commenter
               </button>
               <button onClick={() => sharePost(post)} className='post-action-btn'>
@@ -2423,7 +2509,7 @@ const fields = {
                       return (
                         <div key={g.uid} className="story-card" onClick={() => openStories(g)} style={{ width:92, height:150 }}>
                           {last.mediaType === 'video'
-                            ? (last.thumbURL ? <img src={last.thumbURL} alt="" /> : <video src={last.mediaURL} muted playsInline preload="metadata" />)
+                            ? <StoryVideoThumb thumbURL={last.thumbURL} mediaURL={last.mediaURL} />
                             : <img src={last.mediaURL} alt="" />}
                           <div className="story-gradient" />
                           <img className="story-avatar" src={g.photo || `https://ui-avatars.com/api/?name=${encodeURIComponent(g.name||'U')}&background=1877F2&color=fff`} alt="" />

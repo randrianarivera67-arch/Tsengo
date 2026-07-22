@@ -1,6 +1,6 @@
 // src/pages/GroupPage.jsx — Page d'un groupe public (format Facebook)
 import { useState, useEffect, useRef } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useNavigationType } from 'react-router-dom';
 import {
   doc, onSnapshot, updateDoc, deleteDoc, collection, query, where,
   addDoc, serverTimestamp, arrayUnion, arrayRemove, getDoc, writeBatch
@@ -31,16 +31,27 @@ import { addToCart } from '../utils/cart';
 
 const REACTIONS = ['❤️','😂','😮','😢','😡','👍'];
 
+// Snapshot an'ny fil du groupe (seed + visibleCount + scroll) mba hiverenana AMIN'NY
+// publication nokitihina rehefa retour (POP) avy amin'ny détails.
+let groupSnapshot = null;
+
 export default function GroupPage() {
   const { groupId } = useParams();
   const { currentUser, userProfile, setUserProfile } = useAuth();
   const navigate = useNavigate();
+  const navType  = useNavigationType();   // 'POP' rehefa retour
+  const restoringGroup = navType === 'POP' && groupSnapshot && groupSnapshot.groupId === groupId;
+  const pendingScrollRef = useRef(restoringGroup ? groupSnapshot.scrollY : null);
 
   const [group,      setGroup]      = useState(null);
   const [notFound,   setNotFound]   = useState(false);
   const [members,    setMembers]    = useState([]);
   const [posts,      setPosts]      = useState([]);
-  const [visibleCount, setVisibleCount] = useState(10);
+  const [visibleCount, setVisibleCount] = useState(restoringGroup ? groupSnapshot.visibleCount : 10);
+  // Seed stable par montage : isaky ny pull-to-refresh dia remount ny page → seed
+  // vaovao → mifandimby ny post miseho ambony. Rehefa retour (POP) kosa dia averina
+  // ny seed teo aloha mba hitovian'ny filaharana.
+  const groupSeedRef = useRef(restoringGroup ? groupSnapshot.seed : Date.now());
   const [content,    setContent]    = useState('');
   const [textBg,     setTextBg]     = useState(null);
   const [mediaFile,  setMediaFile]  = useState(null);
@@ -103,15 +114,68 @@ export default function GroupPage() {
   }, [group?.members?.join?.(',')]);
 
   // Publications du groupe (tri côté client — pas d'index composite requis)
+  // Classement "façon Facebook" : sponsorisé en haut → post-nao → récence douce
+  // + shuffle par refresh. Ny score dia mampiasa champs IMMUABLES ihany (createdAt,
+  // uid, id, boost) → tsy mifindra ny cartes rehefa miova ny réactions/vues.
   useEffect(() => {
+    const seed = groupSeedRef.current;
+    const myUid = currentUser?.uid || null;
+    const nowMs = Date.now(), nowD = new Date();
+    const tsMs = (v) => (v?.seconds ? v.seconds * 1000 : (v?._seconds ? v._seconds * 1000 : 0));
+    const rnd = (id) => {
+      let h = 2166136261; const str = String(id) + ':' + seed;
+      for (let i = 0; i < str.length; i++) { h ^= str.charCodeAt(i); h = Math.imul(h, 16777619); }
+      return ((h >>> 0) % 1000) / 1000;
+    };
+    const scoreOf = (p) => {
+      const boosted = p.isBoosted && p.boostUntil && new Date(p.boostUntil) > nowD;
+      const hoursAgo = (nowMs - tsMs(p.createdAt)) / 3600000;
+      const mine = p.uid === myUid ? 24 : 0;
+      let recency;
+      if      (hoursAgo < 6)   recency = 34;
+      else if (hoursAgo < 24)  recency = 27;
+      else if (hoursAgo < 72)  recency = 20;
+      else if (hoursAgo < 168) recency = 12;
+      else                     recency = 5;
+      recency -= hoursAgo * 0.03;
+      const shuffle = rnd(p.id) * 22;
+      return (boosted ? 1e6 : 0) + mine + recency + shuffle;
+    };
     const q = query(collection(db, 'posts'), where('groupId', '==', groupId));
     const unsub = onSnapshot(q, snap => {
       const list = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-      list.sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
+      list.sort((a, b) => scoreOf(b) - scoreOf(a));
       setPosts(list);
     }, err => console.error('Lecture posts groupe:', err?.message || err));
     return () => unsub();
-  }, [groupId]);
+  }, [groupId, currentUser?.uid]);
+
+  // Consommer ny snapshot indray mandeha
+  useEffect(() => { groupSnapshot = null; /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, []);
+
+  // Averina ny toerana scroll rehefa vita ny fisehoan'ny posts
+  useEffect(() => {
+    if (pendingScrollRef.current == null || !posts.length) return;
+    const y = pendingScrollRef.current;
+    pendingScrollRef.current = null;
+    let tries = 0;
+    const go = () => { window.scrollTo(0, y); if (++tries < 8) requestAnimationFrame(go); };
+    requestAnimationFrame(go);
+    const t1 = setTimeout(() => window.scrollTo(0, y), 180);
+    const t2 = setTimeout(() => window.scrollTo(0, y), 400);
+    return () => { clearTimeout(t1); clearTimeout(t2); };
+  }, [posts.length]);
+
+  // Manindry publication → tehirizina ny toetry ny fil alohan'ny détails
+  const openPost = (id) => {
+    groupSnapshot = {
+      groupId,
+      seed: groupSeedRef.current,
+      visibleCount,
+      scrollY: window.scrollY || document.documentElement.scrollTop || 0,
+    };
+    navigate('/post/' + id);
+  };
 
   // Fermer le menu au clic extérieur
   useEffect(() => {
@@ -691,10 +755,10 @@ export default function GroupPage() {
                   )}
                 </div>
             </div>
-            <div style={{ padding: '8px 16px', cursor: 'pointer' }} onClick={() => navigate(`/post/${post.id}`)}>
+            <div style={{ padding: '8px 16px', cursor: 'pointer' }} onClick={() => openPost(post.id)}>
               {post.content && (post.textBg ? <p style={{ background: post.textBg, minHeight:180, display:'flex', alignItems:'center', justifyContent:'center', textAlign:'center', color:'#fff', fontSize:24, fontWeight:800, padding:'24px 18px', lineHeight:1.4, wordBreak:'break-word', whiteSpace:'pre-wrap', margin:0, borderRadius:8 }}>{post.content}</p> : <p style={{ fontSize: 15, lineHeight: 1.6, wordBreak: 'break-word' }}>{post.content}</p>)}
               {post.sharedFrom && (
-                <div onClick={e => { e.stopPropagation(); navigate(`/post/${post.sharedFrom.id}`); }}
+                <div onClick={e => { e.stopPropagation(); openPost(post.sharedFrom.id); }}
                   style={{ marginTop: 8, border: '1px solid #E4E6EB', borderRadius: 12, overflow: 'hidden', cursor: 'pointer' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '9px 12px' }}>
                     <img src={post.sharedFrom.authorPhoto || `https://ui-avatars.com/api/?name=${encodeURIComponent(post.sharedFrom.authorName || 'U')}&background=1877F2&color=fff`}
@@ -763,7 +827,7 @@ export default function GroupPage() {
                   </div>
                 )}
               </div>
-              <button onClick={() => navigate(`/post/${post.id}`)} className='post-action-btn'>
+              <button onClick={() => openPost(post.id)} className='post-action-btn'>
                 <HiChat size={18} /> Commenter{post.comments?.length > 0 ? ` (${post.comments.length})` : ''}
               </button>
               <button onClick={() => sharePost(post)} className='post-action-btn'>
