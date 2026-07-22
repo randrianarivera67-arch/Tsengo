@@ -20,13 +20,17 @@ import { isStandalone, canInstall, onInstallChange, promptInstall } from '../uti
 import PushDiagnostic from '../components/PushDiagnostic';
 import { HiMail, HiKey } from 'react-icons/hi';
 import { SkeletonList } from '../components/Skeleton';
+import AdminDashboard from './AdminDashboard';
+import { NavIcon } from '../components/AdminIcons';
+import { useOnline } from '../hooks/useOnline';
 
 export default function AdminPanel() {
   const { currentUser, userProfile } = useAuth();
   const navigate = useNavigate();
+  const onlineMap = useOnline();          // { uid: true|false } → isa MARINA
 
   const [isAdmin, setIsAdmin] = useState(null);
-  const [activeTab, setActiveTab] = useState('users');
+  const [activeTab, setActiveTab] = useState('dashboard');
   const [expandedUser, setExpandedUser] = useState(null);
   const [resetSentFor, setResetSentFor] = useState(null);
 
@@ -317,14 +321,17 @@ export default function AdminPanel() {
     );
   }
 
+  const nPendingOrders = boostOrders.filter(o => o.status === 'pending').length;
+  const nPendingReports = reports.filter(r => r.status === 'pending' || !r.status).length;
   const NAV_ITEMS = [
-    { key: 'users',   label: 'Utilisateurs', icon: '👥' },
-    { key: 'boost',   label: 'Boost (manuel)', icon: '🚀' },
-    { key: 'shops',   label: 'Boutiques', icon: '🛍️' },
-    { key: 'artists', label: 'Artistes', icon: '🎵' },
-    { key: 'orders',  label: 'Commandes Boost', icon: '📢', badge: boostOrders.filter(o=>o.status==='pending').length },
-    { key: 'reports', label: 'Signalements', icon: '🚩', badge: reports.filter(r=>r.status==='pending'||!r.status).length },
-  ];
+    { key: 'dashboard', label: 'Tableau de bord', group: '', ic: 'dashboard' },
+    { key: 'users',   label: 'Utilisateurs',    group: 'GESTION', ic: 'users' },
+    { key: 'shops',   label: 'Boutiques',       group: 'GESTION', ic: 'shop' },
+    { key: 'artists', label: 'Artistes',        group: 'GESTION', ic: 'artist' },
+    { key: 'boost',   label: 'Boost (manuel)',  group: 'GESTION', ic: 'boost' },
+    { key: 'orders',  label: 'Commandes Boost', group: 'GESTION', ic: 'orders', badge: nPendingOrders },
+    { key: 'reports', label: 'Signalements',    group: 'GESTION', ic: 'report', badge: nPendingReports },
+  ].map(it => ({ ...it, icon: <NavIcon name={it.ic} size={19} color={activeTab === it.key ? '#FF2D8D' : '#65676B'} glow={activeTab === it.key} /> }));
 
   async function resetUserPassword(user) {
     if (!user.email) { showMsg('❌ Ce compte n\'a pas d\'email associé'); return; }
@@ -353,29 +360,96 @@ export default function AdminPanel() {
     <span style={{ background: bg, color, fontSize: 9, fontWeight: 700, padding: '1px 6px', borderRadius: 6, border: border || 'none' }}>{txt}</span>
   );
 
-  return (
-    <div style={{ minHeight: '100vh', background: '#F0F2F5', padding: '20px 16px', fontFamily: 'Poppins, sans-serif', color: '#050505' }}>
-      <div style={{ maxWidth: 700, margin: '0 auto' }}>
+  const isDash = activeTab === 'dashboard';
+  const SIDE_GROUPS = ['', 'GESTION'];
 
-        {/* Header */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
-          <div style={{ width: 44, height: 44, borderRadius: '50%', background: 'linear-gradient(135deg,#FF2D8D,#FF7AB8)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-            <HiShieldCheck size={24} color="white" />
+  return (
+    <div className="adm-shell" style={{ minHeight: '100vh', background: '#F0F2F5', fontFamily: 'Poppins, sans-serif', color: '#050505' }}>
+      <style>{`
+        .adm-shell{display:flex}
+        .adm-side{display:none}
+        .adm-main{flex:1;min-width:0;padding:16px}
+        .adm-hide-sm{display:none}
+        @media(min-width:560px){.adm-hide-sm{display:inline}}
+        @media(min-width:1024px){
+          .adm-side{display:block;width:238px;flex-shrink:0;background:#fff;border-right:1px solid #EAECF0;height:100vh;position:sticky;top:0;overflow-y:auto;padding:16px 12px}
+          .adm-main{padding:20px 24px}
+          .adm-burger{display:none !important}
+        }
+        .adm-side .it{width:100%;display:flex;align-items:center;gap:11px;padding:10px 12px;border:none;background:none;border-radius:11px;cursor:pointer;text-align:left;font-family:Poppins;font-size:13.5px;color:#344054;margin-bottom:2px}
+        .adm-side .it.on{background:#FFF0F7;color:#FF2D8D;font-weight:700}
+        .adm-side .gr{font-size:10.5px;font-weight:700;color:#98A2B3;letter-spacing:.6px;padding:12px 12px 6px}
+        .adm-top{display:flex;align-items:center;gap:10px;margin-bottom:16px}
+        .adm-search{flex:1;min-width:0;display:flex;align-items:center;gap:8px;background:#fff;border:1px solid #EAECF0;border-radius:12px;padding:9px 12px}
+        .adm-search input{border:none;outline:none;background:none;font-family:Poppins;font-size:13px;width:100%;color:#101828}
+        .dark .adm-shell{background:#18191A;color:#E4E6EB}
+        .dark .adm-side{background:#242526;border-color:#3A3B3C}
+        .dark .adm-side .it{color:#E4E6EB}
+        .dark .adm-search{background:#242526;border-color:#3A3B3C}
+        .dark .adm-search input{color:#E4E6EB}
+      `}</style>
+
+      {/* ── Sidebar (ordinateur) ── */}
+      <aside className="adm-side">
+        <div style={{ display:'flex', alignItems:'center', gap:10, padding:'6px 10px 14px' }}>
+          <div style={{ width:38, height:38, borderRadius:12, background:'linear-gradient(135deg,#C026D3,#FF2D8D)', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
+            <HiShieldCheck size={21} color="#fff" />
           </div>
-          <div>
-            <h2 style={{ fontWeight: 800, fontSize: 20, color: '#050505' }}>Panel Admin</h2>
-            <p style={{ fontSize: 12, color: '#65676B' }}>Connecté : {userProfile?.fullName}</p>
+          <div style={{ minWidth:0 }}>
+            <p style={{ fontWeight:800, fontSize:16, lineHeight:1.1 }}>Trengo</p>
+            <p style={{ fontSize:10.5, color:'#98A2B3' }}>Panel Admin</p>
           </div>
-          <div style={{ marginLeft: 'auto', display: 'flex', gap: 8 }}>
-            <button onClick={() => setNavMenuOpen(true)} style={{ width: 36, height: 36, borderRadius: '50%', background: '#E4E6EB', border: 'none', cursor: 'pointer', color: '#050505', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <HiMenu size={18} />
-            </button>
-            <button onClick={() => navigate('/')} style={{ background: '#E4E6EB', border: 'none', borderRadius: 20, padding: '6px 14px', color: '#65676B', cursor: 'pointer', fontSize: 13 }}>
-              ← Retour
-            </button>
+        </div>
+        {SIDE_GROUPS.map(g => (
+          <div key={g || 'main'}>
+            {g ? <p className="gr">{g}</p> : null}
+            {NAV_ITEMS.filter(n => (n.group || '') === g).map(item => (
+              <button key={item.key} className={'it' + (activeTab === item.key ? ' on' : '')} onClick={() => setActiveTab(item.key)}>
+                <span style={{ display:'flex' }}>{item.icon}</span>
+                <span style={{ flex:1 }}>{item.label}</span>
+                {item.badge > 0 && <span style={{ background:'#FF2D8D', color:'#fff', fontSize:10.5, fontWeight:700, borderRadius:9, padding:'1px 7px' }}>{item.badge}</span>}
+              </button>
+            ))}
+          </div>
+        ))}
+        <div style={{ borderTop:'1px solid #EAECF0', marginTop:10, display:'flex', alignItems:'center', gap:10, padding:'12px 10px 0' }}>
+          {userProfile?.photoURL
+            ? <img src={userProfile.photoURL} alt="" style={{ width:34, height:34, borderRadius:'50%', objectFit:'cover', flexShrink:0 }} />
+            : <div style={{ width:34, height:34, borderRadius:'50%', background:'linear-gradient(135deg,#7B3FE4,#C026D3)', flexShrink:0 }} />}
+          <div style={{ minWidth:0 }}>
+            <p style={{ fontSize:12.5, fontWeight:700, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{userProfile?.fullName || 'Admin'}</p>
+            <p style={{ fontSize:10.5, color:'#98A2B3' }}>Super Administrateur</p>
+          </div>
+        </div>
+      </aside>
+
+      <div className="adm-main">
+        {/* ── Barre du haut ── */}
+        <div className="adm-top">
+          <button className="adm-burger" onClick={() => setNavMenuOpen(true)}
+            style={{ width:38, height:38, borderRadius:11, background:'#fff', border:'1px solid #EAECF0', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
+            <NavIcon name="menu" size={19} color="#344054" />
+          </button>
+          <div className="adm-search">
+            <NavIcon name="search" size={17} color="#98A2B3" />
+            <input value={search} onChange={e => { setSearch(e.target.value); if (activeTab === 'dashboard' && e.target.value) setActiveTab('users'); }}
+              placeholder="Rechercher (utilisateur, email, ID...)" />
+          </div>
+          <button onClick={() => navigate('/')}
+            style={{ display:'flex', alignItems:'center', gap:7, background:'#fff', border:'1px solid #EAECF0', borderRadius:11, padding:'9px 13px', cursor:'pointer', fontFamily:'Poppins', fontSize:12.5, fontWeight:600, color:'#344054', flexShrink:0 }}>
+            <NavIcon name="eye" size={17} color="#667085" /><span className="adm-hide-sm">Voir le site</span>
+          </button>
+          <div style={{ position:'relative', flexShrink:0, display:'flex' }}>
+            <NavIcon name="bell" size={21} color="#667085" />
+            {(nPendingOrders + nPendingReports) > 0 && (
+              <span style={{ position:'absolute', top:-5, right:-7, background:'#FF2D8D', color:'#fff', fontSize:9.5, fontWeight:700, borderRadius:9, padding:'1px 5px' }}>{nPendingOrders + nPendingReports}</span>
+            )}
           </div>
         </div>
 
+      <div style={{ maxWidth: isDash ? 1180 : 700, margin: '0 auto' }}>
+
+        {!isDash && (<>
         {/* Installation PWA */}
         <div style={{ background: 'linear-gradient(135deg,#1877F218,#00C85311)', border: '1px solid #1877F244', borderRadius: 14, padding: '12px 14px', marginBottom: 14, display: 'flex', alignItems: 'center', gap: 12 }}>
           <HiDownload size={22} color="#3b82f6" style={{ flexShrink: 0 }} />
@@ -400,6 +474,8 @@ export default function AdminPanel() {
 
         {/* Diagnostic Push */}
         <PushDiagnostic uid={currentUser?.uid} />
+        </>)}
+
 
         {navMenuOpen && (
           <div onClick={() => setNavMenuOpen(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.45)', zIndex: 700, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
@@ -409,7 +485,7 @@ export default function AdminPanel() {
               {NAV_ITEMS.map(item => (
                 <button key={item.key} onClick={() => { setActiveTab(item.key); setNavMenuOpen(false); }}
                   style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 14, padding: '14px 20px', background: activeTab === item.key ? '#FFF0F7' : 'none', border: 'none', cursor: 'pointer', textAlign: 'left' }}>
-                  <span style={{ fontSize: 20 }}>{item.icon}</span>
+                  <span style={{ display: 'flex', alignItems: 'center' }}>{item.icon}</span>
                   <span style={{ flex: 1, fontWeight: activeTab === item.key ? 700 : 500, fontSize: 15, color: activeTab === item.key ? '#FF2D8D' : '#050505' }}>{item.label}</span>
                   {item.badge > 0 && <span style={{ background: '#FF2D8D', color: 'white', fontSize: 11, fontWeight: 700, borderRadius: 10, padding: '2px 8px' }}>{item.badge}</span>}
                 </button>
@@ -431,6 +507,16 @@ export default function AdminPanel() {
           </div>
         )}
 
+        {/* ── TABLEAU DE BORD ── */}
+        {isDash && (
+          <AdminDashboard
+            users={users} posts={posts} shops={shops} artists={artists}
+            onlineMap={onlineMap}
+            adminName={(userProfile?.fullName || 'Admin').split(' ')[0]}
+          />
+        )}
+
+        {!isDash && (<>
         {/* Stats */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: 8, marginBottom: 18 }}>
           {[
@@ -465,6 +551,7 @@ export default function AdminPanel() {
             <HiChevronDown size={18} color="#65676B" />
           </span>
         </button>
+        </>)}
 
         {/* ── TAB USERS ── */}
         {activeTab === 'users' && (
@@ -715,6 +802,7 @@ export default function AdminPanel() {
           </>
         )}
 
+      </div>
       </div>
     </div>
   );
