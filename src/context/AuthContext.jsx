@@ -37,6 +37,9 @@ export function AuthProvider({ children }) {
       website: '',
       currentCity: '',
       hometown: '',
+      gender: '',        // 'homme' | 'femme' | 'autre' | '' (tsy voafeno)
+      country: '',       // anarana frantsay (ex : Madagascar)
+      countryCode: '',   // ISO2 (ex : MG) — ampiasaina amin'ny statistiques admin
       friends: [],
       friendRequests: [],
       sentRequests: [],

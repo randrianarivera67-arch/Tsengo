@@ -20,7 +20,8 @@ import FollowListModal from '../components/FollowListModal';
 import SmartImage from '../components/SmartImage';
 import VideoThumb from '../components/VideoThumb';
 import { useActiveStoryUids } from '../hooks/useActiveStoryUids';
-import { NeonBriefcase, NeonGraduation, NeonPhone, NeonGlobe, NeonLocation, NeonHome, NeonMic, NeonArchive, NeonClock, NeonLike, NeonComment, NeonShare, NeonStar } from '../components/NeonIcons';
+import { NeonBriefcase, NeonGraduation, NeonPhone, NeonGlobe, NeonLocation, NeonHome, NeonMic, NeonArchive, NeonClock, NeonLike, NeonComment, NeonShare, NeonStar, NeonPeople } from '../components/NeonIcons';
+import { GENDERS, detectLocation } from '../utils/geoLocate';
 import { uploadToTelegram } from '../utils/telegram';
 import { getChatId } from '../utils/chat';
 import { sendPushNotification } from '../utils/onesignal';
@@ -79,7 +80,11 @@ export default function Profile() {
   const [editForm,       setEditForm]    = useState({
     fullName:'', bio:'', work:'', study:'', phone:'', website:'',
     currentCity:'', hometown:'', accountType:'personal',
+    gender:'', country:'', countryCode:'',
   });
+  const [showAllInfo, setShowAllInfo] = useState(false);   // "Voir tout" — mba tsy ho lava loatra ny profil
+  const [geoBusy, setGeoBusy] = useState(false);
+  const [geoNote, setGeoNote] = useState('');
   const [uploadingPhoto, setUploading]   = useState(false);
   const [coverURL,       setCoverURL]    = useState(null);
   const [uploadingCover, setUploadCover] = useState(false);
@@ -146,6 +151,7 @@ export default function Profile() {
           fullName: d.fullName || '', bio: d.bio || '',
           work: d.work || '', study: d.study || '', phone: d.phone || '', website: d.website || '',
           currentCity: d.currentCity || '', hometown: d.hometown || '', accountType: d.accountType || 'personal',
+          gender: d.gender || '', country: d.country || '', countryCode: d.countryCode || '',
         });
         setCoverURL(d.coverURL || null);
       }
@@ -230,6 +236,7 @@ export default function Profile() {
       phone: editForm.phone.trim(), website: editForm.website.trim(),
       currentCity: editForm.currentCity.trim(), hometown: editForm.hometown.trim(),
       accountType: editForm.accountType,
+      gender: editForm.gender, country: editForm.country.trim(), countryCode: editForm.countryCode,
     });
     setProfile(p=>({...p,...editForm})); setUserProfile(p=>({...p,...editForm})); setEditing(false);
   }
@@ -835,6 +842,34 @@ export default function Profile() {
             <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:8 }}><NeonGraduation/><input className="input" value={editForm.study} onChange={e=>setEditForm(p=>({...p,study:e.target.value}))} placeholder="Études (ex : Université d'Antananarivo)" style={{ flex:1 }}/></div>
             <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:8 }}><NeonLocation/><input className="input" value={editForm.currentCity} onChange={e=>setEditForm(p=>({...p,currentCity:e.target.value}))} placeholder="Ville actuelle" style={{ flex:1 }}/></div>
             <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:8 }}><NeonHome/><input className="input" value={editForm.hometown} onChange={e=>setEditForm(p=>({...p,hometown:e.target.value}))} placeholder="Ville d'origine" style={{ flex:1 }}/></div>
+            <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:8 }}>
+              <NeonGlobe/>
+              <input className="input" value={editForm.country} onChange={e=>setEditForm(p=>({...p,country:e.target.value,countryCode:''}))} placeholder="Pays (ex : Madagascar)" style={{ flex:1 }}/>
+            </div>
+            <button type="button" disabled={geoBusy}
+              onClick={async()=>{ setGeoBusy(true); setGeoNote(''); const r=await detectLocation(); setGeoBusy(false);
+                if(!r.ok){ setGeoNote(r.message); return; }
+                setEditForm(p=>({...p, currentCity:r.city||p.currentCity, country:r.country||p.country, countryCode:r.countryCode||p.countryCode}));
+                setGeoNote('Lieu détecté : '+[r.city,r.country].filter(Boolean).join(', ')); }}
+              style={{ width:'100%', padding:'9px', borderRadius:12, border:'1px solid #1877F2', marginBottom:8,
+                background: geoBusy?'#E4E6EB':'#EAF2FF', color: geoBusy?'#65676B':'#1877F2',
+                fontFamily:'Poppins', fontWeight:600, fontSize:12.5, cursor: geoBusy?'wait':'pointer' }}>
+              {geoBusy ? 'Localisation en cours…' : 'Détecter ma ville et mon pays'}
+            </button>
+            {geoNote && <p style={{ fontSize:11.5, color:'#65676B', marginBottom:8, lineHeight:1.45 }}>{geoNote}</p>}
+            <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:8 }}>
+              <NeonPeople/>
+              <div style={{ display:'flex', gap:6, flex:1 }}>
+                {GENDERS.map(g=>(
+                  <button key={g.value} type="button"
+                    onClick={()=>setEditForm(p=>({...p, gender: p.gender===g.value ? '' : g.value}))}
+                    style={{ flex:1, padding:'9px 4px', borderRadius:11, cursor:'pointer', fontFamily:'Poppins', fontWeight:600, fontSize:12.5,
+                      border: editForm.gender===g.value ? 'none' : '1px solid #E4E6EB',
+                      background: editForm.gender===g.value ? 'linear-gradient(135deg,#FF2D8D,#FF7AB8)' : '#FFFFFF',
+                      color: editForm.gender===g.value ? '#fff' : '#65676B' }}>{g.label}</button>
+                ))}
+              </div>
+            </div>
             <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:8 }}><NeonPhone/><input className="input" value={editForm.phone} onChange={e=>setEditForm(p=>({...p,phone:e.target.value}))} placeholder="Numéro de téléphone" style={{ flex:1 }}/></div>
             <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:10 }}><NeonGlobe/><input className="input" value={editForm.website} onChange={e=>setEditForm(p=>({...p,website:e.target.value}))} placeholder="Site web" style={{ flex:1 }}/></div>
             <div style={{ display:'flex', gap:10 }}>
@@ -860,17 +895,37 @@ export default function Profile() {
             <p style={{ color:'#65676B', fontSize:14 }}>@{profile.username}</p>
             {profile.bio&&<p style={{ marginTop:8, fontSize:14, color:'#65676B', maxWidth:280, margin:'8px auto 0' }}>{profile.bio}</p>}
 
-            {/* ── Informations complètes (format Facebook) ── */}
-            {(profile.work || profile.study || profile.currentCity || profile.hometown || profile.phone || profile.website) && (
-              <div style={{ maxWidth:320, margin:'14px auto 0', textAlign:'left', display:'flex', flexDirection:'column', gap:9 }}>
-                {profile.work && <p style={{ fontSize:13, display:'flex', alignItems:'center', gap:9 }}><NeonBriefcase/> Travaille chez <strong>{profile.work}</strong></p>}
-                {profile.study && <p style={{ fontSize:13, display:'flex', alignItems:'center', gap:9 }}><NeonGraduation/> A étudié à <strong>{profile.study}</strong></p>}
-                {profile.currentCity && <p style={{ fontSize:13, display:'flex', alignItems:'center', gap:9 }}><NeonLocation/> Vit à <strong>{profile.currentCity}</strong></p>}
-                {profile.hometown && <p style={{ fontSize:13, display:'flex', alignItems:'center', gap:9 }}><NeonHome/> Originaire de <strong>{profile.hometown}</strong></p>}
-                {profile.phone && <p style={{ fontSize:13, display:'flex', alignItems:'center', gap:9 }}><NeonPhone/> {profile.phone}</p>}
-                {profile.website && <p style={{ fontSize:13, display:'flex', alignItems:'center', gap:9 }}><NeonGlobe/> <a href={profile.website.startsWith('http')?profile.website:`https://${profile.website}`} target="_blank" rel="noreferrer" style={{ color:'#1877F2', textDecoration:'none' }}>{profile.website}</a></p>}
-              </div>
-            )}
+            {/* ── Informations complètes — 3 voalohany dia "Voir tout" ── */}
+            {(() => {
+              const st = { fontSize:13, display:'flex', alignItems:'center', gap:9 };
+              const rows = [];
+              if (profile.work)        rows.push(<p key="work" style={st}><NeonBriefcase/> Travaille chez <strong>{profile.work}</strong></p>);
+              if (profile.study)       rows.push(<p key="study" style={st}><NeonGraduation/> A étudié à <strong>{profile.study}</strong></p>);
+              if (profile.currentCity) rows.push(<p key="city" style={st}><NeonLocation/> Vit à <strong>{profile.currentCity}</strong></p>);
+              if (profile.hometown)    rows.push(<p key="home" style={st}><NeonHome/> Originaire de <strong>{profile.hometown}</strong></p>);
+              if (profile.country)     rows.push(<p key="country" style={st}><NeonGlobe/> Pays : <strong>{profile.country}</strong></p>);
+              if (profile.gender) {
+                const g = GENDERS.find(x => x.value === profile.gender);
+                if (g) rows.push(<p key="gender" style={st}><NeonPeople/> Genre : <strong>{g.label}</strong></p>);
+              }
+              if (profile.phone)       rows.push(<p key="phone" style={st}><NeonPhone/> {profile.phone}</p>);
+              if (profile.website)     rows.push(<p key="web" style={st}><NeonGlobe/> <a href={profile.website.startsWith('http')?profile.website:`https://${profile.website}`} target="_blank" rel="noreferrer" style={{ color:'#1877F2', textDecoration:'none' }}>{profile.website}</a></p>);
+              if (!rows.length) return null;
+              const LIMIT = 3;
+              const shown = showAllInfo ? rows : rows.slice(0, LIMIT);
+              return (
+                <div style={{ maxWidth:320, margin:'14px auto 0', textAlign:'left', display:'flex', flexDirection:'column', gap:9 }}>
+                  {shown}
+                  {rows.length > LIMIT && (
+                    <button onClick={() => setShowAllInfo(v => !v)}
+                      style={{ alignSelf:'flex-start', background:'none', border:'none', padding:0, cursor:'pointer',
+                        fontFamily:'Poppins', fontWeight:600, fontSize:12.5, color:'#1877F2' }}>
+                      {showAllInfo ? 'Voir moins' : `Voir tout (${rows.length})`}
+                    </button>
+                  )}
+                </div>
+              );
+            })()}
             <div style={{ display:'flex', justifyContent:'center', gap:24, marginTop:16 }}>
               {[
                 { label:'Amis', value:friendCount, onClick:()=>setActiveTab('amis') },

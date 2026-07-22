@@ -2,6 +2,7 @@
 // Étape 1 : création du compte (nom, username, email, mot de passe)
 // Étape 2 : infos du profil (travail, étude, villes, contact, site web) — Ignorer possible
 // Étape 3 : photo de profil + photo de couverture — Ignorer possible
+import { GENDERS, detectLocation } from '../utils/geoLocate';
 import { useState, useRef } from 'react';
 import { useNavigate, Link, Navigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
@@ -17,7 +18,9 @@ const USERNAME_REGEX = /^[a-z0-9_.]{3,30}$/;
 export default function Register() {
   const [step, setStep] = useState(1);
   const [form, setForm] = useState({ fullName: '', username: '', email: '', password: '', confirm: '' });
-  const [infoForm, setInfoForm] = useState({ work: '', study: '', hometown: '', currentCity: '', phone: '', website: '' });
+  const [infoForm, setInfoForm] = useState({ work: '', study: '', hometown: '', currentCity: '', phone: '', website: '', gender: '', country: '', countryCode: '' });
+  const [geoBusy, setGeoBusy] = useState(false);
+  const [geoNote, setGeoNote] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [creating, setCreating] = useState(false);
@@ -42,6 +45,22 @@ export default function Register() {
 
   const handleChange = (e) => setForm(p => ({ ...p, [e.target.name]: e.target.value }));
   const handleInfoChange = (e) => setInfoForm(p => ({ ...p, [e.target.name]: e.target.value }));
+
+  // Maka ny ville + pays amin'ny alalan'ny GPS. Facultatif tanteraka :
+  // raha lavina na tsy mety dia soratan'ny mpampiasa an-tanana fotsiny.
+  async function useMyLocation() {
+    setGeoBusy(true); setGeoNote('');
+    const r = await detectLocation();
+    setGeoBusy(false);
+    if (!r.ok) { setGeoNote(r.message); return; }
+    setInfoForm(p => ({
+      ...p,
+      currentCity: r.city || p.currentCity,
+      country: r.country || p.country,
+      countryCode: r.countryCode || p.countryCode,
+    }));
+    setGeoNote('Lieu détecté : ' + [r.city, r.country].filter(Boolean).join(', '));
+  }
 
   function getPasswordStrength(pw) {
     let score = 0;
@@ -152,6 +171,9 @@ export default function Register() {
         currentCity: infoForm.currentCity.trim(),
         phone: infoForm.phone.trim(),
         website: infoForm.website.trim(),
+        gender: infoForm.gender,
+        country: infoForm.country.trim(),
+        countryCode: infoForm.countryCode,
       };
       if (Object.values(infoData).some(v => v)) {
         await updateDoc(doc(db, 'users', uid), infoData);
@@ -313,8 +335,39 @@ export default function Register() {
                   <input className="input" type="text" name="hometown" value={infoForm.hometown} onChange={handleInfoChange} placeholder="Ex : Toamasina" maxLength={60} />
                 </div>
                 <div>
+                  <label style={inputLabel}>Genre</label>
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    {GENDERS.map(g => (
+                      <button key={g.value} type="button"
+                        onClick={() => setInfoForm(p => ({ ...p, gender: p.gender === g.value ? '' : g.value }))}
+                        style={{
+                          flex: 1, padding: '10px 6px', borderRadius: 12, cursor: 'pointer',
+                          fontFamily: 'Poppins', fontWeight: 600, fontSize: 13,
+                          border: infoForm.gender === g.value ? 'none' : '1px solid #E4E6EB',
+                          background: infoForm.gender === g.value ? 'linear-gradient(135deg,#FF2D8D,#FF7AB8)' : '#FFFFFF',
+                          color: infoForm.gender === g.value ? '#fff' : '#65676B',
+                        }}>{g.label}</button>
+                    ))}
+                  </div>
+                </div>
+                <div>
                   <label style={inputLabel}>Ville actuelle</label>
                   <input className="input" type="text" name="currentCity" value={infoForm.currentCity} onChange={handleInfoChange} placeholder="Ex : Antananarivo" maxLength={60} />
+                </div>
+                <div>
+                  <label style={inputLabel}>Pays</label>
+                  <input className="input" type="text" name="country" value={infoForm.country}
+                    onChange={e => setInfoForm(p => ({ ...p, country: e.target.value, countryCode: '' }))}
+                    placeholder="Ex : Madagascar" maxLength={60} />
+                  <button type="button" onClick={useMyLocation} disabled={geoBusy}
+                    style={{
+                      marginTop: 8, width: '100%', padding: '10px', borderRadius: 12, border: '1px solid #1877F2',
+                      background: geoBusy ? '#E4E6EB' : '#EAF2FF', color: geoBusy ? '#65676B' : '#1877F2',
+                      fontFamily: 'Poppins', fontWeight: 600, fontSize: 13, cursor: geoBusy ? 'wait' : 'pointer',
+                    }}>
+                    {geoBusy ? 'Localisation en cours…' : 'Détecter ma ville et mon pays'}
+                  </button>
+                  {geoNote && <p style={{ fontSize: 11.5, color: '#65676B', marginTop: 6, lineHeight: 1.45 }}>{geoNote}</p>}
                 </div>
                 <div>
                   <label style={inputLabel}>Contact</label>
