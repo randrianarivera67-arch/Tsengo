@@ -11,8 +11,10 @@ import { collection, query, where, getDocs, doc, updateDoc, getDoc } from 'fireb
 import { db } from '../firebase';
 import { uploadToCloudinary } from '../utils/cloudinary';
 
-// ✅ FIX: Strong password validation
-const PASSWORD_MIN = 8;
+// Teny miafina : 6 tarehintsoratra farafahakeliny — io no fetra HENTITRA takin'ny
+// Firebase Auth (tsy azo ahena ho 4 na 5). Tsy misy fepetra hafa (tsy voatery
+// misy majuscule/isa/marika) mba tsy hanahirana ny mpampiasa vaovao.
+const PASSWORD_MIN = 6;
 const USERNAME_REGEX = /^[a-z0-9_.]{3,30}$/;
 
 export default function Register() {
@@ -215,7 +217,8 @@ export default function Register() {
 
   function finishOnboarding() {
     setLoading(false);
-    navigate('/', { replace: true });
+    // Aorian'ny inscription : pejy fandraisana (ami → boutique → artiste)
+    navigate('/bienvenue', { replace: true });
   }
 
   const inputLabel = { fontSize: 13, fontWeight: 500, color: '#65676B', marginBottom: 5, display: 'block' };

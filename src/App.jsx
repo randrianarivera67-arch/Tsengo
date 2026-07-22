@@ -67,6 +67,7 @@ const SecuritySettings   = lazy(() => import('./pages/SecuritySettings'));
 const AppearanceSettings = lazy(() => import('./pages/AppearanceSettings'));
 const VIPInfo            = lazy(() => import('./pages/VIPInfo'));
 const AdminPanel         = lazy(() => import('./pages/AdminPanel'));
+const Onboarding         = lazy(() => import('./pages/Onboarding'));
 const BoostInfo          = lazy(() => import('./pages/BoostInfo'));
 const Groups             = lazy(() => import('./pages/Groups'));
 const GroupPage          = lazy(() => import('./pages/GroupPage'));
@@ -109,6 +110,7 @@ function AppRoutes() {
         {/* Register gère lui-même la redirection (onboarding multi-étapes après création du compte) */}
         <Route path="/register"       element={<Register />} />
         <Route path="/oauth/callback" element={<OAuthCallback />} />
+        <Route path="/bienvenue"      element={<PrivateRoute><Onboarding /></PrivateRoute>} />
         <Route path="/"               element={<PrivateRoute><Layout><Home /></Layout></PrivateRoute>} />
         <Route path="/profile/:uid?"  element={<PrivateRoute><Layout><Profile /></Layout></PrivateRoute>} />
         <Route path="/friends"        element={<PrivateRoute><Layout><Friends /></Layout></PrivateRoute>} />
