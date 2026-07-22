@@ -34,6 +34,7 @@ const REACTIONS = ['❤️','😂','😮','😢','😡','👍'];
 // Snapshot an'ny fil du groupe (seed + visibleCount + scroll) mba hiverenana AMIN'NY
 // publication nokitihina rehefa retour (POP) avy amin'ny détails.
 let groupSnapshot = null;
+let lastGroupHead = '';   // lohan'ny filaharana teo aloha (sorohana ny fiverimberenana)
 
 export default function GroupPage() {
   const { groupId } = useParams();
@@ -41,7 +42,9 @@ export default function GroupPage() {
   const navigate = useNavigate();
   const navType  = useNavigationType();   // 'POP' rehefa retour
   const restoringGroup = navType === 'POP' && groupSnapshot && groupSnapshot.groupId === groupId;
-  const pendingScrollRef = useRef(restoringGroup ? groupSnapshot.scrollY : null);
+  const pendingScrollRef = useRef(restoringGroup
+    ? { scrollY: groupSnapshot.scrollY, anchorId: groupSnapshot.anchorId, anchorTop: groupSnapshot.anchorTop }
+    : null);
 
   const [group,      setGroup]      = useState(null);
   const [notFound,   setNotFound]   = useState(false);
@@ -118,33 +121,43 @@ export default function GroupPage() {
   // + shuffle par refresh. Ny score dia mampiasa champs IMMUABLES ihany (createdAt,
   // uid, id, boost) → tsy mifindra ny cartes rehefa miova ny réactions/vues.
   useEffect(() => {
-    const seed = groupSeedRef.current;
+    let seed = groupSeedRef.current;
     const myUid = currentUser?.uid || null;
     const nowMs = Date.now(), nowD = new Date();
     const tsMs = (v) => (v?.seconds ? v.seconds * 1000 : (v?._seconds ? v._seconds * 1000 : 0));
-    const rnd = (id) => {
-      let h = 2166136261; const str = String(id) + ':' + seed;
+    const rnd = (id, sd) => {
+      let h = 2166136261; const str = String(id) + ':' + sd;
       for (let i = 0; i < str.length; i++) { h ^= str.charCodeAt(i); h = Math.imul(h, 16777619); }
       return ((h >>> 0) % 1000) / 1000;
     };
-    const scoreOf = (p) => {
-      const boosted = p.isBoosted && p.boostUntil && new Date(p.boostUntil) > nowD;
-      const hoursAgo = (nowMs - tsMs(p.createdAt)) / 3600000;
-      const mine = p.uid === myUid ? 24 : 0;
-      let recency;
-      if      (hoursAgo < 6)   recency = 34;
-      else if (hoursAgo < 24)  recency = 27;
-      else if (hoursAgo < 72)  recency = 20;
-      else if (hoursAgo < 168) recency = 12;
-      else                     recency = 5;
-      recency -= hoursAgo * 0.03;
-      const shuffle = rnd(p.id) * 22;
-      return (boosted ? 1e6 : 0) + mine + recency + shuffle;
+    const rank = (list, sd) => {
+      const scoreOf = (p) => {
+        const boosted = p.isBoosted && p.boostUntil && new Date(p.boostUntil) > nowD;
+        const hoursAgo = (nowMs - tsMs(p.createdAt)) / 3600000;
+        const shuffle = rnd(p.id, sd) * 100;   // MIBAHANA → mifamadika isaky ny refresh
+        let recency;
+        if      (hoursAgo < 6)   recency = 14;
+        else if (hoursAgo < 24)  recency = 10;
+        else if (hoursAgo < 72)  recency = 6;
+        else if (hoursAgo < 168) recency = 3;
+        else                     recency = 0;
+        const mine = p.uid === myUid ? 8 : 0;
+        return (boosted ? 1e6 : 0) + shuffle + recency + mine;
+      };
+      return [...list].sort((a, b) => scoreOf(b) - scoreOf(a));
     };
     const q = query(collection(db, 'posts'), where('groupId', '==', groupId));
     const unsub = onSnapshot(q, snap => {
-      const list = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-      list.sort((a, b) => scoreOf(b) - scoreOf(a));
+      const raw = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      let list = rank(raw, seed);
+      // Antoka fa tsy mitovy amin'ny filaharana teo aloha (raha refresh)
+      for (let k = 0; k < 4; k++) {
+        const head = list.slice(0, 3).map(p => p.id).join('|');
+        if (!head || head !== lastGroupHead) break;
+        seed = Date.now() + k * 7919 + 13;
+        list = rank(raw, seed);
+      }
+      lastGroupHead = list.slice(0, 3).map(p => p.id).join('|');
       setPosts(list);
     }, err => console.error('Lecture posts groupe:', err?.message || err));
     return () => unsub();
@@ -153,26 +166,48 @@ export default function GroupPage() {
   // Consommer ny snapshot indray mandeha
   useEffect(() => { groupSnapshot = null; /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, []);
 
-  // Averina ny toerana scroll rehefa vita ny fisehoan'ny posts
+  // Averina AMIN'NY publication nokitihina (anchor) rehefa vita ny fisehoan'ny posts
   useEffect(() => {
     if (pendingScrollRef.current == null || !posts.length) return;
-    const y = pendingScrollRef.current;
+    const s = pendingScrollRef.current;
     pendingScrollRef.current = null;
-    let tries = 0;
-    const go = () => { window.scrollTo(0, y); if (++tries < 8) requestAnimationFrame(go); };
-    requestAnimationFrame(go);
-    const t1 = setTimeout(() => window.scrollTo(0, y), 180);
-    const t2 = setTimeout(() => window.scrollTo(0, y), 400);
-    return () => { clearTimeout(t1); clearTimeout(t2); };
+    let timer = null;
+    const onUser = () => stopRestore();
+    function stopRestore() {
+      if (timer) clearTimeout(timer);
+      timer = null;
+      window.removeEventListener('touchstart', onUser);
+      window.removeEventListener('wheel', onUser);
+    }
+    window.addEventListener('touchstart', onUser, { passive: true });
+    window.addEventListener('wheel', onUser, { passive: true });
+    const t0 = Date.now();
+    const tick = () => {
+      const el = s.anchorId ? document.getElementById('post-' + s.anchorId) : null;
+      if (el && s.anchorTop != null) {
+        const delta = el.getBoundingClientRect().top - s.anchorTop;
+        if (Math.abs(delta) > 1) window.scrollBy(0, delta);
+      } else {
+        window.scrollTo(0, s.scrollY);
+      }
+      if (Date.now() - t0 < 2500) timer = setTimeout(tick, 90);
+      else stopRestore();
+    };
+    timer = setTimeout(tick, 0);
+    return stopRestore;
   }, [posts.length]);
 
   // Manindry publication → tehirizina ny toetry ny fil alohan'ny détails
-  const openPost = (id) => {
+  const openPost = (id, anchorId) => {
+    const aId = anchorId || id;
+    const el  = document.getElementById('post-' + aId);
     groupSnapshot = {
       groupId,
       seed: groupSeedRef.current,
       visibleCount,
       scrollY: window.scrollY || document.documentElement.scrollTop || 0,
+      anchorId: aId,
+      anchorTop: el ? el.getBoundingClientRect().top : null,
     };
     navigate('/post/' + id);
   };
@@ -709,7 +744,7 @@ export default function GroupPage() {
         const total = Object.keys(post.reactions || {}).length;
         const myR = post.reactions?.[currentUser.uid];
         return (
-          <div key={post.id} className="card post-card animate-fade" style={{ marginBottom: 8 }}>
+          <div key={post.id} id={'post-' + post.id} className="card post-card animate-fade" style={{ marginBottom: 8 }}>
             <div style={{ padding: '12px 16px 0', display: 'flex', alignItems: 'center', gap: 10 }}>
               <img src={post.authorPhoto || `https://ui-avatars.com/api/?name=${encodeURIComponent(post.authorName || 'U')}&background=1877F2&color=fff`}
                 alt="" className="avatar" style={{ width: 40, height: 40, cursor: 'pointer' }} onClick={() => post.shopId ? navigate(`/shop/${post.shopId}`) : post.artistId ? navigate(`/artists/${post.artistId}`) : navigate(`/profile/${post.uid}`)} />
@@ -758,7 +793,7 @@ export default function GroupPage() {
             <div style={{ padding: '8px 16px', cursor: 'pointer' }} onClick={() => openPost(post.id)}>
               {post.content && (post.textBg ? <p style={{ background: post.textBg, minHeight:180, display:'flex', alignItems:'center', justifyContent:'center', textAlign:'center', color:'#fff', fontSize:24, fontWeight:800, padding:'24px 18px', lineHeight:1.4, wordBreak:'break-word', whiteSpace:'pre-wrap', margin:0, borderRadius:8 }}>{post.content}</p> : <p style={{ fontSize: 15, lineHeight: 1.6, wordBreak: 'break-word' }}>{post.content}</p>)}
               {post.sharedFrom && (
-                <div onClick={e => { e.stopPropagation(); openPost(post.sharedFrom.id); }}
+                <div onClick={e => { e.stopPropagation(); openPost(post.sharedFrom.id, post.id); }}
                   style={{ marginTop: 8, border: '1px solid #E4E6EB', borderRadius: 12, overflow: 'hidden', cursor: 'pointer' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '9px 12px' }}>
                     <img src={post.sharedFrom.authorPhoto || `https://ui-avatars.com/api/?name=${encodeURIComponent(post.sharedFrom.authorName || 'U')}&background=1877F2&color=fff`}

@@ -573,6 +573,7 @@ export default function Home() {
   // Contexte de score amin'ny ref → azo vakiana avy hatrany (synchrone) na aiza
   // na aiza (refresh, pagination) tsy miandry re-render
   const scoreCtxRef = useRef({ seed: Date.now() });
+  const lastHeadRef = useRef('');   // lohan'ny filaharana teo aloha (sorohana ny fiverimberenana)
   useEffect(() => {
     scoreCtxRef.current = {
       myUid: currentUser?.uid || null,
@@ -596,31 +597,34 @@ export default function Home() {
       const boosted = pp.isBoosted && pp.boostUntil && new Date(pp.boostUntil) > nowD
         && isInZones(ctx.lat, ctx.lng, pp.boostZones);
       const hoursAgo = (nowMs - tsMs(pp.createdAt)) / 3600000;
-      const mine   = pp.uid === ctx.myUid ? 24 : 0;
-      const friend = ctx.aff.has(pp.uid) ? 14 : 0;
-      const reacts = Object.keys(pp.reactions || {}).length;
-      const vues   = Math.min(pp.views || 0, 300);
-      const engage = reacts * 1.0 + vues * 0.02;
-      const city   = (pp.authorCity || pp.location || '').trim().toLowerCase();
-      const local  = ctx.myCity && city && (city.includes(ctx.myCity) || ctx.myCity.includes(city)) ? 6 : 0;
-      const newReg = ctx.newUids.has(pp.uid) ? 5 + local : 0;
-      const shopGroup = (pp.shopId || pp.groupId || pp.isShop || pp.artistId) ? rnd(pp.id + 'sg') * 6 : 0;
 
-      // RÉCENCE "douce" par paliers : mankasitraka ny vaovao NEFA tsy mamatotra azy
-      // ho fixe ambony indrindra → mamela ny shuffle hanova filaharana isaky ny refresh
+      // ── SHUFFLE MIBAHANA (0 → 100) ──────────────────────────────────────────
+      // Isaky ny refresh dia seed vaovao → MIFAMADIKA TANTERAKA ny filaharana.
+      // TSY voatery manaraka daty : mety ho voalohany ny "il y a 2j", faharoa ny
+      // "6h", fahatelo ny "1h"… dia miova indray amin'ny refresh manaraka.
+      const shuffle = rnd(pp.id) * 100;
+
+      // ── Tombony KELY monja (tsy mahasakana ny fifamadihana) ─────────────────
       let recency;
-      if      (hoursAgo < 6)   recency = 34;
-      else if (hoursAgo < 24)  recency = 27;
-      else if (hoursAgo < 72)  recency = 20;
-      else if (hoursAgo < 168) recency = 12;
-      else                     recency = 5;
-      recency -= hoursAgo * 0.03;
+      if      (hoursAgo < 6)   recency = 14;
+      else if (hoursAgo < 24)  recency = 10;
+      else if (hoursAgo < 72)  recency = 6;
+      else if (hoursAgo < 168) recency = 3;
+      else                     recency = 0;
 
-      const shuffle = rnd(pp.id) * 22;   // fiovaovana matanjaka isaky ny refresh
+      const mine   = pp.uid === ctx.myUid ? 8 : 0;
+      const friend = ctx.aff.has(pp.uid) ? 6 : 0;
+      const reacts = Math.min(Object.keys(pp.reactions || {}).length, 20);
+      const vues   = Math.min(pp.views || 0, 300);
+      const engage = reacts * 0.25 + vues * 0.005;                  // 0 → 6.5
+      const city   = (pp.authorCity || pp.location || '').trim().toLowerCase();
+      const local  = ctx.myCity && city && (city.includes(ctx.myCity) || ctx.myCity.includes(city)) ? 3 : 0;
+      const newReg = ctx.newUids.has(pp.uid) ? 3 : 0;
+      const shopGroup = (pp.shopId || pp.groupId || pp.isShop || pp.artistId) ? rnd(pp.id + 'sg') * 4 : 0;
 
       return (boosted ? 1e6 : 0)
-        + mine + friend + engage + local + newReg + shopGroup
-        + recency + shuffle;
+        + shuffle
+        + recency + mine + friend + engage + local + newReg + shopGroup;
     };
     return [...rows].sort((a, b) => scoreOf(b) - scoreOf(a));
   }
@@ -643,7 +647,20 @@ export default function Home() {
         for (const r of rows) map.set(r.id, { ...r });
         return Array.from(map.values());
       });
-      const rankedIds = rankPosts(rows).map(r => r.id);
+      let ranked = rankPosts(rows);
+      // ── Antoka fa TSY mitovy amin'ny filaharana teo aloha ──
+      // Raha sendra mitovy ihany ny lohany (ny 3 voalohany), dia averina ny seed
+      // ka atao indray ny classement → filaharana VAOVAO tokoa isaky ny refresh.
+      if (first) {
+        for (let k = 0; k < 4; k++) {
+          const head = ranked.slice(0, 3).map(r => r.id).join('|');
+          if (!head || head !== lastHeadRef.current) break;
+          scoreCtxRef.current = { ...scoreCtxRef.current, seed: Date.now() + k * 7919 + 13 };
+          ranked = rankPosts(rows);
+        }
+        lastHeadRef.current = ranked.slice(0, 3).map(r => r.id).join('|');
+      }
+      const rankedIds = ranked.map(r => r.id);
       const serverIds = new Set(rankedIds);
       setOrder(prev => {
         if (first) {
@@ -675,12 +692,17 @@ export default function Home() {
 
   // Premiere page (20)
   // Manindry publication → tehirizina ny toetry ny fil sy ny toerana scroll
-  const openPost = (id) => {
+  // anchorId = ny publication hiverenana (ny carte ao amin'ny fil)
+  const openPost = (id, anchorId) => {
+    const aId = anchorId || id;
+    const el  = document.getElementById('post-' + aId);
     feedSnapshot = {
       order, feedRaw, visibleCount,
       cursor: cursorRef.current, reachedEnd,
       seed: shuffleSeed,
       scrollY: window.scrollY || document.documentElement.scrollTop || 0,
+      anchorId: aId,
+      anchorTop: el ? el.getBoundingClientRect().top : null,
       ts: Date.now(),
     };
     navigate('/post/' + id);
@@ -702,15 +724,36 @@ export default function Home() {
         && (p.uid === currentUser?.uid || (p.audience === 'friends' ? myFriends.includes(p.uid) : p.audience !== 'me'));
       setPosts(s.order.map(id => byId.get(id)).filter(visible));
       setPostsLoading(false);
-      let tries = 0;
-      const restoreScroll = () => {
-        window.scrollTo(0, s.scrollY);
-        if (++tries < 8) requestAnimationFrame(restoreScroll);
+
+      // ── Famerenana AMIN'NY publication nokitihina (anchor) fa TSY amin'ny pixel ──
+      // Miova ny haavon'ny pejy rehefa tonga tsikelikely ny sary (SmartImage minHeight
+      // 240 → haavo tena izy), ka ny "scrollY" irery dia tsy mahatoky (indraindray
+      // mety, indraindray tsy mety). Ity kosa manitsy ny tenany isaky ny 90ms mandra-
+      // pahatapitry ny 2,5s — na mijanona avy hatrany raha mikasika ny écran ny olona.
+      let timer = null;
+      const onUser = () => stopRestore();
+      function stopRestore() {
+        if (timer) clearTimeout(timer);
+        timer = null;
+        window.removeEventListener('touchstart', onUser);
+        window.removeEventListener('wheel', onUser);
+      }
+      window.addEventListener('touchstart', onUser, { passive: true });
+      window.addEventListener('wheel', onUser, { passive: true });
+      const t0 = Date.now();
+      const tick = () => {
+        const el = s.anchorId ? document.getElementById('post-' + s.anchorId) : null;
+        if (el && s.anchorTop != null) {
+          const delta = el.getBoundingClientRect().top - s.anchorTop;
+          if (Math.abs(delta) > 1) window.scrollBy(0, delta);   // averina eo amin'ny toerana marina
+        } else {
+          window.scrollTo(0, s.scrollY);                        // fallback
+        }
+        if (Date.now() - t0 < 2500) timer = setTimeout(tick, 90);
+        else stopRestore();
       };
-      requestAnimationFrame(restoreScroll);
-      const t1 = setTimeout(() => window.scrollTo(0, s.scrollY), 180);
-      const t2 = setTimeout(() => window.scrollTo(0, s.scrollY), 400);
-      return () => { clearTimeout(t1); clearTimeout(t2); };
+      timer = setTimeout(tick, 0);
+      return stopRestore;
     }
     feedSnapshot = null;   // fidirana vaovao → hadino ny snapshot
     loadFeedPage(true);
@@ -1999,7 +2042,7 @@ const fields = {
         const sentReq    = hasSentReq(post.uid);
 
         return (
-          <div key={post.id}>
+          <div key={post.id} id={'post-' + post.id}>
           {pIdx > 0 && pIdx % 5 === 0 && (
             <MusicRow
               onVoirTout={() => navigate('/artists')}
@@ -2175,7 +2218,7 @@ const fields = {
               )}
               {/* Publication partagée (format Facebook) */}
               {post.sharedFrom && (
-                <div onClick={e => { e.stopPropagation(); openPost(post.sharedFrom.id); }}
+                <div onClick={e => { e.stopPropagation(); openPost(post.sharedFrom.id, post.id); }}
                   style={{ marginTop:8, border:'1px solid #E4E6EB', borderRadius:12, overflow:'hidden', cursor:'pointer' }}>
                   <div style={{ display:'flex', alignItems:'center', gap:8, padding:'9px 12px' }}>
                     <img src={post.sharedFrom.authorPhoto||`https://ui-avatars.com/api/?name=${encodeURIComponent(post.sharedFrom.authorName||'U')}&background=1877F2&color=fff`}
