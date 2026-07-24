@@ -1,12 +1,13 @@
 // src/pages/ShopMessages.jsx — Messagerie dédiée à une page boutique
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ref, push, onValue, update, remove } from 'firebase/database';
+import { ref, push, onValue, update, remove, increment, get } from 'firebase/database';
 import { doc, getDoc, addDoc, updateDoc, arrayUnion, collection, serverTimestamp } from 'firebase/firestore';
 import { db, rtdb } from '../firebase';
 import { useAuth } from '../context/AuthContext';
 import { sendPushNotification } from '../utils/onesignal';
 import { uploadToTelegram } from '../utils/telegram';
+import { bizReplyUpdates, bizListUpdates, bizListFromIndex, buildBizIndexFromConversations, bizReadUpdates } from '../utils/chatIndex';
 import { HiShoppingBag, HiCheckCircle} from 'react-icons/hi';
 import Linkify from '../components/Linkify';
 import { HiArrowLeft, HiPaperAirplane, HiChevronRight, HiPhotograph, HiVideoCamera, HiPaperClip, HiMicrophone, HiDotsVertical, HiBan, HiTrash, HiCollection, HiX, HiSearch } from 'react-icons/hi';
@@ -45,21 +46,35 @@ export default function ShopMessages() {
 
   useEffect(() => { getDoc(doc(db, 'shops', shopId)).then(s => s.exists() && setShop({ id: s.id, ...s.data() })); }, [shopId]);
 
+  // ── Lisitry ny mpitsidika : INDEX `bizChats/shop_{id}` ────────────────────
+  // Teo aloha : nalaina ny `conversations` MANONTOLO (ny an'ny app iray manontolo)
+  // dia nosivanina tao amin'ny JS. Izao : ny an'ity boutique ity ihany.
+  const bizMigratedRef = useRef(false);
   useEffect(() => {
     if (!shop || !isAdmin) return;
-    const prefix = `shop_${shopId}_`;
-    return onValue(ref(rtdb, 'conversations'), snap => {
-      const data = snap.val() || {};
-      setConvs(Object.entries(data)
-        .filter(([k]) => k.startsWith(prefix))
-        .map(([k, c]) => {
-          const uid = k.slice(prefix.length);
-          const m = c.messages ? Object.values(c.messages) : [];
-          return { uid, last: m[m.length - 1], unread: m.filter(x => x.fromUid !== currentUser.uid && !x.readByAdmin).length, meta: c.meta || {} };
-        })
-        .sort((a, b) => (b.last?.ts || 0) - (a.last?.ts || 0)));
-    });
-  }, [shop, isAdmin, shopId, currentUser]);
+    let alive = true;
+    bizMigratedRef.current = false;
+    const unsub = onValue(ref(rtdb, `bizChats/shop_${shopId}`), async snap => {
+      if (!alive) return;
+      const val = snap.val();
+      if (val && Object.keys(val).length) { setConvs(bizListFromIndex(val)); return; }
+      // Migration indray mandeha ho an'ny resaka efa nisy talohan'ny index
+      if (bizMigratedRef.current) { setConvs([]); return; }
+      bizMigratedRef.current = true;
+      try {
+        const allSnap = await get(ref(rtdb, 'conversations'));
+        const built = buildBizIndexFromConversations(allSnap.val(), 'shop', shopId);
+        if (Object.keys(built).length) {
+          update(ref(rtdb, `bizChats/shop_${shopId}`), built).catch(() => {});
+          if (alive) setConvs(bizListFromIndex(built));
+        } else if (alive) setConvs([]);
+      } catch (e) {
+        console.error('Migration index boutique:', e?.message || e);
+        if (alive) setConvs([]);
+      }
+    }, err => console.error('Lecture index boutique refusée:', err?.message || err));
+    return () => { alive = false; unsub(); };
+  }, [shop, isAdmin, shopId]);
 
   useEffect(() => {
     if (!isAdmin || !paramVisitor) return;
@@ -80,6 +95,10 @@ export default function ShopMessages() {
         if (!isAdmin && m.fromShop && !m.readByVisitor) { upd[`${m.id}/readByVisitor`] = true; upd[`${m.id}/read`] = true; }
       });
       if (Object.keys(upd).length) update(r, upd).catch(() => {});
+      if (isAdmin) {
+        const ru = bizReadUpdates('shop', shopId, activeVisitor);
+        if (Object.keys(ru).length) update(ref(rtdb), ru).catch(() => {});
+      }
     });
   }, [activeVisitor, shop, shopId, isAdmin, currentUser]);
 
@@ -98,6 +117,36 @@ export default function ShopMessages() {
     const meta = { lastMessage: label, lastTs: Date.now(), shopId, shopName: shop.name, shopPhoto: shop.photoURL || '' };
     if (!isAdmin) { meta.visitorName = userProfile?.fullName || ''; meta.visitorPhoto = userProfile?.photoURL || ''; }
     await update(ref(rtdb, `${base}/meta`), meta);
+
+    // ── Index an'ny MPITSIDIKA (userChats) : izay no ahitany ny valiny ao
+    // amin'ny lisitry ny resakany, tsy misy famakiana ny `conversations`
+    // manontolo intsony. Raha tsy mety dia tsy mandrava ny fandefasana.
+    try {
+      const now = Date.now();
+      const msgIdx = {
+        text: body, mediaType, ts: now, fromUid: currentUser.uid,
+        fromName: isAdmin ? shop.name : (userProfile?.fullName || ''),
+      };
+      const iu = {
+        // a) index an'ny MPITSIDIKA (userChats) → hitany ao amin'ny lisitry ny resany
+        ...bizReplyUpdates({
+          chatId: `shop_${shopId}_${activeVisitor}`,
+          visitorUid: activeVisitor,
+          type: 'shop', bizId: shopId,
+          msg: msgIdx,
+          name: shop.name, photo: shop.photoURL || '',
+          INCREMENT: isAdmin ? increment(1) : 0,
+        }),
+        // b) index an'ny BOUTIQUE (bizChats) → lisitry ny mpitsidika, tsy misy
+        //    famakiana ny `conversations` manontolo intsony
+        ...bizListUpdates({
+          type: 'shop', bizId: shopId, visitorUid: activeVisitor,
+          msg: msgIdx, fromAdmin: isAdmin, INCREMENT: increment(1),
+          ...(isAdmin ? {} : { visitorName: userProfile?.fullName || '', visitorPhoto: userProfile?.photoURL || '' }),
+        }),
+      };
+      if (Object.keys(iu).length) await update(ref(rtdb), iu);
+    } catch (e) { console.error('Index resaka:', e?.message || e); }
 
     if (isAdmin && activeVisitor !== currentUser.uid) {
       addDoc(collection(db, 'notifications'), { toUid: activeVisitor, fromUid: currentUser.uid, fromName: shop.name, fromPhoto: shop.photoURL || '', type: 'shopMessage', shopId, visitorUid: activeVisitor, message: `${shop.name} vous a répondu : ${label.slice(0, 60)}`, read: false, createdAt: serverTimestamp() }).catch(() => {});

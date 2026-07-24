@@ -1,0 +1,73 @@
+{
+  "_COMMENT_1": "Trengo — DINGANA 2. Ampiharo REHEFA AFAKA 3–4 HERINANDRO, rehefa azo antoka fa efa nisokatra ny app ny ankamaroan'ny mpampiasa (vita ny migration).",
+  "_COMMENT_2": "Ny fanovana lehibe : ESORINA ny '.read' amin'ny fototry ny `conversations`. Ny mpampiasa dia tsy afaka mamaky afa-tsy ny resaka misy ny uid-ny ao anatin'ny anarany. Izay no manakana ny olona tsy hamaky ny resaky ny hafa.",
+  "_COMMENT_3": "FANDINIHANA : ny mpampiasa izay TSY nisokatra mihitsy nandritra ny dingana 1 dia tsy hahita ny lisitra taloha (tsy voafafa anefa ny resaka — miverina izy rehefa misy hafatra vaovao). Izay no antony hiandrasana herinandro vitsivitsy.",
+
+  "rules": {
+    ".read": false,
+    ".write": false,
+
+    "online": {
+      ".read": "auth != null",
+      "$uid": {
+        ".write": "auth != null && auth.uid === $uid"
+      }
+    },
+
+    "conversations": {
+      "$chatId": {
+        ".read": "auth != null && $chatId.contains(auth.uid)",
+        ".write": "auth != null && $chatId.contains(auth.uid)",
+        "messages": {
+          "$msgId": {
+            ".validate": "newData.hasChildren(['ts']) || !newData.exists()",
+            "text":     { ".validate": "newData.isString() && newData.val().length <= 5000" },
+            "mediaURL": { ".validate": "newData.isString() && newData.val().length <= 800" },
+            "ts":       { ".validate": "newData.isNumber()" }
+          }
+        }
+      }
+    },
+
+    "userChats": {
+      "$uid": {
+        ".read": "auth != null && auth.uid === $uid",
+        ".write": "auth != null",
+        "$chatId": {
+          "t":  { ".validate": "newData.isString() && newData.val().length <= 10" },
+          "o":  { ".validate": "newData.isString() && newData.val().length <= 128" },
+          "lt": { ".validate": "newData.isString() && newData.val().length <= 200" },
+          "mt": { ".validate": "newData.isString() && newData.val().length <= 20" },
+          "fn": { ".validate": "newData.isString() && newData.val().length <= 80" },
+          "fu": { ".validate": "newData.isString() && newData.val().length <= 128" },
+          "ts": { ".validate": "newData.isNumber()" },
+          "u":  { ".validate": "newData.isNumber() && newData.val() >= 0" },
+          "s":  { ".validate": "newData.isNumber()" },
+          "a":  { ".validate": "newData.isNumber()" },
+          "d":  { ".validate": "newData.isNumber()" },
+          "n":  { ".validate": "newData.isString() && newData.val().length <= 80" },
+          "ph": { ".validate": "newData.isString() && newData.val().length <= 400" },
+          "$other": { ".validate": false }
+        }
+      }
+    },
+
+    "bizChats": {
+      "$bizKey": {
+        ".read": "auth != null",
+        ".write": "auth != null",
+        "$visitorUid": {
+          "lt": { ".validate": "newData.isString() && newData.val().length <= 200" },
+          "mt": { ".validate": "newData.isString() && newData.val().length <= 20" },
+          "fn": { ".validate": "newData.isString() && newData.val().length <= 80" },
+          "fu": { ".validate": "newData.isString() && newData.val().length <= 128" },
+          "ts": { ".validate": "newData.isNumber()" },
+          "u":  { ".validate": "newData.isNumber() && newData.val() >= 0" },
+          "vn": { ".validate": "newData.isString() && newData.val().length <= 80" },
+          "vp": { ".validate": "newData.isString() && newData.val().length <= 400" },
+          "$other": { ".validate": false }
+        }
+      }
+    }
+  }
+}

@@ -1,13 +1,14 @@
 // src/pages/ArtistMessages.jsx — Messagerie dédiée à une page artiste
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ref, push, onValue, update, remove } from 'firebase/database';
+import { ref, push, onValue, update, remove, increment, get } from 'firebase/database';
 import { doc, getDoc, addDoc, updateDoc, arrayUnion, collection, serverTimestamp } from 'firebase/firestore';
 import { db, rtdb } from '../firebase';
 import { useAuth } from '../context/AuthContext';
 import { sendPushNotification } from '../utils/onesignal';
 import { uploadToTelegram } from '../utils/telegram';
 import { NeonMic } from '../components/NeonIcons';
+import { bizReplyUpdates, bizListUpdates, bizListFromIndex, buildBizIndexFromConversations, bizReadUpdates } from '../utils/chatIndex';
 import Linkify from '../components/Linkify';
 import { HiArrowLeft, HiPaperAirplane, HiChevronRight, HiPhotograph, HiVideoCamera, HiPaperClip, HiMicrophone, HiDotsVertical, HiBan, HiTrash, HiCollection, HiX, HiSearch, HiCheckCircle} from 'react-icons/hi';
 
@@ -45,21 +46,34 @@ export default function ArtistMessages() {
 
   useEffect(() => { getDoc(doc(db, 'artists', artistId)).then(s => s.exists() && setArtist({ id: s.id, ...s.data() })); }, [artistId]);
 
+  // ── Lisitry ny mpitsidika : INDEX `bizChats/artist_{id}` ──────────────────
+  // Teo aloha : nalaina ny `conversations` MANONTOLO dia nosivanina tao amin'ny
+  // JS. Izao : ny an'ity page artiste ity ihany → mitoetra ho kely foana.
+  const bizMigratedRef = useRef(false);
   useEffect(() => {
     if (!artist || !isAdmin) return;
-    const prefix = `artist_${artistId}_`;
-    return onValue(ref(rtdb, 'conversations'), snap => {
-      const data = snap.val() || {};
-      setConvs(Object.entries(data)
-        .filter(([k]) => k.startsWith(prefix))
-        .map(([k, c]) => {
-          const uid = k.slice(prefix.length);
-          const m = c.messages ? Object.values(c.messages) : [];
-          return { uid, last: m[m.length - 1], unread: m.filter(x => x.fromUid !== currentUser.uid && !x.readByAdmin).length, meta: c.meta || {} };
-        })
-        .sort((a, b) => (b.last?.ts || 0) - (a.last?.ts || 0)));
-    });
-  }, [artist, isAdmin, artistId, currentUser]);
+    let alive = true;
+    bizMigratedRef.current = false;
+    const unsub = onValue(ref(rtdb, `bizChats/artist_${artistId}`), async snap => {
+      if (!alive) return;
+      const val = snap.val();
+      if (val && Object.keys(val).length) { setConvs(bizListFromIndex(val)); return; }
+      if (bizMigratedRef.current) { setConvs([]); return; }
+      bizMigratedRef.current = true;
+      try {
+        const allSnap = await get(ref(rtdb, 'conversations'));
+        const built = buildBizIndexFromConversations(allSnap.val(), 'artist', artistId);
+        if (Object.keys(built).length) {
+          update(ref(rtdb, `bizChats/artist_${artistId}`), built).catch(() => {});
+          if (alive) setConvs(bizListFromIndex(built));
+        } else if (alive) setConvs([]);
+      } catch (e) {
+        console.error('Migration index page artiste:', e?.message || e);
+        if (alive) setConvs([]);
+      }
+    }, err => console.error('Lecture index page artiste refusée:', err?.message || err));
+    return () => { alive = false; unsub(); };
+  }, [artist, isAdmin, artistId]);
 
   useEffect(() => {
     if (!isAdmin || !paramVisitor) return;
@@ -80,6 +94,10 @@ export default function ArtistMessages() {
         if (!isAdmin && m.fromArtist && !m.readByVisitor) { upd[`${m.id}/readByVisitor`] = true; upd[`${m.id}/read`] = true; }
       });
       if (Object.keys(upd).length) update(r, upd).catch(() => {});
+      if (isAdmin) {
+        const ru = bizReadUpdates('artist', artistId, activeVisitor);
+        if (Object.keys(ru).length) update(ref(rtdb), ru).catch(() => {});
+      }
     });
   }, [activeVisitor, artist, artistId, isAdmin, currentUser]);
 
@@ -98,6 +116,33 @@ export default function ArtistMessages() {
     const meta = { lastMessage: label, lastTs: Date.now(), artistId, artistName: artist.name, artistPhoto: artist.photoURL || '' };
     if (!isAdmin) { meta.visitorName = userProfile?.fullName || ''; meta.visitorPhoto = userProfile?.photoURL || ''; }
     await update(ref(rtdb, `${base}/meta`), meta);
+
+    // ── Index an'ny MPITSIDIKA (userChats) : izay no ahitany ny valiny ao
+    // amin'ny lisitry ny resakany, tsy misy famakiana ny `conversations`
+    // manontolo intsony. Raha tsy mety dia tsy mandrava ny fandefasana.
+    try {
+      const now = Date.now();
+      const msgIdx = {
+        text: body, mediaType, ts: now, fromUid: currentUser.uid,
+        fromName: isAdmin ? artist.name : (userProfile?.fullName || ''),
+      };
+      const iu = {
+        ...bizReplyUpdates({
+          chatId: `artist_${artistId}_${activeVisitor}`,
+          visitorUid: activeVisitor,
+          type: 'artist', bizId: artistId,
+          msg: msgIdx,
+          name: artist.name, photo: artist.photoURL || '',
+          INCREMENT: isAdmin ? increment(1) : 0,
+        }),
+        ...bizListUpdates({
+          type: 'artist', bizId: artistId, visitorUid: activeVisitor,
+          msg: msgIdx, fromAdmin: isAdmin, INCREMENT: increment(1),
+          ...(isAdmin ? {} : { visitorName: userProfile?.fullName || '', visitorPhoto: userProfile?.photoURL || '' }),
+        }),
+      };
+      if (Object.keys(iu).length) await update(ref(rtdb), iu);
+    } catch (e) { console.error('Index resaka:', e?.message || e); }
 
     if (isAdmin && activeVisitor !== currentUser.uid) {
       addDoc(collection(db, 'notifications'), { toUid: activeVisitor, fromUid: currentUser.uid, fromName: artist.name, fromPhoto: artist.photoURL || '', type: 'artistMessage', artistId, visitorUid: activeVisitor, message: `${artist.name} vous a répondu : ${label.slice(0, 60)}`, read: false, createdAt: serverTimestamp() }).catch(() => {});

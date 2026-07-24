@@ -1,0 +1,67 @@
+{
+  "_COMMENT_1": "Trengo — Realtime Database rules. DINGANA 1 (izao).",
+  "_COMMENT_2": "Ny `conversations` dia mbola azo vakiana amin'ny fototra, satria mila izany ny MIGRATION mankany amin'ny index (userChats/bizChats). Rehefa afaka 3–4 herinandro (efa nisokatra ny app ny mpampiasa rehetra) dia ampiharo ny DINGANA 2 ao amin'ny database.rules.phase2.json — izay manakana izany.",
+  "_COMMENT_3": "Ny userChats sy bizChats dia efa VOAARO tanteraka hatramin'izao.",
+
+  "rules": {
+    ".read": false,
+    ".write": false,
+
+    "online": {
+      ".read": "auth != null",
+      "$uid": {
+        ".write": "auth != null && auth.uid === $uid"
+      }
+    },
+
+    "conversations": {
+      ".read": "auth != null",
+      "$chatId": {
+        ".read": "auth != null",
+        ".write": "auth != null"
+      }
+    },
+
+    "userChats": {
+      "$uid": {
+        ".read": "auth != null && auth.uid === $uid",
+        ".write": "auth != null",
+        "$chatId": {
+          ".validate": "newData.hasChildren(['t','o','ts']) || !newData.exists()",
+          "t":  { ".validate": "newData.isString() && newData.val().length <= 10" },
+          "o":  { ".validate": "newData.isString() && newData.val().length <= 128" },
+          "lt": { ".validate": "newData.isString() && newData.val().length <= 200" },
+          "mt": { ".validate": "newData.isString() && newData.val().length <= 20" },
+          "fn": { ".validate": "newData.isString() && newData.val().length <= 80" },
+          "fu": { ".validate": "newData.isString() && newData.val().length <= 128" },
+          "ts": { ".validate": "newData.isNumber()" },
+          "u":  { ".validate": "newData.isNumber() && newData.val() >= 0" },
+          "s":  { ".validate": "newData.isNumber()" },
+          "a":  { ".validate": "newData.isNumber()" },
+          "d":  { ".validate": "newData.isNumber()" },
+          "n":  { ".validate": "newData.isString() && newData.val().length <= 80" },
+          "ph": { ".validate": "newData.isString() && newData.val().length <= 400" },
+          "$other": { ".validate": false }
+        }
+      }
+    },
+
+    "bizChats": {
+      "$bizKey": {
+        ".read": "auth != null",
+        ".write": "auth != null",
+        "$visitorUid": {
+          "lt": { ".validate": "newData.isString() && newData.val().length <= 200" },
+          "mt": { ".validate": "newData.isString() && newData.val().length <= 20" },
+          "fn": { ".validate": "newData.isString() && newData.val().length <= 80" },
+          "fu": { ".validate": "newData.isString() && newData.val().length <= 128" },
+          "ts": { ".validate": "newData.isNumber()" },
+          "u":  { ".validate": "newData.isNumber() && newData.val() >= 0" },
+          "vn": { ".validate": "newData.isString() && newData.val().length <= 80" },
+          "vp": { ".validate": "newData.isString() && newData.val().length <= 400" },
+          "$other": { ".validate": false }
+        }
+      }
+    }
+  }
+}

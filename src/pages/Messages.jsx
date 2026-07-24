@@ -2,7 +2,8 @@
 import { useState, useEffect, useRef } from 'react';
 import SmartImage from '../components/SmartImage';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { ref, push, onValue, update, set, remove } from 'firebase/database';
+import { ref, push, onValue, update, set, remove, get, increment, query as rtdbQuery, limitToLast } from 'firebase/database';
+import { buildIndexFromConversations, listFromIndex, directUids, sendUpdates, readUpdates, removeUpdates } from '../utils/chatIndex';
 import { doc, getDoc, addDoc, collection, serverTimestamp, query, where, onSnapshot, updateDoc, deleteDoc, arrayRemove, arrayUnion, writeBatch } from 'firebase/firestore';
 import { rtdb, db } from '../firebase';
 import { useActiveStoryUids } from '../hooks/useActiveStoryUids';
@@ -132,117 +133,101 @@ export default function Messages() {
     return () => unsub();
   }, []);
 
+  // ══════════════════════════════════════════════════════════════════════════
+  // LISITRY NY RESAKA — INDEX an'ny mpampiasa : userChats/{myUid}
+  // Teo aloha : nalaina ny node `conversations` MANONTOLO (ny an'ny olona
+  // rehetra amin'ny app) dia nosivanina tao amin'ny JS → niadana hatrany araka
+  // ny fitomboan'ny mpampiasa. Izao : ny resaka ahy ihany (~10 Ko), mitoetra ho
+  // kely na firy na firy ny mpampiasa.
+  // ══════════════════════════════════════════════════════════════════════════
+  const [chatIndex, setChatIndex] = useState({});
+  const [profiles, setProfiles]   = useState({});   // uid → doc | null (voafafa)
+  const fetchedUidsRef = useRef(new Set());
+  const migratedRef    = useRef(false);
+
   useEffect(() => {
     if (!currentUser) return;
-    const unsub = onValue(ref(rtdb, 'conversations'), async snap => {
-      if (!snap.exists()) { setConversations([]); return; }
-      const data = snap.val();
-      const list = [];
-      const gMetas = {};
-      for (const [chatId, conv] of Object.entries(data)) {
-        if (chatId.startsWith('group_')) {
-          const msgs = conv.messages ? Object.values(conv.messages) : [];
-          const last = msgs[msgs.length - 1];
-          gMetas[chatId.slice(6)] = last ? { text: last.text || (last.mediaType === 'audio' ? '🎤 Vocal' : last.mediaURL ? '📎 Média' : ''), from: last.fromName, ts: last.ts } : null;
-          continue;
-        }
-        // ── Conversation avec une BOUTIQUE : shop_{shopId}_{visitorUid} ──
-        if (chatId.startsWith('shop_')) {
-          const rest = chatId.slice(5);
-          const sep = rest.lastIndexOf('_');
-          const sId = rest.slice(0, sep), vUid = rest.slice(sep + 1);
-          if (vUid !== currentUser.uid) continue;
-          const msgsS = conv.messages ? Object.values(conv.messages) : [];
-          const lastS = msgsS[msgsS.length - 1];
-          const unreadS = msgsS.filter(m => m.toUid === currentUser.uid && !m.read).length;
-          list.push({
-            chatId, shopId: sId, isShop: true,
-            user: { fullName: conv.meta?.shopName || 'Boutique', photoURL: conv.meta?.shopPhoto || '' },
-            lastMsg: lastS, unread: unreadS,
-          });
-          continue;
-        }
-        // ── Conversation avec une PAGE SERA : page_{pageId}_{visitorUid} ──
-        if (chatId.startsWith('page_')) {
-          const rest = chatId.slice(5);
-          const sep = rest.lastIndexOf('_');
-          const pId = rest.slice(0, sep), vUid = rest.slice(sep + 1);
-          if (vUid !== currentUser.uid) continue;
-          const msgsP = conv.messages ? Object.values(conv.messages) : [];
-          const lastP = msgsP[msgsP.length - 1];
-          const unreadP = msgsP.filter(m => m.toUid === currentUser.uid && !m.read).length;
-          list.push({
-            chatId, pageId: pId, isPage: true,
-            user: { fullName: conv.meta?.pageName || 'Page Sera', photoURL: conv.meta?.pagePhoto || '' },
-            lastMsg: lastP, unread: unreadP,
-          });
-          continue;
-        }
-        // ── Conversation avec une PAGE ARTISTE : artist_{artistId}_{visitorUid}
-        if (chatId.startsWith('artist_')) {
-          const rest = chatId.slice(7);
-          const sep = rest.lastIndexOf('_');
-          const aId = rest.slice(0, sep), vUid = rest.slice(sep + 1);
-          if (vUid !== currentUser.uid) continue;
-          const msgs2 = conv.messages ? Object.values(conv.messages) : [];
-          const last2 = msgs2[msgs2.length - 1];
-          const unread2 = msgs2.filter(m => m.toUid === currentUser.uid && !m.read).length;
-          list.push({
-            chatId, artistId: aId, isArtist: true,
-            user: { fullName: conv.meta?.artistName || 'Page artiste', photoURL: conv.meta?.artistPhoto || '' },
-            lastMsg: last2, unread: unread2,
-          });
-          continue;
-        }
+    const myUid = currentUser.uid;
+    let alive = true;
+    setChatIndex({});
+    fetchedUidsRef.current = new Set();
+    migratedRef.current = false;
 
-        if (!chatId.includes(currentUser.uid)) continue;
-        const otherUid = getOtherUid(chatId, currentUser.uid);
+    const unsub = onValue(ref(rtdb, `userChats/${myUid}`), async snap => {
+      if (!alive) return;
+      const val = snap.val();
+      if (val && Object.keys(val).length) { setChatIndex(val); return; }
 
-        const msgEntries = Object.entries(conv.messages || {});
-        const msgs  = msgEntries.map(([, m]) => m);
-        const last  = msgs[msgs.length - 1];
-        const unread = msgs.filter(m => m.toUid === currentUser.uid && !m.read).length;
-
-        // ✅ DISCIPLINE : ny hafatra dia "lu" rehefa SOKAFANA ny discussion ihany
-        // (jereo ny useEffect activeChatId etsy ambany). Eto dia ny badge fantôme
-        // an'ny compte voafafa ihany no diovina.
-        try {
-          const s = await getDoc(doc(db, 'users', otherUid));
-          if (!s.exists()) {
-            if (unread > 0) {
-              const upd = {};
-              msgEntries.forEach(([mid, m]) => {
-                if (m.toUid === currentUser.uid && !m.read) upd[`${mid}/read`] = true;
-              });
-              update(ref(rtdb, `conversations/${chatId}/messages`), upd).catch(() => {});
-            }
-            continue;
-          }
-          const myFriends = userProfile?.friends || [];
-          const iSentAny = msgs.some(m => m.fromUid === currentUser.uid);
-          const accepted = !!conv.meta?.acceptedBy?.[currentUser.uid];
-          const declined = !!conv.meta?.declinedBy?.[currentUser.uid];
-          const isPending = !myFriends.includes(otherUid) && !iSentAny && !accepted && !declined;
-          const isArchived = (userProfile?.archivedChats || []).includes(chatId);
-          list.push({ chatId, otherUid, user: s.data(), lastMsg: last, unread, isPending, isArchived });
-        } catch {}
+      // ── MIGRATION indray mandeha ──────────────────────────────────────────
+      // Ho an'ny resaka efa nisy talohan'ny index : atsangana avy amin'ny
+      // `conversations`, indray mandeha ihany, dia tsy averina intsony.
+      if (migratedRef.current) { setChatIndex({}); return; }
+      migratedRef.current = true;
+      try {
+        const allSnap = await get(ref(rtdb, 'conversations'));
+        const built = buildIndexFromConversations(allSnap.val(), myUid);
+        if (Object.keys(built).length) {
+          update(ref(rtdb, `userChats/${myUid}`), built).catch(() => {});
+          if (alive) setChatIndex(built);
+        } else if (alive) setChatIndex({});
+      } catch (e) {
+        console.error('Migration index resaka:', e?.message || e);
+        if (alive) setChatIndex({});
       }
-      list.sort((a, b) => (b.lastMsg?.ts || 0) - (a.lastMsg?.ts || 0));
-      setConversations(list);
-      setGroupMetas(gMetas);
     }, err => {
-      console.error('Lecture conversations refusée:', err?.message || err);
+      console.error('Lecture index resaka refusée:', err?.message || err);
     });
-    return () => unsub();
+    return () => { alive = false; unsub(); };
   }, [currentUser]);
+
+  // Profil an'ireo mpiresaka — indray mandeha isaky ny uid (cache)
+  useEffect(() => {
+    const need = directUids(chatIndex).filter(u => !fetchedUidsRef.current.has(u));
+    if (!need.length) return;
+    need.forEach(u => fetchedUidsRef.current.add(u));
+    let alive = true;
+    Promise.all(need.map(uid =>
+      getDoc(doc(db, 'users', uid))
+        .then(sn => [uid, sn.exists() ? sn.data() : null])
+        .catch(() => [uid, null])
+    )).then(pairs => {
+      if (!alive) return;
+      setProfiles(prev => { const nx = { ...prev }; for (const [u, d] of pairs) nx[u] = d; return nx; });
+    });
+    return () => { alive = false; };
+  }, [chatIndex]);
+
+  // Lisitra vonona ho an'ny render (endrika mitovy tanteraka amin'ny teo aloha)
+  useEffect(() => {
+    if (!currentUser) return;
+    const { list, groupMetas: gm } = listFromIndex(chatIndex, {
+      profiles,
+      myUid: currentUser.uid,
+      friends: userProfile?.friends || [],
+      archived: userProfile?.archivedChats || [],
+    });
+    setConversations(list);
+    setGroupMetas(gm);
+    /* eslint-disable-next-line react-hooks/exhaustive-deps */
+  }, [chatIndex, profiles, currentUser, userProfile?.friends?.join?.(','), userProfile?.archivedChats?.join?.(',')]);
+
+  // Ny hafatra FARANY ihany no alaina (fa tsy ny tantara manontolo) → haingana.
+  // Ny bokotra "Voir les messages précédents" no mampitombo ity fetra ity.
+  const [msgLimit, setMsgLimit] = useState(80);
+  useEffect(() => { setMsgLimit(80); }, [activeChatId]);
 
   useEffect(() => {
     if (!activeChatId) return;
-    const unsub = onValue(ref(rtdb, `conversations/${activeChatId}/messages`), snap => {
+    const unsub = onValue(rtdbQuery(ref(rtdb, `conversations/${activeChatId}/messages`), limitToLast(msgLimit)), snap => {
       if (!snap.exists()) { setMessages([]); return; }
       const msgs = Object.entries(snap.val()).map(([id, m]) => ({ id, ...m }));
       msgs.sort((a, b) => a.ts - b.ts);
       setMessages(msgs);
+      // Ny index : voavaky ny resaka sokafana → esorina ny badge
+      if (currentUser) {
+        const ru = readUpdates(activeChatId, currentUser.uid);
+        if (Object.keys(ru).length) update(ref(rtdb), ru).catch(() => {});
+      }
       const r = {};
       msgs.forEach(m => { if (m.reactions) r[m.id]=m.reactions; });
       setMsgReactions(r);
@@ -256,7 +241,7 @@ export default function Messages() {
       console.error('Lecture messages refusée:', err?.message || err);
     });
     return () => unsub();
-  }, [activeChatId, currentUser]);
+  }, [activeChatId, currentUser, msgLimit]);
 
   // ── Play sound on new incoming message ─────────────────────
   useEffect(() => {
@@ -394,6 +379,24 @@ export default function Messages() {
           lastMessage: text.trim() || (finalMT === 'audio' ? '🎤 Vocal' : '📎 Média'),
           lastTs: Date.now(),
         });
+        // ── Fan-out : fanavaozana ny index (userChats) an'ny roa tonta ──
+        // Izany no mahatonga ny lisitra ho haingana : tsy misy mamaky ny
+        // `conversations` manontolo intsony. Raha tsy mety dia tsy mandrava ny
+        // fandefasana (efa voatahiry ny hafatra).
+        try {
+          const convRow = conversations.find(c => c.chatId === activeChatId);
+          const recips = (isGroupChat && activeGroup)
+            ? (activeGroup.members || []).filter(m => m !== currentUser.uid)
+            : (otherUid ? [otherUid] : []);
+          const idxUpd = sendUpdates({
+            chatId: activeChatId, myUid: currentUser.uid, recipients: recips,
+            msg: msgData, INCREMENT: increment(1),
+            meta: (isShopChat || isPageChat || isArtistChat)
+              ? { n: convRow?.user?.fullName || '', ph: convRow?.user?.photoURL || '' }
+              : {},
+          });
+          if (Object.keys(idxUpd).length) await update(ref(rtdb), idxUpd);
+        } catch (e) { console.error('Index resaka (envoi):', e?.message || e); }
         const notifBody = text.trim() || (finalMT === 'audio' ? 'a envoyé un message vocal 🎤' : 'a envoyé un fichier');
         if (isGroupChat && activeGroup) {
           activeGroup.members.filter(m => m !== currentUser.uid).forEach(m =>
@@ -474,6 +477,12 @@ export default function Messages() {
     if (!snap.exists()) { setDeleteConfirm(null); return; }
     const all = Object.keys(snap.val()).filter(id => id.includes(currentUser.uid));
     await Promise.all(all.map(id => remove(ref(rtdb, 'conversations/' + id))));
+    // Esorina koa ny andalana index (mba tsy hisy resaka kamboty ao amin'ny lisitra)
+    try {
+      const upd = {};
+      for (const id of all) Object.assign(upd, removeUpdates(id, [currentUser.uid]));
+      if (Object.keys(upd).length) await update(ref(rtdb), upd);
+    } catch {}
     setActiveChatId(null); setDeleteConfirm(null);
     navigate('/messages', { replace: true });
   }
@@ -591,6 +600,10 @@ export default function Messages() {
     if (!activeGroup || !isGroupAdmin) return;
     if (!window.confirm(`Supprimer définitivement le groupe "${activeGroup.name}" ?`)) return;
     await remove(ref(rtdb, `conversations/group_${activeGroup.id}`)).catch(() => {});
+    try {
+      const upd = removeUpdates('group_' + activeGroup.id, activeGroup.members || []);
+      if (Object.keys(upd).length) await update(ref(rtdb), upd);
+    } catch {}
     await deleteDoc(doc(db, 'groups', activeGroup.id));
     setActiveChatId(null); navigate('/messages', { replace: true });
   }
@@ -618,6 +631,11 @@ export default function Messages() {
 
   async function deleteConversation(chatId) {
     await remove(ref(rtdb, `conversations/${chatId}`));
+    try {
+      const other = getOtherUid(chatId, currentUser.uid);
+      const upd = removeUpdates(chatId, [currentUser.uid, other]);
+      if (Object.keys(upd).length) await update(ref(rtdb), upd);
+    } catch {}
     if (activeChatId === chatId) {
       setActiveChatId(null);
       navigate('/messages', { replace: true });
@@ -871,6 +889,14 @@ export default function Messages() {
           {/* Messages */}
           <div onScroll={e => { const el = e.currentTarget; atBottomRef.current = el.scrollHeight - el.scrollTop - el.clientHeight < 150; }}
             style={{ flex: 1, overflowY: 'auto', padding: '16px 14px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {messages.length >= msgLimit && (
+              <button onClick={() => setMsgLimit(l => l + 100)}
+                style={{ alignSelf: 'center', background: '#fff', border: '1px solid #E4E6EB', borderRadius: 18,
+                  padding: '7px 16px', marginBottom: 4, cursor: 'pointer', fontFamily: 'Poppins',
+                  fontWeight: 600, fontSize: 12.5, color: '#1877F2' }}>
+                Voir les messages précédents
+              </button>
+            )}
             {messages.map(msg => {
               const isMe = msg.fromUid === currentUser.uid;
               const isActived = msgAction === msg.id;

@@ -7,6 +7,7 @@ import { ref, onValue, update } from 'firebase/database';
 import { doc, getDoc, updateDoc, arrayRemove } from 'firebase/firestore';
 import { db, rtdb } from '../firebase';
 import { useAuth } from '../context/AuthContext';
+import { pendingFromIndex, directUids } from '../utils/chatIndex';
 import { HiArrowLeft, HiCheck, HiX, HiBan, HiArchive, HiChatAlt2 } from 'react-icons/hi';
 
 function getOtherUid(chatId, myUid) {
@@ -24,35 +25,35 @@ export default function MessagesSettings() {
   const [loading, setLoading] = useState(true);
 
   // ── Demandes de message (pending) ─────────────────────────────
+  // Miorina amin'ny INDEX `userChats/{myUid}` (fa tsy amin'ny `conversations`
+  // manontolo intsony) → kely sy haingana na firy na firy ny mpampiasa.
   useEffect(() => {
     if (!currentUser) return;
-    const unsub = onValue(ref(rtdb, 'conversations'), async (snap) => {
-      const val = snap.val() || {};
-      const myFriends = userProfile?.friends || [];
-      const out = [];
-      for (const [chatId, conv] of Object.entries(val)) {
-        if (chatId.startsWith('group_') || chatId.startsWith('page_') || chatId.startsWith('artist_')) continue;
-        if (!chatId.includes(currentUser.uid)) continue;
-        const otherUid = getOtherUid(chatId, currentUser.uid);
-        const msgs = conv.messages ? Object.values(conv.messages) : [];
-        if (!msgs.length) continue;
-        const iSentAny = msgs.some((m) => m.fromUid === currentUser.uid);
-        const accepted = !!conv.meta?.acceptedBy?.[currentUser.uid];
-        const declined = !!conv.meta?.declinedBy?.[currentUser.uid];
-        const isPending = !myFriends.includes(otherUid) && !iSentAny && !accepted && !declined;
-        if (!isPending) continue;
-        try {
-          const us = await getDoc(doc(db, 'users', otherUid));
-          if (!us.exists()) continue;
-          const last = msgs[msgs.length - 1];
-          out.push({ chatId, otherUid, user: us.data(), lastText: last?.text || '' });
-        } catch (e) { /* ignore */ }
-      }
-      out.sort((a, b) => (b.lastText ? 1 : 0) - (a.lastText ? 1 : 0));
-      setRequests(out);
+    let alive = true;
+    const unsub = onValue(ref(rtdb, `userChats/${currentUser.uid}`), async (snap) => {
+      if (!alive) return;
+      const index = snap.val() || {};
+      // Profil ilaina ihany (ny resaka mety ho "demande") no alaina
+      const friendSet = new Set(userProfile?.friends || []);
+      const need = directUids(index).filter((uid) => {
+        const e = Object.values(index).find((x) => x && x.t === 'direct' && x.o === uid);
+        return e && e.ts && !e.s && !e.a && !e.d && !friendSet.has(uid);
+      });
+      const pairs = await Promise.all(need.map((uid) =>
+        getDoc(doc(db, 'users', uid))
+          .then((sn) => [uid, sn.exists() ? sn.data() : null])
+          .catch(() => [uid, null])
+      ));
+      if (!alive) return;
+      const profiles = {};
+      for (const [uid, d] of pairs) profiles[uid] = d;
+      setRequests(pendingFromIndex(index, { profiles, friends: userProfile?.friends || [] }));
+      setLoading(false);
+    }, (err) => {
+      console.error('Lecture demandes refusée:', err?.message || err);
       setLoading(false);
     });
-    return () => unsub();
+    return () => { alive = false; unsub(); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentUser, userProfile?.friends?.join?.(',')]);
 
@@ -76,12 +77,22 @@ export default function MessagesSettings() {
 
   async function acceptRequest(r) {
     setRequests((p) => p.filter((x) => x.chatId !== r.chatId));
-    try { await update(ref(rtdb, `conversations/${r.chatId}/meta/acceptedBy`), { [currentUser.uid]: true }); } catch (e) {}
+    try {
+      await update(ref(rtdb), {
+        [`conversations/${r.chatId}/meta/acceptedBy/${currentUser.uid}`]: true,
+        [`userChats/${currentUser.uid}/${r.chatId}/a`]: 1,
+      });
+    } catch (e) {}
     navigate(`/messages/${r.chatId}`);
   }
   async function declineRequest(r, spam) {
     setRequests((p) => p.filter((x) => x.chatId !== r.chatId));
-    try { await update(ref(rtdb, `conversations/${r.chatId}/meta/declinedBy`), { [currentUser.uid]: true }); } catch (e) {}
+    try {
+      await update(ref(rtdb), {
+        [`conversations/${r.chatId}/meta/declinedBy/${currentUser.uid}`]: true,
+        [`userChats/${currentUser.uid}/${r.chatId}/d`]: 1,
+      });
+    } catch (e) {}
     if (spam) {
       const list0 = userProfile?.blocked || [];
       if (!list0.includes(r.otherUid)) {
