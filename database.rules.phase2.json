@@ -1,29 +1,17 @@
 {
-  "_COMMENT_1": "Trengo — DINGANA 2. Ampiharo REHEFA AFAKA 3–4 HERINANDRO, rehefa azo antoka fa efa nisokatra ny app ny ankamaroan'ny mpampiasa (vita ny migration).",
-  "_COMMENT_2": "Ny fanovana lehibe : ESORINA ny '.read' amin'ny fototry ny `conversations`. Ny mpampiasa dia tsy afaka mamaky afa-tsy ny resaka misy ny uid-ny ao anatin'ny anarany. Izay no manakana ny olona tsy hamaky ny resaky ny hafa.",
-  "_COMMENT_3": "FANDINIHANA : ny mpampiasa izay TSY nisokatra mihitsy nandritra ny dingana 1 dia tsy hahita ny lisitra taloha (tsy voafafa anefa ny resaka — miverina izy rehefa misy hafatra vaovao). Izay no antony hiandrasana herinandro vitsivitsy.",
-
   "rules": {
-    ".read": false,
-    ".write": false,
-
-    "online": {
-      ".read": "auth != null",
-      "$uid": {
-        ".write": "auth != null && auth.uid === $uid"
-      }
-    },
-
     "conversations": {
       "$chatId": {
-        ".read": "auth != null && $chatId.contains(auth.uid)",
-        ".write": "auth != null && $chatId.contains(auth.uid)",
+        ".read": "auth != null && ($chatId.contains(auth.uid) || $chatId.beginsWith('group_'))",
+        ".write": "auth != null && ($chatId.contains(auth.uid) || $chatId.beginsWith('group_') || $chatId.beginsWith('artist_') || $chatId.beginsWith('shop_') || $chatId.beginsWith('page_'))",
         "messages": {
           "$msgId": {
-            ".validate": "newData.hasChildren(['ts']) || !newData.exists()",
-            "text":     { ".validate": "newData.isString() && newData.val().length <= 5000" },
-            "mediaURL": { ".validate": "newData.isString() && newData.val().length <= 800" },
-            "ts":       { ".validate": "newData.isNumber()" }
+            "fromUid": {
+              ".validate": "(!data.exists() && newData.val() === auth.uid) || newData.val() === data.val()"
+            },
+            "text": {
+              ".validate": "newData.isString() && newData.val().length <= 2000"
+            }
           }
         }
       }
@@ -47,7 +35,7 @@
           "d":  { ".validate": "newData.isNumber()" },
           "n":  { ".validate": "newData.isString() && newData.val().length <= 80" },
           "ph": { ".validate": "newData.isString() && newData.val().length <= 400" },
-          "$other": { ".validate": false }
+          "$autre": { ".validate": false }
         }
       }
     },
@@ -65,8 +53,34 @@
           "u":  { ".validate": "newData.isNumber() && newData.val() >= 0" },
           "vn": { ".validate": "newData.isString() && newData.val().length <= 80" },
           "vp": { ".validate": "newData.isString() && newData.val().length <= 400" },
-          "$other": { ".validate": false }
+          "$autre": { ".validate": false }
         }
+      }
+    },
+
+    "artistConversations": {
+      "$artistId": {
+        ".read": "auth != null",
+        "$visitorUid": {
+          ".write": "auth != null",
+          "messages": {
+            "$msgId": {
+              "fromUid": {
+                ".validate": "(!data.exists() && newData.val() === auth.uid) || newData.val() === data.val()"
+              },
+              "text": {
+                ".validate": "newData.isString() && newData.val().length <= 2000"
+              }
+            }
+          }
+        }
+      }
+    },
+
+    "online": {
+      ".read": "auth != null",
+      "$uid": {
+        ".write": "auth != null && $uid === auth.uid"
       }
     }
   }

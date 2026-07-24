@@ -1,0 +1,262 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ═══════════════════════════════════════════════════════════════════
+    //  FONCTION MOMBAMBA
+    // ═══════════════════════════════════════════════════════════════════
+
+    // 🔑 Admin plateforme : champ isAdmin==true ao amin'ny doc users azy
+    function isAdmin() {
+      return request.auth != null
+        && exists(/databases/$(database)/documents/users/$(request.auth.uid))
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true;
+    }
+
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function changed() {
+      return request.resource.data.diff(resource.data).affectedKeys();
+    }
+
+    // ✅ FIARO VAOVAO : ny olon-kafa dia tsy afaka manova afa-tsy NY TENANY
+    //    ao anatin'ny tableau (followers / friends). Teo aloha dia afaka
+    //    nofafan'ny olona rehetra ny lisitry ny namanao manontolo, na
+    //    nampidiriny ny tenany ho namanao tsy nisy fanekena.
+    //    Voamarina : ny code dia mampiasa arrayUnion/arrayRemove(uid ahy)
+    //    ihany amin'ny doc an'ny hafa → tsy misy zavatra tapaka.
+    function selfOnlyIn(field) {
+      return request.resource.data.get(field, []).toSet()
+               .difference(resource.data.get(field, []).toSet())
+               .hasOnly([request.auth.uid])
+        && resource.data.get(field, []).toSet()
+               .difference(request.resource.data.get(field, []).toSet())
+               .hasOnly([request.auth.uid]);
+    }
+
+    // ═══════════════════════════════════════════════════════════════════
+    //  USERNAMES — pré-vérification (étape 1 de l'inscription)
+    // ═══════════════════════════════════════════════════════════════════
+    match /usernames/{username} {
+      allow read: if true;
+      allow create: if signedIn()
+        && request.auth.uid == request.resource.data.uid
+        && username == username.lower();
+      allow update, delete: if false;
+    }
+
+    // ═══════════════════════════════════════════════════════════════════
+    //  USERS
+    //  gender / country / countryCode : azon'ny tompony soratana (v14)
+    //  following : azon'ny tompony soratana (onboarding v15)
+    // ═══════════════════════════════════════════════════════════════════
+    match /users/{userId} {
+      allow read: if signedIn();
+
+      allow create: if signedIn() && request.auth.uid == userId
+        && !('isAdmin' in request.resource.data)
+        && !('isVip' in request.resource.data);
+
+      allow update: if signedIn() && (
+        // 1) Admin plateforme : afaka manova ny rehetra (VIP, ban, ...)
+        isAdmin()
+        ||
+        // 2) Ny tompony : afaka manova ny azy, afa-tsy ny champ voaaro
+        (request.auth.uid == userId
+          && !changed().hasAny(['isAdmin', 'isVip', 'uid', 'email', 'isBanned', 'disabled']))
+        ||
+        // 3) Olon-kafa : follow / unfollow / namana — NY TENANY IHANY
+        (request.auth.uid != userId
+          && changed().hasOnly(['followers', 'friends'])
+          && selfOnlyIn('followers')
+          && selfOnlyIn('friends'))
+      );
+
+      allow delete: if signedIn() && (isAdmin() || request.auth.uid == userId);
+    }
+
+    // ═══════════════════════════════════════════════════════════════════
+    //  GROUPES (chat + publications)
+    // ═══════════════════════════════════════════════════════════════════
+    match /groups/{groupId} {
+      allow read: if signedIn();
+      allow create: if signedIn()
+        && request.resource.data.admins.hasAny([request.auth.uid])
+        && request.resource.data.members.hasAny([request.auth.uid]);
+      allow update: if signedIn() && (
+        isAdmin()
+        || resource.data.admins.hasAny([request.auth.uid])
+        || changed().hasOnly(['members'])
+      );
+      allow delete: if signedIn() && (isAdmin() || resource.data.admins.hasAny([request.auth.uid]));
+    }
+
+    // ═══════════════════════════════════════════════════════════════════
+    //  STORIES (24 h)
+    // ═══════════════════════════════════════════════════════════════════
+    match /stories/{storyId} {
+      allow read: if signedIn();
+      allow create: if signedIn() && request.resource.data.uid == request.auth.uid;
+      allow update: if signedIn() && (
+        isAdmin()
+        || resource.data.uid == request.auth.uid
+        || changed().hasOnly(['reactions', 'viewers'])
+      );
+      allow delete: if signedIn() && (isAdmin() || resource.data.uid == request.auth.uid);
+    }
+
+    // ═══════════════════════════════════════════════════════════════════
+    //  SERA (Pages publiques)
+    // ═══════════════════════════════════════════════════════════════════
+    match /pages/{pageId} {
+      allow read: if signedIn();
+      allow create: if signedIn() && request.resource.data.admins.hasAny([request.auth.uid]);
+      allow update: if signedIn() && (
+        isAdmin()
+        || resource.data.admins.hasAny([request.auth.uid])
+        || changed().hasOnly(['followers'])
+      );
+      allow delete: if signedIn() && (isAdmin() || resource.data.admins.hasAny([request.auth.uid]));
+    }
+
+    // ═══════════════════════════════════════════════════════════════════
+    //  ARTISTES
+    // ═══════════════════════════════════════════════════════════════════
+    match /artists/{artistId} {
+      allow read: if signedIn();
+      allow create: if signedIn() && request.resource.data.admins.hasAny([request.auth.uid]);
+      allow update: if signedIn() && (
+        isAdmin()
+        || resource.data.admins.hasAny([request.auth.uid])
+        || changed().hasOnly(['followers'])
+      );
+      allow delete: if signedIn() && (isAdmin() || resource.data.admins.hasAny([request.auth.uid]));
+    }
+
+    // ═══════════════════════════════════════════════════════════════════
+    //  BOUTIQUES
+    // ═══════════════════════════════════════════════════════════════════
+    match /shops/{shopId} {
+      allow read: if signedIn();
+      allow create: if signedIn() && request.resource.data.admins.hasAny([request.auth.uid]);
+      allow update: if signedIn() && (
+        isAdmin()
+        || resource.data.admins.hasAny([request.auth.uid])
+        || changed().hasOnly(['followers'])
+      );
+      allow delete: if signedIn() && (isAdmin() || resource.data.admins.hasAny([request.auth.uid]));
+    }
+
+    // ═══════════════════════════════════════════════════════════════════
+    //  BLOC-NOTES — an-tsokosoko : ny tompony ihany
+    // ═══════════════════════════════════════════════════════════════════
+    match /notes/{noteId} {
+      allow read, update, delete: if signedIn() && resource.data.uid == request.auth.uid;
+      allow create: if signedIn() && request.resource.data.uid == request.auth.uid;
+    }
+
+    // ═══════════════════════════════════════════════════════════════════
+    //  SIGNALEMENTS
+    // ═══════════════════════════════════════════════════════════════════
+    match /reports/{reportId} {
+      allow create: if signedIn() && request.resource.data.reportedBy == request.auth.uid;
+      allow read: if signedIn() && (isAdmin() || resource.data.reportedBy == request.auth.uid);
+      allow update, delete: if isAdmin();
+    }
+
+    // ═══════════════════════════════════════════════════════════════════
+    //  ÉVÉNEMENTS
+    // ═══════════════════════════════════════════════════════════════════
+    match /events/{eventId} {
+      allow read: if signedIn();
+      allow create: if signedIn() && request.resource.data.createdBy == request.auth.uid;
+      allow update: if signedIn() && (
+        isAdmin()
+        || resource.data.createdBy == request.auth.uid
+        || changed().hasOnly(['attendees', 'interested'])
+      );
+      allow delete: if signedIn() && (isAdmin() || resource.data.createdBy == request.auth.uid);
+    }
+
+    // ═══════════════════════════════════════════════════════════════════
+    //  PETITES ANNONCES
+    // ═══════════════════════════════════════════════════════════════════
+    match /announcements/{annId} {
+      allow read: if signedIn();
+      allow create: if signedIn() && request.resource.data.uid == request.auth.uid;
+      allow update, delete: if signedIn() && (isAdmin() || resource.data.uid == request.auth.uid);
+    }
+
+    // ═══════════════════════════════════════════════════════════════════
+    //  POSTS — boost natokana ho an'ny ADMIN
+    // ═══════════════════════════════════════════════════════════════════
+    match /posts/{postId} {
+      allow read: if signedIn();
+
+      allow create: if signedIn()
+        && request.resource.data.uid == request.auth.uid
+        && !('isBoosted' in request.resource.data)
+        && request.resource.data.content is string
+        && request.resource.data.content.size() <= 2000;
+
+      allow update: if signedIn() && (
+        // Admin : ny rehetra (boost anatiny)
+        isAdmin()
+        ||
+        // Tompony : manova ny votoaty (tsy ny boost)
+        (resource.data.uid == request.auth.uid
+          && !changed().hasAny(['isBoosted', 'boostUntil', 'boostDays', 'boostedAt', 'uid']))
+        ||
+        // Ny rehetra : réactions, commentaires, vues (compteur)
+        changed().hasOnly(['reactions', 'comments', 'views'])
+      );
+
+      allow delete: if signedIn() && (isAdmin() || resource.data.uid == request.auth.uid);
+    }
+
+    // ═══════════════════════════════════════════════════════════════════
+    //  PUBLICITÉ in-feed
+    // ═══════════════════════════════════════════════════════════════════
+    match /ads/{adId} {
+      allow read: if signedIn();
+      allow create, delete: if isAdmin();
+      allow update: if isAdmin()
+        || (signedIn() && changed().hasOnly(['clicks', 'impressions']));
+    }
+
+    // ═══════════════════════════════════════════════════════════════════
+    //  COMMANDES DE BOOST
+    // ═══════════════════════════════════════════════════════════════════
+    match /boostOrders/{orderId} {
+      allow read: if signedIn() && (isAdmin() || resource.data.requesterUid == request.auth.uid);
+      allow create: if signedIn() && request.resource.data.requesterUid == request.auth.uid;
+      allow update, delete: if isAdmin();
+    }
+
+    // ═══════════════════════════════════════════════════════════════════
+    //  NOTIFICATIONS
+    // ═══════════════════════════════════════════════════════════════════
+    match /notifications/{notifId} {
+      allow read: if signedIn() && resource.data.toUid == request.auth.uid;
+      allow create: if signedIn() && request.resource.data.fromUid == request.auth.uid;
+      allow update: if signedIn() && resource.data.toUid == request.auth.uid
+        && changed().hasOnly(['read']);
+      allow delete: if signedIn() && resource.data.toUid == request.auth.uid;
+    }
+
+    // ═══════════════════════════════════════════════════════════════════
+    //  DEMANDES D'AMI
+    // ═══════════════════════════════════════════════════════════════════
+    match /friendRequests/{reqId} {
+      allow read: if signedIn()
+        && (resource.data.fromUid == request.auth.uid || resource.data.toUid == request.auth.uid);
+      allow create: if signedIn() && request.resource.data.fromUid == request.auth.uid;
+      allow update: if signedIn() && resource.data.toUid == request.auth.uid
+        && changed().hasOnly(['status']);
+      allow delete: if signedIn()
+        && (resource.data.fromUid == request.auth.uid || resource.data.toUid == request.auth.uid);
+    }
+  }
+}
