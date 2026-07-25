@@ -3,6 +3,7 @@ import { useState, useEffect, useRef, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { collection, query, onSnapshot, addDoc, serverTimestamp, orderBy, limit, doc, updateDoc, arrayUnion, arrayRemove } from 'firebase/firestore';
 import { db } from '../firebase';
+import { useMusicSuggestions } from '../hooks/useMusicSuggestions';
 import { useAuth } from '../context/AuthContext';
 import { parseAppLink } from '../utils/appLink';
 import { NeonMic } from '../components/NeonIcons';
@@ -97,7 +98,7 @@ export default function Artists() {
   const { currentUser } = useAuth();
   const navigate = useNavigate();
   const [artists, setArtists] = useState([]);
-  const [media, setMedia] = useState([]);
+  const { items: media, hasMore: musicHasMore, loading: musicLoading, loadMore: loadMoreMusic } = useMusicSuggestions(10);
   const [open, setOpen] = useState(false);
   const [name, setName] = useState('');
   const [creating, setCreating] = useState(false);
@@ -123,13 +124,6 @@ export default function Artists() {
       list.sort((a, b) => (b.followers?.length || 0) - (a.followers?.length || 0));
       setArtists(list);
     }, err => console.error('Artists:', err?.message || err));
-    return () => unsub();
-  }, []);
-
-  useEffect(() => {
-    const unsub = onSnapshot(query(collection(db, 'posts'), orderBy('createdAt', 'desc'), limit(120)), snap => {
-      setMedia(snap.docs.map(d => ({ id: d.id, ...d.data() })).filter(p => p.isMusic));
-    }, err => console.error('Media:', err?.message || err));
     return () => unsub();
   }, []);
 
@@ -273,6 +267,15 @@ export default function Artists() {
             ))}
           </div>
         </>
+      )}
+
+      {musicHasMore && (
+        <div style={{ display: 'flex', justifyContent: 'center', padding: '2px 0 14px' }}>
+          <button onClick={loadMoreMusic} disabled={musicLoading}
+            style={{ background: '#FFFFFF', border: '1px solid #E4E6EB', borderRadius: 20, padding: '8px 18px', fontWeight: 700, fontSize: 13, color: '#FF2D8D', fontFamily: 'Poppins', cursor: musicLoading ? 'default' : 'pointer' }}>
+            {musicLoading ? 'Chargement...' : 'Charger plus de musiques'}
+          </button>
+        </div>
       )}
 
       {/* Vidéos / Clips */}

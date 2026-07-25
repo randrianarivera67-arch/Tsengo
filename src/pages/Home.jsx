@@ -10,6 +10,7 @@ import {
 import { db } from '../firebase';
 import MediaViewer from '../components/MediaViewer';
 import { useViewerLocation } from '../hooks/useViewerLocation';
+import { useMusicSuggestions } from '../hooks/useMusicSuggestions';
 import { isInZones } from '../utils/geo';
 import { SkeletonPost } from '../components/Skeleton';
 import { claimPlayback } from '../utils/mediaBus';
@@ -334,6 +335,17 @@ export default function Home() {
   const [postsLoading, setPostsLoading] = useState(true);
   const feedAds = useFeedAds();
   const [visibleCount, setVisibleCount] = useState(20);   // affichage progressif (20 au depart)
+
+  const { items: musicItems, loadMore: loadMoreMusic } = useMusicSuggestions(10);
+  const musicTracks = musicItems.filter(t => t.mediaType === 'audio' && t.mediaURL);
+  useEffect(() => { if (visibleCount > 20) loadMoreMusic(); }, [visibleCount, loadMoreMusic]);
+  function musicWindow(rowIndex) {
+    const n = musicTracks.length;
+    if (!n) return [];
+    const start = (rowIndex * 10) % n;
+    const win = musicTracks.slice(start, start + 10);
+    return win.length >= 3 ? win : musicTracks.slice(0, 10);
+  }
   const [feedRaw, setFeedRaw] = useState([]);             // posts bruts
   const cursorRef = useRef(null);                         // dernier doc (startAfter) — pagination 20/page
   const loadingRef = useRef(false);                       // anti double-chargement
@@ -2046,7 +2058,7 @@ const fields = {
           {pIdx > 0 && pIdx % 5 === 0 && (
             <MusicRow
               onVoirTout={() => navigate('/artists')}
-              tracks={posts.filter(p => p.mediaType === 'audio' && p.isMusic)}
+              tracks={musicWindow(Math.floor(pIdx / 5))}
               playingId={playingTrackId}
               onToggle={toggleMusic}
               onArtist={aid => aid && navigate(`/artists/${aid}`)}
