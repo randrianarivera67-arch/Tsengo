@@ -8,7 +8,13 @@ const MAX_CHUNKS      = 120;
 const CHUNK_TIMEOUT   = 120 * 1000;
 const SOLO_TIMEOUT    = 180 * 1000;
 
-function chunkSizeFor(size) { return size > 200 * MB ? 8 * MB : 4 * MB; }
+function chunkSizeFor(size) {
+  // 4 Mo = reprise rapide (cas courant) ; morceaux plus gros au-dela pour rester
+  // sous la limite de 50 subrequests du Worker a la LECTURE (2 par morceau).
+  if (size <= 60 * MB)  return 4 * MB;
+  if (size <= 160 * MB) return 8 * MB;
+  return 12 * MB;
+}
 
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 
