@@ -1660,7 +1660,7 @@ const fields = {
             {/* Média + zones tactiles gauche/droite */}
             <div style={{ flex:1, position:'relative', display:'flex', alignItems:'center', justifyContent:'center', overflow:'hidden', background: cur.mediaType === 'text' ? (cur.bgColor || '#1877F2') : 'transparent' }}>
               {cur.mediaType === 'video'
-                ? <video ref={storyVideoRef} key={cur.id} src={cur.mediaURL} poster={cur.thumbURL || undefined} autoPlay={!dataSaver} controls={dataSaver} playsInline muted={!!cur.music?.url} onEnded={nextStory} style={{ maxWidth:'100%', maxHeight:'100%', filter: cur.filter || 'none' }} />
+                ? <video ref={storyVideoRef} key={cur.id} src={cur.mediaURL} poster={cur.thumbURL || undefined} autoPlay={!dataSaver} controls={dataSaver} playsInline muted={!!cur.music?.url} onEnded={nextStory} style={{ maxWidth:'100%', maxHeight:'100%', filter: cur.filter || 'none', transform: cur.mediaTransform ? `translate(${(cur.mediaTransform.x||0)*100}%, ${(cur.mediaTransform.y||0)*100}%) scale(${cur.mediaTransform.s||1})` : undefined }} />
                 : cur.mediaType === 'text'
                 ? <p style={{ color: cur.textColor || 'white', fontSize: cur.fontSize || 30, fontWeight:800, textAlign: cur.align || 'center', padding:'0 30px', wordBreak:'break-word', whiteSpace:'pre-wrap' }}>{cur.text}</p>
                 : <img key={cur.id} src={cur.mediaURL} alt="" style={{ maxWidth:'100%', maxHeight:'100%', objectFit:'contain', filter: cur.filter || 'none' }} />}

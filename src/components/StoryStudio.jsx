@@ -108,6 +108,9 @@ export default function StoryStudio({ mode: initialMode = 'menu', currentUser, u
   const [filterKey, setFilterKey]   = useState('none');
   const [caption, setCaption]       = useState('');
   const [captionPos, setCaptionPos] = useState({ x: 0.5, y: 0.8 });
+  const [mediaTf, setMediaTf] = useState({ s: 1, x: 0, y: 0 });
+  const mediaElRef = useRef(null);
+  const tfRef = useRef(null);
   const [sonMode, setSonMode]       = useState('music'); // 'music' (muet+musique) | 'original'
   useEffect(() => { if (mode === 'video') { setSonMode('original'); setMusic(null); } }, [mode]);
   const previewRef = useRef(null);
@@ -207,8 +210,12 @@ export default function StoryStudio({ mode: initialMode = 'menu', currentUser, u
             // Image principale (contain) + filtre
             const s = Math.min(W / img.width, H / img.height);
             const dw = img.width * s, dh = img.height * s;
+            const tfS = mediaTf.s || 1;
+            const fw = dw * tfS, fh = dh * tfS;
+            const ccx = W / 2 + (mediaTf.x || 0) * dw;
+            const ccy = H / 2 + (mediaTf.y || 0) * dh;
             try { ctx.filter = cssFor(filterKey); } catch {}
-            ctx.drawImage(img, (W - dw) / 2, (H - dh) / 2, dw, dh);
+            ctx.drawImage(img, ccx - fw / 2, ccy - fh / 2, fw, fh);
             try { ctx.filter = 'none'; } catch {}
             // Légende (caption)
             if (caption.trim()) {
@@ -260,6 +267,32 @@ export default function StoryStudio({ mode: initialMode = 'menu', currentUser, u
     setCaptionPos({ x, y });
   }
   function capPointerUp() { capDragRef.current = false; }
+  function tfStart(e) {
+    const t = e.touches; if (!t) return;
+    if (t.length === 2) {
+      const d = Math.hypot(t[0].clientX - t[1].clientX, t[0].clientY - t[1].clientY);
+      tfRef.current = { kind: 'pinch', d0: d || 1, s0: mediaTf.s };
+    } else if (t.length === 1) {
+      tfRef.current = { kind: 'pan', x0: t[0].clientX, y0: t[0].clientY, sx: mediaTf.x, sy: mediaTf.y };
+    }
+  }
+  function tfMove(e) {
+    const st = tfRef.current, t = e.touches, el = mediaElRef.current;
+    if (!st || !t || !el) return;
+    const r = el.getBoundingClientRect();
+    const cur = mediaTf.s || 1;
+    const baseW = (r.width / cur) || 1, baseH = (r.height / cur) || 1;
+    if (st.kind === 'pinch' && t.length === 2) {
+      const d = Math.hypot(t[0].clientX - t[1].clientX, t[0].clientY - t[1].clientY);
+      const ns = Math.max(1, Math.min(4, st.s0 * (d / st.d0)));
+      setMediaTf(v => ({ ...v, s: ns }));
+    } else if (st.kind === 'pan' && t.length === 1) {
+      const nx = Math.max(-1, Math.min(1, st.sx + (t[0].clientX - st.x0) / baseW));
+      const ny = Math.max(-1, Math.min(1, st.sy + (t[0].clientY - st.y0) / baseH));
+      setMediaTf(v => ({ ...v, x: nx, y: ny }));
+    }
+  }
+  function tfEnd() { tfRef.current = null; }
   function toggleSon() {
     if (sonMode === 'music') { setSonMode('original'); setMusic(null); }
     else { setSonMode('music'); if (!music) setMusic(chooseDefaultTrack(tracks)); }
@@ -323,6 +356,7 @@ export default function StoryStudio({ mode: initialMode = 'menu', currentUser, u
           filter: cssFor(filterKey),
           caption: caption.trim().slice(0, 200),
           captionPos,
+          mediaTransform: { s: mediaTf.s, x: mediaTf.x, y: mediaTf.y },
         };
         const started = startBackgroundUpload(f, 'Story vidéo', async r => {
           let _thumbURL = '';
@@ -380,6 +414,9 @@ export default function StoryStudio({ mode: initialMode = 'menu', currentUser, u
 
   // ── Preview central ──
   const previewFilter = cssFor(filterKey);
+  const tfCss = `translate(${(mediaTf.x * 100).toFixed(3)}%, ${(mediaTf.y * 100).toFixed(3)}%) scale(${mediaTf.s})`;
+  const tfTouched = mediaTf.s !== 1 || mediaTf.x !== 0 || mediaTf.y !== 0;
+
   const preview = (
     <div ref={previewRef} onPointerMove={capPointerMove} onPointerUp={capPointerUp} onPointerLeave={capPointerUp} style={{ flex: 1, position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', background: mode === 'text' ? BG[bgIdx] : '#000' }}>
       {mode === 'text' && (
@@ -392,15 +429,25 @@ export default function StoryStudio({ mode: initialMode = 'menu', currentUser, u
       {mode === 'photo' && previewURL && (
         <>
           <div style={{ position: 'absolute', inset: 0, backgroundImage: `url(${previewURL})`, backgroundSize: 'cover', backgroundPosition: 'center', filter: 'blur(30px) brightness(.5)' }} />
-          <img src={previewURL} alt="" style={{ position: 'relative', maxWidth: '100%', maxHeight: '100%', objectFit: 'contain', filter: previewFilter }} />
+          <img ref={mediaElRef} src={previewURL} alt=""
+            onTouchStart={tfStart} onTouchMove={tfMove} onTouchEnd={tfEnd} onTouchCancel={tfEnd}
+            style={{ position: 'relative', maxWidth: '100%', maxHeight: '100%', objectFit: 'contain', filter: previewFilter, transform: tfCss, touchAction: 'none', willChange: 'transform' }} />
         </>
       )}
       {mode === 'video' && previewURL && (
-        <video ref={videoElRef} src={previewURL} autoPlay loop muted={sonMode !== 'original'} playsInline style={{ maxWidth: '100%', maxHeight: '100%', filter: previewFilter }} />
+        <video ref={el => { videoElRef.current = el; mediaElRef.current = el; }} src={previewURL} autoPlay loop muted={sonMode !== 'original'} playsInline
+          onTouchStart={tfStart} onTouchMove={tfMove} onTouchEnd={tfEnd} onTouchCancel={tfEnd}
+          style={{ maxWidth: '100%', maxHeight: '100%', filter: previewFilter, transform: tfCss, touchAction: 'none', willChange: 'transform' }} />
       )}
       {/* Légende overlay (photo/vidéo) */}
       {(mode === 'photo' || mode === 'video') && caption.trim() && (
         <div onPointerDown={capPointerDown} style={{ position: 'absolute', left: (captionPos.x * 100) + '%', top: (captionPos.y * 100) + '%', transform: 'translate(-50%,-50%)', maxWidth: '82%', textAlign: 'center', color: '#fff', fontWeight: 800, fontSize: 22, textShadow: '0 2px 10px rgba(0,0,0,.7)', wordBreak: 'break-word', cursor: 'move', touchAction: 'none', userSelect: 'none' }}>{caption}</div>
+      )}
+      {(mode === 'photo' || mode === 'video') && tfTouched && (
+        <button onClick={() => setMediaTf({ s: 1, x: 0, y: 0 })}
+          style={{ position: 'absolute', top: 14, left: 14, zIndex: 4, background: 'rgba(0,0,0,.5)', border: '1px solid rgba(255,255,255,.3)', borderRadius: 18, padding: '6px 12px', color: '#fff', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'Poppins' }}>
+          ↺ Recadrer
+        </button>
       )}
       {/* Badge musique */}
       {music && (
