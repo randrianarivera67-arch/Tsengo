@@ -15,6 +15,7 @@ function Glyph({ name, stroke = 'currentColor', width = 1.8 }) {
     case 'shop': return (<g {...p}><path d="M4.5 8.5h15l-1 11.2a1.8 1.8 0 0 1-1.8 1.6H7.3a1.8 1.8 0 0 1-1.8-1.6Z"/><path d="M8.6 8.5V6.4a3.4 3.4 0 0 1 6.8 0v2.1"/></g>);
     case 'artist': return (<g {...p}><path d="M9 18V6.2l10-2v11.4"/><circle cx="6.6" cy="18" r="2.6"/><circle cx="16.6" cy="15.6" r="2.6"/></g>);
     case 'boost': return (<g {...p}><path d="M13.2 2.5 5.4 13h5.1l-.7 8.5L18 11h-5.1Z"/></g>);
+    case 'vip': return (<g {...p}><path d="M12 3.2l2.6 5.3 5.8.85-4.2 4.1 1 5.75L12 16.5l-5.2 2.7 1-5.75-4.2-4.1 5.8-.85Z"/></g>);
     case 'orders': return (<g {...p}><path d="M4 9.5h3.2L14 5.2v13.6L7.2 14.5H4a1.5 1.5 0 0 1-1.5-1.5v-2a1.5 1.5 0 0 1 1.5-1.5Z"/><path d="M17.6 9.2a4.5 4.5 0 0 1 0 5.6"/><path d="M19.8 6.8a8 8 0 0 1 0 10.4"/></g>);
     case 'report': return (<g {...p}><path d="M5.5 21V4"/><path d="M5.5 5h11.8l-2.1 4 2.1 4H5.5"/></g>);
     case 'message': return (<g {...p}><path d="M21 11.6c0 4.2-4 7.6-8.9 7.6a10 10 0 0 1-3.6-.66L3.6 20l1.3-3.4A7 7 0 0 1 3.2 11.6C3.2 7.4 7.2 4 12.1 4S21 7.4 21 11.6Z"/></g>);

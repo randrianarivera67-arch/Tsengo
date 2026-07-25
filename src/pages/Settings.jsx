@@ -70,12 +70,15 @@ export default function Settings() {
             src={userProfile?.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(userProfile?.fullName||'U')}&background=1877F2&color=fff`}
             alt="" className="avatar" style={{ width: 54, height: 54 }}
           />
-          {userProfile?.isVip && (
-            <img src='/vip-badge.png' style={{ width:32, height:32, marginLeft:5, verticalAlign:'middle', display:'inline-block', flexShrink:0, objectFit:'contain' }} alt='VIP'/>
-          )}
         </div>
         <div style={{ flex: 1 }}>
-          <p style={{ fontWeight: 700, fontSize: 16 }}>{userProfile?.fullName}</p>
+          {/* badge VIP a cote du nom (aligne, comme dans le fil et le profil) */}
+          <p style={{ fontWeight: 700, fontSize: 16, display: 'flex', alignItems: 'center', gap: 4, minWidth: 0 }}>
+            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{userProfile?.fullName}</span>
+            {userProfile?.isVip && (
+              <img src='/vip-badge.png' style={{ width:22, height:22, flexShrink:0, objectFit:'contain' }} alt='VIP'/>
+            )}
+          </p>
           <p style={{ fontSize: 13, color: '#65676B' }}>@{userProfile?.username}</p>
           <p style={{ fontSize: 12, color: '#65676B' }}>{currentUser?.email}</p>
         </div>

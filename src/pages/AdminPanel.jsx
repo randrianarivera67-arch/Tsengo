@@ -51,6 +51,8 @@ export default function AdminPanel() {
   const [navMenuOpen, setNavMenuOpen] = useState(false);
   const [reports, setReports] = useState([]);
   const [boostOrders, setBoostOrders] = useState([]);
+  const [vipRequests, setVipRequests] = useState([]);
+  const [vipLoading, setVipLoading]   = useState(false);
   const [ordersLoading, setOrdersLoading] = useState(false);
 
   // ── Installation PWA ─────────────────────────────────────────────
@@ -76,7 +78,7 @@ export default function AdminPanel() {
         const snap = await getDoc(doc(db, 'users', currentUser.uid));
         if (snap.exists() && snap.data().isAdmin === true) {
           setIsAdmin(true);
-          loadUsers(); loadPosts(); loadShops(); loadArtists(); loadBoostOrders(); loadReports();
+          loadUsers(); loadPosts(); loadShops(); loadArtists(); loadBoostOrders(); loadReports(); loadVipRequests();
         } else setIsAdmin(false);
       } catch { setIsAdmin(false); }
     }
@@ -125,6 +127,47 @@ export default function AdminPanel() {
       setReports(prev => prev.map(x => x.id === r.id ? { ...x, status: 'dismissed' } : x));
       showMsg('Signalement ignoré');
     } catch (e) { showMsg('❌ Erreur : ' + (e?.message || e)); }
+  }
+
+  async function loadVipRequests() {
+    setVipLoading(true);
+    try {
+      const snap = await getDocs(query(collection(db, 'vipRequests'), orderBy('createdAt', 'desc')));
+      setVipRequests(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+    } catch { setVipRequests([]); }
+    setVipLoading(false);
+  }
+
+  async function approveVip(req) {
+    try {
+      await updateDoc(doc(db, 'users', req.requesterUid), { isVip: true });
+      await updateDoc(doc(db, 'vipRequests', req.id), { status: 'approved', processedAt: new Date().toISOString() });
+      try {
+        await addDoc(collection(db, 'notifications'), {
+          toUid: req.requesterUid, fromUid: currentUser.uid, fromName: 'Trengo Admin', fromPhoto: '',
+          type: 'general', message: 'Votre compte VIP a ete active. Bienvenue !',
+          read: false, createdAt: serverTimestamp(),
+        });
+      } catch (e) { }
+      setVipRequests(prev => prev.map(r => r.id === req.id ? { ...r, status: 'approved' } : r));
+      setUsers(prev => prev.map(u => u.id === req.requesterUid ? { ...u, isVip: true } : u));
+      showMsg('✅ VIP active pour ' + (req.requesterName || req.username || 'utilisateur'));
+    } catch (err) { showMsg('❌ Erreur : ' + (err?.message || err)); }
+  }
+
+  async function refuseVip(req) {
+    try {
+      await updateDoc(doc(db, 'vipRequests', req.id), { status: 'refused', processedAt: new Date().toISOString() });
+      try {
+        await addDoc(collection(db, 'notifications'), {
+          toUid: req.requesterUid, fromUid: currentUser.uid, fromName: 'Trengo Admin', fromPhoto: '',
+          type: 'general', message: 'Votre demande de compte VIP a ete refusee.',
+          read: false, createdAt: serverTimestamp(),
+        });
+      } catch (e) { }
+      setVipRequests(prev => prev.map(r => r.id === req.id ? { ...r, status: 'refused' } : r));
+      showMsg('Demande VIP refusee');
+    } catch (err) { showMsg('❌ Erreur : ' + (err?.message || err)); }
   }
 
   async function loadBoostOrders() {
@@ -323,6 +366,7 @@ export default function AdminPanel() {
 
   const nPendingOrders = boostOrders.filter(o => o.status === 'pending').length;
   const nPendingReports = reports.filter(r => r.status === 'pending' || !r.status).length;
+  const nPendingVip = vipRequests.filter(r => r.status === 'pending').length;
   const NAV_ITEMS = [
     { key: 'dashboard', label: 'Tableau de bord', group: '', ic: 'dashboard' },
     { key: 'users',   label: 'Utilisateurs',    group: 'GESTION', ic: 'users' },
@@ -331,6 +375,7 @@ export default function AdminPanel() {
     { key: 'boost',   label: 'Boost (manuel)',  group: 'GESTION', ic: 'boost' },
     { key: 'orders',  label: 'Commandes Boost', group: 'GESTION', ic: 'orders', badge: nPendingOrders },
     { key: 'reports', label: 'Signalements',    group: 'GESTION', ic: 'report', badge: nPendingReports },
+    { key: 'vip',     label: 'Demandes VIP',    group: 'GESTION', ic: 'vip', badge: nPendingVip },
   ].map(it => ({ ...it, icon: <NavIcon name={it.ic} size={19} color={activeTab === it.key ? '#FF2D8D' : '#65676B'} glow={activeTab === it.key} /> }));
 
   async function resetUserPassword(user) {
@@ -707,6 +752,40 @@ export default function AdminPanel() {
                     <button onClick={() => dismissReport(r)} style={{ flex:1, background:'#F0F2F5', border:'none', borderRadius:16, padding:'9px 0', color:'#65676B', fontWeight:700, fontSize:13, cursor:'pointer', fontFamily:'Poppins' }}>Ignorer</button>
                   </div>
                 )}
+              </div>
+            ))}
+          </div>
+        )}
+
+        {activeTab === 'vip' && (
+          <div>
+            {vipLoading ? (
+              <SkeletonList rows={3} />
+            ) : vipRequests.length === 0 ? (
+              <p style={{ textAlign:'center', color:'#65676B', padding:30, fontSize:13 }}>Aucune demande VIP</p>
+            ) : vipRequests.map(req => (
+              <div key={req.id} style={{ background:'#FFFFFF', borderRadius:14, padding:'12px 14px', marginBottom:10, border: req.status==='pending' ? '1px solid #f59e0b' : '1px solid #E4E6EB' }}>
+                <div style={{ display:'flex', alignItems:'center', gap:10 }}>
+                  <img src={req.requesterPhoto || `https://ui-avatars.com/api/?name=${encodeURIComponent(req.requesterName||'U')}&background=1877F2&color=fff`} alt="" style={{ width:38, height:38, borderRadius:'50%', objectFit:'cover', flexShrink:0 }}/>
+                  <div style={{ flex:1, minWidth:0 }}>
+                    <p style={{ fontWeight:700, fontSize:13, color:'#050505', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{req.requesterName || 'Utilisateur'}</p>
+                    <p style={{ fontSize:11, color:'#65676B', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
+                      {req.username ? '@' + req.username : ''}{req.email ? ' · ' + req.email : ''}
+                    </p>
+                  </div>
+                </div>
+                <div style={{ marginTop:10 }}>
+                  {req.status === 'pending' ? (
+                    <div style={{ display:'flex', gap:8 }}>
+                      <button onClick={() => approveVip(req)} style={{ flex:1, background:'linear-gradient(135deg,#FF2D8D,#FF7AB8)', border:'none', borderRadius:16, padding:'9px 0', color:'white', fontWeight:700, fontSize:13, cursor:'pointer', fontFamily:'Poppins' }}>Activer le VIP</button>
+                      <button onClick={() => refuseVip(req)} style={{ flex:1, background:'#FFFFFF', border:'1px solid #ef4444', borderRadius:16, padding:'9px 0', color:'#ef4444', fontWeight:700, fontSize:13, cursor:'pointer', fontFamily:'Poppins' }}>Refuser</button>
+                    </div>
+                  ) : (
+                    <span style={{ fontSize:12, fontWeight:700, color: req.status==='approved' ? '#22c55e' : '#ef4444' }}>
+                      {req.status==='approved' ? 'VIP active' : 'Refusee'}
+                    </span>
+                  )}
+                </div>
               </div>
             ))}
           </div>

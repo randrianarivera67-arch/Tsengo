@@ -1,6 +1,10 @@
 // src/pages/VIPInfo.jsx
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { HiArrowLeft, HiStar, HiCheckCircle, HiMail } from 'react-icons/hi';
+import { HiArrowLeft, HiStar, HiCheckCircle } from 'react-icons/hi';
+import { collection, addDoc, query, where, getDocs, serverTimestamp } from 'firebase/firestore';
+import { db } from '../firebase';
+import { useAuth } from '../context/AuthContext';
 
 const FEATURES = [
   'Badge VIP rose visible sur votre profil',
@@ -13,6 +17,50 @@ const FEATURES = [
 
 export default function VIPInfo() {
   const navigate = useNavigate();
+  const { currentUser, userProfile } = useAuth();
+  const [status, setStatus]   = useState('loading');
+  const [sending, setSending] = useState(false);
+  const [error, setError]     = useState('');
+  const isVip = !!userProfile?.isVip;
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      if (!currentUser) { setStatus('none'); return; }
+      try {
+        const snap = await getDocs(query(collection(db, 'vipRequests'), where('requesterUid', '==', currentUser.uid)));
+        if (cancelled) return;
+        const rows = snap.docs.map(d => d.data() || {});
+        if (rows.some(r => r.status === 'pending'))       setStatus('pending');
+        else if (rows.some(r => r.status === 'approved')) setStatus('approved');
+        else if (rows.some(r => r.status === 'refused'))  setStatus('refused');
+        else setStatus('none');
+      } catch { if (!cancelled) setStatus('none'); }
+    })();
+    return () => { cancelled = true; };
+  }, [currentUser]);
+
+  async function sendRequest() {
+    if (!currentUser || sending) return;
+    setSending(true); setError('');
+    try {
+      await addDoc(collection(db, 'vipRequests'), {
+        requesterUid:   currentUser.uid,
+        requesterName:  userProfile?.fullName || '',
+        requesterPhoto: userProfile?.photoURL || '',
+        username:       userProfile?.username || '',
+        email:          currentUser.email || '',
+        status:         'pending',
+        createdAt:      serverTimestamp(),
+      });
+      setStatus('pending');
+    } catch (e) {
+      const m = String(e?.code || e?.message || '');
+      setError(m.includes('permission')
+        ? "Envoi refuse par le serveur (regles Firestore a publier)."
+        : "La demande n'a pas pu etre envoyee. Verifiez votre connexion puis reessayez.");
+    } finally { setSending(false); }
+  }
 
   return (
     <div style={{ padding: '16px 12px' }}>
@@ -47,27 +95,48 @@ export default function VIPInfo() {
 
       {/* How to get */}
       <div className="card" style={{ padding: 20, marginBottom: 20 }}>
-        <h4 style={{ fontWeight: 700, fontSize: 16, marginBottom: 12, color: '#1877F2' }}>📋 Comment obtenir le VIP ?</h4>
+        <h4 style={{ fontWeight: 700, fontSize: 16, marginBottom: 12, color: '#1877F2' }}>Comment obtenir le VIP ?</h4>
         <p style={{ fontSize: 14, color: '#65676B', lineHeight: 1.7, marginBottom: 14 }}>
-          Pour activer le compte VIP, envoyez un email à notre administrateur avec :<br/>
-          • Votre nom d'utilisateur Trengo<br/>
-          • Votre demande d'activation VIP<br/><br/>
-          L'activation se fait dans les 24h ouvrables.
+          Envoyez votre demande d'activation VIP en un clic : elle arrive directement
+          dans l'espace d'administration Trengo.<br/><br/>
+          L'activation se fait dans les 24h ouvrables. Vous recevrez une notification
+          des que votre demande sera traitee.
         </p>
-        <a
-          href="mailto:randrianarivera67@gmail.com?subject=Demande activation compte VIP Trengo"
-          style={{
-            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-            background: 'linear-gradient(135deg,#FF2D8D,#FF7AB8)',
-            color: 'white', borderRadius: 25, padding: '13px 20px',
-            textDecoration: 'none', fontWeight: 700, fontSize: 14,
-          }}
-        >
-          <HiMail size={18} /> Contacter l'admin
-        </a>
-        <p style={{ textAlign: 'center', fontSize: 12, color: '#65676B', marginTop: 10 }}>
-          randrianarivera67@gmail.com
-        </p>
+
+        {isVip ? (
+          <div style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:8, background:'#E7F8EE', border:'1px solid #22c55e', borderRadius:16, padding:'13px 16px', color:'#15803d', fontWeight:700, fontSize:14 }}>
+            <HiCheckCircle size={18} /> Votre compte est deja VIP
+          </div>
+        ) : status === 'loading' ? (
+          <p style={{ textAlign:'center', fontSize:13, color:'#65676B' }}>Chargement...</p>
+        ) : status === 'pending' ? (
+          <div style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:8, background:'#FFF6E5', border:'1px solid #f59e0b', borderRadius:16, padding:'13px 16px', color:'#b45309', fontWeight:700, fontSize:14 }}>
+            <HiStar size={18} /> Demande envoyee - en attente de validation
+          </div>
+        ) : (
+          <>
+            <button onClick={sendRequest} disabled={sending}
+              style={{
+                width:'100%', display:'flex', alignItems:'center', justifyContent:'center', gap:8,
+                background: sending ? '#E4E6EB' : 'linear-gradient(135deg,#FF2D8D,#FF7AB8)',
+                color: sending ? '#65676B' : 'white', border:'none', borderRadius:25, padding:'13px 20px',
+                fontWeight:700, fontSize:14, fontFamily:'Poppins', cursor: sending ? 'not-allowed' : 'pointer',
+              }}>
+              <HiStar size={18} /> {sending ? 'Envoi...' : 'Demander le compte VIP'}
+            </button>
+            {status === 'refused' && (
+              <p style={{ textAlign:'center', fontSize:12, color:'#b45309', marginTop:10 }}>
+                Votre demande precedente a ete refusee. Vous pouvez en envoyer une nouvelle.
+              </p>
+            )}
+          </>
+        )}
+
+        {error && (
+          <p style={{ textAlign:'center', fontSize:12.5, color:'#b91c1c', background:'#FEE2E2', border:'1px solid #fca5a5', borderRadius:12, padding:'9px 12px', marginTop:10 }}>
+            {error}
+          </p>
+        )}
       </div>
     </div>
   );
