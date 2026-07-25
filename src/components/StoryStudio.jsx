@@ -167,6 +167,18 @@ export default function StoryStudio({ mode: initialMode = 'menu', currentUser, u
 
   useEffect(() => () => { try { previewAudioRef.current?.pause(); } catch {} }, []);
 
+  useEffect(() => {
+    document.body.dataset.ptrOff = '1';
+    return () => { try { delete document.body.dataset.ptrOff; } catch {} };
+  }, []);
+
+  function askClose() {
+    const hasWork = (mode === 'text' && !!text.trim()) || ((mode === 'photo' || mode === 'video') && !!file);
+    if (hasWork && !window.confirm('Voulez-vous vraiment quitter ? Votre story ne sera pas publiée.')) return;
+    try { previewAudioRef.current?.pause(); } catch {}
+    onClose && onClose();
+  }
+
   function togglePreview(tr) {
     try {
       if (previewTrack === tr.id) {
@@ -497,7 +509,7 @@ export default function StoryStudio({ mode: initialMode = 'menu', currentUser, u
 
       {/* Barre haut */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', paddingTop: 'calc(10px + env(safe-area-inset-top))' }}>
-        <button style={topBtn} onClick={onClose}>{Ic.x(20)}</button>
+        <button style={topBtn} onClick={askClose}>{Ic.x(20)}</button>
         <div style={{ flex: 1 }} />
         <button
           onClick={publish} disabled={!canPublish || busy}

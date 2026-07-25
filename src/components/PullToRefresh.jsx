@@ -63,6 +63,7 @@ export default function PullToRefresh({ onRefresh }) {
   useEffect(() => {
     function onStart(e) {
       if (spinningRef.current) return;
+      if (document.body.dataset.ptrOff === '1') { dragging.current = false; return; }
       if (scrollTopOf(e.target) > 2) { dragging.current = false; return; }
       startY.current = e.touches[0].clientY;
       dragging.current = true;
@@ -70,6 +71,7 @@ export default function PullToRefresh({ onRefresh }) {
     }
     function onMove(e) {
       if (!dragging.current || spinningRef.current) return;
+      if (document.body.dataset.ptrOff === '1') { dragging.current = false; draggingUI.current = false; setPull(0); return; }
       if (scrollTopOf(e.target) > 2) { dragging.current = false; draggingUI.current = false; setPull(0); return; }
       const dy = e.touches[0].clientY - startY.current;
       if (dy <= 0) { draggingUI.current = false; setPull(0); return; }
