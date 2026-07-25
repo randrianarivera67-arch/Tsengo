@@ -146,7 +146,8 @@ async function uploadVideoInChunks(file, onProgress) {
             + '&sizes=' + sizes.join(',')
             + '&mime=' + encodeURIComponent(mime);
   report(100);
-  return { url, type: 'video', chunks: ids.length };
+  const type = mime.startsWith('audio') ? 'audio' : mime.startsWith('image') ? 'image' : 'video';
+  return { url, type, chunks: ids.length };
 }
 
 export async function uploadToTelegram(file, onProgress) {
@@ -156,7 +157,9 @@ export async function uploadToTelegram(file, onProgress) {
     throw new Error('Fichier trop volumineux (' + Math.round(file.size / MB) + ' Mo). Maximum : 500 Mo.');
   }
 
-  if (file.type.startsWith('video/') && file.size > CHUNK_THRESHOLD) {
+  // Tout fichier volumineux est decoupe, quel que soit son type : Telegram
+  // accepte 50 Mo a l'envoi mais ne permet de relire que 20 Mo.
+  if (file.size > CHUNK_THRESHOLD) {
     return uploadVideoInChunks(file, onProgress);
   }
 
