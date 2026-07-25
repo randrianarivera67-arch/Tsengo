@@ -628,7 +628,7 @@ export default function GroupPage() {
             <input ref={postPhotoRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={e => handleMedia(e, 'image')} />
             <input ref={postVideoRef} type="file" accept="video/mp4,video/webm,video/quicktime" style={{ display: 'none' }} onChange={e => handleMedia(e, 'video')} />
             {[
-              { icon:<HiPhotograph size={22} color="#45BD62"/>, label:'Photo / Vidéo', action:() => postPhotoRef.current?.click() },
+              { icon:<HiPhotograph size={22} color="#45BD62"/>, label:'Photo', action:() => postPhotoRef.current?.click() },
               { icon:<HiVideoCamera size={22} color="#F3425F"/>, label:'Vidéo',        action:() => postVideoRef.current?.click() },
               { icon:<HiUserAdd size={22} color="#1877F2"/>,     label:'Identifier des personnes', action:() => setGpTagOpen(true) },
               { icon:<span style={{ fontSize:22 }}>📍</span>,     label: gpLocation ? `Lieu : ${gpLocation}` : 'Ajouter un lieu', action:() => setGpLocationOpen(true) },

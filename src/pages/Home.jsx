@@ -820,6 +820,13 @@ export default function Home() {
   }, [feedRaw, order, userProfile?.blocked, userProfile?.friends]); // eslint-disable-line
 
   const [multiPhotos, setMultiPhotos] = useState([]);   // File[] — mode "plusieurs photos" (2 à 10)
+
+  // Confirmation avant de quitter la page "Créer une publication"
+  function askCloseComposer() {
+    const hasWork = !!content.trim() || !!mediaFile || (multiPhotos && multiPhotos.length > 0);
+    if (hasWork && !window.confirm('Voulez-vous vraiment quitter ? Votre publication ne sera pas publiée.')) return;
+    setPublishFullOpen(false);
+  }
   function handleMedia(e, type) {
     const files = Array.from(e.target.files || []);
     if (!files.length) return;
@@ -1788,7 +1795,7 @@ const fields = {
       <div className="card post-card" style={{ padding:16, marginBottom:8, width:'100%', maxWidth:600, minHeight:'100vh', borderRadius:0 }}>
         {/* Header page */}
         <div style={{ display:'flex', alignItems:'center', gap:12, marginBottom:14, paddingBottom:12, borderBottom:'1px solid #E4E6EB' }}>
-          <button onClick={() => setPublishFullOpen(false)} style={{ background:'none', border:'none', cursor:'pointer', padding:4 }}><HiX size={24} color="#050505"/></button>
+          <button onClick={askCloseComposer} style={{ background:'none', border:'none', cursor:'pointer', padding:4 }}><HiX size={24} color="#050505"/></button>
           <h3 style={{ fontWeight:800, fontSize:18, flex:1 }}>Créer une publication</h3>
           <button className="btn-primary" onClick={() => { createPost(); }} disabled={posting||(!content.trim()&&!mediaFile&&multiPhotos.length===0)||content.length>MAX_POST} style={{ padding:'7px 20px', fontSize:14 }}>
             {posting?'...':t('publishPost')}
@@ -1928,7 +1935,7 @@ const fields = {
           <input ref={photoRef} type="file" multiple accept="image/jpeg,image/png,image/gif,image/webp" onChange={e => handleMedia(e,'image')} style={{ display:'none' }}/>
           <input ref={videoRef} type="file" accept="video/mp4,video/webm,video/quicktime"       onChange={e => handleMedia(e,'video')} style={{ display:'none' }}/>
           {[
-            { icon:<HiPhotograph size={22} color="#45BD62"/>, label:'Photo / Vidéo', action:() => photoRef.current?.click() },
+            { icon:<HiPhotograph size={22} color="#45BD62"/>, label:'Photo', action:() => photoRef.current?.click() },
             { icon:<HiVideoCamera size={22} color="#F3425F"/>, label:'Vidéo',        action:() => videoRef.current?.click() },
             { icon:<HiTag size={22} color="#F5C518"/>,         label:'Vente',        action:() => setIsSale(p=>!p), active:isSale },
             { icon:<HiUserAdd size={22} color="#1877F2"/>,     label:'Identifier des personnes', action:() => openComposerTagModal() },
