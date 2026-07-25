@@ -1,135 +1,172 @@
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'https://tsengo-backend.onrender.com';
-// Proxy media (lecture) : Cloudflare Worker (edge, cache) — fa tsy Render
-const MEDIA_URL = import.meta.env.VITE_MEDIA_URL || 'https://tsengo-upload.randrianarivera67.workers.dev';
+const MEDIA_URL   = import.meta.env.VITE_MEDIA_URL   || 'https://tsengo-upload.randrianarivera67.workers.dev';
 
-async function compressImage(file, maxWidth=720, quality=0.62) {
+const MB              = 1024 * 1024;
+const MAX_SIZE        = 500 * MB;
+const CHUNK_THRESHOLD = 12 * MB;
+const MAX_CHUNKS      = 120;
+const CHUNK_TIMEOUT   = 120 * 1000;
+const SOLO_TIMEOUT    = 180 * 1000;
+
+function chunkSizeFor(size) { return size > 200 * MB ? 8 * MB : 4 * MB; }
+
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+function monotonic(onProgress) {
+  let last = 0;
+  return p => {
+    const v = Math.max(last, Math.min(100, Math.round(p)));
+    if (v !== last) { last = v; onProgress && onProgress(v); }
+  };
+}
+
+async function compressImage(file, maxWidth = 720, quality = 0.62) {
   if (!file.type.startsWith('image/')) return file;
   return new Promise(resolve => {
     const img = new Image();
     const url = URL.createObjectURL(file);
     img.onload = () => {
       const canvas = document.createElement('canvas');
-      let w=img.width, h=img.height;
-      if (w>maxWidth) { h=Math.round(h*maxWidth/w); w=maxWidth; }
-      canvas.width=w; canvas.height=h;
-      canvas.getContext('2d').drawImage(img,0,0,w,h);
+      let w = img.width, h = img.height;
+      if (w > maxWidth) { h = Math.round(h * maxWidth / w); w = maxWidth; }
+      canvas.width = w; canvas.height = h;
+      canvas.getContext('2d').drawImage(img, 0, 0, w, h);
       URL.revokeObjectURL(url);
-      canvas.toBlob(blob=>resolve(new File([blob],file.name,{type:'image/jpeg'})),'image/jpeg',quality);
+      canvas.toBlob(blob => resolve(new File([blob], file.name, { type: 'image/jpeg' })), 'image/jpeg', quality);
     };
-    img.src=url;
+    img.onerror = () => { URL.revokeObjectURL(url); resolve(file); };
+    img.src = url;
   });
 }
 
-const MAX_SIZE        = 500 * 1024 * 1024;  // 500 Mo maximum
-const CHUNK_SIZE      = 9 * 1024 * 1024;    // morceaux 9 Mo — kely kokoa = lecture/pré-chargement fluide kokoa
-const CHUNK_THRESHOLD = 12 * 1024 * 1024;   // vidéo > 12 Mo → envoi en morceaux
-
-// Envoi d'un FormData avec progression réelle (XHR)
-function sendForm(endpoint, form, onPct, timeout = 10 * 60 * 1000) {
+function workerSend(blob, { name, mime, kind }, onPct, timeout) {
   return new Promise((resolve, reject) => {
     const xhr = new XMLHttpRequest();
-    xhr.open('POST', `${BACKEND_URL}${endpoint}`);
-    xhr.timeout = timeout;
-    xhr.upload.onprogress = e => {
-      if (onPct && e.lengthComputable) onPct(Math.round((e.loaded / e.total) * 100));
-    };
+    const qs = '?name=' + encodeURIComponent(name || 'file')
+             + '&mime=' + encodeURIComponent(mime || 'application/octet-stream')
+             + (kind ? '&kind=' + kind : '');
+    xhr.open('POST', MEDIA_URL + '/upload' + qs);
+    xhr.timeout = timeout || CHUNK_TIMEOUT;
+    xhr.setRequestHeader('Content-Type', mime || 'application/octet-stream');
+    xhr.upload.onprogress = e => { if (onPct && e.lengthComputable) onPct(Math.round((e.loaded / e.total) * 100)); };
     xhr.onload = () => {
       let json;
       try { json = JSON.parse(xhr.responseText); }
-      catch { return reject(new Error(`HTTP ${xhr.status} — serveur indisponible`)); }
-      if (xhr.status >= 200 && xhr.status < 300 && !json.error) resolve(json);
-      else reject(new Error(json.error || `HTTP ${xhr.status}`));
+      catch { return reject(new Error('HTTP ' + xhr.status + ' — réponse illisible')); }
+      if (xhr.status >= 200 && xhr.status < 300 && json.ok && json.fileId) resolve(json);
+      else reject(new Error(json.error || ('HTTP ' + xhr.status)));
     };
     xhr.onerror   = () => reject(new Error('Connexion interrompue'));
     xhr.ontimeout = () => reject(new Error('Délai dépassé — connexion trop lente'));
+    xhr.send(blob);
+  });
+}
+
+function renderSend(blob, filename, onPct, timeout) {
+  return new Promise((resolve, reject) => {
+    const form = new FormData();
+    form.append('file', blob, filename);
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', BACKEND_URL + '/telegram/upload');
+    xhr.timeout = timeout || CHUNK_TIMEOUT;
+    xhr.upload.onprogress = e => { if (onPct && e.lengthComputable) onPct(Math.round((e.loaded / e.total) * 100)); };
+    xhr.onload = () => {
+      let json;
+      try { json = JSON.parse(xhr.responseText); }
+      catch { return reject(new Error('HTTP ' + xhr.status + ' — serveur indisponible')); }
+      if (xhr.status >= 200 && xhr.status < 300 && !json.error && json.fileId) resolve(json);
+      else reject(new Error(json.error || ('HTTP ' + xhr.status)));
+    };
+    xhr.onerror   = () => reject(new Error('Connexion interrompue'));
+    xhr.ontimeout = () => reject(new Error('Délai dépassé'));
     xhr.send(form);
   });
 }
 
-async function jsonPost(endpoint, body) {
-  const res = await fetch(`${BACKEND_URL}${endpoint}`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
-  });
-  const data = await res.json().catch(() => ({ error: `HTTP ${res.status}` }));
-  if (!res.ok || data.error) throw new Error(data.error || `HTTP ${res.status}`);
-  return data;
+function waitFor(message, attempt) {
+  const msg = String(message || '');
+  const m = msg.match(/retry.?after[^\d]*(\d+)/i);
+  if (m) return (parseInt(m[1]) + 1) * 1000;
+  if (/too many requests|429|flood/i.test(msg)) return 4000 * attempt;
+  return 1500 * attempt;
 }
 
-// Vidéo lehibe : tapatapahana morceaux ≤9 Mo, alefa tsirairay misy retry mafy,
-// dia atambatry ny serveur ho vidéo TOKANA amin'ny lecture.
-//  ✅ FIX erreurs "fanapahana video" : ny fandefasana document 50+ amin'ny bot
-//     Telegram dia mety hahazo "429 Too Many Requests" (flood). Amboarina :
-//       • honorém-i ny retry_after (raha lazain'ny serveur/Telegram)
-//       • fiatoana kely (250ms) eo anelanelan'ny morceaux → tsy flood
-//       • 6 fanandramana isaky ny morceau (backoff mitombo), tsy miverina any am-boalohany
-const MAX_CHUNKS = 60;
+async function sendOne(blob, { name, mime, kind, timeout, label }, onPct) {
+  let attempt = 0;
+  for (;;) {
+    attempt++;
+    const useRender = attempt >= 3;
+    try {
+      if (useRender) {
+        const r = await renderSend(blob, name, onPct, timeout);
+        return { fileId: r.fileId, via: 'render' };
+      }
+      const r = await workerSend(blob, { name, mime, kind }, onPct, timeout);
+      return { fileId: r.fileId, url: r.url, type: r.type, via: 'worker' };
+    } catch (e) {
+      if (attempt >= 6) throw new Error((label ? label + ' : ' : '') + e.message);
+      await sleep(waitFor(e.message, attempt));
+    }
+  }
+}
 
 async function uploadVideoInChunks(file, onProgress) {
-  const total = Math.ceil(file.size / CHUNK_SIZE);
+  const report = monotonic(onProgress);
+  const CH = chunkSizeFor(file.size);
+  const total = Math.ceil(file.size / CH);
   if (total > MAX_CHUNKS) {
-    throw new Error(`Vidéo trop volumineuse pour l'envoi en morceaux (${Math.round(file.size / 1024 / 1024)} Mo). Réduisez la durée ou la qualité.`);
+    throw new Error('Vidéo trop volumineuse (' + Math.round(file.size / MB) + ' Mo). Réduisez la durée ou la qualité.');
   }
-  const { uploadId } = await jsonPost('/chunk/init', { total, mime: file.type || 'video/mp4', name: file.name || 'video.mp4' });
 
+  const ids = [], sizes = [];
   for (let i = 0; i < total; i++) {
-    const blob = file.slice(i * CHUNK_SIZE, Math.min((i + 1) * CHUNK_SIZE, file.size));
-    let attempt = 0;
-    for (;;) {
-      try {
-        const form = new FormData();
-        form.append('uploadId', uploadId);
-        form.append('index', String(i));
-        form.append('file', blob, `chunk_${i}.part`);
-        await sendForm('/chunk/upload', form, pct => {
-          if (onProgress) onProgress(Math.min(95, Math.round(((i + pct / 100) / total) * 95)));
-        });
-        break; // morceau tafita
-      } catch (e) {
-        attempt++;
-        if (attempt >= 6) throw new Error(`Morceau ${i + 1}/${total} échoué : ${e.message}`);
-        // Retry mafy : raha "Too Many Requests" dia miandry ela kokoa (flood control)
-        const msg = String(e.message || '');
-        const m = msg.match(/retry.?after[^\d]*(\d+)/i);
-        const flood = /too many requests|429|flood/i.test(msg);
-        const waitMs = m ? (parseInt(m[1]) + 1) * 1000 : (flood ? 4000 * attempt : 1500 * attempt);
-        await new Promise(r => setTimeout(r, waitMs));
-      }
-    }
-    // Fiatoana kely eo anelanelan'ny morceaux → misoroka ny flood amin'ny bot Telegram
-    if (i < total - 1) await new Promise(r => setTimeout(r, 250));
+    const blob = file.slice(i * CH, Math.min((i + 1) * CH, file.size));
+    const base = (i / total) * 95, span = 95 / total;
+    const r = await sendOne(blob, {
+      name: 'chunk_' + i + '.part',
+      mime: 'application/octet-stream',
+      timeout: CHUNK_TIMEOUT,
+      label: 'Morceau ' + (i + 1) + '/' + total,
+    }, p => report(base + span * (p / 100)));
+
+    ids.push(r.fileId);
+    sizes.push(blob.size);
+    report(((i + 1) / total) * 95);
+    if (i < total - 1) await sleep(200);
   }
 
-  const done = await jsonPost('/chunk/complete', { uploadId });
-  if (onProgress) onProgress(100);
-  return { url: done.url, type: 'video' };
+  const mime = file.type || 'video/mp4';
+  const url = MEDIA_URL + '/chunked?ids=' + ids.join(',')
+            + '&sizes=' + sizes.join(',')
+            + '&mime=' + encodeURIComponent(mime);
+  report(100);
+  return { url, type: 'video', chunks: ids.length };
 }
 
 export async function uploadToTelegram(file, onProgress) {
-  if (file.type.startsWith('image/')) {
-    file = await compressImage(file);
-  }
+  if (file.type.startsWith('image/')) file = await compressImage(file);
 
   if (file.size > MAX_SIZE) {
-    throw new Error(`Fichier trop volumineux (${Math.round(file.size / 1024 / 1024)} Mo). Maximum : 500 Mo.`);
+    throw new Error('Fichier trop volumineux (' + Math.round(file.size / MB) + ' Mo). Maximum : 500 Mo.');
   }
 
-  // Vidéo > 12 Mo → envoi en morceaux (fiable sur Render, pas de timeout)
   if (file.type.startsWith('video/') && file.size > CHUNK_THRESHOLD) {
     return uploadVideoInChunks(file, onProgress);
   }
 
-  // Fichiers kely : envoi tokana amin'ny Bot API
-  const form = new FormData();
-  form.append('file', file, file.name || `file_${Date.now()}`);
-  const data = await sendForm('/telegram/upload', form, pct => {
-    if (onProgress) onProgress(Math.min(95, Math.round(pct * 0.95)));
-  });
+  const report = monotonic(onProgress);
+  const isAudio = file.type.startsWith('audio/');
+  const r = await sendOne(file, {
+    name: file.name || ('file_' + Date.now()),
+    mime: file.type || 'application/octet-stream',
+    kind: isAudio ? 'audio' : undefined,
+    timeout: SOLO_TIMEOUT,
+  }, p => report(p * 0.95));
 
-  if (!data.url && !data.fileId) throw new Error("Upload échoué : réponse du serveur sans URL");
-  if (onProgress) onProgress(100);
+  if (!r.fileId) throw new Error('Envoi échoué : réponse sans identifiant de fichier');
+  report(100);
 
-  const url = data.url || (data.fileId ? `${MEDIA_URL}/media-id?file_id=${data.fileId}` : null);
-  return { url, fileId: data.fileId, messageId: data.messageId, type: data.type };
+  const url = r.url || (MEDIA_URL + '/media-id?file_id=' + r.fileId);
+  const type = r.type || (file.type.startsWith('video') ? 'video' : isAudio ? 'audio' : 'image');
+  return { url, fileId: r.fileId, type };
 }
