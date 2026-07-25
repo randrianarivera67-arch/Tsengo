@@ -12,6 +12,7 @@ import { db } from '../firebase';
 import { uploadToTelegram } from '../utils/telegram';
 import { trimVideoTo30s } from '../utils/trimVideo';
 import { captureVideoThumb } from '../utils/videoThumb';
+import { startBackgroundUpload } from '../utils/uploadManager';
 
 // ── Fonds texte (mitovy amin'ny efa misy) ──
 const BG = [
@@ -277,6 +278,12 @@ export default function StoryStudio({ mode: initialMode = 'menu', currentUser, u
   async function publish() {
     if (busy) return;
     setBusy(true); setProgress(0);
+
+    const closeStudio = () => {
+      try { previewAudioRef.current?.pause(); } catch {}
+      onPublished && onPublished();
+    };
+
     try {
       if (mode === 'text') {
         if (!text.trim()) { setBusy(false); return; }
@@ -287,38 +294,55 @@ export default function StoryStudio({ mode: initialMode = 'menu', currentUser, u
           bgColor: BG[bgIdx],
           fontSize, align, textColor: txtColor,
         });
-      } else if (mode === 'photo') {
+        closeStudio();
+        return;
+      }
+
+      if (mode === 'photo') {
         if (!file) { setBusy(false); return; }
         const baked = await bakePhoto().catch(() => file);
-        const r = await uploadToTelegram(baked, p => setProgress(p));
-        await addDoc(collection(db, 'stories'), {
-          ...baseDoc(),
-          mediaType: 'image',
-          mediaURL: r.url,
+        const snap = baseDoc();
+        const started = startBackgroundUpload(baked, 'Story photo', async r => {
+          await addDoc(collection(db, 'stories'), {
+            ...snap,
+            mediaType: 'image',
+            mediaURL: r.url,
+          });
         });
-      } else if (mode === 'video') {
+        if (started) closeStudio(); else setBusy(false);
+        return;
+      }
+
+      if (mode === 'video') {
         if (!file) { setBusy(false); return; }
         let f = file;
         const trimmed = await trimVideoTo30s(file).catch(() => null);
         if (trimmed) f = trimmed;
-        const r = await uploadToTelegram(f, p => setProgress(p));
-        let _thumbURL = '';
-        try {
-          const tf = await captureVideoThumb(f);
-          if (tf) { const tr = await uploadToTelegram(tf); _thumbURL = tr.url || ''; }
-        } catch {}
-        await addDoc(collection(db, 'stories'), {
-          ...baseDoc(),
-          mediaType: 'video',
-          mediaURL: r.url,
-          thumbURL: _thumbURL,
+        const snap = baseDoc();
+        const meta = {
           filter: cssFor(filterKey),
           caption: caption.trim().slice(0, 200),
           captionPos,
+        };
+        const started = startBackgroundUpload(f, 'Story vidéo', async r => {
+          let _thumbURL = '';
+          try {
+            const tf = await captureVideoThumb(f);
+            if (tf) { const tr = await uploadToTelegram(tf); _thumbURL = tr.url || ''; }
+          } catch {}
+          await addDoc(collection(db, 'stories'), {
+            ...snap,
+            ...meta,
+            mediaType: 'video',
+            mediaURL: r.url,
+            thumbURL: _thumbURL,
+          });
         });
+        if (started) closeStudio(); else setBusy(false);
+        return;
       }
-      try { previewAudioRef.current?.pause(); } catch {}
-      onPublished && onPublished();
+
+      setBusy(false);
     } catch (err) {
       alert('Erreur story : ' + (err?.message || err));
       setBusy(false);
