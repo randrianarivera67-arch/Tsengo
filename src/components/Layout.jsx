@@ -14,6 +14,7 @@ import { parseAppLink } from '../utils/appLink';
 import { getCart, subscribeCart } from '../utils/cart';
 import { NeonChart } from './NeonIcons';
 import PullToRefresh from './PullToRefresh';
+import UpdateBanner from './UpdateBanner';
 import ScrollReveal from './ScrollReveal';
 import { subscribeUpload } from '../utils/uploadManager';
 import {
@@ -331,6 +332,7 @@ export default function Layout({ children }) {
 
       {/* Apparition "ressort" des cartes au defilement (toute l'app) */}
       <ScrollReveal />
+      <UpdateBanner />
 
       {!isReels && <PullToRefresh onRefresh={doSoftRefresh} />}
       {refreshing && (

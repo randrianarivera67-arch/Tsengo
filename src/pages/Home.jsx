@@ -333,7 +333,7 @@ export default function Home() {
 
   const [posts, setPosts]           = useState([]);
   const [postsLoading, setPostsLoading] = useState(true);
-  const feedAds = useFeedAds();
+  const feedAds = [];   // publicites desactivees (etait : useFeedAds())
   const [visibleCount, setVisibleCount] = useState(20);   // affichage progressif (20 au depart)
 
   const { items: musicItems, loadMore: loadMoreMusic } = useMusicSuggestions(10);
@@ -2084,7 +2084,7 @@ const fields = {
               blockedIds={userProfile?.blocked || []}
             />
           )}
-          {feedAds.length > 0 && pIdx > 0 && pIdx % 4 === 0 && (
+          {false && feedAds.length > 0 && pIdx > 0 && pIdx % 4 === 0 && (
             <SponsoredPost ad={feedAds[(Math.floor(pIdx / 4) - 1) % feedAds.length]} />
           )}
           <div className="card post-card animate-fade" style={{ marginBottom:14, border:boosted?'1px solid #a855f755':undefined }}>

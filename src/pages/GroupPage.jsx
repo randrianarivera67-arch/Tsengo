@@ -71,6 +71,13 @@ export default function GroupPage() {
   const [gpTagOpen,  setGpTagOpen]  = useState(false);
   const [gpTagSel,   setGpTagSel]   = useState({});
   const [gpTagList,  setGpTagList]  = useState([]);
+
+  // Confirmation avant de quitter le composer du groupe
+  function askCloseGroupComposer() {
+    const hasWork = !!content.trim() || !!mediaFile;
+    if (hasWork && !window.confirm('Voulez-vous vraiment quitter ? Votre publication ne sera pas publiée.')) return;
+    setGpFullOpen(false);
+  }
   const MOODS = ['😊 se sent heureux(se)', '😢 se sent triste', '🥳 fait la fête', '😴 fatigué(e)', '🙏 reconnaissant(e)', '💪 motivé(e)', '😍 amoureux(se)', '🤒 malade'];
   const [uploadingCover, setUploadingCover] = useState(false);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
@@ -584,7 +591,7 @@ export default function GroupPage() {
       <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,.35)', zIndex:350, display:'flex', alignItems:'flex-start', justifyContent:'center', overflowY:'auto' }}>
       <div className="card post-card" style={{ padding:16, width:'100%', maxWidth:600, minHeight:'100vh', borderRadius:0 }}>
         <div style={{ display:'flex', alignItems:'center', gap:12, marginBottom:14, paddingBottom:12, borderBottom:'1px solid #E4E6EB' }}>
-          <button onClick={() => setGpFullOpen(false)} style={{ background:'none', border:'none', cursor:'pointer', padding:4 }}><HiX size={24} color="#050505"/></button>
+          <button onClick={askCloseGroupComposer} style={{ background:'none', border:'none', cursor:'pointer', padding:4 }}><HiX size={24} color="#050505"/></button>
           <h3 style={{ fontWeight:800, fontSize:18, flex:1 }}>Publier dans le groupe</h3>
           <button className="btn-gold" onClick={() => publishInGroup()} disabled={posting || (!content.trim() && !mediaFile)} style={{ padding:'7px 20px', fontSize:14 }}>
             {posting ? '...' : 'Publier'}
