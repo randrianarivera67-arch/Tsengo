@@ -109,6 +109,9 @@ export default function StoryStudio({ mode: initialMode = 'menu', currentUser, u
   const [caption, setCaption]       = useState('');
   const [captionPos, setCaptionPos] = useState({ x: 0.5, y: 0.8 });
   const [mediaTf, setMediaTf] = useState({ s: 1, x: 0, y: 0 });
+  const [textPos, setTextPos]   = useState({ x: 0.5, y: 0.5 });
+  const [textMove, setTextMove] = useState(false);
+  const txRef = useRef(null);
   const mediaElRef = useRef(null);
   const tfRef = useRef(null);
   const [sonMode, setSonMode]       = useState('music'); // 'music' (muet+musique) | 'original'
@@ -293,6 +296,29 @@ export default function StoryStudio({ mode: initialMode = 'menu', currentUser, u
     }
   }
   function tfEnd() { tfRef.current = null; }
+  function txStart(e) {
+    const t = e.touches; if (!t) return;
+    if (t.length === 2) {
+      const d = Math.hypot(t[0].clientX - t[1].clientX, t[0].clientY - t[1].clientY);
+      txRef.current = { kind: 'pinch', d0: d || 1, f0: fontSize };
+    } else if (t.length === 1 && textMove) {
+      txRef.current = { kind: 'pan', x0: t[0].clientX, y0: t[0].clientY, sx: textPos.x, sy: textPos.y };
+    }
+  }
+  function txMove(e) {
+    const st = txRef.current, t = e.touches, el = previewRef.current;
+    if (!st || !t || !el) return;
+    const r = el.getBoundingClientRect();
+    if (st.kind === 'pinch' && t.length === 2) {
+      setFontSize(Math.round(Math.max(16, Math.min(72, st.f0 * (d2(t) / st.d0)))));
+    } else if (st.kind === 'pan' && t.length === 1) {
+      const nx = Math.max(0.12, Math.min(0.88, st.sx + (t[0].clientX - st.x0) / (r.width || 1)));
+      const ny = Math.max(0.10, Math.min(0.90, st.sy + (t[0].clientY - st.y0) / (r.height || 1)));
+      setTextPos({ x: nx, y: ny });
+    }
+  }
+  function d2(t) { return Math.hypot(t[0].clientX - t[1].clientX, t[0].clientY - t[1].clientY); }
+  function txEnd() { txRef.current = null; }
   function toggleSon() {
     if (sonMode === 'music') { setSonMode('original'); setMusic(null); }
     else { setSonMode('music'); if (!music) setMusic(chooseDefaultTrack(tracks)); }
@@ -326,6 +352,7 @@ export default function StoryStudio({ mode: initialMode = 'menu', currentUser, u
           text: text.trim().slice(0, 280),
           bgColor: BG[bgIdx],
           fontSize, align, textColor: txtColor,
+          textPos,
         });
         closeStudio();
         return;
@@ -420,11 +447,16 @@ export default function StoryStudio({ mode: initialMode = 'menu', currentUser, u
   const preview = (
     <div ref={previewRef} onPointerMove={capPointerMove} onPointerUp={capPointerUp} onPointerLeave={capPointerUp} style={{ flex: 1, position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', background: mode === 'text' ? BG[bgIdx] : '#000' }}>
       {mode === 'text' && (
-        <textarea
-          autoFocus value={text} onChange={e => setText(e.target.value)} maxLength={280}
-          placeholder="Écrivez quelque chose..."
-          style={{ width: '86%', background: 'transparent', border: 'none', outline: 'none', resize: 'none', color: txtColor, fontFamily: 'Poppins', fontWeight: 800, fontSize, lineHeight: 1.28, textAlign: align, height: '60%', textShadow: txtColor === '#FFFFFF' ? '0 1px 8px rgba(0,0,0,.25)' : 'none' }}
-        />
+        <div
+          onTouchStart={txStart} onTouchMove={txMove} onTouchEnd={txEnd} onTouchCancel={txEnd}
+          style={{ position: 'absolute', left: (textPos.x * 100) + '%', top: (textPos.y * 100) + '%', transform: 'translate(-50%,-50%)', width: '86%', height: '60%', touchAction: textMove ? 'none' : 'auto', border: textMove ? '1.5px dashed rgba(255,255,255,.55)' : '1.5px solid transparent', borderRadius: 12 }}>
+          <textarea
+            autoFocus value={text} onChange={e => setText(e.target.value)} maxLength={280}
+            readOnly={textMove}
+            placeholder="Écrivez quelque chose..."
+            style={{ width: '100%', height: '100%', background: 'transparent', border: 'none', outline: 'none', resize: 'none', color: txtColor, fontFamily: 'Poppins', fontWeight: 800, fontSize, lineHeight: 1.28, textAlign: align, padding: 0, textShadow: txtColor === '#FFFFFF' ? '0 1px 8px rgba(0,0,0,.25)' : 'none', pointerEvents: textMove ? 'none' : 'auto' }}
+          />
+        </div>
       )}
       {mode === 'photo' && previewURL && (
         <>
@@ -482,6 +514,7 @@ export default function StoryStudio({ mode: initialMode = 'menu', currentUser, u
           <>
             <button style={toolBtn(false)} onClick={() => setBgIdx((bgIdx + 1) % BG.length)}>Fond</button>
             <button style={toolBtn(false)} onClick={() => setFontSize(fontSize >= 52 ? 22 : fontSize + 6)}>Aa {fontSize}</button>
+            <button style={toolBtn(textMove)} onClick={() => setTextMove(v => !v)}>{textMove ? 'Écrire' : 'Placer'}</button>
             <button style={toolBtn(false)} onClick={() => setAlign(align === 'center' ? 'left' : align === 'left' ? 'right' : 'center')}>
               {align === 'center' ? 'Centre' : align === 'left' ? 'Gauche' : 'Droite'}
             </button>
