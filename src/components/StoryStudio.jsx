@@ -380,7 +380,7 @@ export default function StoryStudio({ mode: initialMode = 'menu', currentUser, u
       )}
       {/* Badge musique */}
       {music && (
-        <div style={{ position: 'absolute', left: 14, bottom: mode === 'text' ? 14 : 54, display: 'flex', alignItems: 'center', gap: 7, background: 'rgba(0,0,0,.5)', borderRadius: 20, padding: '6px 12px', color: '#fff', fontSize: 12.5, fontWeight: 700, maxWidth: '70%' }}>
+        <div style={{ position: 'absolute', top: 14, left: '50%', transform: 'translateX(-50%)', zIndex: 3, display: 'flex', alignItems: 'center', gap: 7, background: 'rgba(0,0,0,.5)', backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)', borderRadius: 20, padding: '6px 12px', color: '#fff', fontSize: 12.5, fontWeight: 700, maxWidth: '80%' }}>
           <span style={{ color: '#FF7AB8' }}>{Ic.music(15)}</span>
           <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{music.title}{music.artist ? ' · ' + music.artist : ''}</span>
         </div>

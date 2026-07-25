@@ -108,6 +108,11 @@ export default function Artists() {
 
   const audioRef = useRef(null);
   const [playingId, setPlayingId] = useState(null);
+  // arret de la lecture quand on quitte la page
+  useEffect(() => () => {
+    const a = audioRef.current;
+    if (a) { try { a.pause(); a.onended = null; a.src = ''; } catch {} }
+  }, []);
   function toggleTrack(t) {
     if (!t?.mediaURL) return;
     if (!audioRef.current) audioRef.current = new Audio();

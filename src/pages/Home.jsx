@@ -428,6 +428,11 @@ export default function Home() {
   }
   const musicAudioRef = useRef(null);
   const [playingTrackId, setPlayingTrackId] = useState(null);
+  // arret de la lecture quand on quitte la page
+  useEffect(() => () => {
+    const a = musicAudioRef.current;
+    if (a) { try { a.pause(); a.onended = null; a.src = ''; } catch {} }
+  }, []);
   function toggleMusic(track) {
     if (!track?.mediaURL) return;
     if (!musicAudioRef.current) musicAudioRef.current = new Audio();
