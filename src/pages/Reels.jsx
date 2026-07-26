@@ -63,6 +63,8 @@ export default function Reels() {
   // ── Envoi en arriere-plan : progression + retour sur MA video ──
   const [upState, setUpState] = useState({ status: 'idle', pct: 0, label: '' });
   const awaitNewRef = useRef(false);
+  const postIdsRef = useRef(new Set());
+  useEffect(() => { postIdsRef.current = new Set(posts.map(x => x.id)); }, [posts]);
   useEffect(() => subscribeUpload(st => {
     const v = st || { status: 'idle', pct: 0, label: '' };
     setUpState(v);
@@ -111,10 +113,23 @@ export default function Reels() {
   useEffect(() => {
     const q = query(collection(db, 'posts'), orderBy('createdAt', 'desc'), limit(PAGE));
     return onSnapshot(q, snap => {
-      const fresh = new Map(snap.docs.map(d => [d.id, { id: d.id, ...d.data() }]));
+      const arr = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      const fresh = new Map(arr.map(x => [x.id, x]));
+      const known = new Set(postIdsRef.current);
       setPosts(prev => prev.map(p => fresh.has(p.id) ? { ...p, ...fresh.get(p.id) } : p));
+
+      // MA nouvelle video (envoi qui vient de se terminer) : on l'insere en tete
+      // et on s'y positionne. Sans envoi en cours -> rien ne change.
+      if (!awaitNewRef.current) return;
+      const mineNew = arr.filter(f =>
+        !known.has(f.id) && f.uid === currentUser?.uid && f.mediaType === 'video' && f.mediaURL);
+      if (!mineNew.length) return;
+      awaitNewRef.current = false;
+      setPosts(prev => [...mineNew.filter(m => !prev.some(x => x.id === m.id)), ...prev]);
+      setActiveIndex(0);
+      setTimeout(() => { try { if (containerRef.current) containerRef.current.scrollTop = 0; } catch {} }, 80);
     }, () => {});
-  }, []);
+  }, [currentUser?.uid]);
 
   // Ouvrir directement une vidéo précise (depuis profil/fil) — mande fa tsy tafiditra: charger jusqu'à la trouver
   useEffect(() => {
