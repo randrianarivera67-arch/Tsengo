@@ -291,7 +291,13 @@ export default function JejoStudio({ currentUser, userProfile, onClose, onPublis
   // ── Enregistrement ──
   async function buildRecordStream() {
     const canvas = canvasRef.current;
-    const vTrack = canvas.captureStream(30).getVideoTracks()[0];
+    // Sans effet : piste video de la CAMERA (sync parfaite avec l'audio).
+    // Avec effet : canvas, comme avant.
+    let rawTrack = null;
+    try {
+      if (!beautyOn && filterKey === 'none') rawTrack = streamRef.current?.getVideoTracks?.()[0] || null;
+    } catch { rawTrack = null; }
+    const vTrack = rawTrack || canvas.captureStream(30).getVideoTracks()[0];
     const tracks = [vTrack];
     musicBakedRef.current = false;
     if (sonMode === 'music' && music?.url) {
