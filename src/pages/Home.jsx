@@ -275,6 +275,7 @@ export default function Home() {
   const { currentUser, userProfile, setUserProfile } = useAuth();
   const activeStoryUids = useActiveStoryUids();
   const allStories = useActiveStories();
+  const [visibleStories, setVisibleStories] = useState(5);
   const { t } = useLang();
   const navigate = useNavigate();
   const navType  = useNavigationType();   // 'POP' rehefa retour
@@ -502,6 +503,7 @@ export default function Home() {
     Object.values(byUser).forEach(g => g.items.sort((a, b) => (a.ts || 0) - (b.ts || 0)));
     const list = Object.values(byUser).sort((a, b) => (a.uid === currentUser?.uid ? -1 : b.uid === currentUser?.uid ? 1 : 0));
     setStoryGroups(list);
+    setVisibleStories(v => Math.max(5, Math.min(v, list.length || 5)));
   }, [allStories, currentUser, userProfile?.friends?.length]);
 
   // Boutiques suggestions
@@ -1544,7 +1546,13 @@ const fields = {
       )}
 
       {/* ── Stories (format Facebook) ─────────────────────────── */}
-      <div className="stories-strip">
+      <div className="stories-strip"
+        onScroll={e => {
+          const el = e.currentTarget;
+          if (el.scrollLeft + el.clientWidth >= el.scrollWidth - 90) {
+            setVisibleStories(v => (v < storyGroups.length ? v + 5 : v));
+          }
+        }}>
         {/* Carte : Créer une story (menu unifié : texte / photo / vidéo) */}
         <input ref={storyFileRef} type="file" accept="image/*,video/mp4,video/webm,video/quicktime" style={{ display:'none' }} onChange={addStory} />
         <div className="story-card" onClick={() => !addingStory && setCreateStoryMenuOpen(true)} style={{ background:'white', border:'1px solid #E4E6EB' }}>
@@ -1559,7 +1567,7 @@ const fields = {
         </div>
 
         {/* Stories des utilisateurs */}
-        {storyGroups.map(g => {
+        {storyGroups.slice(0, visibleStories).map(g => {
           const last = g.items[g.items.length - 1];
           return (
             <div key={g.uid} className="story-card" onClick={() => openStories(g)} style={last.mediaType === 'text' ? { background: last.bgColor || '#1877F2' } : undefined}>
