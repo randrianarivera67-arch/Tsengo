@@ -133,15 +133,45 @@ export class BeautyProcessor {
       ctx.globalAlpha = 1;
     }
 
-    // ── Fond de teint : voile chaud sur l'ovale ──
+    // ── Fond de teint : voile applique a la PEAU seule, bords fondus ──
     if (opts.teint > 0) {
+      if (!this._mask) this._mask = document.createElement('canvas');
+      const mask = this._mask;
+      if (mask.width !== w) { mask.width = w; mask.height = h; }
+
+      if (!(opts.smooth > 0)) {
+        const mctx = mask.getContext('2d');
+        const feather = Math.max(6, faceW * 0.06);
+        mctx.clearRect(0, 0, w, h);
+        mctx.filter = `blur(${feather}px)`;
+        mctx.fillStyle = '#fff';
+        this._path(mctx, lm, FACE_OVAL, w, h);
+        mctx.fill();
+        mctx.globalCompositeOperation = 'destination-out';
+        [LEFT_EYE, RIGHT_EYE, LEFT_BROW, RIGHT_BROW, LIPS_OUTER].forEach(idxs => {
+          this._path(mctx, lm, idxs, w, h);
+          mctx.fill();
+        });
+        mctx.globalCompositeOperation = 'source-over';
+        mctx.filter = 'none';
+      }
+
+      if (!this._teintLayer) this._teintLayer = document.createElement('canvas');
+      const tl = this._teintLayer;
+      if (tl.width !== w) { tl.width = w; tl.height = h; }
+      const tctx = tl.getContext('2d');
+      tctx.globalCompositeOperation = 'source-over';
+      tctx.clearRect(0, 0, w, h);
+      tctx.fillStyle = 'rgb(255,226,205)';
+      tctx.fillRect(0, 0, w, h);
+      tctx.globalCompositeOperation = 'destination-in';
+      tctx.drawImage(mask, 0, 0, w, h);
+      tctx.globalCompositeOperation = 'source-over';
+
       ctx.save();
-      this._path(ctx, lm, FACE_OVAL, w, h);
-      ctx.clip();
       ctx.globalCompositeOperation = 'soft-light';
-      ctx.globalAlpha = Math.min(0.5, opts.teint * 0.5);
-      ctx.fillStyle = 'rgb(255,224,196)';
-      ctx.fillRect(0, 0, w, h);
+      ctx.globalAlpha = Math.min(0.38, opts.teint * 0.42);
+      ctx.drawImage(tl, 0, 0, w, h);
       ctx.restore();
     }
 
