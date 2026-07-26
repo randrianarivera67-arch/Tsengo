@@ -1,11 +1,9 @@
-// src/hooks/useActiveStoryUids.js
-// Miverina Set() misy ny uid rehetra manana story mbola velona (< 24 ora) —
-// ampiasaina hanaovana bordure bleu manodidina ny avatar n'aiza n'aiza.
 import { useState, useEffect } from 'react';
 import { collection, query, orderBy, limit, onSnapshot } from 'firebase/firestore';
 import { db } from '../firebase';
 
-let cache = new Set();
+let uidCache = new Set();
+let docsCache = [];
 const listeners = new Set();
 let unsubGlobal = null;
 let refCount = 0;
@@ -15,29 +13,41 @@ function ensureSubscribed() {
   const q = query(collection(db, 'stories'), orderBy('ts', 'desc'), limit(300));
   unsubGlobal = onSnapshot(q, snap => {
     const cutoff = Date.now() - 24 * 60 * 60 * 1000;
-    const next = new Set();
+    const uids = new Set();
+    const docs = [];
     snap.docs.forEach(d => {
       const data = d.data();
-      if ((data.ts || 0) > cutoff) next.add(data.uid);
+      if ((data.ts || 0) <= cutoff) return;
+      uids.add(data.uid);
+      docs.push({ id: d.id, ...data });
     });
-    cache = next;
-    listeners.forEach(cb => { try { cb(cache); } catch {} });
+    uidCache = uids;
+    docsCache = docs;
+    listeners.forEach(cb => { try { cb(); } catch {} });
   }, () => {});
 }
 
-export function useActiveStoryUids() {
-  const [uids, setUids] = useState(cache);
+function useStoriesSubscription(pick) {
+  const [value, setValue] = useState(pick);
   useEffect(() => {
     refCount++;
     ensureSubscribed();
-    const cb = s => setUids(new Set(s));
+    const cb = () => setValue(pick());
     listeners.add(cb);
-    setUids(new Set(cache));
+    cb();
     return () => {
       listeners.delete(cb);
       refCount--;
       if (refCount <= 0 && unsubGlobal) { unsubGlobal(); unsubGlobal = null; }
     };
   }, []);
-  return uids;
+  return value;
+}
+
+export function useActiveStoryUids() {
+  return useStoriesSubscription(() => new Set(uidCache));
+}
+
+export function useActiveStories() {
+  return useStoriesSubscription(() => docsCache);
 }

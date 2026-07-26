@@ -32,7 +32,7 @@ import PhotoCarousel from '../components/PhotoCarousel';
 import StoryRing from '../components/StoryRing';
 import SponsoredPost, { useFeedAds } from '../components/SponsoredPost';
 import StoryStudio, { StoryMusicPlayer } from '../components/StoryStudio';
-import { useActiveStoryUids } from '../hooks/useActiveStoryUids';
+import { useActiveStoryUids, useActiveStories } from '../hooks/useActiveStoryUids';
 import { NeonGlobe, NeonPeople, NeonLock, NeonMic, NeonLocation, NeonLike, NeonComment, NeonShare, NeonPlane, NeonPlaneWhite, NeonEye, NeonStar } from '../components/NeonIcons';
 import { getChatId } from '../utils/chat';
 import { ref as dbRef, push as dbPush, update as dbUpdate } from 'firebase/database';
@@ -274,6 +274,7 @@ export default function Home() {
   const viewerLoc = useViewerLocation();
   const { currentUser, userProfile, setUserProfile } = useAuth();
   const activeStoryUids = useActiveStoryUids();
+  const allStories = useActiveStories();
   const { t } = useLang();
   const navigate = useNavigate();
   const navType  = useNavigationType();   // 'POP' rehefa retour
@@ -416,14 +417,17 @@ export default function Home() {
   const [followedArtists, setFollowedArtists] = useState([]);
   useEffect(() => {
     if (!currentUser) return;
-    const unsub = onSnapshot(collection(db, 'artists'), snap => {
+    let alive = true;
+    getDocs(collection(db, 'artists')).then(snap => {
+      if (!alive) return;
       setFollowedArtists(snap.docs.filter(d => (d.data().followers || []).includes(currentUser.uid)).map(d => d.id));
-    }, () => {});
-    return () => unsub();
+    }).catch(() => {});
+    return () => { alive = false; };
   }, [currentUser]);
   async function toggleFollowArtist(artistId) {
     if (!artistId || !currentUser) return;
     const on = followedArtists.includes(artistId);
+    setFollowedArtists(prev => on ? prev.filter(x => x !== artistId) : [...prev, artistId]);
     try { await updateDoc(doc(db, 'artists', artistId), { followers: on ? arrayRemove(currentUser.uid) : arrayUnion(currentUser.uid) }); } catch {}
   }
   const musicAudioRef = useRef(null);
@@ -479,29 +483,26 @@ export default function Home() {
   }, []);
 
   // Stories des dernières 24h, groupées par utilisateur
+  // (utilise le listener global partagé : plus de second abonnement)
   useEffect(() => {
-    const q = query(collection(db, 'stories'), orderBy('ts', 'desc'), limit(150));
-    return onSnapshot(q, snap => {
-      const cutoff = Date.now() - 24 * 60 * 60 * 1000;
-      const myFriends = userProfile?.friends || [];
-      const fresh = snap.docs.map(d => ({ id: d.id, ...d.data() })).filter(st => {
-        if ((st.ts || 0) <= cutoff) return false;
-        if (st.uid === currentUser?.uid) return true;
-        if (st.audience === 'me') return false;
-        if (st.audience === 'friends') return myFriends.includes(st.uid);
-        return true;
-      });
-      const byUser = {};
-      fresh.forEach(st => {
-        if (!byUser[st.uid]) byUser[st.uid] = { uid: st.uid, name: st.authorName, photo: st.authorPhoto || '', items: [] };
-        byUser[st.uid].items.push(st);
-      });
-      Object.values(byUser).forEach(g => g.items.sort((a, b) => (a.ts || 0) - (b.ts || 0)));
-      // Ma story en premier
-      const list = Object.values(byUser).sort((a, b) => (a.uid === currentUser?.uid ? -1 : b.uid === currentUser?.uid ? 1 : 0));
-      setStoryGroups(list);
-    }, () => {});
-  }, [currentUser, userProfile?.friends?.length]);
+    const cutoff = Date.now() - 24 * 60 * 60 * 1000;
+    const myFriends = userProfile?.friends || [];
+    const fresh = allStories.filter(st => {
+      if ((st.ts || 0) <= cutoff) return false;
+      if (st.uid === currentUser?.uid) return true;
+      if (st.audience === 'me') return false;
+      if (st.audience === 'friends') return myFriends.includes(st.uid);
+      return true;
+    });
+    const byUser = {};
+    fresh.forEach(st => {
+      if (!byUser[st.uid]) byUser[st.uid] = { uid: st.uid, name: st.authorName, photo: st.authorPhoto || '', items: [] };
+      byUser[st.uid].items.push(st);
+    });
+    Object.values(byUser).forEach(g => g.items.sort((a, b) => (a.ts || 0) - (b.ts || 0)));
+    const list = Object.values(byUser).sort((a, b) => (a.uid === currentUser?.uid ? -1 : b.uid === currentUser?.uid ? 1 : 0));
+    setStoryGroups(list);
+  }, [allStories, currentUser, userProfile?.friends?.length]);
 
   // Boutiques suggestions
   useEffect(() => {
@@ -516,7 +517,7 @@ export default function Home() {
   useEffect(() => {
     if (!currentUser || !userProfile) return;
     let alive = true;
-    getDocs(query(collection(db, 'users'), limit(120))).then(snap => {
+    getDocs(query(collection(db, 'users'), limit(40))).then(snap => {
       if (!alive) return;
       const friends = userProfile.friends || [];
       const friendSet = new Set(friends);
