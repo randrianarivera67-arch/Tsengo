@@ -11,6 +11,7 @@ import { db } from '../firebase';
 import MediaViewer from '../components/MediaViewer';
 import { useViewerLocation } from '../hooks/useViewerLocation';
 import { useMusicSuggestions } from '../hooks/useMusicSuggestions';
+import { readCache, writeCache, SIX_HOURS } from '../utils/softCache';
 import { isInZones } from '../utils/geo';
 import { SkeletonPost } from '../components/Skeleton';
 import { claimPlayback } from '../utils/mediaBus';
@@ -509,8 +510,14 @@ export default function Home() {
   // Boutiques suggestions
   useEffect(() => {
     if (!currentUser) return;
+    const hit = readCache('shops:sugg', SIX_HOURS);
+    if (hit) { setShopSuggestions(hit); return; }
     getDocs(query(collection(db, 'shops'), orderBy('createdAt', 'desc'), limit(20)))
-      .then(snap => setShopSuggestions(snap.docs.map(d => ({ id: d.id, ...d.data() })).slice(0, 16)))
+      .then(snap => {
+        const list = snap.docs.map(d => ({ id: d.id, ...d.data() })).slice(0, 16);
+        setShopSuggestions(list);
+        writeCache('shops:sugg', list);
+      })
       .catch(() => {});
   }, [currentUser]);
 
@@ -519,16 +526,14 @@ export default function Home() {
   useEffect(() => {
     if (!currentUser || !userProfile) return;
     let alive = true;
-    getDocs(query(collection(db, 'users'), orderBy('createdAt', 'desc'), limit(40))).then(snap => {
+    const apply = (rows) => {
       if (!alive) return;
-      // Les 30 plus recents sortent de CETTE lecture (plus de seconde requete)
-      setNewUserUids(new Set(snap.docs.slice(0, 30).map(d => d.id)));
+      setNewUserUids(new Set(rows.slice(0, 30).map(u => u.uid)));
       const friends = userProfile.friends || [];
       const friendSet = new Set(friends);
       const sent = userProfile.sentRequests || [];
       const myCity = (userProfile.currentCity || userProfile.hometown || '').trim().toLowerCase();
-      const list = snap.docs
-        .map(d => ({ uid: d.id, ...d.data() }))
+      const list = rows
         .filter(u => u.uid !== currentUser.uid && u.fullName && !friendSet.has(u.uid) && !sent.includes(u.uid))
         .map(u => {
           const mutual = (u.friends || []).filter(f => friendSet.has(f)).length;
@@ -538,11 +543,23 @@ export default function Home() {
           return { ...u, _mutual: mutual, _sameCity: sameCity, _regTs: regTs };
         });
       list.sort((a, b) =>
-        (b._mutual - a._mutual)                 // 1) amis en commun aloha
-        || (b._regTs - a._regTs)                // 2) vao nisoratra anarana
-        || (b._sameCity - a._sameCity)          // 3) localisation mitovy
-        || (Math.random() - 0.5));              // 4) fiovaovana kely
+        (b._mutual - a._mutual)
+        || (b._regTs - a._regTs)
+        || (b._sameCity - a._sameCity)
+        || (Math.random() - 0.5));
       setSuggestions(list.slice(0, 20));
+    };
+
+    const cached = readCache('users:sugg', SIX_HOURS);
+    if (cached && Array.isArray(cached) && cached.length) { apply(cached); return () => { alive = false; }; }
+
+    getDocs(query(collection(db, 'users'), orderBy('createdAt', 'desc'), limit(40))).then(snap => {
+      const rows = snap.docs.map(d => {
+        const { email, fcmTokens, ...rest } = d.data() || {};
+        return { uid: d.id, ...rest };
+      });
+      writeCache('users:sugg', rows);
+      apply(rows);
     }).catch(() => {});
     return () => { alive = false; };
   }, [currentUser, userProfile?.friends?.length]); // eslint-disable-line
