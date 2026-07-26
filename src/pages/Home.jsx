@@ -519,8 +519,10 @@ export default function Home() {
   useEffect(() => {
     if (!currentUser || !userProfile) return;
     let alive = true;
-    getDocs(query(collection(db, 'users'), limit(40))).then(snap => {
+    getDocs(query(collection(db, 'users'), orderBy('createdAt', 'desc'), limit(40))).then(snap => {
       if (!alive) return;
+      // Les 30 plus recents sortent de CETTE lecture (plus de seconde requete)
+      setNewUserUids(new Set(snap.docs.slice(0, 30).map(d => d.id)));
       const friends = userProfile.friends || [];
       const friendSet = new Set(friends);
       const sent = userProfile.sentRequests || [];
@@ -575,9 +577,7 @@ export default function Home() {
   const [newUserUids, setNewUserUids] = useState(null);
   useEffect(() => {
     if (!currentUser) return;
-    getDocs(query(collection(db, 'users'), orderBy('createdAt', 'desc'), limit(30)))
-      .then(snap => setNewUserUids(new Set(snap.docs.map(d => d.id))))
-      .catch(() => setNewUserUids(new Set()));
+    // (les nouveaux inscrits proviennent desormais de la lecture ci-dessus)
   }, [currentUser]);
 
   const tsMs = (v) => {

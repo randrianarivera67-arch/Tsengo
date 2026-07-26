@@ -7,7 +7,7 @@
 // ══════════════════════════════════════════════════════════════════════════
 import { useState, useEffect, useRef } from 'react';
 import {
-  collection, query, orderBy, limit, getDocs, addDoc, serverTimestamp,
+  collection, query, where, orderBy, limit, getDocs, addDoc, serverTimestamp,
 } from 'firebase/firestore';
 import { db } from '../firebase';
 import { uploadToTelegram } from '../utils/telegram';
@@ -372,7 +372,8 @@ export default function JejoStudio({ currentUser, userProfile, onClose, onPublis
   async function loadTracks() {
     if (tracksLoaded) return;
     try {
-      const snap = await getDocs(query(collection(db, 'posts'), orderBy('createdAt', 'desc'), limit(120)));
+      // Requete dediee : trouve toujours les musiques, quelle que soit leur date
+      const snap = await getDocs(query(collection(db, 'posts'), where('isMusic', '==', true), limit(60)));
       const list = snap.docs.map(d => ({ id: d.id, ...d.data() }))
         .filter(p => p.isMusic && p.mediaType === 'audio' && p.mediaURL && (p.artistId || p.artistName))
         .map(p => ({ id: p.id, url: p.mediaURL, title: p.songTitle || p.content || 'Sans titre', artist: p.artistName || '', _pop: Object.keys(p.reactions || {}).length + ((p.comments || []).length) }));
