@@ -12,6 +12,7 @@ import {
 import { db } from '../firebase';
 import { uploadToTelegram } from '../utils/telegram';
 import { startBackgroundUpload } from '../utils/uploadManager';
+import { addPin } from '../utils/feedPins';
 import { captureVideoThumb } from '../utils/videoThumb';
 import { BeautyProcessor } from '../utils/beautyEngine';
 
@@ -492,12 +493,13 @@ export default function JejoStudio({ currentUser, userProfile, onClose, onPublis
           const th = await captureVideoThumb(out, 0.3);
           if (th) { const tr = await uploadToTelegram(th); thumbURL = tr.url || ''; }
         } catch {}
-        await addDoc(collection(db, 'posts'), {
+        const postRef = await addDoc(collection(db, 'posts'), {
           ...snap,
           mediaURL: r.url,
           thumbURL,
           createdAt: serverTimestamp(),
         });
+        addPin(postRef.id);   // video-nao VAO NALEFA -> mipetaka ambony mandra-pahatongan'ny refresh
       });
 
       if (started) {
