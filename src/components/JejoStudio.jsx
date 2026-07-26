@@ -277,7 +277,8 @@ export default function JejoStudio({ currentUser, userProfile, onClose, onPublis
     if (!ok) { setBFail(true); return; }
     setBeautyOn(true);
   }
-  useEffect(() => () => { stopStream(); clearInterval(recTimerRef.current); clearInterval(cdTimerRef.current); try { previewAudioRef.current?.pause(); } catch {} }, []);
+  // Fermeture du studio : on coupe TOUT le son (musique d'enregistrement incluse)
+  useEffect(() => () => { stopStream(); clearInterval(recTimerRef.current); clearInterval(cdTimerRef.current); try { stopRecAudio(); } catch {} try { previewAudioRef.current?.pause(); } catch {} }, []);
 
   function flipCamera() {
     const nf = facing === 'user' ? 'environment' : 'user';
