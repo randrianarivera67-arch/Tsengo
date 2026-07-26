@@ -82,6 +82,15 @@ function VIPBadge() {
 // = navigation POP) dia averina TSY MIOVA ny fil ka mijanona AMIN'NY publication
 // nokitihina — fa TSY miakatra any an-tampony.
 let feedSnapshot = null;
+// Mes publications recentes : epinglees en tete du fil jusqu'a un refresh
+// MANUEL ou 15 min. Au niveau du module -> resiste aux remontages du composant.
+let freshOwnPosts = [];
+const FRESH_OWN_MS = 15 * 60 * 1000;
+function freshOwnIds() {
+  const now = Date.now();
+  freshOwnPosts = freshOwnPosts.filter(x => now - x.t < FRESH_OWN_MS);
+  return freshOwnPosts.map(x => x.id);
+}
 
 // ── Miniature an'ny story vidéo — mety FOANA amin'ny APK (Android WebView) ──
 // Raha misy thumbURL → <img> ; raha tsy misy → fragment "#t=0.1" + seek an-tery
@@ -705,10 +714,11 @@ export default function Home() {
       const serverIds = new Set(rankedIds);
       setOrder(prev => {
         if (first) {
-          // Tazonina eo ambony ny post optimiste mbola tsy hitan'ny serveur
-          const opt = prev.filter(id =>
-            (optimisticIdsRef.current.has(id) || ownFreshIdsRef.current.has(id)) && !serverIds.has(id));
-          return [...opt, ...rankedIds];
+          const opt = prev.filter(id => optimisticIdsRef.current.has(id) && !serverIds.has(id));
+          const pinned = freshOwnIds().filter(id => !opt.includes(id));
+          const pinnedSet = new Set([...opt, ...pinned]);
+          const rest = rankedIds.filter(id => !pinnedSet.has(id));
+          return [...opt, ...pinned, ...rest];
         }
         const seen = new Set(prev);
         return [...prev, ...rankedIds.filter(id => !seen.has(id))];
@@ -729,6 +739,7 @@ export default function Home() {
     setVisibleCount(20);
     setPendingNew([]);                              // ho tafiditra ao anaty top-20 vaovao izy ireo
     ownFreshIdsRef.current.clear();                 // refresh manuel = reclassement complet
+    freshOwnPosts = [];                             // refresh manuel = reclassement complet
     // Raha misy chargement mandeha dia andrasana kely — TSY hadinoina mangina toy ny taloha
     for (let i = 0; i < 40 && loadingRef.current; i++) await new Promise(r => setTimeout(r, 100));
     try { await loadFeedPage(true); } finally { setFeedRefreshing(false); }
@@ -822,6 +833,7 @@ export default function Home() {
         if (mine.length) {
           mine.forEach(m => optimisticIdsRef.current.delete(m.id));
           mine.forEach(m => ownFreshIdsRef.current.add(m.id));
+          mine.forEach(m => { if (!freshOwnPosts.some(x => x.id === m.id)) freshOwnPosts.push({ id: m.id, t: Date.now() }); });
           setOrder(prev => [...mine.map(m => m.id).filter(id => !prev.includes(id)), ...prev]);
         }
         if (others.length) {
@@ -1125,6 +1137,7 @@ const fields = {
     setFeedRaw(prev => prev.filter(x => x.id !== postId));
     setPendingNew(prev => prev.filter(x => x.id !== postId));
     try { ownFreshIdsRef.current.delete(postId); } catch {}
+    freshOwnPosts = freshOwnPosts.filter(x => x.id !== postId);
     try { optimisticIdsRef.current.delete(postId); } catch {}
     try {
       await deleteDoc(doc(db,'posts',postId));
