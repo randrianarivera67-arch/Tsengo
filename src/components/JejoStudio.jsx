@@ -141,7 +141,7 @@ export default function JejoStudio({ currentUser, userProfile, onClose, onPublis
   const [stage, setStage]       = useState('capture');   // 'capture' | 'edit'
   const [camError, setCamError] = useState(false);
   const [facing, setFacing]     = useState('user');
-  const [orient, setOrient]     = useState('portrait');   // 'portrait' | 'landscape'
+  const [orient, setOrient]     = useState('landscape');  // 'portrait' | 'landscape' — paysage par defaut
   const [timerSel, setTimerSel] = useState(0);           // 0 | 3 | 10
   const [countdown, setCountdown] = useState(null);
   const [recording, setRecording] = useState(false);
@@ -497,6 +497,23 @@ export default function JejoStudio({ currentUser, userProfile, onClose, onPublis
             </div>
           )}
 
+          {/* Musique en cours — haut centre (style TikTok) */}
+          {music && sonMode === 'music' && (
+            <div data-x="jejo-music-cam" style={{
+              position: 'absolute', top: 'calc(70px + env(safe-area-inset-top))', left: '50%',
+              transform: 'translateX(-50%)', zIndex: 4, maxWidth: '80%',
+              display: 'flex', alignItems: 'center', gap: 7,
+              background: 'rgba(0,0,0,.5)', backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)',
+              borderRadius: 20, padding: '6px 12px', color: '#fff', fontSize: 12.5, fontWeight: 700,
+              pointerEvents: 'none',
+            }}>
+              <span style={{ color: '#FF7AB8' }}>{Ic.music(15)}</span>
+              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {music.title}{music.artist ? ' · ' + music.artist : ''}
+              </span>
+            </div>
+          )}
+
           {/* Barre haut */}
           <div style={{ position: 'absolute', top: 0, left: 0, right: 0, display: 'flex', alignItems: 'center', gap: 10, padding: '12px', paddingTop: 'calc(12px + env(safe-area-inset-top))' }}>
             <button style={topBtn} onClick={() => { stopStream(); onClose && onClose(); }}>{Ic.x(20)}</button>
@@ -624,7 +641,7 @@ export default function JejoStudio({ currentUser, userProfile, onClose, onPublis
           <div style={{ position: 'absolute', left: 24, right: 24, bottom: 90, textAlign: 'center', color: '#fff', fontWeight: 800, fontSize: 22, textShadow: '0 2px 10px rgba(0,0,0,.7)', pointerEvents: 'none', wordBreak: 'break-word' }}>{caption}</div>
         )}
         {music && (
-          <div style={{ position: 'absolute', left: 14, bottom: 14, display: 'flex', alignItems: 'center', gap: 7, background: 'rgba(0,0,0,.5)', borderRadius: 20, padding: '6px 12px', color: '#fff', fontSize: 12.5, fontWeight: 700, maxWidth: '70%' }}>
+          <div style={{ position: 'absolute', top: 'calc(14px + env(safe-area-inset-top))', left: '50%', transform: 'translateX(-50%)', zIndex: 4, display: 'flex', alignItems: 'center', gap: 7, background: 'rgba(0,0,0,.5)', backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)', borderRadius: 20, padding: '6px 12px', color: '#fff', fontSize: 12.5, fontWeight: 700, maxWidth: '80%' }}>
             <span style={{ color: '#FF7AB8' }}>{Ic.music(15)}</span>
             <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{music.title}{music.artist ? ' · ' + music.artist : ''}</span>
           </div>
