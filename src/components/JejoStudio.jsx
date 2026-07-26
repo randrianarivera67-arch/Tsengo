@@ -60,7 +60,16 @@ const Ic = {
 const fmt = d => (!d || !isFinite(d)) ? '0:00' : Math.floor(d / 60) + ':' + String(Math.floor(d % 60)).padStart(2, '0');
 
 function pickMime() {
-  const cands = ['video/mp4;codecs=avc1', 'video/mp4', 'video/webm;codecs=h264', 'video/webm;codecs=vp9', 'video/webm'];
+  // On privilegie les formats qui declarent AUSSI une piste audio
+  const cands = [
+    'video/mp4;codecs=avc1,mp4a.40.2',
+    'video/webm;codecs=h264,opus',
+    'video/webm;codecs=vp9,opus',
+    'video/webm;codecs=vp8,opus',
+    'video/mp4;codecs=avc1',
+    'video/mp4',
+    'video/webm',
+  ];
   for (const m of cands) { try { if (typeof MediaRecorder !== 'undefined' && MediaRecorder.isTypeSupported(m)) return m; } catch {} }
   return '';
 }
@@ -634,7 +643,7 @@ export default function JejoStudio({ currentUser, userProfile, onClose, onPublis
 
       <div style={{ flex: 1, position: 'relative', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#000' }} onClick={togglePlay}>
         {clipURL && (
-          <video ref={editVideoRef} src={clipURL} autoPlay loop playsInline muted={sonMode === 'music'}
+          <video ref={editVideoRef} src={clipURL} autoPlay loop playsInline muted={sonMode === 'music' && !musicBakedRef.current}
             style={{ maxWidth: '100%', maxHeight: '100%', filter: filterCss }} />
         )}
         {caption.trim() && (
