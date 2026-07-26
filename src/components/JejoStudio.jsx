@@ -78,12 +78,13 @@ function pickMime() {
 function processClip(file, { startSec = 0, endSec = null, speed = 1, filterCss = 'none' }) {
   return new Promise(resolve => {
     let settled = false, url;
-    const finish = out => { if (settled) return; settled = true; try { if (url) URL.revokeObjectURL(url); } catch {} resolve(out); };
+    let procACRef = null;
+    const finish = out => { if (settled) return; settled = true; try { procACRef?.close(); } catch {} try { if (url) URL.revokeObjectURL(url); } catch {} resolve(out); };
     try {
       const mime = pickMime();
       if (!mime) return finish(null);
       const video = document.createElement('video');
-      video.playsInline = true; video.preload = 'auto'; video.muted = false; video.volume = 0.0001;
+      video.playsInline = true; video.preload = 'auto'; video.muted = false; video.volume = 1;
       url = URL.createObjectURL(file);
       video.onerror = () => finish(null);
       video.onloadedmetadata = () => {
@@ -98,10 +99,26 @@ function processClip(file, { startSec = 0, endSec = null, speed = 1, filterCss =
           const ctx = canvas.getContext('2d');
           const cStream = canvas.captureStream(30);
           const tracks = [...cStream.getVideoTracks()];
-          // Audio : gardé seulement si vitesse normale (évite désync/pitch géré nativement)
-          let elStream = null;
-          try { elStream = video.captureStream ? video.captureStream() : (video.mozCaptureStream ? video.mozCaptureStream() : null); } catch {}
-          if (elStream) elStream.getAudioTracks().forEach(t => tracks.push(t));
+          // Audio route par Web Audio : volume plein pour l'enregistrement,
+          // NON connecte aux haut-parleurs -> silencieux pour l'utilisateur.
+          let procAC = null;
+          try {
+            const AC = window.AudioContext || window.webkitAudioContext;
+            if (AC) {
+              procAC = new AC();
+              const srcNode = procAC.createMediaElementSource(video);
+              const destNode = procAC.createMediaStreamDestination();
+              srcNode.connect(destNode);
+              const at = destNode.stream.getAudioTracks()[0];
+              if (at) tracks.push(at);
+              procACRef = procAC;
+            }
+          } catch { procAC = null; }
+          if (!procAC) {
+            let elStream = null;
+            try { elStream = video.captureStream ? video.captureStream() : (video.mozCaptureStream ? video.mozCaptureStream() : null); } catch {}
+            if (elStream) elStream.getAudioTracks().forEach(t => tracks.push(t));
+          }
           const stream = new MediaStream(tracks);
           const rec = new MediaRecorder(stream, { mimeType: mime, videoBitsPerSecond: 2_200_000 });
           const chunks = [];
