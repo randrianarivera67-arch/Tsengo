@@ -1,4 +1,5 @@
 import { useState, useRef } from 'react';
+import { fallbackMediaURL } from '../utils/telegram';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // SmartImage — sary miseho MADIO (tsy tapatapaka kely kely) :
@@ -55,7 +56,11 @@ export default function SmartImage({ src, alt = '', style = {}, onClick, minH = 
           loading="lazy"
           decoding="async"
           onLoad={handleLoad}
-          onError={() => { setFailed(true); setLoaded(true); }}
+          onError={(e) => {
+            const fb = fallbackMediaURL(e.currentTarget.src);
+            if (fb) { e.currentTarget.src = fb; return; }
+            setFailed(true); setLoaded(true);
+          }}
           style={{
             ...style,
             opacity: loaded ? 1 : 0,

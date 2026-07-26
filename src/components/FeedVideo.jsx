@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { claimPlayback } from '../utils/mediaBus';
+import { fallbackMediaURL } from '../utils/telegram';
 
 // FeedVideo — lecteur vidéo in-feed :
 //  • Lecture auto rehefa hita (IntersectionObserver) raha tsy "Économiser données"
@@ -31,6 +32,10 @@ export default function FeedVideo({ src, poster, dataSaver, style, onOpen, onOpe
   return (
     <div ref={wrapRef} style={{ position: 'relative', cursor: (onOpen || onOpenReels) ? 'pointer' : 'default', background: '#000', ...style, height: style?.height }} onClick={handleClick}>
       <video ref={vidRef} src={src}
+        onError={(e) => {
+          const fb = fallbackMediaURL(e.currentTarget.src);
+          if (fb) { e.currentTarget.src = fb; try { e.currentTarget.load(); } catch {} }
+        }}
         onPlay={() => { setStarted(true); claimPlayback(() => { vidRef.current?.pause?.(); setPlaying(false); }); }}
         preload="none"
         style={{ ...style, cursor: undefined, display: 'block' }} muted={muted} loop playsInline />

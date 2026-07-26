@@ -18,6 +18,13 @@ function chunkSizeFor(size) {
 
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 
+// Adresse de SECOURS (Render) pour une URL de media du Worker.
+export function fallbackMediaURL(url) {
+  if (!url || typeof url !== 'string') return null;
+  if (url.indexOf(MEDIA_URL) !== 0) return null;
+  return BACKEND_URL + url.slice(MEDIA_URL.length);
+}
+
 function monotonic(onProgress) {
   let last = 0;
   return p => {
