@@ -583,6 +583,9 @@ export default function Home() {
   const FIRST_PAGE = 30;
   const [order, setOrder] = useState([]);            // ids araka ny filaharana miseho
   const orderSetRef = useRef(new Set());
+  // Mes publications arrivees par le temps reel : gardees en tete jusqu'au
+  // prochain refresh MANUEL (elles ne doivent pas bouger toutes seules).
+  const ownFreshIdsRef = useRef(new Set());
   useEffect(() => { orderSetRef.current = new Set(order); }, [order]);
   const [pendingNew, setPendingNew] = useState([]);  // posts vaovao (olon-kafa) miandry refresh
   const optimisticIdsRef = useRef(new Set());        // posts-nao mbola tsy voamarin'ny serveur
@@ -702,7 +705,8 @@ export default function Home() {
       setOrder(prev => {
         if (first) {
           // Tazonina eo ambony ny post optimiste mbola tsy hitan'ny serveur
-          const opt = prev.filter(id => optimisticIdsRef.current.has(id) && !serverIds.has(id));
+          const opt = prev.filter(id =>
+            (optimisticIdsRef.current.has(id) || ownFreshIdsRef.current.has(id)) && !serverIds.has(id));
           return [...opt, ...rankedIds];
         }
         const seen = new Set(prev);
@@ -722,6 +726,7 @@ export default function Home() {
     setReachedEnd(false);
     setVisibleCount(20);
     setPendingNew([]);                              // ho tafiditra ao anaty top-20 vaovao izy ireo
+    ownFreshIdsRef.current.clear();                 // refresh manuel = reclassement complet
     // Raha misy chargement mandeha dia andrasana kely — TSY hadinoina mangina toy ny taloha
     for (let i = 0; i < 40 && loadingRef.current; i++) await new Promise(r => setTimeout(r, 100));
     await loadFeedPage(true);
@@ -814,6 +819,7 @@ export default function Home() {
         const others = news.filter(f => f.uid !== myUidRef.current);
         if (mine.length) {
           mine.forEach(m => optimisticIdsRef.current.delete(m.id));
+          mine.forEach(m => ownFreshIdsRef.current.add(m.id));
           setOrder(prev => [...mine.map(m => m.id).filter(id => !prev.includes(id)), ...prev]);
         }
         if (others.length) {
