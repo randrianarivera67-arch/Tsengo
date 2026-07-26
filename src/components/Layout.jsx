@@ -15,7 +15,7 @@ import { getCart, subscribeCart } from '../utils/cart';
 import { NeonChart } from './NeonIcons';
 import PullToRefresh from './PullToRefresh';
 import UpdateBanner from './UpdateBanner';
-import { clearPins } from '../utils/feedPins';
+import { clearPins, requestFeedReset } from '../utils/feedPins';
 import ScrollReveal from './ScrollReveal';
 import { subscribeUpload } from '../utils/uploadManager';
 import {
@@ -118,6 +118,7 @@ export default function Layout({ children }) {
   const [refreshing, setRefreshing] = useState(false);
   const doSoftRefresh = () => {
     clearPins();                 // un refresh doit VRAIMENT reclasser le fil
+    requestFeedReset();          // ignorer l'instantane -> nouveau classement
     setRefreshing(true);
     setRefreshKey(k => k + 1);
     return new Promise(res => setTimeout(() => { setRefreshing(false); res(); }, 850));

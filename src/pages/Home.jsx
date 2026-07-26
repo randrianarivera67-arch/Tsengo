@@ -12,7 +12,7 @@ import MediaViewer from '../components/MediaViewer';
 import { useViewerLocation } from '../hooks/useViewerLocation';
 import { useMusicSuggestions } from '../hooks/useMusicSuggestions';
 import { readCache, writeCache, SIX_HOURS } from '../utils/softCache';
-import { addPin, getPins, removePin, clearPins } from '../utils/feedPins';
+import { addPin, getPins, removePin, clearPins, consumeFeedReset } from '../utils/feedPins';
 import { isInZones } from '../utils/geo';
 import { SkeletonPost } from '../components/Skeleton';
 import { claimPlayback } from '../utils/mediaBus';
@@ -357,8 +357,11 @@ export default function Home() {
   const cursorRef = useRef(null);                         // dernier doc (startAfter) — pagination 20/page
   const loadingRef = useRef(false);                       // anti double-chargement
   const [reachedEnd, setReachedEnd] = useState(false);    // plus rien a charger cote serveur
-  const [shuffleSeed, setShuffleSeed] = useState(() =>
-    (willRestoreFeed.current && feedSnapshot) ? feedSnapshot.seed : Date.now());
+  const [shuffleSeed, setShuffleSeed] = useState(() => {
+    // Rafraichissement demande -> on ignore l'instantane et on repart a neuf
+    if (consumeFeedReset()) { feedSnapshot = null; willRestoreFeed.current = false; return Date.now(); }
+    return (willRestoreFeed.current && feedSnapshot) ? feedSnapshot.seed : Date.now();
+  });
   const [expandedPosts, setExpandedPosts] = useState({});
   const [viewerState,   setViewerState]   = useState(null); // { post, index }
   const [boostTarget,   setBoostTarget]    = useState(null); // { type, id, ownerUid, title, thumbnailURL }
