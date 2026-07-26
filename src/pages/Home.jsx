@@ -816,6 +816,12 @@ export default function Home() {
   // Temps réel : manavao ny votoatin'ny posts efa miseho EO AMIN'NY TOERANY ;
   // ny post vaovao dia tsy manakorontana ny filaharana (buffer + bouton)
   useEffect(() => {
+    // ⚠️ Ny snapshot VOALOHANY (na aorian'ny refresh/remount) dia mitondra ny 20
+    // post farany. Amin'io fotoana io dia mbola BANGA ny orderSetRef, ka RAHA
+    // raisina ho "news" izy ireo dia ho épinglé daholo ny post-nao → mijanona
+    // FIXE eo an-tampony isaky ny refresh (io ilay bug). Noho izany: ny snapshot
+    // voalohany dia manavao ny votoaty IHANY.
+    let firstSnap = true;
     const q = query(collection(db, 'posts'), orderBy('createdAt', 'desc'), limit(PAGE_SIZE));
     return onSnapshot(q, snap => {
       const fresh = snap.docs.map(d => ({ id: d.id, ...d.data({ serverTimestamps: 'estimate' }) }));
@@ -824,6 +830,7 @@ export default function Home() {
         for (const f of fresh) map.set(f.id, f);   // mise à jour in place (réactions, vues, commentaires)
         return Array.from(map.values());
       });
+      if (firstSnap) { firstSnap = false; setPostsLoading(false); return; }
       const news = fresh.filter(f => !orderSetRef.current.has(f.id));
       if (news.length) {
         const mine   = news.filter(f => f.uid === myUidRef.current);
@@ -939,6 +946,7 @@ const fields = {
       // Aseho avy hatrany (optimistic) — averin'ny listener realtime amin'ny id
       setFeedRaw(prev => [{ id: postRef.id, ...fields, mediaURL, mediaType: finalMT, thumbURL, reactions: {}, comments: [], createdAt: { seconds: Math.floor(Date.now() / 1000) }, _optimistic: true }, ...prev.filter(x => x.id !== postRef.id)]);
       optimisticIdsRef.current.add(postRef.id);
+      addPin(postRef.id);                 // post-nao VAO NALEFA → mipetaka ambony (ho anao) mandra-pahavitan'ny refresh manaraka
       setOrder(prev => [postRef.id, ...prev.filter(id => id !== postRef.id)]);
       setTimeout(() => window.scrollTo({ top: 0, behavior: 'smooth' }), 60);
       if (friendTargets.length > 0) {
@@ -969,6 +977,7 @@ const fields = {
         // Aseho avy hatrany (optimistic)
         setFeedRaw(prev => [{ id: postRef.id, ...fields, mediaURL: urls[0], mediaType: 'image', mediaURLs: urls, thumbURL: '', reactions: {}, comments: [], createdAt: { seconds: Math.floor(Date.now() / 1000) }, _optimistic: true }, ...prev.filter(x => x.id !== postRef.id)]);
         optimisticIdsRef.current.add(postRef.id);
+        addPin(postRef.id);               // post-nao VAO NALEFA → mipetaka ambony (ho anao)
         setOrder(prev => [postRef.id, ...prev.filter(id => id !== postRef.id)]);
         setTimeout(() => window.scrollTo({ top: 0, behavior: 'smooth' }), 60);
         if (friendTargets.length > 0) {
