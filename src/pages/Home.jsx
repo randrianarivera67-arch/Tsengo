@@ -588,6 +588,7 @@ export default function Home() {
   const ownFreshIdsRef = useRef(new Set());
   useEffect(() => { orderSetRef.current = new Set(order); }, [order]);
   const [pendingNew, setPendingNew] = useState([]);  // posts vaovao (olon-kafa) miandry refresh
+  const [feedRefreshing, setFeedRefreshing] = useState(false);  // overlay flou + logo
   const optimisticIdsRef = useRef(new Set());        // posts-nao mbola tsy voamarin'ny serveur
   const myUidRef = useRef(null);
   useEffect(() => { myUidRef.current = currentUser?.uid || null; }, [currentUser]);
@@ -719,6 +720,7 @@ export default function Home() {
   // Refresh feno (PTR / bouton "nouvelles publications" / tap Accueil) —
   // mamerina Promise ka ny spinner dia miandry ny fahavitany MARINA
   const refreshFeed = async () => {
+    setFeedRefreshing(true);
     feedSnapshot = null;                            // refresh = fil vaovao
     scoreCtxRef.current.seed = Date.now();          // fiovaovana avy hatrany (synchrone)
     setShuffleSeed(scoreCtxRef.current.seed);
@@ -729,7 +731,7 @@ export default function Home() {
     ownFreshIdsRef.current.clear();                 // refresh manuel = reclassement complet
     // Raha misy chargement mandeha dia andrasana kely — TSY hadinoina mangina toy ny taloha
     for (let i = 0; i < 40 && loadingRef.current; i++) await new Promise(r => setTimeout(r, 100));
-    await loadFeedPage(true);
+    try { await loadFeedPage(true); } finally { setFeedRefreshing(false); }
   };
 
   // Premiere page (20)
@@ -1118,7 +1120,17 @@ const fields = {
     const post = posts.find(p => p.id === postId);
     if (!post || post.uid !== currentUser.uid) return;
     if (!window.confirm('Supprimer cette publication ?')) return;
-    await deleteDoc(doc(db,'posts',postId));
+    // Retrait IMMEDIAT de l'affichage (le listener temps reel ne retire jamais)
+    setOrder(prev => prev.filter(id => id !== postId));
+    setFeedRaw(prev => prev.filter(x => x.id !== postId));
+    setPendingNew(prev => prev.filter(x => x.id !== postId));
+    try { ownFreshIdsRef.current.delete(postId); } catch {}
+    try { optimisticIdsRef.current.delete(postId); } catch {}
+    try {
+      await deleteDoc(doc(db,'posts',postId));
+    } catch (e) {
+      alert('Suppression impossible : ' + (e?.message || e));
+    }
   }
 
   function isFollowingUid(uid) { return (userProfile?.following || []).includes(uid); }
@@ -1522,6 +1534,19 @@ const fields = {
   return (
     <div style={{ padding:0 }}>
       {/* PullToRefresh gere par Layout */}
+      {/* Rafraichissement : meme retour visuel que "tirer pour actualiser" */}
+      {feedRefreshing && (
+        <div data-x="feed-refresh-overlay" style={{
+          position: 'fixed', inset: 0, zIndex: 9998,
+          background: 'rgba(127,127,127,0.18)',
+          backdropFilter: 'blur(7px)', WebkitBackdropFilter: 'blur(7px)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none',
+        }}>
+          <img src="/icon-192.png" alt="" width={62} height={62}
+            style={{ borderRadius: '50%', boxShadow: '0 4px 18px rgba(0,0,0,.18)', animation: 'trengo-spin .8s linear infinite' }} />
+        </div>
+      )}
+
       {/* Bouton "nouvelles publications" (façon Facebook) — miseho rehefa misy
           post vaovao avy amin'olon-kafa, tsy manakorontana ny lecture mandeha */}
       {pendingNew.length > 0 && (
