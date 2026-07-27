@@ -1,0 +1,10 @@
+# Cloudflare Workers — deploiement du site (assets statiques)
+# Sans ce fichier, "wrangler deploy" ne sait pas quoi publier.
+# N'a AUCUN effet sur Vercel : les deux hebergements cohabitent.
+
+name = "tsengo"
+compatibility_date = "2026-07-27"
+
+[assets]
+directory = "./dist/"
+not_found_handling = "single-page-application"
