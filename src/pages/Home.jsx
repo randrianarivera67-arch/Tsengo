@@ -820,7 +820,10 @@ export default function Home() {
     // post farany. Amin'io fotoana io dia mbola BANGA ny orderSetRef, ka RAHA
     // raisina ho "news" izy ireo dia ho épinglé daholo ny post-nao → mijanona
     // FIXE eo an-tampony isaky ny refresh (io ilay bug). Noho izany: ny snapshot
-    // voalohany dia manavao ny votoaty IHANY.
+    // voalohany dia manavao ny votoaty IHANY, fa TSY mampiépingler na mampiseho
+    // "nouvelles publications" — ny loadFeedPage(true) no mandahatra ny fil.
+    // Ny "pin" sy ny "pendingNew" dia ho an'ny post tena tonga MANDRITRA ny
+    // fijerena ihany (snapshot faha-2 sy ny manaraka).
     let firstSnap = true;
     const q = query(collection(db, 'posts'), orderBy('createdAt', 'desc'), limit(PAGE_SIZE));
     return onSnapshot(q, snap => {
@@ -2327,7 +2330,9 @@ const fields = {
                     <p style={{ fontWeight:700, fontSize:13 }}>{post.sharedFrom.groupName ? `${post.sharedFrom.groupName} · ${post.sharedFrom.authorName}` : post.sharedFrom.authorName}</p>
                   </div>
                   {post.sharedFrom.content && <p style={{ padding:'0 12px 8px', fontSize:13, color:'#050505' }}>{post.sharedFrom.content}</p>}
-                  {post.sharedFrom.mediaURL && (
+                  {post.sharedFrom.mediaURLs?.length > 1 ? (
+                    <PhotoCarousel urls={post.sharedFrom.mediaURLs} onOpen={() => openPost(post.sharedFrom.id)} />
+                  ) : post.sharedFrom.mediaURL && (
                     post.sharedFrom.isMusic
                       ? <div style={{ padding:'0 10px 10px' }}><MusicPostCard post={post.sharedFrom} height={115}/></div>
                       : post.sharedFrom.mediaType === 'image'

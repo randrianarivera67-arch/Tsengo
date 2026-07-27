@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { fallbackMediaURL } from '../utils/telegram';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -16,6 +16,13 @@ export default function SmartImage({ src, alt = '', style = {}, onClick, minH = 
   const [failed, setFailed] = useState(false);
   const imgRef = useRef(null);
   const radius = style.borderRadius != null ? style.borderRadius : 0;
+
+  // Raha efa ao amin'ny cache ny sary dia aseho AVY HATRANY (tsy misy fondu) →
+  // tsy misy "flash" amin'ny re-render/refresh na navigation miverina.
+  useEffect(() => {
+    const im = imgRef.current;
+    if (im && im.complete && im.naturalWidth > 0) setLoaded(true);
+  }, []);
 
   // Miandry ny decode FENO alohan'ny hampisehoana (tsy misy "tapatapaka")
   async function handleLoad(e) {
@@ -65,7 +72,7 @@ export default function SmartImage({ src, alt = '', style = {}, onClick, minH = 
             ...style,
             opacity: loaded ? 1 : 0,
             transform: loaded ? 'scale(1)' : 'scale(1.06)',
-            transition: 'opacity .45s ease, transform .6s cubic-bezier(.22,1,.36,1)',
+            transition: loaded ? 'opacity .4s ease, transform .5s cubic-bezier(.22,1,.36,1)' : 'none',
             display: 'block',
             willChange: 'opacity, transform',
           }}

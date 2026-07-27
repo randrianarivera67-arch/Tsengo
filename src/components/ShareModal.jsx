@@ -34,6 +34,7 @@ export default function ShareModal({ post, onClose, asPage = null }) {
       authorPhoto: post.authorPhoto || '',
       content: post.content || '',
       mediaURL: post.mediaURL || '',
+      mediaURLs: Array.isArray(post.mediaURLs) ? post.mediaURLs : [],
       mediaType: post.mediaType || '',
       thumbURL: post.thumbURL || '',
       groupName: post.groupName || '',

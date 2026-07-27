@@ -2,19 +2,26 @@
 // Grille photo façon Facebook : 1 à 4 visibles, "+N" sur la 4e si plus.
 // Clic sur une image => onOpen(url). Sary rehetra : shimmer + fondu + "miaina"
 // (effet SmartImage), ka miseho MADIO (tsy tapatapaka kely kely) na aiza na aiza.
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 
 function Img({ u }) {
+  const ref = useRef(null);
+  // Raha efa ao amin'ny cache ny sary (complete && naturalWidth>0) dia aseho AVY
+  // HATRANY (tsy misy fondu) → tsy misy "flash mietsiketsika" amin'ny re-render.
   const [loaded, setLoaded] = useState(false);
+  useEffect(() => {
+    const im = ref.current;
+    if (im && im.complete && im.naturalWidth > 0) setLoaded(true);
+  }, []);
   return (
     <>
       {!loaded && <div className="skeleton-shimmer" style={{ position: 'absolute', inset: 0 }} />}
-      <img src={u} alt="" loading="lazy" decoding="async"
+      <img ref={ref} src={u} alt="" loading="lazy" decoding="async"
         onLoad={e => { const im = e.currentTarget; (im.decode ? im.decode().catch(() => {}) : Promise.resolve()).then(() => setLoaded(true)); }}
         onError={() => setLoaded(true)}
         style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block',
           opacity: loaded ? 1 : 0, transform: loaded ? 'scale(1)' : 'scale(1.06)',
-          transition: 'opacity .45s ease, transform .6s cubic-bezier(.22,1,.36,1)' }} />
+          transition: loaded ? 'opacity .4s ease, transform .5s cubic-bezier(.22,1,.36,1)' : 'none' }} />
     </>
   );
 }

@@ -18,6 +18,7 @@ import { downloadMedia } from '../utils/download';
 import ShareModal from '../components/ShareModal';
 import FeedVideo from '../components/FeedVideo';
 import SmartImage from '../components/SmartImage';
+import PhotoCarousel from '../components/PhotoCarousel';
 import { SkeletonChannelPage } from '../components/Skeleton';
 import MediaViewer from '../components/MediaViewer';
 import ReportModal from '../components/ReportModal';
@@ -808,7 +809,9 @@ export default function GroupPage() {
                     <p style={{ fontWeight: 700, fontSize: 13 }}>{post.sharedFrom.groupName ? `${post.sharedFrom.groupName} · ${post.sharedFrom.authorName}` : post.sharedFrom.authorName}</p>
                   </div>
                   {post.sharedFrom.content && <p style={{ padding: '0 12px 8px', fontSize: 13, color: '#050505' }}>{post.sharedFrom.content}</p>}
-                  {post.sharedFrom.mediaURL && (
+                  {post.sharedFrom.mediaURLs?.length > 1 ? (
+                    <PhotoCarousel urls={post.sharedFrom.mediaURLs} onOpen={() => navigate(`/post/${post.sharedFrom.id}`)} />
+                  ) : post.sharedFrom.mediaURL && (
                     post.sharedFrom.isMusic
                       ? <div style={{ padding: '0 10px 10px' }}><MusicPostCard post={post.sharedFrom} height={110} /></div>
                       : post.sharedFrom.mediaType === 'image'
@@ -817,7 +820,11 @@ export default function GroupPage() {
                   )}
                 </div>
               )}
-              {post.mediaURL && (
+              {post.mediaURLs?.length > 1 ? (
+                <div style={{ marginTop: 8, marginLeft: -16, marginRight: -16 }}>
+                  <PhotoCarousel urls={post.mediaURLs} onOpen={() => setViewerState({ post, index: 0 })} />
+                </div>
+              ) : post.mediaURL && (
                 <div style={{ marginTop: 8, marginLeft: -16, marginRight: -16 }}>
                   {post.isMusic
                     ? <MusicPostCard post={post} />

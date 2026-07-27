@@ -11,6 +11,7 @@ import { useLang } from '../context/LanguageContext';
 import { timeAgo } from '../utils/timeAgo';
 import { isDataSaverOn, subscribeDataSaver } from '../utils/dataSaver';
 import { downloadMedia } from '../utils/download';
+import { profilePhotoPost, coverPhotoPost } from '../utils/photoPost';
 import ShareModal from '../components/ShareModal';
 import { SkeletonChannelPage } from '../components/Skeleton';
 import ReportModal from '../components/ReportModal';
@@ -18,6 +19,7 @@ import BoostOrderModal from '../components/BoostOrderModal';
 import MediaViewer from '../components/MediaViewer';
 import FollowListModal from '../components/FollowListModal';
 import SmartImage from '../components/SmartImage';
+import PhotoCarousel from '../components/PhotoCarousel';
 import VideoThumb from '../components/VideoThumb';
 import { useActiveStoryUids } from '../hooks/useActiveStoryUids';
 import { NeonBriefcase, NeonGraduation, NeonPhone, NeonGlobe, NeonLocation, NeonHome, NeonMic, NeonArchive, NeonClock, NeonLike, NeonComment, NeonShare, NeonStar, NeonPeople } from '../components/NeonIcons';
@@ -189,13 +191,8 @@ export default function Profile() {
       await updateDoc(doc(db,'users',currentUser.uid), { photoURL: r.url });
       setProfile(p=>({...p,photoURL:r.url})); setUserProfile(p=>({...p,photoURL:r.url}));
       await addDoc(collection(db,'posts'),{
-        uid:currentUser.uid, authorName:userProfile.fullName,
-        authorPhoto:r.url, authorUsername:userProfile.username,
-        authorIsVip:userProfile.isVip||false,
-        content:'📸 a mis à jour sa photo de profil',
-        mediaURL:r.url, mediaType:'image',
-        isProfilePhoto:true, reactions:{}, comments:[],
-        createdAt:serverTimestamp(),
+        ...profilePhotoPost({ uid: currentUser.uid, url: r.url, fullName: userProfile.fullName, username: userProfile.username, isVip: userProfile.isVip || false }),
+        createdAt: serverTimestamp(),
       });
     } catch(err) { alert('Erreur upload'); }
     setUploading(false);
@@ -211,17 +208,7 @@ export default function Profile() {
       setProfile(p=>({...p,coverURL:r.url}));
       // Voatahiry ao amin'ny photos tab
       await addDoc(collection(db,'posts'), {
-        uid: currentUser.uid,
-        authorName: userProfile.fullName,
-        authorPhoto: userProfile.photoURL||'',
-        authorUsername: userProfile.username,
-        authorIsVip: userProfile.isVip||false,
-        content: 'Photo de couverture',
-        mediaURL: r.url,
-        mediaType: 'image',
-        isCoverPhoto: true,
-        reactions: {},
-        comments: [],
+        ...coverPhotoPost({ uid: currentUser.uid, url: r.url, fullName: userProfile.fullName, username: userProfile.username, isVip: userProfile.isVip || false, authorPhoto: userProfile.photoURL || '' }),
         createdAt: serverTimestamp(),
       });
     } catch(err) { alert('Erreur upload cover'); }
@@ -593,14 +580,20 @@ export default function Profile() {
                 <p style={{ fontWeight:700, fontSize:13 }}>{post.sharedFrom.groupName ? `${post.sharedFrom.groupName} · ${post.sharedFrom.authorName}` : post.sharedFrom.authorName}</p>
               </div>
               {post.sharedFrom.content && <p style={{ padding:'0 12px 8px', fontSize:13, color:'#050505' }}>{post.sharedFrom.content}</p>}
-              {post.sharedFrom.mediaURL && (
+              {post.sharedFrom.mediaURLs?.length > 1 ? (
+                <PhotoCarousel urls={post.sharedFrom.mediaURLs} onOpen={()=>navigate(`/post/${post.sharedFrom.id}`)} />
+              ) : post.sharedFrom.mediaURL && (
                 post.sharedFrom.mediaType === 'image'
                   ? <img src={post.sharedFrom.mediaURL} alt="" style={{ width:'100%', maxHeight:320, objectFit:'cover', display:'block' }}/>
                   : <video src={post.sharedFrom.mediaURL} muted playsInline style={{ width:'100%', maxHeight:320, objectFit:'cover', display:'block', background:'#000' }}/>
               )}
             </div>
           )}
-          {post.mediaURL && (
+          {post.mediaURLs?.length > 1 ? (
+            <div style={{ marginTop:8 }}>
+              <PhotoCarousel urls={post.mediaURLs} onOpen={()=>navigate(`/post/${post.id}`)} />
+            </div>
+          ) : post.mediaURL && (
             <div style={{ marginTop:8 }}>
               {post.mediaType==='image'
                 ? <SmartImage src={post.mediaURL} onClick={()=>navigate(`/post/${post.id}`)} minH={220} style={{ width:'100%', borderRadius:10, maxHeight:350, objectFit:'cover', cursor:'zoom-in' }}/>

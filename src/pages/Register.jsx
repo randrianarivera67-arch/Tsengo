@@ -7,9 +7,10 @@ import { useState, useRef } from 'react';
 import { useNavigate, Link, Navigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useLang } from '../context/LanguageContext';
-import { collection, query, where, getDocs, doc, updateDoc, getDoc } from 'firebase/firestore';
+import { collection, query, where, getDocs, doc, updateDoc, getDoc, addDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../firebase';
 import { uploadToCloudinary } from '../utils/cloudinary';
+import { profilePhotoPost, coverPhotoPost } from '../utils/photoPost';
 
 // Teny miafina : 6 tarehintsoratra farafahakeliny — io no fetra HENTITRA takin'ny
 // Firebase Auth (tsy azo ahena ho 4 na 5). Tsy misy fepetra hafa (tsy voatery
@@ -196,6 +197,22 @@ export default function Register() {
         if (Object.keys(photoUpdates).length) {
           await updateDoc(doc(db, 'users', uid), photoUpdates);
           setUserProfile(p => ({ ...(p || {}), ...photoUpdates }));
+
+          // Mamorona post ho an'ny photo/couverture — MITOVY amin'ny fanovana ao
+          // amin'ny Profil (utils/photoPost) → miseho ao amin'ny fil sy profil.
+          const meta = { uid, fullName: form.fullName.trim(), username: form.username, isVip: false };
+          if (photoUpdates.photoURL) {
+            await addDoc(collection(db, 'posts'), {
+              ...profilePhotoPost({ ...meta, url: photoUpdates.photoURL }),
+              createdAt: serverTimestamp(),
+            });
+          }
+          if (photoUpdates.coverURL) {
+            await addDoc(collection(db, 'posts'), {
+              ...coverPhotoPost({ ...meta, url: photoUpdates.coverURL, authorPhoto: photoUpdates.photoURL || '' }),
+              createdAt: serverTimestamp(),
+            });
+          }
         }
       }
 
