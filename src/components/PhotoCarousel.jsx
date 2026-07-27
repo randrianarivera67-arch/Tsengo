@@ -4,21 +4,29 @@
 // (effet SmartImage), ka miseho MADIO (tsy tapatapaka kely kely) na aiza na aiza.
 import { useState, useRef, useEffect } from 'react';
 
+// URLs deja affichees au moins une fois : permet de savoir DES LE PREMIER
+// RENDU qu'une image n'a pas besoin de fondu (donc aucun clignotement).
+const seenUrls = new Set();
+function markSeen(u) {
+  if (seenUrls.size > 800) seenUrls.clear();   // borne memoire
+  seenUrls.add(u);
+}
+
 function Img({ u }) {
   const ref = useRef(null);
-  // Raha efa ao amin'ny cache ny sary (complete && naturalWidth>0) dia aseho AVY
-  // HATRANY (tsy misy fondu) → tsy misy "flash mietsiketsika" amin'ny re-render.
-  const [loaded, setLoaded] = useState(false);
+  // Etat initial SYNCHRONE : deja vue -> affichee pleine opacite tout de suite.
+  const [loaded, setLoaded] = useState(() => seenUrls.has(u));
   useEffect(() => {
+    setLoaded(seenUrls.has(u));                // si l'URL change
     const im = ref.current;
-    if (im && im.complete && im.naturalWidth > 0) setLoaded(true);
-  }, []);
+    if (im && im.complete && im.naturalWidth > 0) { markSeen(u); setLoaded(true); }
+  }, [u]);
   return (
     <>
       {!loaded && <div className="skeleton-shimmer" style={{ position: 'absolute', inset: 0 }} />}
       <img ref={ref} src={u} alt="" loading="lazy" decoding="async"
-        onLoad={e => { const im = e.currentTarget; (im.decode ? im.decode().catch(() => {}) : Promise.resolve()).then(() => setLoaded(true)); }}
-        onError={() => setLoaded(true)}
+        onLoad={e => { const im = e.currentTarget; (im.decode ? im.decode().catch(() => {}) : Promise.resolve()).then(() => { markSeen(u); setLoaded(true); }); }}
+        onError={() => { markSeen(u); setLoaded(true); }}
         style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block',
           opacity: loaded ? 1 : 0, transform: loaded ? 'scale(1)' : 'scale(1.06)',
           transition: loaded ? 'opacity .4s ease, transform .5s cubic-bezier(.22,1,.36,1)' : 'none' }} />
