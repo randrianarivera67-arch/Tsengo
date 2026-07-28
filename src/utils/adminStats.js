@@ -26,6 +26,45 @@ export function countOnline(onlineMap) {
   return n;
 }
 
+/** Lisitry ny uid tena EN LIGNE (=== true ihany, mitovy amin'ny countOnline) */
+export function onlineUids(onlineMap) {
+  if (!onlineMap || typeof onlineMap !== 'object') return [];
+  const out = [];
+  for (const k of Object.keys(onlineMap)) if (onlineMap[k] === true) out.push(k);
+  return out;
+}
+
+/**
+ * Lisitry ny mpampiasa en ligne, enrichi avy amin'ny tabilao `users` efa chargé.
+ * ZAVA-DEHIBE : ny halavan'ny valiny dia MITOVY TANTERAKA amin'ny countOnline(),
+ * na dia misy uid tsy hita ao amin'ny `users` aza (asehoina "Utilisateur inconnu").
+ * Tsy misy requête vaovao mihitsy → tsy mikitika ny quota Firestore.
+ */
+export function onlineUsers(onlineMap, users) {
+  const uids = onlineUids(onlineMap);
+  if (uids.length === 0) return [];
+  const byId = new Map();
+  if (Array.isArray(users)) {
+    for (const u of users) if (u && u.id) byId.set(u.id, u);
+  }
+  const out = uids.map((uid) => {
+    const u = byId.get(uid);
+    const name = (u && (u.fullName || u.username)) || '';
+    return {
+      uid,
+      known: !!u,
+      name: name || 'Utilisateur inconnu',
+      username: (u && u.username) ? String(u.username) : '',
+      photoURL: (u && u.photoURL) ? String(u.photoURL) : '',
+      isVip: !!(u && u.isVip),
+      isBanned: !!(u && u.isBanned),
+    };
+  });
+  // Voafantatra aloha, avy eo araka ny anarana (alphabétique, tsy miova)
+  out.sort((a, b) => (b.known === a.known ? a.name.localeCompare(b.name) : (b.known ? 1 : -1)));
+  return out;
+}
+
 /** Fiandohan'ny andro (locale) */
 function startOfDay(ms) { const d = new Date(ms); d.setHours(0, 0, 0, 0); return d.getTime(); }
 
