@@ -1,4 +1,5 @@
 // src/pages/Home.jsx
+import Linkify from '../components/Linkify';
 import { useState, useEffect, useRef } from 'react';
 import SmartImage from '../components/SmartImage';
 import Avatar from '../components/Avatar';
@@ -2306,7 +2307,7 @@ const fields = {
                   onPointerCancel={endTextPress}
                   style={ post.textBg ? { background: post.textBg, minHeight:200, display:'flex', alignItems:'center', justifyContent:'center', textAlign:'center', color:'#fff', fontSize:26, fontWeight:800, padding:'28px 20px', lineHeight:1.4, wordBreak:'break-word', whiteSpace:'pre-wrap', margin:0 } : { fontSize:15, lineHeight:1.6, wordBreak:'break-word', whiteSpace:'pre-wrap', cursor:'pointer',
                     ...(expandedPosts[post.id] ? {} : { display:'-webkit-box', WebkitLineClamp:2, WebkitBoxOrient:'vertical', overflow:'hidden' }) } }
-                >{post.content}</p>
+                ><Linkify text={post.content} color={post.textBg ? '#FFFFFF' : '#1877F2'} /></p>
               )}
               {post.content && post.content.length > 90 && (
                 <button onClick={e => { e.stopPropagation(); setExpandedPosts(p => ({ ...p, [post.id]: !p[post.id] })); }}
@@ -2329,7 +2330,7 @@ const fields = {
                       alt="" style={{ width:30, height:30, borderRadius:'50%', objectFit:'cover' }}/>
                     <p style={{ fontWeight:700, fontSize:13 }}>{post.sharedFrom.groupName ? `${post.sharedFrom.groupName} · ${post.sharedFrom.authorName}` : post.sharedFrom.authorName}</p>
                   </div>
-                  {post.sharedFrom.content && <p style={{ padding:'0 12px 8px', fontSize:13, color:'#050505' }}>{post.sharedFrom.content}</p>}
+                  {post.sharedFrom.content && <p style={{ padding:'0 12px 8px', fontSize:13, color:'#050505' }}><Linkify text={post.sharedFrom.content} /></p>}
                   {post.sharedFrom.mediaURLs?.length > 1 ? (
                     <PhotoCarousel urls={post.sharedFrom.mediaURLs} onOpen={() => openPost(post.sharedFrom.id)} />
                   ) : post.sharedFrom.mediaURL && (
@@ -2490,7 +2491,7 @@ const fields = {
                       {/* Bulle (format Facebook) */}
                       <div style={{ position:'relative', display:'inline-block', maxWidth:'100%', background:'#F0F2F5', borderRadius:16, padding:'8px 12px' }}>
                         <p style={{ fontWeight:700, fontSize:13 }}>{c.authorName}{c.authorIsVip&&<VIPBadge/>}</p>
-                        {c.text&&<p style={{ fontSize:14, wordBreak:'break-word' }}>{c.text}</p>}
+                        {c.text&&<p style={{ fontSize:14, wordBreak:'break-word' }}><Linkify text={c.text} /></p>}
                         {c.mediaURL&&<div style={{ marginTop:4 }}>{c.mediaType==='image'?<img src={c.mediaURL} alt="" style={{ maxWidth:200, borderRadius:8 }}/>:<video src={c.mediaURL} controls style={{ maxWidth:200, borderRadius:8 }}/>}</div>}
                         {crCount > 0 && (
                           <span style={{ position:'absolute', bottom:-10, right:4, background:'white', borderRadius:12, padding:'1px 6px', fontSize:12, boxShadow:'0 1px 4px rgba(0,0,0,.25)', display:'flex', alignItems:'center', gap:2 }}>

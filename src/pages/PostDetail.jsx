@@ -1,4 +1,5 @@
 // src/pages/PostDetail.jsx
+import Linkify from '../components/Linkify';
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import Avatar from '../components/Avatar';
@@ -266,7 +267,7 @@ export default function PostDetail() {
                   {post.saleCategory && <span style={{ display:'flex', alignItems:'center', gap:5, background:'#FFE3EF', borderRadius:20, padding:'5px 12px', color:'#FF2D8D', fontSize:13, fontWeight:600 }}><HiTag size={12}/>{post.saleCategory}</span>}
                 </div>
               )}
-              {post.content && <p style={{ fontSize:15, lineHeight:1.7, wordBreak:'break-word', marginTop:12 }}>{post.content}</p>}
+              {post.content && <p style={{ fontSize:15, lineHeight:1.7, wordBreak:'break-word', marginTop:12 }}><Linkify text={post.content} /></p>}
               <button onClick={() => { const ok = addToCart(post); alert(ok ? 'Article ajouté au panier 🛒' : 'Cet article est déjà dans votre panier'); }}
                 style={{ width:'100%', display:'flex', alignItems:'center', justifyContent:'center', gap:8, background:'linear-gradient(145deg,#FF6FA5,#FF2D8D)', border:'none', borderRadius:22, padding:'12px 0', marginTop:14, fontSize:15, fontWeight:800, color:'#fff', cursor:'pointer', fontFamily:'Poppins' }}>
                 <HiShoppingCart size={18}/> Ajouter au panier
@@ -282,7 +283,7 @@ export default function PostDetail() {
               {post.lieu&&<span style={{ display:'flex', alignItems:'center', gap:5, background:'#F0F2F5', borderRadius:20, padding:'5px 12px', color:'#65676B', fontSize:13 }}><HiLocationMarker size={13} color="#1877F2"/>{post.lieu}</span>}
             </div>
           )}
-          {post.content&&(post.textBg ? <p style={{ background: post.textBg, minHeight:180, display:'flex', alignItems:'center', justifyContent:'center', textAlign:'center', color:'#fff', fontSize:24, fontWeight:800, padding:'24px 18px', lineHeight:1.4, wordBreak:'break-word', whiteSpace:'pre-wrap', margin:0, borderRadius:8 }}>{post.content}</p> : <p style={{ fontSize:15, lineHeight:1.7, wordBreak:'break-word', marginBottom:10 }}>{post.content}</p>)}
+          {post.content&&(post.textBg ? <p style={{ background: post.textBg, minHeight:180, display:'flex', alignItems:'center', justifyContent:'center', textAlign:'center', color:'#fff', fontSize:24, fontWeight:800, padding:'24px 18px', lineHeight:1.4, wordBreak:'break-word', whiteSpace:'pre-wrap', margin:0, borderRadius:8 }}><Linkify text={post.content} color="#FFFFFF" /></p> : <p style={{ fontSize:15, lineHeight:1.7, wordBreak:'break-word', marginBottom:10 }}><Linkify text={post.content} /></p>)}
           {post.sharedFrom && (
             <div onClick={() => navigate(`/post/${post.sharedFrom.id}`)}
               style={{ marginBottom:10, border:'1px solid #E4E6EB', borderRadius:12, overflow:'hidden', cursor:'pointer' }}>
@@ -291,7 +292,7 @@ export default function PostDetail() {
                   alt="" style={{ width:30, height:30, borderRadius:'50%', objectFit:'cover' }}/>
                 <p style={{ fontWeight:700, fontSize:13 }}>{post.sharedFrom.groupName ? `${post.sharedFrom.groupName} · ${post.sharedFrom.authorName}` : post.sharedFrom.authorName}</p>
               </div>
-              {post.sharedFrom.content && <p style={{ padding:'0 12px 8px', fontSize:13, color:'#050505' }}>{post.sharedFrom.content}</p>}
+              {post.sharedFrom.content && <p style={{ padding:'0 12px 8px', fontSize:13, color:'#050505' }}><Linkify text={post.sharedFrom.content} /></p>}
               {post.sharedFrom.mediaURL && (
                 post.sharedFrom.mediaType === 'image'
                   ? <img src={post.sharedFrom.mediaURL} alt="" style={{ width:'100%', maxHeight:320, objectFit:'cover', display:'block' }}/>
@@ -350,7 +351,7 @@ export default function PostDetail() {
               <Avatar uid={c.uid} src={c.authorPhoto} name={c.authorName} size={32} />
               <div style={{ background:'#F0F2F5', borderRadius:12, padding:'8px 12px', flex:1 }}>
                 <p style={{ fontWeight:700, fontSize:13 }}>{c.authorName}{c.authorIsVip&&<VIPBadge/>}</p>
-                {c.text&&<p style={{ fontSize:13, lineHeight:1.5, marginTop:2 }}>{c.text}</p>}
+                {c.text&&<p style={{ fontSize:13, lineHeight:1.5, marginTop:2 }}><Linkify text={c.text} /></p>}
                 {c.mediaURL&&<div style={{ marginTop:6 }}>{c.mediaType==='image'?<img src={c.mediaURL} alt="" style={{ maxWidth:200, borderRadius:8 }}/>:<video src={c.mediaURL} controls style={{ maxWidth:200, borderRadius:8 }}/>}</div>}
                 <p style={{ fontSize:10, color:'#65676B', marginTop:4 }}>{c.createdAt?timeAgo(c.createdAt):''}</p>
                 <div style={{ display:'flex', gap:10, marginTop:4 }}>

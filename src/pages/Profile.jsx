@@ -1,4 +1,5 @@
 // src/pages/Profile.jsx
+import Linkify from '../components/Linkify';
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
@@ -551,11 +552,11 @@ export default function Profile() {
         <div style={{ padding:'10px 16px', cursor:'pointer' }} onClick={() => navigate(`/post/${post.id}`)}>
           {post.content && (<>
             {post.textBg ? (
-            <p style={{ background: post.textBg, minHeight:180, display:'flex', alignItems:'center', justifyContent:'center', textAlign:'center', color:'#fff', fontSize:24, fontWeight:800, padding:'24px 18px', lineHeight:1.4, wordBreak:'break-word', whiteSpace:'pre-wrap', margin:0, borderRadius:8 }}>{post.content}</p>
+            <p style={{ background: post.textBg, minHeight:180, display:'flex', alignItems:'center', justifyContent:'center', textAlign:'center', color:'#fff', fontSize:24, fontWeight:800, padding:'24px 18px', lineHeight:1.4, wordBreak:'break-word', whiteSpace:'pre-wrap', margin:0, borderRadius:8 }}><Linkify text={post.content} color="#FFFFFF" /></p>
             ) : (
             <p style={{ fontSize:15, lineHeight:1.6, wordBreak:'break-word',
               ...(expandedPosts[post.id] ? {} : { display:'-webkit-box', WebkitLineClamp:2, WebkitBoxOrient:'vertical', overflow:'hidden' }) }}>
-              {post.content}
+              <Linkify text={post.content} />
             </p>
             )}
             {post.content.length > 120 && (
@@ -579,7 +580,7 @@ export default function Profile() {
                   alt="" style={{ width:30, height:30, borderRadius:'50%', objectFit:'cover' }}/>
                 <p style={{ fontWeight:700, fontSize:13 }}>{post.sharedFrom.groupName ? `${post.sharedFrom.groupName} · ${post.sharedFrom.authorName}` : post.sharedFrom.authorName}</p>
               </div>
-              {post.sharedFrom.content && <p style={{ padding:'0 12px 8px', fontSize:13, color:'#050505' }}>{post.sharedFrom.content}</p>}
+              {post.sharedFrom.content && <p style={{ padding:'0 12px 8px', fontSize:13, color:'#050505' }}><Linkify text={post.sharedFrom.content} /></p>}
               {post.sharedFrom.mediaURLs?.length > 1 ? (
                 <PhotoCarousel urls={post.sharedFrom.mediaURLs} onOpen={()=>navigate(`/post/${post.sharedFrom.id}`)} />
               ) : post.sharedFrom.mediaURL && (
@@ -667,7 +668,7 @@ export default function Profile() {
                 <img src={c.authorPhoto||`https://ui-avatars.com/api/?name=${encodeURIComponent(c.authorName||'U')}&background=1877F2&color=fff`} alt="" className="avatar" style={{ width:30, height:30, flexShrink:0, cursor:'pointer' }} onClick={() => navigate(`/profile/${c.uid}`)}/>
                 <div style={{ flex:1, background:'#F0F2F5', borderRadius:12, padding:'8px 10px' }}>
                   <span style={{ fontWeight:600, fontSize:13 }}>{c.authorName}{c.authorIsVip&&<VIPBadge/>}{' '}</span>
-                  {c.text&&<span style={{ fontSize:13 }}>{c.text}</span>}
+                  {c.text&&<span style={{ fontSize:13 }}><Linkify text={c.text} /></span>}
                   {c.mediaURL&&<div style={{ marginTop:4 }}>{c.mediaType==='image'?<img src={c.mediaURL} alt="" style={{ maxWidth:200, borderRadius:8 }}/>:<video src={c.mediaURL} controls style={{ maxWidth:200, borderRadius:8 }}/>}</div>}
                   <div style={{ display:'flex', gap:14, marginTop:5, flexWrap:'wrap', fontSize:12, fontWeight:700, color:'#65676B', position:'relative', alignItems:'center' }}>
                     <span onClick={() => reactToCmt(post.id, c.id, c.reactions?.[currentUser.uid] || '❤️')} style={{ cursor:'pointer', color: c.reactions?.[currentUser.uid] ? '#FF2D8D' : '#65676B', fontWeight: c.reactions?.[currentUser.uid] ? 700 : 400 }}>
@@ -779,9 +780,9 @@ export default function Profile() {
             {selectedPost.content && (
               selectedPost.textBg
                 ? <div style={{ background:selectedPost.textBg,minHeight:160,display:'flex',alignItems:'center',justifyContent:'center',padding:'24px 20px' }}>
-                    <p style={{ fontSize:22,fontWeight:800,color:'white',textAlign:'center' }}>{selectedPost.content}</p>
+                    <p style={{ fontSize:22,fontWeight:800,color:'white',textAlign:'center' }}><Linkify text={selectedPost.content} color="#FFFFFF" /></p>
                   </div>
-                : <p style={{ padding:'0 16px 10px',fontSize:15,lineHeight:1.6,wordBreak:'break-word' }}>{selectedPost.content}</p>
+                : <p style={{ padding:'0 16px 10px',fontSize:15,lineHeight:1.6,wordBreak:'break-word' }}><Linkify text={selectedPost.content} /></p>
             )}
             {selectedPost.mediaURL && (
               selectedPost.mediaType==='image'

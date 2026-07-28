@@ -1,4 +1,5 @@
 // src/pages/Reels.jsx — TikTok style vertical scroll
+import Linkify from '../components/Linkify';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import {
@@ -393,7 +394,7 @@ export default function Reels() {
                   <img src={post.authorPhoto||`https://ui-avatars.com/api/?name=${encodeURIComponent(post.authorName||'U')}&background=1877F2&color=fff`} alt="" style={{ width:36, height:36, borderRadius:'50%', border:'2px solid white', flexShrink:0 }}/>
                   <p style={{ color:'white', fontWeight:700, fontSize:14 }}>{post.authorName}{post.authorIsVip&&<VIPBadge/>}</p>
                 </div>
-                {post.content&&<p style={{ color:'rgba(255,255,255,0.9)', fontSize:13, lineHeight:1.5, display:'-webkit-box', WebkitLineClamp:2, WebkitBoxOrient:'vertical', overflow:'hidden' }}>{post.content}</p>}
+                {post.content&&<p style={{ color:'rgba(255,255,255,0.9)', fontSize:13, lineHeight:1.5, display:'-webkit-box', WebkitLineClamp:2, WebkitBoxOrient:'vertical', overflow:'hidden' }}><Linkify text={post.content} color="#8ECBFF" /></p>}
               </div>
 
               {/* Right actions */}
@@ -481,7 +482,7 @@ export default function Reels() {
                 <div style={{ flex:1 }}>
                   <div style={{ background:'rgba(255,255,255,0.1)', borderRadius:12, padding:'8px 10px' }}>
                     <span style={{ color:'#63A9FF', fontWeight:700, fontSize:13 }}>{c.authorName}{c.authorIsVip&&<VIPBadge/>}{' '}</span>
-                    {c.text&&<span style={{ color:'white', fontSize:13 }}>{c.text}</span>}
+                    {c.text&&<span style={{ color:'white', fontSize:13 }}><Linkify text={c.text} color="#8ECBFF" /></span>}
                     {c.mediaURL&&<div style={{ marginTop:4 }}>{c.mediaType==='image'?<img src={c.mediaURL} alt="" style={{ maxWidth:180, borderRadius:8 }}/>:<video src={c.mediaURL} controls style={{ maxWidth:180, borderRadius:8 }}/>}</div>}
                   </div>
                   <div style={{ display:'flex', gap:10, marginTop:4, flexWrap:'wrap' }}>

@@ -1,4 +1,5 @@
 // src/components/MediaViewer.jsx
+import Linkify from './Linkify';
 // Viewer plein écran façon Facebook, appelé au clic sur une image d'une
 // publication (fil d'actualités, profil, groupe, boutique...).
 //   - Défilement horizontal (scroll-snap) si plusieurs images
@@ -278,7 +279,7 @@ export default function MediaViewer({
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ position: 'relative', display: 'inline-block', maxWidth: '100%', background: '#3A3B3C', borderRadius: 16, padding: '7px 12px' }}>
                       <p style={{ fontWeight: 700, fontSize: 12.5, color: '#E4E6EB' }}>{c.authorName}{c.authorIsVip && VIPBadge && <VIPBadge />}</p>
-                      {c.text && <p style={{ fontSize: 13.5, color: '#E4E6EB', wordBreak: 'break-word' }}>{c.text}</p>}
+                      {c.text && <p style={{ fontSize: 13.5, color: '#E4E6EB', wordBreak: 'break-word' }}><Linkify text={c.text} color="#8ECBFF" /></p>}
                       {c.mediaURL && (
                         <div style={{ marginTop: 4 }}>
                           {c.mediaType === 'image'

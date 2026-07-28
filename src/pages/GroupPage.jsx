@@ -1,4 +1,5 @@
 // src/pages/GroupPage.jsx — Page d'un groupe public (format Facebook)
+import Linkify from '../components/Linkify';
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, useNavigationType } from 'react-router-dom';
 import {
@@ -799,7 +800,7 @@ export default function GroupPage() {
                 </div>
             </div>
             <div style={{ padding: '8px 16px', cursor: 'pointer' }} onClick={() => openPost(post.id)}>
-              {post.content && (post.textBg ? <p style={{ background: post.textBg, minHeight:180, display:'flex', alignItems:'center', justifyContent:'center', textAlign:'center', color:'#fff', fontSize:24, fontWeight:800, padding:'24px 18px', lineHeight:1.4, wordBreak:'break-word', whiteSpace:'pre-wrap', margin:0, borderRadius:8 }}>{post.content}</p> : <p style={{ fontSize: 15, lineHeight: 1.6, wordBreak: 'break-word' }}>{post.content}</p>)}
+              {post.content && (post.textBg ? <p style={{ background: post.textBg, minHeight:180, display:'flex', alignItems:'center', justifyContent:'center', textAlign:'center', color:'#fff', fontSize:24, fontWeight:800, padding:'24px 18px', lineHeight:1.4, wordBreak:'break-word', whiteSpace:'pre-wrap', margin:0, borderRadius:8 }}><Linkify text={post.content} color="#FFFFFF" /></p> : <p style={{ fontSize: 15, lineHeight: 1.6, wordBreak: 'break-word' }}><Linkify text={post.content} /></p>)}
               {post.sharedFrom && (
                 <div onClick={e => { e.stopPropagation(); openPost(post.sharedFrom.id, post.id); }}
                   style={{ marginTop: 8, border: '1px solid #E4E6EB', borderRadius: 12, overflow: 'hidden', cursor: 'pointer' }}>
@@ -808,7 +809,7 @@ export default function GroupPage() {
                       alt="" style={{ width: 30, height: 30, borderRadius: '50%', objectFit: 'cover' }} />
                     <p style={{ fontWeight: 700, fontSize: 13 }}>{post.sharedFrom.groupName ? `${post.sharedFrom.groupName} · ${post.sharedFrom.authorName}` : post.sharedFrom.authorName}</p>
                   </div>
-                  {post.sharedFrom.content && <p style={{ padding: '0 12px 8px', fontSize: 13, color: '#050505' }}>{post.sharedFrom.content}</p>}
+                  {post.sharedFrom.content && <p style={{ padding: '0 12px 8px', fontSize: 13, color: '#050505' }}><Linkify text={post.sharedFrom.content} /></p>}
                   {post.sharedFrom.mediaURLs?.length > 1 ? (
                     <PhotoCarousel urls={post.sharedFrom.mediaURLs} onOpen={() => navigate(`/post/${post.sharedFrom.id}`)} />
                   ) : post.sharedFrom.mediaURL && (
