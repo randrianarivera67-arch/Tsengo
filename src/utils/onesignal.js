@@ -3,7 +3,7 @@
 // Push : Trengo → Render (/notify, firebase-admin) → FCM (Google) → Téléphone
 import { getMessaging, getToken, onMessage, isSupported } from 'firebase/messaging';
 import { doc, updateDoc, arrayUnion, arrayRemove } from 'firebase/firestore';
-import app, { db } from '../firebase';
+import app, { db, auth } from '../firebase';
 
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'https://tsengo-backend.onrender.com';
 const NOTIFY_SECRET = import.meta.env.VITE_NOTIFY_SECRET || '';
@@ -88,6 +88,51 @@ export function requestNotificationPermission() {
 }
 
 export function subscribeToFCMTopic() { /* tsy ampiasaina */ }
+
+/**
+ * Diffusion ADMIN → mpampiasa REHETRA (push + notification anaty app).
+ *
+ * Ny fanamarinana dia atao AO AMIN'NY BACKEND amin'ny ID token Firebase :
+ * ny `x-notify-secret` dia hita ao anaty bundle public, ka tsy azo itokisana
+ * ho an'ny diffusion. Raha tsy admin ilay mpiantso dia mamaly 403 ny serveur.
+ *
+ * Tsy manakana : raha tsy mety dia tsy manelingelina ny publication.
+ */
+export async function notifyAllUsers({ title, message, postId, fromName, fromPhoto }) {
+  const u = auth.currentUser;
+  if (!u || !title || !message) return { skipped: true };
+
+  const send = async () => {
+    const idToken = await u.getIdToken();
+    const r = await fetch(`${BACKEND_URL}/notify-all`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${idToken}` },
+      body: JSON.stringify({
+        title,
+        message,
+        postId: postId || '',
+        fromName: fromName || '',
+        fromPhoto: fromPhoto || '',
+      }),
+      keepalive: true,
+    });
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    return r.json();
+  };
+
+  try {
+    return await send();
+  } catch (err) {
+    // Retry tokana (ohatra : Render mifoha avy amin'ny torimaso)
+    try {
+      await new Promise(res => setTimeout(res, 2500));
+      return await send();
+    } catch (e2) {
+      console.warn('Diffusion admin échouée :', e2?.message || e2);
+      return { error: true };
+    }
+  }
+}
 
 export async function sendPushNotification({ toExternalId, title, message, data, fromPhoto }) {
   if (!toExternalId) return;

@@ -40,7 +40,7 @@ import { NeonGlobe, NeonPeople, NeonLock, NeonMic, NeonLocation, NeonLike, NeonC
 import { getChatId } from '../utils/chat';
 import { ref as dbRef, push as dbPush, update as dbUpdate } from 'firebase/database';
 import { rtdb } from '../firebase';
-import { sendPushNotification } from '../utils/onesignal';
+import { sendPushNotification, notifyAllUsers } from '../utils/onesignal';
 import { v4 as uuidv4 } from 'uuid';
 import {
   HiPhotograph, HiVideoCamera, HiTag, HiOutlineHeart, HiChat,
@@ -951,6 +951,14 @@ const fields = {
       setFeedRaw(prev => [{ id: postRef.id, ...fields, mediaURL, mediaType: finalMT, thumbURL, reactions: {}, comments: [], createdAt: { seconds: Math.floor(Date.now() / 1000) }, _optimistic: true }, ...prev.filter(x => x.id !== postRef.id)]);
       optimisticIdsRef.current.add(postRef.id);
       addPin(postRef.id);                 // post-nao VAO NALEFA → mipetaka ambony (ho anao) mandra-pahavitan'ny refresh manaraka
+      // ── Publication ADMIN → mahazo notification ny mpampiasa REHETRA ──
+      if (userProfile?.isAdmin) {
+        notifyAllUsers({
+          title: 'Trengo',
+          message: (fields.content || '').trim().slice(0, 120) || `${authorName} a publié une annonce`,
+          postId: postRef.id, fromName: authorName, fromPhoto: authorPhoto,
+        }).catch(() => {});
+      }
       setOrder(prev => [postRef.id, ...prev.filter(id => id !== postRef.id)]);
       setTimeout(() => window.scrollTo({ top: 0, behavior: 'smooth' }), 60);
       if (friendTargets.length > 0) {
@@ -982,6 +990,14 @@ const fields = {
         setFeedRaw(prev => [{ id: postRef.id, ...fields, mediaURL: urls[0], mediaType: 'image', mediaURLs: urls, thumbURL: '', reactions: {}, comments: [], createdAt: { seconds: Math.floor(Date.now() / 1000) }, _optimistic: true }, ...prev.filter(x => x.id !== postRef.id)]);
         optimisticIdsRef.current.add(postRef.id);
         addPin(postRef.id);               // post-nao VAO NALEFA → mipetaka ambony (ho anao)
+        // ── Publication ADMIN → mahazo notification ny mpampiasa REHETRA ──
+        if (userProfile?.isAdmin) {
+          notifyAllUsers({
+            title: 'Trengo',
+            message: (fields.content || '').trim().slice(0, 120) || `${authorName} a publié une annonce`,
+            postId: postRef.id, fromName: authorName, fromPhoto: authorPhoto,
+          }).catch(() => {});
+        }
         setOrder(prev => [postRef.id, ...prev.filter(id => id !== postRef.id)]);
         setTimeout(() => window.scrollTo({ top: 0, behavior: 'smooth' }), 60);
         if (friendTargets.length > 0) {
