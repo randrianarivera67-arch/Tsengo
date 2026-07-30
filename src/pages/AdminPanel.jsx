@@ -145,7 +145,8 @@ export default function AdminPanel() {
       try {
         await addDoc(collection(db, 'notifications'), {
           toUid: req.requesterUid, fromUid: currentUser.uid, fromName: 'Trengo Admin', fromPhoto: '',
-          type: 'general', message: 'Votre compte VIP a ete active. Bienvenue !',
+          type: 'general', link: '/vip',
+          message: 'Votre compte VIP a ete active. Bienvenue !',
           read: false, createdAt: serverTimestamp(),
         });
       } catch (e) { }
@@ -161,7 +162,8 @@ export default function AdminPanel() {
       try {
         await addDoc(collection(db, 'notifications'), {
           toUid: req.requesterUid, fromUid: currentUser.uid, fromName: 'Trengo Admin', fromPhoto: '',
-          type: 'general', message: 'Votre demande de compte VIP a ete refusee.',
+          type: 'general', link: '/vip',
+          message: 'Votre demande de compte VIP a ete refusee.',
           read: false, createdAt: serverTimestamp(),
         });
       } catch (e) { }
@@ -212,7 +214,13 @@ export default function AdminPanel() {
       try {
         await addDoc(collection(db, 'notifications'), {
           toUid: order.requesterUid, fromUid: currentUser.uid, fromName: 'Trengo Admin', fromPhoto: '',
-          type: 'general', message: `Votre commande de boost a été refusée.`,
+          type: 'general',
+          link: order.targetType === 'post'    ? `/post/${order.targetId}`
+              : order.targetType === 'profile' ? `/profile/${order.targetId}`
+              : order.targetType === 'shop'    ? `/shop/${order.targetId}`
+              : order.targetType === 'artist'  ? `/artists/${order.targetId}`
+              : '/boost',
+          message: `Votre commande de boost a été refusée.`,
           read: false, createdAt: serverTimestamp(),
         });
       } catch (e) { /* notif optionnelle */ }

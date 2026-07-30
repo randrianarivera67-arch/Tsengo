@@ -318,7 +318,8 @@ export default function GroupPage() {
       uids.forEach(uid => batch.set(doc(collection(db, 'notifications')), {
         toUid: uid, fromUid: currentUser.uid,
         fromName: userProfile.fullName, fromPhoto: userProfile.photoURL || '',
-        type: 'general', message: `${userProfile.fullName} vous a ajouté(e) au groupe ${group.name}`,
+        type: 'general', link: `/groups/${groupId}`,
+        message: `${userProfile.fullName} vous a ajouté(e) au groupe ${group.name}`,
         read: false, createdAt: serverTimestamp(),
       }));
       await batch.commit();

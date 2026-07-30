@@ -577,7 +577,8 @@ export default function Messages() {
       uids.forEach(uid => batch.set(doc(collection(db, 'notifications')), {
         toUid: uid, fromUid: currentUser.uid,
         fromName: userProfile.fullName, fromPhoto: userProfile.photoURL || '',
-        type: 'general', message: `${userProfile.fullName} vous a ajouté(e) à la discussion "${activeGroup.name}"`,
+        type: 'general', link: `/messages/group_${activeGroup.id}`,
+        message: `${userProfile.fullName} vous a ajouté(e) à la discussion "${activeGroup.name}"`,
         read: false, createdAt: serverTimestamp(),
       }));
       await batch.commit();

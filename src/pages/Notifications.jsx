@@ -39,30 +39,57 @@ export default function Notifications() {
   useEffect(() => { if (unreadCount>prevCount.current) playNotifSound(); prevCount.current=unreadCount; }, [unreadCount]);
   useEffect(() => { if (unreadCount === 0) return; const timer=setTimeout(()=>markAllRead(),800); return()=>clearTimeout(timer); }, [unreadCount]);
 
+  /**
+   * Tanjona ho an'ny notification tsy manana `type` fantatra (ohatra 'general').
+   * Mamaky izay identifiant MISY ao anatiny, araka ny laharam-pahamehana.
+   * Tsy mamorona lalana tsy misy : mamerina '/' raha tsy misy na inona na inona.
+   */
+  function notifTarget(n, me) {
+    if (!n) return '/';
+    if (n.link && typeof n.link === 'string' && n.link.startsWith('/')) return n.link;
+    if (n.postId)         return `/post/${n.postId}`;
+    if (n.conversationId) return `/messages/${n.conversationId}`;
+    if (n.groupId)        return `/groups/${n.groupId}`;
+    if (n.shopId)         return `/shop/${n.shopId}`;
+    if (n.artistId)       return `/artists/${n.artistId}`;
+    if (n.pageId)         return `/pages/${n.pageId}`;
+    // Farany : ny olona nahatonga ny notification (abonnement, sns.)
+    if (n.fromUid && n.fromUid !== me?.uid) return `/profile/${n.fromUid}`;
+    return '/';
+  }
+
   function handleClick(notif) {
+    // Tanjona voafaritra mazava tamin'ny fanoratana → mandresy foana
+    if (notif.link && typeof notif.link === 'string' && notif.link.startsWith('/')) {
+      navigate(notif.link);
+      return;
+    }
     switch (notif.type) {
       case 'message':
         navigate(notif.conversationId?`/messages/${notif.conversationId}`:notif.fromUid?`/messages/${getChatId(currentUser.uid,notif.fromUid)}`:'/messages');
         break;
       case 'artistMessage':
-        navigate(notif.artistId ? `/artists/${notif.artistId}/messages` + (notif.visitorUid && notif.fromUid !== currentUser.uid ? `/${notif.visitorUid}` : '') : '/');
+        navigate(notif.artistId ? `/artists/${notif.artistId}/messages` + (notif.visitorUid && notif.fromUid !== currentUser.uid ? `/${notif.visitorUid}` : '') : notifTarget(notif, currentUser));
         break;
       case 'shopMessage':
-        navigate(notif.shopId ? `/shop/${notif.shopId}/messages` + (notif.visitorUid && notif.fromUid !== currentUser.uid ? `/${notif.visitorUid}` : '') : '/');
+        navigate(notif.shopId ? `/shop/${notif.shopId}/messages` + (notif.visitorUid && notif.fromUid !== currentUser.uid ? `/${notif.visitorUid}` : '') : notifTarget(notif, currentUser));
         break;
       case 'pageMessage':
-        navigate(notif.pageId ? `/pages/${notif.pageId}/messages` + (notif.visitorUid && notif.fromUid !== currentUser.uid ? `/${notif.visitorUid}` : '') : '/');
+        navigate(notif.pageId ? `/pages/${notif.pageId}/messages` + (notif.visitorUid && notif.fromUid !== currentUser.uid ? `/${notif.visitorUid}` : '') : notifTarget(notif, currentUser));
         break;
       case 'mention': case 'share':
-        navigate(notif.postId ? `/post/${notif.postId}` : '/');
+        navigate(notif.postId ? `/post/${notif.postId}` : notifTarget(notif, currentUser));
         break;
       case 'comment': case 'reaction': case 'post': case 'boost':
-        navigate(notif.postId?`/post/${notif.postId}`:'/');
+        navigate(notif.postId?`/post/${notif.postId}`:notifTarget(notif, currentUser));
         break;
       case 'friendRequest': case 'friendAccepted':
-        navigate(`/profile/${notif.fromUid}`);
+        navigate(notif.fromUid ? `/profile/${notif.fromUid}` : notifTarget(notif, currentUser));
         break;
-      default: navigate('/');
+      case 'general':
+        navigate(notifTarget(notif, currentUser));
+        break;
+      default: navigate(notifTarget(notif, currentUser));
     }
   }
 
