@@ -9,7 +9,7 @@ import { useAuth } from '../context/AuthContext';
 import { useLang } from '../context/LanguageContext';
 import { collection, query, where, getDocs, doc, updateDoc, getDoc, addDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../firebase';
-import { uploadToCloudinary } from '../utils/cloudinary';
+import { uploadToTelegram } from '../utils/telegram';
 import { profilePhotoPost, coverPhotoPost } from '../utils/photoPost';
 
 // Teny miafina : 6 tarehintsoratra farafahakeliny — io no fetra HENTITRA takin'ny
@@ -186,12 +186,12 @@ export default function Register() {
       if (!skipPhotos && (profileFile || coverFile)) {
         const photoUpdates = {};
         if (profileFile) {
-          const r = await uploadToCloudinary(profileFile, 'trengo/avatars', p => setUploadPct(p));
+          const r = await uploadToTelegram(profileFile, p => setUploadPct(p));
           photoUpdates.photoURL = r.url;
         }
         if (coverFile) {
           setUploadPct(0);
-          const r = await uploadToCloudinary(coverFile, 'trengo/covers', p => setUploadPct(p));
+          const r = await uploadToTelegram(coverFile, p => setUploadPct(p));
           photoUpdates.coverURL = r.url;
         }
         if (Object.keys(photoUpdates).length) {
