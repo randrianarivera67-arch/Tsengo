@@ -582,7 +582,7 @@ export default function Profile() {
               </div>
               {post.sharedFrom.content && <p style={{ padding:'0 12px 8px', fontSize:13, color:'#050505' }}><Linkify text={post.sharedFrom.content} /></p>}
               {post.sharedFrom.mediaURLs?.length > 1 ? (
-                <PhotoCarousel urls={post.sharedFrom.mediaURLs} onOpen={()=>navigate(`/post/${post.sharedFrom.id}`)} />
+                <PhotoCarousel urls={post.sharedFrom.mediaURLs} thumbs={post.sharedFrom.thumbURLs} onOpen={()=>navigate(`/post/${post.sharedFrom.id}`)} />
               ) : post.sharedFrom.mediaURL && (
                 post.sharedFrom.mediaType === 'image'
                   ? <img src={post.sharedFrom.mediaURL} alt="" style={{ width:'100%', maxHeight:320, objectFit:'cover', display:'block' }}/>
@@ -592,7 +592,7 @@ export default function Profile() {
           )}
           {post.mediaURLs?.length > 1 ? (
             <div style={{ marginTop:8 }}>
-              <PhotoCarousel urls={post.mediaURLs} onOpen={()=>navigate(`/post/${post.id}`)} />
+              <PhotoCarousel urls={post.mediaURLs} thumbs={post.thumbURLs} onOpen={()=>navigate(`/post/${post.id}`)} />
             </div>
           ) : post.mediaURL && (
             <div style={{ marginTop:8 }}>

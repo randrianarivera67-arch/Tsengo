@@ -991,16 +991,25 @@ const fields = {
     if (multiPhotos.length > 0) {
       try {
         const urls = [];
+        const thumbs = [];
         for (let i = 0; i < multiPhotos.length; i++) {
           const r = await uploadToTelegram(multiPhotos[i], pct => setUploadPct(Math.round(((i + pct / 100) / multiPhotos.length) * 100)));
           urls.push(r.url);
+          // Vignette feed (360 px) — tsy manakana : raha tsy mety dia '' no
+          // apetraka, ka ny sary feno no ampiasain'ny grille.
+          let tu = '';
+          try {
+            const th = await makeThumb(multiPhotos[i]);
+            if (th) { const tr = await uploadToTelegram(th); tu = tr.url || ''; }
+          } catch (e) { tu = ''; }
+          thumbs.push(tu);
         }
         const postRef = await addDoc(collection(db, 'posts'), {
-          ...fields, mediaURL: urls[0], mediaType: 'image', mediaURLs: urls, thumbURL: '',
+          ...fields, mediaURL: urls[0], mediaType: 'image', mediaURLs: urls, thumbURLs: thumbs, thumbURL: thumbs[0] || '',
           reactions: {}, comments: [], createdAt: Timestamp.now(),
         });
         // Aseho avy hatrany (optimistic)
-        setFeedRaw(prev => [{ id: postRef.id, ...fields, mediaURL: urls[0], mediaType: 'image', mediaURLs: urls, thumbURL: '', reactions: {}, comments: [], createdAt: { seconds: Math.floor(Date.now() / 1000) }, _optimistic: true }, ...prev.filter(x => x.id !== postRef.id)]);
+        setFeedRaw(prev => [{ id: postRef.id, ...fields, mediaURL: urls[0], mediaType: 'image', mediaURLs: urls, thumbURLs: thumbs, thumbURL: thumbs[0] || '', reactions: {}, comments: [], createdAt: { seconds: Math.floor(Date.now() / 1000) }, _optimistic: true }, ...prev.filter(x => x.id !== postRef.id)]);
         optimisticIdsRef.current.add(postRef.id);
         addPin(postRef.id);               // post-nao VAO NALEFA → mipetaka ambony (ho anao)
         // ── Publication ADMIN → mahazo notification ny mpampiasa REHETRA ──
@@ -2361,7 +2370,7 @@ const fields = {
                   </div>
                   {post.sharedFrom.content && <p style={{ padding:'0 12px 8px', fontSize:13, color:'#050505' }}><Linkify text={post.sharedFrom.content} /></p>}
                   {post.sharedFrom.mediaURLs?.length > 1 ? (
-                    <PhotoCarousel urls={post.sharedFrom.mediaURLs} onOpen={() => openPost(post.sharedFrom.id)} />
+                    <PhotoCarousel urls={post.sharedFrom.mediaURLs} thumbs={post.sharedFrom.thumbURLs} onOpen={() => openPost(post.sharedFrom.id)} />
                   ) : post.sharedFrom.mediaURL && (
                     post.sharedFrom.isMusic
                       ? <div style={{ padding:'0 10px 10px' }}><MusicPostCard post={post.sharedFrom} height={115}/></div>
@@ -2387,7 +2396,7 @@ const fields = {
               )}
               {post.mediaURLs?.length > 1 ? (
                 <div style={{ marginTop:8, marginLeft:-16, marginRight:-16 }}>
-                  <PhotoCarousel urls={post.mediaURLs} onOpen={() => openPost(post.id)} />
+                  <PhotoCarousel urls={post.mediaURLs} thumbs={post.thumbURLs} onOpen={() => openPost(post.id)} />
                 </div>
               ) : post.mediaURL && (
                 <div style={{ marginTop:8, marginLeft:-16, marginRight:-16 }}>

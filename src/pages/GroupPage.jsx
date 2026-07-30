@@ -11,7 +11,7 @@ import { NeonPlaneWhite } from '../components/NeonIcons';
 import MusicPostCard from '../components/MusicPostCard';
 import { useAuth } from '../context/AuthContext';
 import { timeAgo } from '../utils/timeAgo';
-import { uploadToTelegram } from '../utils/telegram';
+import { uploadToTelegram , makeThumb } from '../utils/telegram';
 import { captureVideoThumb } from '../utils/videoThumb';
 import { startBackgroundUpload } from '../utils/uploadManager';
 import { isDataSaverOn, subscribeDataSaver } from '../utils/dataSaver';
@@ -349,13 +349,14 @@ export default function GroupPage() {
 
   // Publie dans le groupe (caption capturée en paramètre — utilisable aussi
   // depuis le callback d'upload en arrière-plan)
-  async function finalizePublish(caption, mediaURL, finalMT, thumbURL, mediaURLs) {
+  async function finalizePublish(caption, mediaURL, finalMT, thumbURL, mediaURLs, thumbURLs) {
     const postRef = await addDoc(collection(db, 'posts'), {
       uid: currentUser.uid, authorName: userProfile.fullName,
       authorUsername: userProfile.username, authorPhoto: userProfile.photoURL || '',
       authorIsVip: userProfile.isVip || false,
       content: (caption || '').trim().slice(0, 2000), mediaURL, mediaType: finalMT, thumbURL: thumbURL || '',
       ...(Array.isArray(mediaURLs) && mediaURLs.length > 1 ? { mediaURLs } : {}),
+      ...(Array.isArray(thumbURLs) && thumbURLs.length > 1 ? { thumbURLs } : {}),
       isSale: false, price: '', contact: '', lieu: '',
       location: gpLocation.trim(), mood: gpMood, allowMessages: gpAllowMessages,
       taggedUids: Object.keys(gpTagSel).filter(k => gpTagSel[k]),
@@ -398,11 +399,18 @@ export default function GroupPage() {
       setPosting(true);
       try {
         const urls = [];
+        const thumbs = [];
         for (let i = 0; i < multiPhotos.length; i++) {
           const r = await uploadToTelegram(multiPhotos[i]);
           urls.push(r.url);
+          let tu = '';
+          try {
+            const th = await makeThumb(multiPhotos[i]);
+            if (th) { const tr = await uploadToTelegram(th); tu = tr.url || ''; }
+          } catch (e) { tu = ''; }
+          thumbs.push(tu);
         }
-        await finalizePublish(content, urls[0], 'image', '', urls);
+        await finalizePublish(content, urls[0], 'image', thumbs[0] || '', urls, thumbs);
         setTextBg(null); setContent(''); setMultiPhotos([]); setMediaFile(null); setMediaPreview(null); setMediaType('');
         setGpFullOpen(false); setGpLocation(''); setGpMood(''); setGpTagSel({});
       } catch (err) { alert('Erreur lors de la publication : ' + (err?.message || err)); }
@@ -860,7 +868,7 @@ export default function GroupPage() {
                   </div>
                   {post.sharedFrom.content && <p style={{ padding: '0 12px 8px', fontSize: 13, color: '#050505' }}><Linkify text={post.sharedFrom.content} /></p>}
                   {post.sharedFrom.mediaURLs?.length > 1 ? (
-                    <PhotoCarousel urls={post.sharedFrom.mediaURLs} onOpen={() => navigate(`/post/${post.sharedFrom.id}`)} />
+                    <PhotoCarousel urls={post.sharedFrom.mediaURLs} thumbs={post.sharedFrom.thumbURLs} onOpen={() => navigate(`/post/${post.sharedFrom.id}`)} />
                   ) : post.sharedFrom.mediaURL && (
                     post.sharedFrom.isMusic
                       ? <div style={{ padding: '0 10px 10px' }}><MusicPostCard post={post.sharedFrom} height={110} /></div>
@@ -872,7 +880,7 @@ export default function GroupPage() {
               )}
               {post.mediaURLs?.length > 1 ? (
                 <div style={{ marginTop: 8, marginLeft: -16, marginRight: -16 }}>
-                  <PhotoCarousel urls={post.mediaURLs} onOpen={() => setViewerState({ post, index: 0 })} />
+                  <PhotoCarousel urls={post.mediaURLs} thumbs={post.thumbURLs} onOpen={() => setViewerState({ post, index: 0 })} />
                 </div>
               ) : post.mediaURL && (
                 <div style={{ marginTop: 8, marginLeft: -16, marginRight: -16 }}>
