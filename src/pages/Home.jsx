@@ -846,10 +846,13 @@ export default function Home() {
           setOrder(prev => [...mine.map(m => m.id).filter(id => !prev.includes(id)), ...prev]);
         }
         if (others.length) {
-          setPendingNew(prev => {
-            const seen = new Set(prev.map(p => p.id));
-            const add = others.filter(o => !seen.has(o.id) && !orderSetRef.current.has(o.id));
-            return add.length ? [...add, ...prev].slice(0, 60) : prev;
+          // Publication olon-kafa tonga "à l'instant" → PRIORITÉ : miseho eo AMBONY
+          // INDRINDRA avy hatrany (fa tsy miandry bouton). Ny refresh manaraka no
+          // hampifangaro azy amin'ny filaharana mahazatra (shuffle).
+          others.forEach(o => addPin(o.id));
+          setOrder(prev => {
+            const add = others.map(o => o.id).filter(id => !prev.includes(id));
+            return add.length ? [...add, ...prev] : prev;
           });
         }
       }

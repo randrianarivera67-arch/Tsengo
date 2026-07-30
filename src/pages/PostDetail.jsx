@@ -28,7 +28,7 @@ import {
 } from 'react-icons/hi';
 import { addToCart } from '../utils/cart';
 
-const REACTIONS = ['❤️','😂','😮','😢','😡'];
+const REACTIONS = ['👍','❤️','😂','😮','😢','😡'];
 function VIPBadge() {
   return <img src='/vip-badge.png' style={{ width:24, height:24, marginLeft:5, verticalAlign:'middle', display:'inline-block', flexShrink:0, objectFit:'contain' }} alt='VIP'/>;
 }
@@ -49,6 +49,20 @@ export default function PostDetail() {
   const [cmtReactPicker, setCmtReactPicker] = useState(null);
   const [viewerState,   setViewerState] = useState(null); // { index }
   const cPhotoRef = useRef(); const cVideoRef = useRef();
+  const lpTimer = useRef(null); const lpFired = useRef(false);
+
+  // Clic tsotra → J'aime (👍) na esory raha efa nisy ; appui long → panneau
+  // réaction (mitovy amin'ny fil d'actualités).
+  function quickLike() {
+    if (lpFired.current) { lpFired.current = false; return; }
+    const my = post.reactions?.[currentUser.uid];
+    reactToPost(my || '👍');
+  }
+  function startLongPress() {
+    lpFired.current = false;
+    lpTimer.current = setTimeout(() => { lpFired.current = true; setShowReact(true); }, 450);
+  }
+  function endLongPress() { clearTimeout(lpTimer.current); }
 
   useEffect(() => {
     if (!postId) return;
@@ -141,8 +155,8 @@ export default function PostDetail() {
   Object.values(post.reactions||{}).forEach(e => { rc[e]=(rc[e]||0)+1; });
 
   return (
-    <div style={{ padding:'16px 12px' }}>
-      <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:14 }}>
+    <div style={{ padding:0, minHeight:'100vh', background:'#F0F2F5' }}>
+      <div style={{ display:'flex', alignItems:'center', gap:10, padding:'12px 14px', position:'sticky', top:0, background:'#fff', borderBottom:'1px solid #E4E6EB', zIndex:50 }}>
         <button onClick={() => navigate(-1)} style={{ background:'none', border:'none', cursor:'pointer', color:'#1877F2' }}><HiArrowLeft size={22}/></button>
         <h2 style={{ fontWeight:700, fontSize:18, color:'#1877F2' }}>Publication</h2>
       </div>
@@ -183,7 +197,7 @@ export default function PostDetail() {
         </div>
       )}
 
-      <div className="card post-card">
+      <div className="card post-card" style={{ borderRadius:0, margin:0, boxShadow:'none' }}>
         {/* Header */}
         <div style={{ padding:'14px 16px 0', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
           {post.groupName ? (
@@ -331,12 +345,19 @@ export default function PostDetail() {
         {/* Actions */}
         <div style={{ borderTop:'1px solid #E4E6EB', padding:'8px 16px', display:'flex', gap:4 }}>
           <div style={{ position:'relative' }}>
-            <button onClick={() => setShowReact(p=>!p)} style={{ display:'flex', alignItems:'center', gap:4, background:'none', border:'none', cursor:'pointer', color:myR?'#1877F2':'#65676B', fontSize:13, padding:'6px 12px', borderRadius:20, fontWeight:500 }}>
+            <button
+              onClick={quickLike}
+              onMouseDown={startLongPress} onMouseUp={endLongPress} onMouseLeave={endLongPress}
+              onTouchStart={startLongPress} onTouchEnd={endLongPress}
+              style={{ display:'flex', alignItems:'center', gap:4, background:'none', border:'none', cursor:'pointer', color:myR?'#1877F2':'#65676B', fontSize:13, padding:'6px 12px', borderRadius:20, fontWeight:500 }}>
               {myR?<span style={{ fontSize:17 }}>{myR}</span>:<HiOutlineHeart size={19}/>}{total>0&&<span>{total}</span>}
             </button>
-            {showReactions&&<div style={{ position:'absolute', bottom:'110%', left:0, background:'white', borderRadius:30, padding:'8px 12px', display:'flex', gap:6, boxShadow:'0 4px 20px rgba(0,0,0,.15)', zIndex:10, border:'1px solid #E4E6EB' }}>
-              {REACTIONS.map(e=><button key={e} onClick={() => reactToPost(e)} style={{ background:'none', border:'none', cursor:'pointer', fontSize:22 }}>{e}</button>)}
-            </div>}
+            {showReactions&&<>
+              <div onClick={() => setShowReact(false)} style={{ position:'fixed', inset:0, zIndex:9 }}/>
+              <div style={{ position:'absolute', bottom:'110%', left:0, background:'white', borderRadius:30, padding:'8px 12px', display:'flex', gap:6, boxShadow:'0 4px 20px rgba(0,0,0,.15)', zIndex:10, border:'1px solid #E4E6EB' }}>
+                {REACTIONS.map(e=><button key={e} onClick={() => reactToPost(e)} style={{ background:'none', border:'none', cursor:'pointer', fontSize:22 }}>{e}</button>)}
+              </div>
+            </>}
           </div>
           <button style={{ display:'flex', alignItems:'center', gap:4, background:'none', border:'none', cursor:'pointer', color:'#1877F2', fontSize:13, padding:'6px 12px', borderRadius:20 }}><HiChat size={19}/>{post.comments?.length||0}</button>
           <button onClick={sharePost} style={{ display:'flex', alignItems:'center', gap:4, background:'none', border:'none', cursor:'pointer', color:'#65676B', fontSize:13, padding:'6px 12px', borderRadius:20 }}><HiShare size={19}/></button>

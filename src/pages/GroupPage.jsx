@@ -60,6 +60,7 @@ export default function GroupPage() {
   const [content,    setContent]    = useState('');
   const [textBg,     setTextBg]     = useState(null);
   const [mediaFile,  setMediaFile]  = useState(null);
+  const [multiPhotos, setMultiPhotos] = useState([]);   // File[] — mode "plusieurs photos" (2 à 10), toy ny fil
   const [mediaPreview, setMediaPreview] = useState(null);
   const [mediaType,  setMediaType]  = useState('');
   const [posting,    setPosting]    = useState(false);
@@ -329,18 +330,32 @@ export default function GroupPage() {
   }
 
   function handleMedia(e, type) {
-    const file = e.target.files[0]; if (!file) return;
-    setTextBg(null); setMediaFile(file); setMediaType(type); setMediaPreview(URL.createObjectURL(file));
+    const files = Array.from(e.target.files || []); if (!files.length) return;
+    setTextBg(null);
+    // Sary maromaro (2 à 10) → mode accolage, toy ny fil d'actualités
+    if (type === 'image' && files.length > 1) {
+      const allowed = ['image/jpeg','image/png','image/gif','image/webp'];
+      const valid = files.filter(f => allowed.includes(f.type)).slice(0, 10);
+      setMultiPhotos(valid);
+      setMediaFile(null); setMediaPreview(null); setMediaType('');
+      e.target.value = '';
+      return;
+    }
+    const file = files[0];
+    setMultiPhotos([]);
+    setMediaFile(file); setMediaType(type); setMediaPreview(URL.createObjectURL(file));
   }
+  function removeOneGroupPhoto(idx) { setMultiPhotos(p => p.filter((_, i) => i !== idx)); }
 
   // Publie dans le groupe (caption capturée en paramètre — utilisable aussi
   // depuis le callback d'upload en arrière-plan)
-  async function finalizePublish(caption, mediaURL, finalMT, thumbURL) {
+  async function finalizePublish(caption, mediaURL, finalMT, thumbURL, mediaURLs) {
     const postRef = await addDoc(collection(db, 'posts'), {
       uid: currentUser.uid, authorName: userProfile.fullName,
       authorUsername: userProfile.username, authorPhoto: userProfile.photoURL || '',
       authorIsVip: userProfile.isVip || false,
       content: (caption || '').trim().slice(0, 2000), mediaURL, mediaType: finalMT, thumbURL: thumbURL || '',
+      ...(Array.isArray(mediaURLs) && mediaURLs.length > 1 ? { mediaURLs } : {}),
       isSale: false, price: '', contact: '', lieu: '',
       location: gpLocation.trim(), mood: gpMood, allowMessages: gpAllowMessages,
       taggedUids: Object.keys(gpTagSel).filter(k => gpTagSel[k]),
@@ -376,7 +391,24 @@ export default function GroupPage() {
   }
 
   async function publishInGroup() {
-    if (!content.trim() && !mediaFile) return;
+    if (!content.trim() && !mediaFile && multiPhotos.length === 0) return;
+
+    // Sary maromaro (2 à 10) : upload séquentiel → mediaURLs[]
+    if (multiPhotos.length > 0) {
+      setPosting(true);
+      try {
+        const urls = [];
+        for (let i = 0; i < multiPhotos.length; i++) {
+          const r = await uploadToTelegram(multiPhotos[i]);
+          urls.push(r.url);
+        }
+        await finalizePublish(content, urls[0], 'image', '', urls);
+        setTextBg(null); setContent(''); setMultiPhotos([]); setMediaFile(null); setMediaPreview(null); setMediaType('');
+        setGpFullOpen(false); setGpLocation(''); setGpMood(''); setGpTagSel({});
+      } catch (err) { alert('Erreur lors de la publication : ' + (err?.message || err)); }
+      setPosting(false);
+      return;
+    }
 
     // Miniature (poster) — alaina alohan'ny upload
     let thumbFile = null;
@@ -596,7 +628,7 @@ export default function GroupPage() {
         <div style={{ display:'flex', alignItems:'center', gap:12, marginBottom:14, paddingBottom:12, borderBottom:'1px solid #E4E6EB' }}>
           <button onClick={askCloseGroupComposer} style={{ background:'none', border:'none', cursor:'pointer', padding:4 }}><HiX size={24} color="#050505"/></button>
           <h3 style={{ fontWeight:800, fontSize:18, flex:1 }}>Publier dans le groupe</h3>
-          <button className="btn-gold" onClick={() => publishInGroup()} disabled={posting || (!content.trim() && !mediaFile)} style={{ padding:'7px 20px', fontSize:14 }}>
+          <button className="btn-gold" onClick={() => publishInGroup()} disabled={posting || (!content.trim() && !mediaFile && multiPhotos.length === 0)} style={{ padding:'7px 20px', fontSize:14 }}>
             {posting ? '...' : 'Publier'}
           </button>
         </div>
@@ -624,6 +656,22 @@ export default function GroupPage() {
               {Object.values(gpTagSel).some(Boolean) && <span style={{ display:'flex', alignItems:'center', gap:5, background:'#E7F0FE', color:'#1877F2', borderRadius:16, padding:'4px 10px', fontSize:12, fontWeight:700 }}>🏷️ avec {gpTagList.filter(f => gpTagSel[f.uid]).map(f => f.fullName).join(', ')} <span onClick={() => setGpTagSel({})} style={{ cursor:'pointer' }}>✕</span></span>}
             </div>
           )}
+          {multiPhotos.length > 0 && (
+            <div style={{ marginTop: 10, display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 6 }}>
+              {multiPhotos.map((f, i) => (
+                <div key={i} style={{ position: 'relative', aspectRatio: '1', borderRadius: 10, overflow: 'hidden' }}>
+                  <img src={URL.createObjectURL(f)} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  <button onClick={() => removeOneGroupPhoto(i)}
+                    style={{ position: 'absolute', top: 4, right: 4, background: 'rgba(0,0,0,.55)', border: 'none', borderRadius: '50%', width: 24, height: 24, cursor: 'pointer', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><HiX size={13} /></button>
+                </div>
+              ))}
+              <label style={{ aspectRatio: '1', borderRadius: 10, border: '2px dashed #C7CBD1', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#65676B', fontSize: 28 }}>
+                +
+                <input type="file" accept="image/*" multiple style={{ display: 'none' }}
+                  onChange={e => { const add = Array.from(e.target.files || []); setMultiPhotos(p => [...p, ...add].slice(0, 10)); e.target.value = ''; }} />
+              </label>
+            </div>
+          )}
           {mediaPreview && (
             <div style={{ position: 'relative', marginTop: 10 }}>
               {mediaType === 'image'
@@ -635,10 +683,10 @@ export default function GroupPage() {
           )}
           {/* Options — tsy misy Vente / Événement / En direct (groupe) */}
           <div style={{ marginTop:16, border:'1px solid #E4E6EB', borderRadius:12, overflow:'hidden' }}>
-            <input ref={postPhotoRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={e => handleMedia(e, 'image')} />
+            <input ref={postPhotoRef} type="file" accept="image/*" multiple style={{ display: 'none' }} onChange={e => handleMedia(e, 'image')} />
             <input ref={postVideoRef} type="file" accept="video/mp4,video/webm,video/quicktime" style={{ display: 'none' }} onChange={e => handleMedia(e, 'video')} />
             {[
-              { icon:<HiPhotograph size={22} color="#45BD62"/>, label:'Photo', action:() => postPhotoRef.current?.click() },
+              { icon:<HiPhotograph size={22} color="#45BD62"/>, label:'Photo(s)', action:() => postPhotoRef.current?.click() },
               { icon:<HiVideoCamera size={22} color="#F3425F"/>, label:'Vidéo',        action:() => postVideoRef.current?.click() },
               { icon:<HiUserAdd size={22} color="#1877F2"/>,     label:'Identifier des personnes', action:() => setGpTagOpen(true) },
               { icon:<span style={{ fontSize:22 }}>📍</span>,     label: gpLocation ? `Lieu : ${gpLocation}` : 'Ajouter un lieu', action:() => setGpLocationOpen(true) },
