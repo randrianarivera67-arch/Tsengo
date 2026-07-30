@@ -22,7 +22,7 @@ import BoostOrderModal from '../components/BoostOrderModal';
 import PullToRefresh from '../components/PullToRefresh';
 import { useAuth } from '../context/AuthContext';
 import { useLang } from '../context/LanguageContext';
-import { uploadToTelegram } from '../utils/telegram';
+import { uploadToTelegram , makeThumb } from '../utils/telegram';
 import { startBackgroundUpload } from '../utils/uploadManager';
 import { captureVideoThumb } from '../utils/videoThumb';
 import { trimVideoTo30s } from '../utils/trimVideo';
@@ -944,6 +944,15 @@ const fields = {
 
     async function publishPost(mediaURL, finalMT) {
       let thumbURL = '';
+      // ── Vignette FEED (360 px ~15 kB) ho an'ny sary tokana ──────────────
+      // Tsy manakana : raha tsy mety dia mijanona foana, dia mediaURL no
+      // ampiasain'ny feed toy ny teo aloha.
+      if (finalMT === 'image' && mediaFile) {
+        try {
+          const th = await makeThumb(mediaFile);
+          if (th) { const tr = await uploadToTelegram(th); thumbURL = tr.url || ''; }
+        } catch (e) { thumbURL = ''; }
+      }
       if (thumbFile && finalMT === 'video') {
         try { const tr = await uploadToTelegram(thumbFile); thumbURL = tr.url || ''; } catch {}
       }
@@ -2382,7 +2391,7 @@ const fields = {
                 </div>
               ) : post.mediaURL && (
                 <div style={{ marginTop:8, marginLeft:-16, marginRight:-16 }}>
-                  {post.isMusic ? <MusicPostCard post={post} height={140}/> : post.mediaType==='image' ? <SmartImage src={post.mediaURL} onClick={e=>{e.stopPropagation();openPost(post.id);}} style={{ width:'100%', borderRadius:0, maxHeight:520, objectFit:'cover', display:'block', cursor:'zoom-in' }}/> : <FeedVideo src={post.mediaURL} poster={post.thumbURL} dataSaver={dataSaver} onOpenReels={()=>navigate('/reels',{state:{startId:post.id}})} style={{ width:'100%', borderRadius:0, maxHeight:520, objectFit:'cover', display:'block', background:'#000' }} />}
+                  {post.isMusic ? <MusicPostCard post={post} height={140}/> : post.mediaType==='image' ? <SmartImage src={post.thumbURL || post.mediaURL} onClick={e=>{e.stopPropagation();openPost(post.id);}} style={{ width:'100%', borderRadius:0, maxHeight:520, objectFit:'cover', display:'block', cursor:'zoom-in' }}/> : <FeedVideo src={post.mediaURL} poster={post.thumbURL} dataSaver={dataSaver} onOpenReels={()=>navigate('/reels',{state:{startId:post.id}})} style={{ width:'100%', borderRadius:0, maxHeight:520, objectFit:'cover', display:'block', background:'#000' }} />}
                 </div>
               )}
               {/* ── Article boutique : informations ambanin'ny sary (sary 3) ── */}
