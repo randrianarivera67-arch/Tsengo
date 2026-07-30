@@ -6,10 +6,17 @@
 import { Capacitor } from '@capacitor/core';
 import { PushNotifications } from '@capacitor/push-notifications';
 import { doc, updateDoc, arrayUnion, arrayRemove } from 'firebase/firestore';
-import { db } from '../firebase';
+import { db, auth } from '../firebase';
 
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'https://tsengo-backend.onrender.com';
-const NOTIFY_SECRET = import.meta.env.VITE_NOTIFY_SECRET || '';
+/** ID token Firebase — tsy misy secret ao anaty bundle intsony. */
+async function authHeader() {
+  const u = auth.currentUser;
+  if (!u) return null;
+  try {
+    return { 'Content-Type': 'application/json', Authorization: `Bearer ${await u.getIdToken()}` };
+  } catch (e) { return null; }
+}
 const CHANNEL_ID = 'trengo_default';
 const CHANNEL_MSG = 'trengo_messages';
 
@@ -102,7 +109,7 @@ export async function getPushState() {
     token: currentToken ? (currentToken.slice(0, 16) + '…') : null,
     error: lastError,
     backend: BACKEND_URL,
-    hasSecret: !!NOTIFY_SECRET,
+    hasAuth: !!auth.currentUser,
   };
   try {
     if (state.native) {
@@ -122,7 +129,7 @@ export async function sendTestPush(uid) {
   try {
     const r = await fetch(`${BACKEND_URL}/notify`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'x-notify-secret': NOTIFY_SECRET },
+      headers: (await authHeader()) || { 'Content-Type': 'application/json' },
       body: JSON.stringify({ toExternalId: uid, title: 'Trengo 🔔', message: 'Test de notification — ça marche !', data: { type: 'test', url: '/notifications' } }),
     });
     const body = await r.text().catch(() => '');

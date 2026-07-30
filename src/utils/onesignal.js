@@ -6,7 +6,18 @@ import { doc, updateDoc, arrayUnion, arrayRemove } from 'firebase/firestore';
 import app, { db, auth } from '../firebase';
 
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'https://tsengo-backend.onrender.com';
-const NOTIFY_SECRET = import.meta.env.VITE_NOTIFY_SECRET || '';
+/**
+ * En-tête fanamarinana ho an'ny backend.
+ * ID token Firebase — voamarina amin'i Google, tsy azo foronina.
+ * TSY MISY SECRET AO ANATY BUNDLE INTSONY.
+ */
+async function authHeader() {
+  const u = auth.currentUser;
+  if (!u) return null;                       // tsy tafiditra → tsy mandefa
+  try {
+    return { 'Content-Type': 'application/json', Authorization: `Bearer ${await u.getIdToken()}` };
+  } catch (e) { return null; }
+}
 const VAPID_KEY = import.meta.env.VITE_FIREBASE_VAPID_KEY || '';
 
 let currentUid = null;
@@ -92,9 +103,8 @@ export function subscribeToFCMTopic() { /* tsy ampiasaina */ }
 /**
  * Diffusion ADMIN → mpampiasa REHETRA (push + notification anaty app).
  *
- * Ny fanamarinana dia atao AO AMIN'NY BACKEND amin'ny ID token Firebase :
- * ny `x-notify-secret` dia hita ao anaty bundle public, ka tsy azo itokisana
- * ho an'ny diffusion. Raha tsy admin ilay mpiantso dia mamaly 403 ny serveur.
+ * Ny fanamarinana dia atao AO AMIN'NY BACKEND amin'ny ID token Firebase.
+ * Raha tsy admin ilay mpiantso dia mamaly 403 ny serveur.
  *
  * Tsy manakana : raha tsy mety dia tsy manelingelina ny publication.
  */
@@ -136,9 +146,9 @@ export async function notifyAllUsers({ title, message, postId, fromName, fromPho
 
 export async function sendPushNotification({ toExternalId, title, message, data, fromPhoto }) {
   if (!toExternalId) return;
-  const send = () => fetch(`${BACKEND_URL}/notify`, {
+  const send = async () => fetch(`${BACKEND_URL}/notify`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'x-notify-secret': NOTIFY_SECRET },
+    headers: (await authHeader()) || { 'Content-Type': 'application/json' },
     body: JSON.stringify({ toExternalId, title, message, data, fromPhoto }),
     keepalive: true,   // mamita ny requête na dia mikatona aza ny page
   });
