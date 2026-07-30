@@ -30,12 +30,10 @@ function grab(header) {
   }
   return SRC.slice(i, end + 1);
 }
-const fnWebp  = grab('function canEncodeWebP() {');
 const fnThumb = grab('export async function makeThumb(file, maxWidth = 360) {')
   .replace('export async function', 'async function');
 const fnComp  = grab('async function compressImage(file, maxWidth = 720, quality = 0.62) {');
-console.log('📄 canEncodeWebP ' + fnWebp.split('\n').length + ' · makeThumb ' +
-            fnThumb.split('\n').length + ' · compressImage ' + fnComp.split('\n').length + ' andalana\n');
+console.log('📄 makeThumb ' + fnThumb.split('\n').length + ' · compressImage ' + fnComp.split('\n').length + ' andalana\n');
 
 /* ── Environnement sandoka ───────────────────────────────────────────────── */
 class MockFile {
@@ -84,8 +82,8 @@ function makeEnv({ webp = true, throwOnDataURL = false, blobNull = false,
   const URLm = { createObjectURL: () => 'blob:x', revokeObjectURL() {} };
 
   const build = new Function('document', 'Image', 'URL', 'File', 'String', 'Math',
-    'let _webpOK = null;\n' + fnWebp + '\n' + fnComp + '\n' + fnThumb +
-    '\nreturn { canEncodeWebP, compressImage, makeThumb };');
+    fnComp + '\n' + fnThumb +
+    '\nreturn { compressImage, makeThumb };');
   return { api: build(document, MockImage, URLm, MockFile, String, Math), seen };
 }
 
@@ -93,36 +91,19 @@ const img = (name = 'photo.jpg', size = 3_000_000, type = 'image/jpeg') => {
   const f = new MockFile([], name, { type }); f.size = size; return f;
 };
 
-/* ═══ 1. Fanamarinana WebP ════════════════════════════════════════════════ */
-console.log('1) canEncodeWebP — tsy heverina ho azo');
-{
-  eq('mahay → true', makeEnv({ webp: true }).api.canEncodeWebP(), true);
-  eq('tsy mahay (PNG no valiny) → false', makeEnv({ webp: false }).api.canEncodeWebP(), false);
-  eq('mikorontana → false (tsy crash)', makeEnv({ throwOnDataURL: true }).api.canEncodeWebP(), false);
-  const e = makeEnv({ webp: true });
-  e.api.canEncodeWebP(); 
-  eq('voatahiry (cache) — valiny mitovy', e.api.canEncodeWebP(), true);
-}
-
-/* ═══ 2. compressImage — WebP sy fallback ════════════════════════════════ */
+/* ═══ 1. compressImage — WebP sy fallback ════════════════════════════════ */
 console.log('\n2) compressImage — endrika sy kalitao');
 {
   let e = makeEnv({ webp: true });
   let r = await e.api.compressImage(img());
-  eq('mime = image/webp', e.seen.mime, 'image/webp');
-  eq('qualité = 0.72', e.seen.quality, 0.72);
-  eq('anarana .webp', r.name, 'photo.webp');
-  eq('type File', r.type, 'image/webp');
-
-  e = makeEnv({ webp: false });
-  r = await e.api.compressImage(img());
-  eq('tsy mahay → image/jpeg', e.seen.mime, 'image/jpeg');
-  eq('tsy mahay → qualité 0.62', e.seen.quality, 0.62);
-  eq('tsy mahay → anarana .jpg', r.name, 'photo.jpg');
+  eq('mime = image/jpeg (TSY webp — sticker Telegram)', e.seen.mime, 'image/jpeg');
+  eq('qualité = 0.62', e.seen.quality, 0.62);
+  eq('anarana .jpg', r.name, 'photo.jpg');
+  eq('type File', r.type, 'image/jpeg');
 
   e = makeEnv({ webp: true });
   r = await e.api.compressImage(img('vacances.été.2026.png', 2e6, 'image/png'));
-  eq('anarana misy teboka maro voadio', r.name, 'vacances.été.2026.webp');
+  eq('anarana misy teboka maro voadio', r.name, 'vacances.été.2026.jpg');
 }
 
 /* ═══ 3. Fanovana habe ═══════════════════════════════════════════════════ */
@@ -189,6 +170,7 @@ console.log('\n6) Fanamarinana statique');
   const H = fs.readFileSync('./src/pages/Home.jsx', 'utf8');
   const P = fs.readFileSync('./src/pages/Profile.jsx', 'utf8');
   const G = fs.readFileSync('./src/pages/GroupPage.jsx', 'utf8');
+  ok('Tsy misy image/webp intsony', !fs.readFileSync('./src/utils/telegram.js','utf8').includes("'image/webp'"));
   ok('Home : feed mampiasa thumbURL', H.includes('src={post.thumbURL || post.mediaURL}'));
   ok('Profile : feed mampiasa thumbURL', P.includes('src={post.thumbURL || post.mediaURL}'));
   ok('GroupPage : feed mampiasa thumbURL', G.includes('src={post.thumbURL || post.mediaURL}'));

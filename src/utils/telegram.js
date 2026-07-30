@@ -34,22 +34,6 @@ function monotonic(onProgress) {
 }
 
 /**
- * Mahay manoratra WebP ve ny navigateur ? Voamarina INDRAY MANDEHA dia tehirizina.
- * ⚠️ Raha tsy mahay dia mamerina PNG (lehibe kokoa!) ny toBlob — noho izany dia
- *    tsy maintsy hamarinina, fa tsy heverina ho azo.
- */
-let _webpOK = null;
-function canEncodeWebP() {
-  if (_webpOK !== null) return _webpOK;
-  try {
-    const c = document.createElement('canvas');
-    c.width = 1; c.height = 1;
-    _webpOK = c.toDataURL('image/webp').indexOf('data:image/webp') === 0;
-  } catch (e) { _webpOK = false; }
-  return _webpOK;
-}
-
-/**
  * Vignette ho an'ny FEED — 360 px (~15 kB) fa tsy 720 px (~60 kB).
  * Mamerina `null` raha tsy mety : ny mpiantso dia mitazona `thumbURL = ''`
  * ka miverina amin'ny `mediaURL` ny feed. Tsy misy fahatapahana.
@@ -76,15 +60,14 @@ async function compressImage(file, maxWidth = 720, quality = 0.62) {
       canvas.width = w; canvas.height = h;
       canvas.getContext('2d').drawImage(img, 0, 0, w, h);
       URL.revokeObjectURL(url);
-      // WebP raha azo : ~30 % kely kokoa noho ny JPEG NEFA tsara kokoa ny sary.
-      const webp = canEncodeWebP();
-      const mime = webp ? 'image/webp' : 'image/jpeg';
-      const q    = webp ? 0.72 : quality;
-      const name = String(file.name || 'image').replace(/\.[^.]+$/, '') + (webp ? '.webp' : '.jpg');
+      // ⚠️ JPEG IHANY — TSY WebP.
+      // Ny Telegram dia mamantatra ny .webp ho AUTOCOLLANT (sticker) fa tsy
+      // document, ka mianjera ny famoahana. Voatsapa tamin'ny 30/07/2026.
+      const name = String(file.name || 'image').replace(/\.[^.]+$/, '') + '.jpg';
       canvas.toBlob(blob => {
         if (!blob) { resolve(file); return; }          // arovana : tsy very ny sary
-        resolve(new File([blob], name, { type: mime }));
-      }, mime, q);
+        resolve(new File([blob], name, { type: 'image/jpeg' }));
+      }, 'image/jpeg', quality);
     };
     img.onerror = () => { URL.revokeObjectURL(url); resolve(file); };
     img.src = url;
