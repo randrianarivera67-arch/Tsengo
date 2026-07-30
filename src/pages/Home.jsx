@@ -357,6 +357,7 @@ export default function Home() {
   const [feedRaw, setFeedRaw] = useState([]);             // posts bruts
   const cursorRef = useRef(null);                         // dernier doc (startAfter) — pagination 20/page
   const loadingRef = useRef(false);                       // anti double-chargement
+  const sentinelIoRef = useRef(null);                     // observer "Chargement…" (esorina isaky ny render)
   const [reachedEnd, setReachedEnd] = useState(false);    // plus rien a charger cote serveur
   const [shuffleSeed, setShuffleSeed] = useState(() => {
     // Rafraichissement demande -> on ignore l'instantane et on repart a neuf
@@ -2745,15 +2746,24 @@ const fields = {
         if (postsLoading || (feedLen <= visibleCount && reachedEnd)) return null;
         return (
           <div ref={el => {
+            // ⚠️ FIX FORFAIT : ny observer taloha ESORINA aloha. Tsy nisy izany teo
+            // aloha, ka nitambatra isaky ny render, samy niantso loadFeedPage →
+            // nampiakatra ny collection manontolo isaky ny fidirana.
+            if (sentinelIoRef.current) { sentinelIoRef.current.disconnect(); sentinelIoRef.current = null; }
             if (!el) return;
             const io = new IntersectionObserver(es => {
               if (!es[0].isIntersecting) return;
-              // 1) On revele plus de posts deja charges.
-              setVisibleCount(c => c + 26);
-              // 2) Charger plus SEULEMENT si une page pleine est deja recue (evite la boucle infinie).
+              // 1) MANEHO aloha ny publication EFA voampidy — tsy mandany data mihitsy.
+              if (feedLen > visibleCount) {
+                setVisibleCount(c => Math.min(c + 12, feedLen));
+                return;
+              }
+              // 2) MAKA pejy vaovao REHEFA TAPITRA TOKOA ny an-tanana.
+              //    Teo aloha dia niantso na dia mbola nisy an-jatony tsy aseho aza.
               if (!reachedEnd) loadFeedPage(false);
-            }, { rootMargin: '1200px' });
+            }, { rootMargin: '400px' });
             io.observe(el);
+            sentinelIoRef.current = io;
           }} style={{ padding: 18, textAlign: 'center', color: '#65676B', fontSize: 13 }}>
             Chargement…
           </div>
