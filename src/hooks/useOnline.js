@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { ref, onValue } from 'firebase/database';
 import { rtdb } from '../firebase';
+import { isLiteOn, subscribeLite } from '../utils/liteMode';
 
 let cache = {};
 const listeners = new Set();
@@ -16,8 +17,17 @@ function ensureSubscribed() {
 }
 
 export function useOnline() {
-  const [map, setMap] = useState(cache);
+  const [lite, setLiteState] = useState(isLiteOn());
+  useEffect(() => subscribeLite(setLiteState), []);
+
+  const [map, setMap] = useState(() => (isLiteOn() ? {} : cache));
   useEffect(() => {
+    // ── MODE LITE ────────────────────────────────────────────────────────
+    // Ny listener `online` dia mandefa ny tabilao MANONTOLO amin'ny mpampiasa
+    // REHETRA isaky ny misy olona misokatra na mikatona ny app. Io no loharano
+    // lehibe indrindra amin'ny data mitohy. Amin'ny Lite dia tsy misy mihitsy
+    // — very ny 点 maitso, fa tsy misy octet lany.
+    if (lite) { setMap({}); return; }
     refCount++;
     ensureSubscribed();
     const cb = m => setMap({ ...m });
@@ -28,6 +38,6 @@ export function useOnline() {
       refCount--;
       if (refCount <= 0 && unsubGlobal) { unsubGlobal(); unsubGlobal = null; }
     };
-  }, []);
+  }, [lite]);
   return map;
 }

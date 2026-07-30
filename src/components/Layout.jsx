@@ -16,6 +16,7 @@ import { NeonChart } from './NeonIcons';
 import PullToRefresh from './PullToRefresh';
 import UpdateBanner from './UpdateBanner';
 import { clearPins, requestFeedReset } from '../utils/feedPins';
+import { isLiteOn, setLite, subscribeLite } from '../utils/liteMode';
 import ScrollReveal from './ScrollReveal';
 import { subscribeUpload } from '../utils/uploadManager';
 import {
@@ -157,6 +158,8 @@ export default function Layout({ children }) {
   }, []);
 
   const [drawerOpen,    setDrawerOpen]    = useState(false);
+  const [liteOn,        setLiteOn]        = useState(isLiteOn());
+  useEffect(() => subscribeLite(setLiteOn), []);
   const [search,        setSearch]        = useState('');
   const [searchResults, setSearchResults] = useState({ users: [], posts: [] });
   const [searchOpen,    setSearchOpen]    = useState(false);
@@ -457,8 +460,8 @@ export default function Layout({ children }) {
           )}
         </nav>
 
-        {/* Bloc-notes */}
-        <div style={{ padding: '0 14px 14px', display: 'grid', gridTemplateColumns: '1fr', gap: 10 }}>
+        {/* Bloc-notes + Mode Lite */}
+        <div style={{ padding: '0 14px 14px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
           <button onClick={() => { navigate('/notes'); setDrawerOpen(false); }}
             style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 8, padding: '14px', textAlign: 'left', background: isDark ? '#15181F' : 'white', border: `1.5px solid ${bdr}`, borderRadius: 16, cursor: 'pointer', boxShadow: '0 1px 3px rgba(0,0,0,.06)' }}>
             <span className="icon-badge-3d" style={{ width: 44, height: 44, borderRadius: 13, background: 'linear-gradient(145deg,#FFD84D,#F2B300)' }}>
@@ -466,6 +469,39 @@ export default function Layout({ children }) {
             </span>
             <span style={{ fontWeight: 700, fontSize: 14, color: text }}>Bloc-notes</span>
             <span style={{ fontSize: 11, color: '#65676B', marginTop: -6 }}>Vos notes privées</span>
+          </button>
+
+          {/* ── MODE LITE ── Mihetsika avy hatrany, tsy mila manokatra indray ── */}
+          <button onClick={() => setLite(!liteOn)}
+            aria-pressed={liteOn}
+            style={{
+              display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 8, padding: '14px',
+              textAlign: 'left', background: isDark ? '#15181F' : 'white',
+              border: '1.5px solid ' + (liteOn ? '#12A48D' : bdr), borderRadius: 16, cursor: 'pointer',
+              boxShadow: '0 1px 3px rgba(0,0,0,.06)', position: 'relative',
+            }}>
+            <span className="icon-badge-3d" style={{
+              width: 44, height: 44, borderRadius: 13,
+              background: liteOn ? 'linear-gradient(145deg,#7FE6B4,#12A48D)' : 'linear-gradient(145deg,#C7D0DD,#7C8591)',
+            }}>
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path d="M13 2 4.5 13.2h5.8L11 22l8.5-11.2h-5.8L13 2Z" fill="white" />
+              </svg>
+            </span>
+            <span style={{ fontWeight: 700, fontSize: 14, color: text }}>Mode Lite</span>
+            <span style={{ fontSize: 11, color: liteOn ? '#12A48D' : '#65676B', marginTop: -6 }}>
+              {liteOn ? 'Activé — données réduites' : 'Économiser vos données'}
+            </span>
+            <span style={{
+              position: 'absolute', top: 12, right: 12, width: 34, height: 19, borderRadius: 999,
+              background: liteOn ? '#12A48D' : (isDark ? '#3A3B3C' : '#D6DAE0'), transition: 'background .2s',
+            }}>
+              <span style={{
+                position: 'absolute', top: 2.5, left: liteOn ? 17 : 2.5, width: 14, height: 14,
+                borderRadius: '50%', background: 'white', transition: 'left .2s',
+                boxShadow: '0 1px 2px rgba(0,0,0,.25)',
+              }} />
+            </span>
           </button>
         </div>
 

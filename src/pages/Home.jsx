@@ -28,6 +28,7 @@ import { captureVideoThumb } from '../utils/videoThumb';
 import { trimVideoTo30s } from '../utils/trimVideo';
 import { timeAgo } from '../utils/timeAgo';
 import { isDataSaverOn, subscribeDataSaver } from '../utils/dataSaver';
+import { isLiteOn, subscribeLite } from '../utils/liteMode';
 import { downloadMedia } from '../utils/download';
 import ShareModal from '../components/ShareModal';
 import MusicPostCard from '../components/MusicPostCard';
@@ -314,6 +315,8 @@ export default function Home() {
   const storyVideoRef = useRef(null);
   const [dataSaver, setDataSaverState] = useState(isDataSaverOn());
   useEffect(() => subscribeDataSaver(setDataSaverState), []);
+  const [lite, setLiteState] = useState(isLiteOn());
+  useEffect(() => subscribeLite(setLiteState), []);
   const [shareModalPost, setShareModalPost] = useState(null);
   const [audience, setAudience] = useState('public');   // 'public' | 'friends' | 'me'
   const [audienceMenuOpen, setAudienceMenuOpen] = useState(false);
@@ -826,6 +829,13 @@ export default function Home() {
     // "nouvelles publications" — ny loadFeedPage(true) no mandahatra ny fil.
     // Ny "pin" sy ny "pendingNew" dia ho an'ny post tena tonga MANDRITRA ny
     // fijerena ihany (snapshot faha-2 sy ny manaraka).
+    // ── MODE LITE ──────────────────────────────────────────────────────────
+    // Tsy misy listener velona : isaky ny réaction / commentaire / views+1
+    // amin'ny publication 20 farany dia ny DOCUMENT MANONTOLO no midina.
+    // Amin'ny Lite dia ny pull-to-refresh ihany no manavao — toy ny FB Lite.
+    // (Ny loadFeedPage(true) ao amin'ny effet etsy ambony no naka ny votoaty.)
+    if (lite) { setPostsLoading(false); return; }
+
     let firstSnap = true;
     const q = query(collection(db, 'posts'), orderBy('createdAt', 'desc'), limit(PAGE_SIZE));
     return onSnapshot(q, snap => {
@@ -859,7 +869,7 @@ export default function Home() {
       }
       setPostsLoading(false);
     }, () => setPostsLoading(false));
-  }, []);
+  }, [lite]);
 
   // Dérivé : filaharana voatahiry → documents + filtre (bloqués / audience)
   useEffect(() => {
