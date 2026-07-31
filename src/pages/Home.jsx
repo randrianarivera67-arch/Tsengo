@@ -50,6 +50,7 @@ import {
   HiReply, HiUserAdd, HiUserGroup, HiBookmark, HiFlag, HiBan, HiPaperAirplane, HiIdentification, HiShoppingBag, HiShoppingCart, HiCalendar, HiClipboardCopy, HiInformationCircle, HiCheck, HiGlobeAlt, HiStar, HiAtSymbol, HiTrendingUp, HiArrowUp} from 'react-icons/hi';
 import { addToCart } from '../utils/cart';
 import { increment } from 'firebase/firestore';
+import { av } from '../utils/avatar';
 
 const MAX_POST    = 2000;
 const MAX_COMMENT = 500;
@@ -1891,7 +1892,7 @@ const fields = {
       {/* Create post — barre kely (icône fotsiny, clic = page feno) */}
       <div className="card post-card" style={{ padding:12, marginBottom:8 }}>
         <div style={{ display:'flex', gap:10, alignItems:'center' }}>
-          <img src={userProfile?.photoURL||`https://ui-avatars.com/api/?name=${encodeURIComponent(userProfile?.fullName||'U')}&background=1877F2&color=fff`} alt="" className="avatar" style={{ width:40, height:40, flexShrink:0 }}/>
+          <img src={av(userProfile?.photoURL||`https://ui-avatars.com/api/?name=${encodeURIComponent(userProfile?.fullName||'U')}&background=1877F2&color=fff`, 128)} alt="" className="avatar" style={{ width:40, height:40, flexShrink:0 }}/>
           <button onClick={() => setPublishFullOpen(true)}
             style={{ flex:1, textAlign:'left', background:'#F0F2F5', border:'none', borderRadius:22, padding:'10px 16px', color:'#65676B', fontSize:14.5, fontFamily:'Poppins', cursor:'pointer' }}>
             {t('whatsOnMind')}
@@ -1930,7 +1931,7 @@ const fields = {
             {posting?'...':t('publishPost')}
           </button>
         </div>        <div style={{ display:'flex', gap:10, alignItems:'flex-start' }}>
-          <img src={userProfile?.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(userProfile?.fullName||'U')}&background=1877F2&color=fff`} alt="" className="avatar" style={{ width:42, height:42, flexShrink:0 }}/>
+          <img src={av(userProfile?.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(userProfile?.fullName||'U')}&background=1877F2&color=fff`, 128)} alt="" className="avatar" style={{ width:42, height:42, flexShrink:0 }}/>
           <div style={{ flex:1 }}>
             {textBg ? (
               <div style={{ background:textBg, borderRadius:14, minHeight:180, display:'flex', alignItems:'center', justifyContent:'center', padding:'20px 16px', width:'100%' }} onClick={()=>document.getElementById('textbg-input')?.focus()}>
@@ -2236,7 +2237,7 @@ const fields = {
                     </div>
                     {/* Avatar an'ilay olona superposé (format Facebook) */}
                     <img onClick={() => navigate(`/profile/${post.uid}`)}
-                      src={post.authorPhoto||`https://ui-avatars.com/api/?name=${encodeURIComponent(post.authorName||'U')}&background=1877F2&color=fff`}
+                      src={av(post.authorPhoto||`https://ui-avatars.com/api/?name=${encodeURIComponent(post.authorName||'U')}&background=1877F2&color=fff`, 128)}
                       alt="" style={{ position:'absolute', bottom:-4, right:-4, width:22, height:22, borderRadius:'50%', objectFit:'cover', border:'2.5px solid white', cursor:'pointer', boxShadow:'0 1px 4px rgba(0,0,0,.25)' }}/>
                   </div>
                   <div style={{ minWidth:0 }}>
@@ -2271,7 +2272,7 @@ const fields = {
               ) : (
                 <div style={{ display:'flex', alignItems:'center', gap:10, cursor:'pointer', flex:1, minWidth:0 }} onClick={() => navigate(`/profile/${post.uid}`)}>
                   <StoryRing active={activeStoryUids.has(post.uid)}>
-                    <Avatar uid={post.uid} src={post.authorPhoto} name={post.authorName} size={40} />
+                    <Avatar uid={post.uid} src={av(post.authorPhoto, 128)} name={post.authorName} size={40} />
                   </StoryRing>
                   <div style={{ minWidth:0 }}>
                     <p style={{ fontWeight:600, fontSize:14, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{post.authorName}{post.authorIsVip&&<VIPBadge/>}</p>
@@ -2374,7 +2375,7 @@ const fields = {
                 <div onClick={e => { e.stopPropagation(); openPost(post.sharedFrom.id, post.id); }}
                   style={{ marginTop:8, border:'1px solid #E4E6EB', borderRadius:12, overflow:'hidden', cursor:'pointer' }}>
                   <div style={{ display:'flex', alignItems:'center', gap:8, padding:'9px 12px' }}>
-                    <img src={post.sharedFrom.authorPhoto||`https://ui-avatars.com/api/?name=${encodeURIComponent(post.sharedFrom.authorName||'U')}&background=1877F2&color=fff`}
+                    <img src={av(post.sharedFrom.authorPhoto||`https://ui-avatars.com/api/?name=${encodeURIComponent(post.sharedFrom.authorName||'U')}&background=1877F2&color=fff`, 128)}
                       alt="" style={{ width:30, height:30, borderRadius:'50%', objectFit:'cover' }}/>
                     <p style={{ fontWeight:700, fontSize:13 }}>{post.sharedFrom.groupName ? `${post.sharedFrom.groupName} · ${post.sharedFrom.authorName}` : post.sharedFrom.authorName}</p>
                   </div>
@@ -2534,7 +2535,7 @@ const fields = {
                   const crCount = Object.keys(c.reactions||{}).length;
                   return (
                   <div key={c.id} style={{ display:'flex', gap:8, marginTop:10 }}>
-                    <img src={c.authorPhoto||`https://ui-avatars.com/api/?name=${encodeURIComponent(c.authorName||'U')}&background=1877F2&color=fff`} alt="" className="avatar" style={{ width:32, height:32, flexShrink:0, cursor:'pointer' }} onClick={() => navigate(`/profile/${c.uid}`)}/>
+                    <img src={av(c.authorPhoto||`https://ui-avatars.com/api/?name=${encodeURIComponent(c.authorName||'U')}&background=1877F2&color=fff`, 128)} alt="" className="avatar" style={{ width:32, height:32, flexShrink:0, cursor:'pointer' }} onClick={() => navigate(`/profile/${c.uid}`)}/>
                     <div style={{ flex:1, minWidth:0 }}>
                       {/* Bulle (format Facebook) */}
                       <div style={{ position:'relative', display:'inline-block', maxWidth:'100%', background:'#F0F2F5', borderRadius:16, padding:'8px 12px' }}>
@@ -2589,7 +2590,7 @@ const fields = {
                 )}
 
                 <div style={{ display:'flex', gap:6, marginTop:10, alignItems:'center' }}>
-                  <img src={userProfile?.photoURL||`https://ui-avatars.com/api/?name=${encodeURIComponent(userProfile?.fullName||'U')}&background=1877F2&color=fff`} alt="" className="avatar" style={{ width:30, height:30, flexShrink:0 }}/>
+                  <img src={av(userProfile?.photoURL||`https://ui-avatars.com/api/?name=${encodeURIComponent(userProfile?.fullName||'U')}&background=1877F2&color=fff`, 128)} alt="" className="avatar" style={{ width:30, height:30, flexShrink:0 }}/>
                   <input ref={el=>cPhotoRef.current[post.id]=el} type="file" accept="image/jpeg,image/png,image/gif,image/webp" style={{ display:'none' }} onChange={e=>{const f=e.target.files[0];if(f)setCmtMedia(p=>({...p,[post.id]:{file:f,type:'image',preview:URL.createObjectURL(f)}}));}}/>
                   <input ref={el=>cVideoRef.current[post.id]=el} type="file" accept="video/mp4,video/webm,video/quicktime" style={{ display:'none' }} onChange={e=>{const f=e.target.files[0];if(f)setCmtMedia(p=>({...p,[post.id]:{file:f,type:'video',preview:URL.createObjectURL(f)}}));}}/>
                   <div style={{ flex:1, position:'relative', minWidth:0 }}>
@@ -2862,7 +2863,7 @@ const fields = {
             {composerTagList.map(f => (
               <label key={f.uid} style={{ display:'flex', alignItems:'center', gap:10, padding:'9px 4px', cursor:'pointer', borderBottom:'1px solid #F0F2F5' }}>
                 <input type="checkbox" checked={!!composerTagSel[f.uid]} onChange={e => setComposerTagSel(p => ({ ...p, [f.uid]: e.target.checked }))} style={{ width:18, height:18, accentColor:'#1877F2' }}/>
-                <img src={f.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(f.fullName||'U')}&background=1877F2&color=fff`} alt="" style={{ width:36, height:36, borderRadius:'50%', objectFit:'cover' }}/>
+                <img src={av(f.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(f.fullName||'U')}&background=1877F2&color=fff`, 128)} alt="" style={{ width:36, height:36, borderRadius:'50%', objectFit:'cover' }}/>
                 <p style={{ fontWeight:600, fontSize:14 }}>{f.fullName}</p>
               </label>
             ))}
@@ -2883,7 +2884,7 @@ const fields = {
             {tagFriendsList.map(f => (
               <label key={f.uid} style={{ display:'flex', alignItems:'center', gap:10, padding:'9px 4px', cursor:'pointer', borderBottom:'1px solid #F0F2F5' }}>
                 <input type="checkbox" checked={!!tagSelected[f.uid]} onChange={e => setTagSelected(p => ({ ...p, [f.uid]: e.target.checked }))} style={{ width:18, height:18, accentColor:'#1877F2' }}/>
-                <img src={f.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(f.fullName||'U')}&background=1877F2&color=fff`} alt="" style={{ width:36, height:36, borderRadius:'50%', objectFit:'cover' }}/>
+                <img src={av(f.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(f.fullName||'U')}&background=1877F2&color=fff`, 128)} alt="" style={{ width:36, height:36, borderRadius:'50%', objectFit:'cover' }}/>
                 <p style={{ fontWeight:600, fontSize:14 }}>{f.fullName}</p>
               </label>
             ))}

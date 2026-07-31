@@ -14,6 +14,7 @@ import { uploadToTelegram } from '../utils/telegram';
 import { getChatId } from '../utils/chat';
 function getOtherUid(chatId, myUid) { const parts = chatId.split('_'); return parts[0] === myUid ? parts[1] : parts[0]; }
 import { sendPushNotification } from '../utils/onesignal';
+import { av } from '../utils/avatar';
 import {
   HiArrowLeft, HiPaperAirplane, HiSearch, HiPhotograph,
   HiVideoCamera, HiPaperClip, HiX, HiDownload, HiMicrophone, HiStop,
@@ -660,7 +661,7 @@ export default function Messages() {
             {conversations.map(conv => (
               <div key={conv.chatId} onClick={async () => { await push(ref(rtdb, `conversations/${conv.chatId}/messages`), { fromUid: currentUser.uid, toUid: conv.otherUid, fromName: userProfile.fullName, fromPhoto: userProfile.photoURL || "", text: transferMsg.text || "", mediaURL: transferMsg.mediaURL || "", mediaType: transferMsg.mediaType || "", ts: Date.now(), read: false, forwarded: true }); setTransferMsg(null); }}
                 style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 0", cursor: "pointer", borderBottom: "1px solid #E4E6EB" }}>
-                <img src={conv.user.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(conv.user.fullName)}&background=1877F2&color=fff`} alt="" style={{ width: 40, height: 40, borderRadius: "50%", objectFit: "cover" }} />
+                <img src={av(conv.user.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(conv.user.fullName)}&background=1877F2&color=fff`, 128)} alt="" style={{ width: 40, height: 40, borderRadius: "50%", objectFit: "cover" }} />
                 <p style={{ fontWeight: 600, fontSize: 14 }}>{conv.user.fullName}</p>
               </div>
             ))}
@@ -715,7 +716,7 @@ export default function Messages() {
                 {friendsProfiles.map(f => (
                   <div key={f.uid} onClick={() => openChat(f.uid)} style={{ flexShrink: 0, textAlign: 'center', cursor: 'pointer' }}>
                     <div style={{ position: 'relative', display: 'inline-block' }}>
-                      <img src={f.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(f.fullName)}&background=1877F2&color=fff`}
+                      <img src={av(f.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(f.fullName)}&background=1877F2&color=fff`, 128)}
                         alt="" style={{ width: 46, height: 46, borderRadius: '50%', objectFit: 'cover', border: online[f.uid] ? '2.5px solid #22c55e' : '2.5px solid #65676B' }} />
                       <span style={{ position: 'absolute', bottom: 1, right: 1, width: 11, height: 11, borderRadius: '50%', background: online[f.uid] ? '#22c55e' : '#9ca3af', border: '2px solid white' }} />
                     </div>
@@ -737,7 +738,7 @@ export default function Messages() {
             <div className="card" style={{ marginTop: 6, overflow: 'hidden' }}>
               {searchResults.map(u => (
                 <div key={u.uid} onClick={() => openChat(u.uid)} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', cursor: 'pointer', borderBottom: '1px solid #E4E6EB' }}>
-                  <img src={u.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(u.fullName)}&background=1877F2&color=fff`} alt="" className="avatar" style={{ width: 36, height: 36 }} />
+                  <img src={av(u.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(u.fullName)}&background=1877F2&color=fff`, 128)} alt="" className="avatar" style={{ width: 36, height: 36 }} />
                   <div><p style={{ fontWeight: 600, fontSize: 13 }}>{u.fullName}</p><p style={{ fontSize: 12, color: '#65676B' }}>@{u.username}</p></div>
                 </div>
               ))}
@@ -759,7 +760,7 @@ export default function Messages() {
                 onClick={() => { navigate(`/messages/group_${item.key}`); }}
                 style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '11px 14px', cursor: 'pointer', background: activeChatId === `group_${item.key}` ? '#E7F0FE' : 'white', borderBottom: '1px solid #F0F2F5' }}>
                 <div style={{ width: 52, height: 52, borderRadius: '50%', background: 'linear-gradient(135deg,#1B84FF,#1877F2)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: '0 2px 8px rgba(24,119,242,.35)' }}>
-                  {item.data.photoURL ? <img src={item.data.photoURL} alt="" style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }} /> : <HiUserGroup size={22} color="white" />}
+                  {item.data.photoURL ? <img src={av(item.data.photoURL, 128)} alt="" style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }} /> : <HiUserGroup size={22} color="white" />}
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <p style={{ fontWeight: 700, fontSize: 15, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.data.name}</p>
@@ -775,7 +776,7 @@ export default function Messages() {
                 onClick={() => { setActiveUser(item.data.user); navigate(`/messages/${item.key}`); }}
                 style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 14px', cursor: 'pointer', background: activeChatId === item.key ? '#E4E6EB' : 'white', borderBottom: '1px solid #F0F2F5' }}>
                 <div style={{ position: 'relative' }}>
-                  <img src={item.data.user.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(item.data.user.fullName)}&background=1877F2&color=fff`}
+                  <img src={av(item.data.user.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(item.data.user.fullName)}&background=1877F2&color=fff`, 128)}
                     alt="" className="avatar" style={{ width: 52, height: 52, border: activeStoryUids.has(item.data.otherUid) ? '2.5px solid #1877F2' : 'none' }} />
                   <span style={{ position: 'absolute', bottom: 1, right: 1, width: 11, height: 11, background: online[item.data.otherUid] ? '#22c55e' : '#9ca3af', borderRadius: '50%', border: '2px solid white' }} />
                 </div>
@@ -832,7 +833,7 @@ export default function Messages() {
             </button>
             {isGroupChat && activeGroup && <>
               <div style={{ width: 40, height: 40, borderRadius: '50%', background: 'linear-gradient(135deg,#1B84FF,#1877F2)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                {activeGroup.photoURL ? <img src={activeGroup.photoURL} alt="" style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }} /> : <HiUserGroup size={20} color="white" />}
+                {activeGroup.photoURL ? <img src={av(activeGroup.photoURL, 128)} alt="" style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }} /> : <HiUserGroup size={20} color="white" />}
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <p style={{ fontWeight: 700, fontSize: 15, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{activeGroup.name}</p>
@@ -861,7 +862,7 @@ export default function Messages() {
             </>}
             {!isGroupChat && activeUser && <>
               <div style={{ position: 'relative' }}>
-                <img src={activeUser.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(activeUser.fullName)}&background=1877F2&color=fff`}
+                <img src={av(activeUser.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(activeUser.fullName)}&background=1877F2&color=fff`, 128)}
                   alt="" className="avatar" style={{ width: 40, height: 40, cursor:'pointer' }} onClick={()=>navigate(`/profile/${otherUid}`)} />
                 <span style={{ position: 'absolute', bottom: 1, right: 1, width: 10, height: 10, background: online[otherUid] ? '#22c55e' : '#9ca3af', borderRadius: '50%', border: '2px solid white' }} />
               </div>
@@ -904,7 +905,7 @@ export default function Messages() {
               return (
                 <div key={msg.id}>
                   <div style={{ display: 'flex', justifyContent: isMe ? 'flex-end' : 'flex-start', alignItems: 'flex-end', gap: 6 }}>
-                    {!isMe && <img src={msg.fromPhoto || `https://ui-avatars.com/api/?name=${encodeURIComponent(msg.fromName || 'U')}&background=1877F2&color=fff`}
+                    {!isMe && <img src={av(msg.fromPhoto || `https://ui-avatars.com/api/?name=${encodeURIComponent(msg.fromName || 'U')}&background=1877F2&color=fff`, 128)}
                       alt="" className="avatar" style={{ width: 28, height: 28, flexShrink: 0 }} />}
 
                     <div style={{ maxWidth: '78%' }}>
@@ -1145,7 +1146,7 @@ export default function Messages() {
                 <label key={f.uid} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 4px', cursor: 'pointer', borderBottom: '1px solid #F0F2F5' }}>
                   <input type="checkbox" checked={!!selectedFriendsG[f.uid]} onChange={e => setSelectedFriendsG(p => ({ ...p, [f.uid]: e.target.checked }))}
                     style={{ width: 18, height: 18, accentColor: '#1877F2' }} />
-                  <img src={f.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(f.fullName || 'U')}&background=1877F2&color=fff`} alt="" style={{ width: 36, height: 36, borderRadius: '50%', objectFit: 'cover' }} />
+                  <img src={av(f.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(f.fullName || 'U')}&background=1877F2&color=fff`, 128)} alt="" style={{ width: 36, height: 36, borderRadius: '50%', objectFit: 'cover' }} />
                   <div>
                     <p style={{ fontWeight: 600, fontSize: 14 }}>{f.fullName}</p>
                     <p style={{ fontSize: 12, color: '#65676B' }}>@{f.username}</p>
@@ -1184,7 +1185,7 @@ export default function Messages() {
               const mAdmin = activeGroup.admins?.includes(m.uid);
               return (
                 <div key={m.uid} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 0', borderBottom: '1px solid #F0F2F5' }}>
-                  <img src={m.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(m.fullName || 'U')}&background=1877F2&color=fff`} alt="" style={{ width: 36, height: 36, borderRadius: '50%', objectFit: 'cover' }} />
+                  <img src={av(m.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(m.fullName || 'U')}&background=1877F2&color=fff`, 128)} alt="" style={{ width: 36, height: 36, borderRadius: '50%', objectFit: 'cover' }} />
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <p style={{ fontWeight: 600, fontSize: 14, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                       {m.fullName}{m.uid === currentUser.uid ? ' (vous)' : ''}
@@ -1218,7 +1219,7 @@ export default function Messages() {
               <label key={f.uid} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 4px', cursor: 'pointer', borderBottom: '1px solid #F0F2F5' }}>
                 <input type="checkbox" checked={!!groupSel[f.uid]} onChange={e => setGroupSel(p => ({ ...p, [f.uid]: e.target.checked }))}
                   style={{ width: 18, height: 18, accentColor: '#1877F2' }} />
-                <img src={f.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(f.fullName)}&background=1877F2&color=fff`} alt="" style={{ width: 36, height: 36, borderRadius: '50%', objectFit: 'cover' }} />
+                <img src={av(f.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(f.fullName)}&background=1877F2&color=fff`, 128)} alt="" style={{ width: 36, height: 36, borderRadius: '50%', objectFit: 'cover' }} />
                 <div>
                   <p style={{ fontWeight: 600, fontSize: 14 }}>{f.fullName}</p>
                   <p style={{ fontSize: 12, color: '#65676B' }}>@{f.username}</p>
