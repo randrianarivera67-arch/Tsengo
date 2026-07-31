@@ -188,6 +188,29 @@ export function NeonChart({ size = 16, color = '#12A48D' }) {
   );
 }
 
+// Haut-parleur (video in-feed) — solon'ny emoji taloha.
+// `muted` = true → onda voasolo croix ; false → onda roa.
+export function NeonSpeaker({ size = 17, color = '#FFFFFF', muted = false }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" style={glow(color)} aria-hidden="true">
+      {/* Cône + corps */}
+      <path d="M4 9.3h3.2L11.6 5.6a.7.7 0 0 1 1.15.54v11.72a.7.7 0 0 1-1.15.54L7.2 14.7H4a.9.9 0 0 1-.9-.9v-3.6a.9.9 0 0 1 .9-.9Z"
+        fill={color} stroke={color} strokeWidth="1.3" strokeLinejoin="round" />
+      {muted ? (
+        <>
+          <path d="M16.2 9.8 20.6 14.2" stroke={color} strokeWidth="1.9" strokeLinecap="round" />
+          <path d="M20.6 9.8 16.2 14.2" stroke={color} strokeWidth="1.9" strokeLinecap="round" />
+        </>
+      ) : (
+        <>
+          <path d="M15.7 9.6a3.6 3.6 0 0 1 0 4.8" stroke={color} strokeWidth="1.8" strokeLinecap="round" />
+          <path d="M18.4 7.3a7.2 7.2 0 0 1 0 9.4" stroke={color} strokeWidth="1.8" strokeLinecap="round" />
+        </>
+      )}
+    </svg>
+  );
+}
+
 // Maso (vues)
 export function NeonEye({ size = 15, color = '#8A8D91' }) {
   return (

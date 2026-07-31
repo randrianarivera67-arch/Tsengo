@@ -36,7 +36,7 @@ function makeLite({ broken = false } = {}) {
 console.log('1) isLiteOn / setLite');
 {
   const { api, store } = makeLite();
-  eq('default = maty', api.isLiteOn(), false);
+  eq('default = VELONA (par défaut)', api.isLiteOn(), true);
 
   api.setLite(true);
   eq('velona aorian\'ny setLite(true)', api.isLiteOn(), true);
@@ -56,7 +56,7 @@ console.log('1) isLiteOn / setLite');
 console.log('\n2) localStorage tsy azo — tsy crash');
 {
   const { api } = makeLite({ broken: true });
-  eq('isLiteOn → false', api.isLiteOn(), false);
+  eq('isLiteOn → true (default)', api.isLiteOn(), true);
   let threw = false;
   try { api.setLite(true); } catch { threw = true; }
   ok('setLite tsy manipy exception', !threw);

@@ -37,7 +37,7 @@ import StoryRing from '../components/StoryRing';
 import SponsoredPost, { useFeedAds } from '../components/SponsoredPost';
 import StoryStudio, { StoryMusicPlayer } from '../components/StoryStudio';
 import { useActiveStoryUids, useActiveStories } from '../hooks/useActiveStoryUids';
-import { NeonGlobe, NeonPeople, NeonLock, NeonMic, NeonLocation, NeonLike, NeonComment, NeonShare, NeonPlane, NeonPlaneWhite, NeonEye, NeonStar } from '../components/NeonIcons';
+import { NeonGlobe, NeonPeople, NeonLock, NeonMic, NeonLocation, NeonLike, NeonComment, NeonShare, NeonPlane, NeonPlaneWhite, NeonEye, NeonStar, NeonSpeaker } from '../components/NeonIcons';
 import { getChatId } from '../utils/chat';
 import { ref as dbRef, push as dbPush, update as dbUpdate } from 'firebase/database';
 import { rtdb } from '../firebase';
@@ -160,7 +160,7 @@ function FeedVideo({ src, poster, dataSaver, style, onOpenReels }) {
         <button
           onClick={e => { e.stopPropagation(); setMuted(m => { const nx = !m; if (vidRef.current) { vidRef.current.muted = nx; if (!nx) vidRef.current.play?.().catch(() => {}); } return nx; }); }}
           style={{ position: 'absolute', bottom: 10, right: 10, width: 34, height: 34, background: 'rgba(0,0,0,0.55)', border: 'none', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
-          <span style={{ color: 'white', fontSize: 15 }}>{muted ? '🔇' : '🔊'}</span>
+          <NeonSpeaker size={17} muted={muted} />
         </button>
       )}
     </div>
@@ -2386,7 +2386,7 @@ const fields = {
                       ? <div style={{ padding:'0 10px 10px' }}><MusicPostCard post={post.sharedFrom} height={115}/></div>
                       : post.sharedFrom.mediaType === 'image'
                         ? <img src={post.sharedFrom.mediaURL} alt="" style={{ width:'100%', maxHeight:320, objectFit:'cover', display:'block' }}/>
-                        : <FeedVideo src={post.sharedFrom.mediaURL} poster={post.sharedFrom.thumbURL} dataSaver={dataSaver} style={{ width:'100%', maxHeight:320, objectFit:'cover', display:'block', background:'#000' }}/>
+                        : <FeedVideo src={post.sharedFrom.mediaURL} poster={post.sharedFrom.thumbURL} dataSaver={dataSaver || lite} style={{ width:'100%', maxHeight:320, objectFit:'cover', display:'block', background:'#000' }}/>
                   )}
                 </div>
               )}
@@ -2410,7 +2410,7 @@ const fields = {
                 </div>
               ) : post.mediaURL && (
                 <div style={{ marginTop:8, marginLeft:-16, marginRight:-16 }}>
-                  {post.isMusic ? <MusicPostCard post={post} height={140}/> : post.mediaType==='image' ? <SmartImage src={post.thumbURL || post.mediaURL} onClick={e=>{e.stopPropagation();openPost(post.id);}} style={{ width:'100%', borderRadius:0, maxHeight:520, objectFit:'cover', display:'block', cursor:'zoom-in' }}/> : <FeedVideo src={post.mediaURL} poster={post.thumbURL} dataSaver={dataSaver} onOpenReels={()=>navigate('/reels',{state:{startId:post.id}})} style={{ width:'100%', borderRadius:0, maxHeight:520, objectFit:'cover', display:'block', background:'#000' }} />}
+                  {post.isMusic ? <MusicPostCard post={post} height={140}/> : post.mediaType==='image' ? <SmartImage src={post.thumbURL || post.mediaURL} onClick={e=>{e.stopPropagation();openPost(post.id);}} style={{ width:'100%', borderRadius:0, maxHeight:520, objectFit:'cover', display:'block', cursor:'zoom-in' }}/> : <FeedVideo src={post.mediaURL} poster={post.thumbURL} dataSaver={dataSaver || lite} onOpenReels={()=>navigate('/reels',{state:{startId:post.id}})} style={{ width:'100%', borderRadius:0, maxHeight:520, objectFit:'cover', display:'block', background:'#000' }} />}
                 </div>
               )}
               {/* ── Article boutique : informations ambanin'ny sary (sary 3) ── */}

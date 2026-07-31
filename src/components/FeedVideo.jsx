@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { claimPlayback } from '../utils/mediaBus';
 import { fallbackMediaURL } from '../utils/telegram';
+import { NeonSpeaker } from './NeonIcons';
 
 // FeedVideo — lecteur vidéo in-feed :
 //  • Lecture auto rehefa hita (IntersectionObserver) raha tsy "Économiser données"
@@ -63,7 +64,7 @@ export default function FeedVideo({ src, poster, dataSaver, style, onOpen, onOpe
       {playing && (
         <button onClick={e => { e.stopPropagation(); setMuted(m => { const nx = !m; if (vidRef.current) { vidRef.current.muted = nx; if (!nx) vidRef.current.play?.().catch(() => {}); } return nx; }); }}
           style={{ position: 'absolute', bottom: 10, right: 10, width: 34, height: 34, background: 'rgba(0,0,0,0.55)', border: 'none', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
-          <span style={{ color: 'white', fontSize: 15 }}>{muted ? '🔇' : '🔊'}</span>
+          <NeonSpeaker size={17} muted={muted} />
         </button>
       )}
     </div>

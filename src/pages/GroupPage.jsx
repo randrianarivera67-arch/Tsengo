@@ -15,6 +15,7 @@ import { uploadToTelegram , makeThumb } from '../utils/telegram';
 import { captureVideoThumb } from '../utils/videoThumb';
 import { startBackgroundUpload } from '../utils/uploadManager';
 import { isDataSaverOn, subscribeDataSaver } from '../utils/dataSaver';
+import { isLiteOn, subscribeLite } from '../utils/liteMode';
 import { downloadMedia } from '../utils/download';
 import ShareModal from '../components/ShareModal';
 import FeedVideo from '../components/FeedVideo';
@@ -88,6 +89,8 @@ export default function GroupPage() {
   const [postMenu,   setPostMenu]   = useState(null);
   const [postReportTarget, setPostReportTarget] = useState(null);
   const [dataSaver,  setDataSaverState] = useState(isDataSaverOn());
+  const [lite, setLiteState] = useState(isLiteOn());
+  useEffect(() => subscribeLite(setLiteState), []);
   useEffect(() => subscribeDataSaver(setDataSaverState), []);
   const [shareModalPost, setShareModalPost] = useState(null);
   const [viewerState,    setViewerState]    = useState(null); // { post, index }
@@ -874,7 +877,7 @@ export default function GroupPage() {
                       ? <div style={{ padding: '0 10px 10px' }}><MusicPostCard post={post.sharedFrom} height={110} /></div>
                       : post.sharedFrom.mediaType === 'image'
                         ? <SmartImage src={post.sharedFrom.mediaURL} minH={180} style={{ width: '100%', maxHeight: 320, objectFit: 'cover', display: 'block' }} />
-                        : <FeedVideo src={post.sharedFrom.mediaURL} poster={post.sharedFrom.thumbURL} dataSaver={dataSaver} style={{ width: '100%', maxHeight: 320, objectFit: 'cover', display: 'block', background: '#000' }} />
+                        : <FeedVideo src={post.sharedFrom.mediaURL} poster={post.sharedFrom.thumbURL} dataSaver={dataSaver || lite} style={{ width: '100%', maxHeight: 320, objectFit: 'cover', display: 'block', background: '#000' }} />
                   )}
                 </div>
               )}
@@ -888,7 +891,7 @@ export default function GroupPage() {
                     ? <MusicPostCard post={post} />
                     : post.mediaType === 'image'
                       ? <SmartImage src={post.thumbURL || post.mediaURL} onClick={() => setViewerState({ post, index: 0 })} minH={240} style={{ width: '100%', maxHeight: 520, objectFit: 'cover', display: 'block', cursor: 'zoom-in' }} />
-                      : <FeedVideo src={post.mediaURL} poster={post.thumbURL} dataSaver={dataSaver} onOpen={() => setViewerState({ post, index: 0 })} style={{ width: '100%', maxHeight: 520, objectFit: 'cover', display: 'block', background: '#000' }} />}
+                      : <FeedVideo src={post.mediaURL} poster={post.thumbURL} dataSaver={dataSaver || lite} onOpen={() => setViewerState({ post, index: 0 })} style={{ width: '100%', maxHeight: 520, objectFit: 'cover', display: 'block', background: '#000' }} />}
                 </div>
               )}
               {/* ── Article boutique : informations ambanin'ny sary (sary 3) ── */}

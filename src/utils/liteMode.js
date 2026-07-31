@@ -9,10 +9,17 @@
 const KEY = 'trengo_lite_mode';
 const listeners = new Set();
 
-/** Velona ve ny Mode Lite ? */
+/**
+ * Velona ve ny Mode Lite ?
+ *
+ * ⚠️ VELONA NY DEFAULT (`!== '0'`) : ny mpampiasa tsy mbola nisafidy dia
+ * mahazo ny Lite avy hatrany — io no safidy tsara indrindra ho an'ny
+ * forfait Malagasy. Ny efa nanao safidy dia manana '0' na '1' voatahiry,
+ * ka tsy voakasika mihitsy.
+ */
 export function isLiteOn() {
-  try { return localStorage.getItem(KEY) === '1'; }
-  catch { return false; }
+  try { return localStorage.getItem(KEY) !== '0'; }
+  catch { return true; }
 }
 
 /** Mamelona / mamono ny Mode Lite. */
