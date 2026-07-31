@@ -64,7 +64,7 @@ console.log('\n2) `photoURL` feno tazonina — publication sary profil');
 /* ═══ 3. Saha denormalisé — 43 toerana ═════════════════════════════════ */
 console.log('\n3) Saha denormalisé mitahiry ny THUMB');
 {
-  const EXPECT = { Home: 10, Messages: 7, Profile: 7, PostDetail: 6, GroupPage: 3,
+  const EXPECT = { Home: 11, Messages: 7, Profile: 7, PostDetail: 6, GroupPage: 3,
                    Friends: 3, Reels: 3, Events: 2, Announcements: 1, ShareModal: 1 };
   let total = 0;
   for (const [n, c] of Object.entries(EXPECT)) {
@@ -73,7 +73,7 @@ console.log('\n3) Saha denormalisé mitahiry ny THUMB');
     eq(n.padEnd(14) + c + ' toerana', got, c);
     total += got;
   }
-  eq('TOTAL', total, 43);
+  eq('TOTAL', total, 44);
 }
 
 console.log('\n   Tsy misy sisa tsy voahitsy');

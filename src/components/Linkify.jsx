@@ -14,6 +14,15 @@ export default function Linkify({ text, color }) {
       {parts.map((p, i) => {
         if (p.type === 'text') return <span key={i}>{p.value}</span>;
         if (p.type === 'mention') {
+          // Token manokana : tsy profil izy, ka aseho ho badge tsy clicable.
+          // Raha tsy izao dia handeha ho /u/followers (tsy misy).
+          const SPECIAL_TAGS = { followers: 'Abonnés', everyone: 'Tout le monde' };
+          const sp = SPECIAL_TAGS[String(p.username).toLowerCase()];
+          if (sp) {
+            return (
+              <span key={i} style={{ color: color || '#1877F2', fontWeight: 600 }}>@{sp}</span>
+            );
+          }
           // Mention → profil. Ny fanovana username → uid dia atao ao amin'ny
           // route /u/:username (requête `users`, index single-field automatique).
           return (

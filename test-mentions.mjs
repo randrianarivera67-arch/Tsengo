@@ -119,7 +119,7 @@ console.log('\n7) Fampiharana');
   ok('UserByName misy', fs.existsSync('./src/pages/UserByName.jsx'));
   ok('dropdown mampiditra @username', HO.includes('const tag = f.username || f.fullName.split(\' \')[0];'));
   ok('lisitra mitondra username', HO.includes("username: sn.data().username || ''"));
-  ok('filtre amin\'ny username koa', HO.includes("(f.username || '').toLowerCase().includes(mentionQuery.q)"));
+  ok('filtre amin\'ny username koa', HO.includes("(f.username || '').toLowerCase().includes(q)"));
 
   const UB = fs.readFileSync('./src/pages/UserByName.jsx', 'utf8');
   ok('requête users where username', UB.includes("where('username', '==', v)"));

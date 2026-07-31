@@ -418,11 +418,20 @@ export default function Home() {
     fresh.forEach(pp => updateDoc(doc(db, 'posts', pp.id), { views: increment(1) }).catch(() => {}));
   }, [posts.length]); // eslint-disable-line
 
+  // ── Safidy manokana ao amin'ny picker mention ──────────────────────────
+  // Token tsy misy elanelana (azo parsé), fa aseho amin'ny anarana mazava.
+  // TOMPON'NY PUBLICATION IHANY — voamarina indray amin'ny fandefasana.
+  const MENTION_SPECIALS = [
+    { key: 'followers', tag: 'followers', label: 'Abonnés',       desc: 'Prévenir tous vos abonnés' },
+    { key: 'everyone',  tag: 'everyone',  label: 'Tout le monde', desc: 'Abonnés + amis' },
+  ];
+  const MENTION_MAX = 200;   // fetra mpandray isaky ny commentaire
+
   // ── Namana ho an'ny mention @ ──
   async function loadMentionFriends() {
     if (mentionFriends.length || !userProfile?.friends?.length) return;
     const list = await Promise.all(userProfile.friends.slice(0, 60).map(uid =>
-      getDoc(doc(db, 'users', uid)).then(sn => sn.exists() ? { uid, fullName: sn.data().fullName || '', username: sn.data().username || '' } : null).catch(() => null)
+      getDoc(doc(db, 'users', uid)).then(sn => sn.exists() ? { uid, fullName: sn.data().fullName || '', username: sn.data().username || '', photo: sn.data().photoThumb || sn.data().photoURL || '' } : null).catch(() => null)
     ));
     setMentionFriends(list.filter(Boolean));
   }
@@ -1176,6 +1185,31 @@ const fields = {
         const first = (f.fullName.split(' ')[0] || '').toLowerCase();
         return !u && first && mentionUsernames.has(first);
       }).filter(f => f.uid !== currentUser.uid && f.uid !== post?.uid);
+      // ── @followers / @everyone ────────────────────────────────────────
+      // ⚠️ Voamarina INDRAY fa ny tompon'ny publication no mandefa : tsy ampy
+      // ny fisafidianana ao amin'ny picker (azo ovaina ny lahatsoratra).
+      if (post && post.uid === currentUser.uid) {
+        const wantFollowers = mentionUsernames.has('followers');
+        const wantEveryone  = mentionUsernames.has('everyone');
+        if (wantFollowers || wantEveryone) {
+          const set = new Set();
+          for (const u of (userProfile.followers || [])) set.add(u);
+          if (wantEveryone) for (const u of (userProfile.friends || [])) set.add(u);
+          set.delete(currentUser.uid);
+          const targets = [...set].slice(0, MENTION_MAX);
+          const label = wantEveryone ? 'tout le monde' : 'ses abonnés';
+          targets.forEach(uid => {
+            addDoc(collection(db,'notifications'), {
+              toUid: uid, fromUid: currentUser.uid,
+              fromName: userProfile.fullName, fromPhoto: (userProfile.photoThumb || userProfile.photoURL) || '',
+              type: 'mention', postId,
+              message: `${userProfile.fullName} a mentionné ${label} dans un commentaire`,
+              read: false, createdAt: serverTimestamp(),
+            }).catch(() => {});
+          });
+        }
+      }
+
       mentioned.slice(0, 10).forEach(f => {
         addDoc(collection(db,'notifications'), {
           toUid: f.uid, fromUid: currentUser.uid,
@@ -2620,11 +2654,31 @@ const fields = {
                       }}
                       onKeyDown={e=>e.key==='Enter'&&!mentionQuery&&addComment(post.id)} style={{ width:'100%', padding:'7px 12px', fontSize:13 }} maxLength={MAX_COMMENT}/>
                     {mentionQuery?.postId === post.id && (() => {
-                      const opts = mentionFriends.filter(f => f.fullName.toLowerCase().includes(mentionQuery.q)
-                        || (f.username || '').toLowerCase().includes(mentionQuery.q)).slice(0,5);
-                      if (!opts.length) return null;
+                      const q = mentionQuery.q;
+                      const isOwner = post.uid === currentUser.uid;
+                      const specials = isOwner
+                        ? MENTION_SPECIALS.filter(sp => sp.tag.startsWith(q) || sp.label.toLowerCase().includes(q))
+                        : [];
+                      const opts = mentionFriends.filter(f => f.fullName.toLowerCase().includes(q)
+                        || (f.username || '').toLowerCase().includes(q)).slice(0,5);
+                      if (!opts.length && !specials.length) return null;
                       return (
                         <div onClick={e=>e.stopPropagation()} style={{ position:'absolute', bottom:'110%', left:0, right:0, background:'white', border:'1px solid #E4E6EB', borderRadius:12, boxShadow:'0 6px 20px rgba(0,0,0,.15)', zIndex:60, overflow:'hidden' }}>
+                          {specials.map(sp => (
+                            <button key={sp.key} onClick={() => {
+                                setCmtText(prev => ({ ...prev, [post.id]: (prev[post.id]||'').replace(/@([\p{L}0-9_-]*)$/u, '@'+sp.tag+' ') }));
+                                setMentionQuery(null);
+                              }}
+                              style={{ width:'100%', display:'flex', alignItems:'center', gap:10, padding:'8px 12px', background:'none', border:'none', cursor:'pointer', fontFamily:'Poppins', textAlign:'left', borderBottom:'1px solid #F0F2F5' }}>
+                              <span style={{ width:34, height:34, borderRadius:'50%', flexShrink:0, background:'linear-gradient(145deg,#7EB6FF,#2B6CF6)', display:'flex', alignItems:'center', justifyContent:'center' }}>
+                                <HiAtSymbol size={17} color="white"/>
+                              </span>
+                              <span style={{ minWidth:0, flex:1 }}>
+                                <span style={{ display:'block', fontSize:13, fontWeight:600, color:'#050505' }}>{sp.label}</span>
+                                <span style={{ display:'block', fontSize:11, color:'#65676B' }}>{sp.desc}</span>
+                              </span>
+                            </button>
+                          ))}
                           {opts.map(f => (
                             <button key={f.uid} onClick={() => {
                                 // @username (tokana) fa tsy anarana voalohany : mba tsy hifangaro
@@ -2632,10 +2686,12 @@ const fields = {
                                 setCmtText(prev => ({ ...prev, [post.id]: (prev[post.id]||'').replace(/@([\p{L}0-9_-]*)$/u, '@'+tag+' ') }));
                                 setMentionQuery(null);
                               }}
-                              style={{ width:'100%', display:'flex', alignItems:'center', gap:8, padding:'9px 12px', background:'none', border:'none', cursor:'pointer', fontFamily:'Poppins', fontSize:13, color:'#050505', borderBottom:'1px solid #F0F2F5', textAlign:'left' }}>
-                              <HiAtSymbol size={14} color="#1877F2"/>
-                              <span style={{ minWidth:0, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
-                                {f.fullName}{f.username ? <span style={{ color:'#65676B' }}> @{f.username}</span> : null}
+                              style={{ width:'100%', display:'flex', alignItems:'center', gap:10, padding:'8px 12px', background:'none', border:'none', cursor:'pointer', fontFamily:'Poppins', textAlign:'left', borderBottom:'1px solid #F0F2F5' }}>
+                              <img src={f.photo || `https://ui-avatars.com/api/?name=${encodeURIComponent(f.fullName||'U')}&background=1877F2&color=fff`}
+                                alt="" style={{ width:34, height:34, borderRadius:'50%', objectFit:'cover', flexShrink:0, background:'#F0F2F5' }} />
+                              <span style={{ minWidth:0, flex:1 }}>
+                                <span style={{ display:'block', fontSize:13, fontWeight:600, color:'#050505', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{f.fullName}</span>
+                                {f.username && <span style={{ display:'block', fontSize:11, color:'#65676B', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>@{f.username}</span>}
                               </span>
                             </button>
                           ))}
