@@ -32,6 +32,35 @@ export function trimUrlTail(raw) {
   return url;
 }
 
+/**
+ * Username : litera, isa, '_' sy '.', 2–30. Mifanaraka amin'ny Register.
+ * ⚠️ Ny `(^|[^\\p{L}\\p{N}_])` dia MANAKANA ny mailaka : ao amin'ny
+ * `rakoto@tony.mg` dia misy litera mialoha ny '@' → tsy mention.
+ */
+const MENTION_RE = /(^|[^\p{L}\p{N}_@])@([a-zA-Z0-9_.]{2,30})/gu;
+
+/**
+ * Mizara ny lahatsoratra ho ampahany, miaraka amin'ny mention.
+ * @returns {{type:'text'|'link'|'mention', value:string, internal?:string, username?:string}[]}
+ */
+export function splitRich(text) {
+  const parts = splitLinks(text);
+  const out = [];
+  for (const p of parts) {
+    if (p.type !== 'text') { out.push(p); continue; }
+    let last = 0, m;
+    MENTION_RE.lastIndex = 0;
+    while ((m = MENTION_RE.exec(p.value)) !== null) {
+      const at = m.index + m[1].length;              // toerana marin'ny '@'
+      if (at > last) out.push({ type: 'text', value: p.value.slice(last, at) });
+      out.push({ type: 'mention', value: '@' + m[2], username: m[2] });
+      last = at + 1 + m[2].length;
+    }
+    if (last < p.value.length) out.push({ type: 'text', value: p.value.slice(last) });
+  }
+  return out.length ? out : parts;
+}
+
 /** Mizara ny lahatsoratra ho ampahany : { type: 'text'|'link', value, internal } */
 export function splitLinks(text) {
   if (!text) return [];

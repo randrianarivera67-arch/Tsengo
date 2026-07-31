@@ -422,7 +422,7 @@ export default function Home() {
   async function loadMentionFriends() {
     if (mentionFriends.length || !userProfile?.friends?.length) return;
     const list = await Promise.all(userProfile.friends.slice(0, 60).map(uid =>
-      getDoc(doc(db, 'users', uid)).then(sn => sn.exists() ? { uid, fullName: sn.data().fullName || '' } : null).catch(() => null)
+      getDoc(doc(db, 'users', uid)).then(sn => sn.exists() ? { uid, fullName: sn.data().fullName || '', username: sn.data().username || '' } : null).catch(() => null)
     ));
     setMentionFriends(list.filter(Boolean));
   }
@@ -1160,10 +1160,21 @@ const fields = {
     }
     // ── Mentions @ : mampandre ny namana voatonona ──
     if (text.includes('@') && mentionFriends.length) {
-      const low = text.toLowerCase();
+      // Fifanarahana MARINA : ny username ao anaty lahatsoratra no alaina,
+      // miaraka amin'ny fetra teny. Teo aloha dia `includes('@'+anarana)` —
+      // ka `@tony` dia nifanaraka tamin'ny `@tonyzz`, ary ny mailaka
+      // `x@tony.mg` dia noraisina ho mention.
+      const RE = /(^|[^\p{L}\p{N}_@])@([a-zA-Z0-9_.]{2,30})/gu;
+      const mentionUsernames = new Set();
+      let mm; RE.lastIndex = 0;
+      while ((mm = RE.exec(text)) !== null) mentionUsernames.add(mm[2].toLowerCase());
       const mentioned = mentionFriends.filter(f => {
+        const u = (f.username || '').toLowerCase();
+        if (u && mentionUsernames.has(u)) return true;
+        // Fiverenana amin'ny endrika taloha (@AnaranaVoalohany) — ho an'ny
+        // namana tsy mbola manana username
         const first = (f.fullName.split(' ')[0] || '').toLowerCase();
-        return first && low.includes('@' + first);
+        return !u && first && mentionUsernames.has(first);
       }).filter(f => f.uid !== currentUser.uid && f.uid !== post?.uid);
       mentioned.slice(0, 10).forEach(f => {
         addDoc(collection(db,'notifications'), {
@@ -2609,17 +2620,23 @@ const fields = {
                       }}
                       onKeyDown={e=>e.key==='Enter'&&!mentionQuery&&addComment(post.id)} style={{ width:'100%', padding:'7px 12px', fontSize:13 }} maxLength={MAX_COMMENT}/>
                     {mentionQuery?.postId === post.id && (() => {
-                      const opts = mentionFriends.filter(f => f.fullName.toLowerCase().includes(mentionQuery.q)).slice(0,5);
+                      const opts = mentionFriends.filter(f => f.fullName.toLowerCase().includes(mentionQuery.q)
+                        || (f.username || '').toLowerCase().includes(mentionQuery.q)).slice(0,5);
                       if (!opts.length) return null;
                       return (
                         <div onClick={e=>e.stopPropagation()} style={{ position:'absolute', bottom:'110%', left:0, right:0, background:'white', border:'1px solid #E4E6EB', borderRadius:12, boxShadow:'0 6px 20px rgba(0,0,0,.15)', zIndex:60, overflow:'hidden' }}>
                           {opts.map(f => (
                             <button key={f.uid} onClick={() => {
-                                setCmtText(prev => ({ ...prev, [post.id]: (prev[post.id]||'').replace(/@([\p{L}0-9_-]*)$/u, '@'+f.fullName.split(' ')[0]+' ') }));
+                                // @username (tokana) fa tsy anarana voalohany : mba tsy hifangaro
+                                const tag = f.username || f.fullName.split(' ')[0];
+                                setCmtText(prev => ({ ...prev, [post.id]: (prev[post.id]||'').replace(/@([\p{L}0-9_-]*)$/u, '@'+tag+' ') }));
                                 setMentionQuery(null);
                               }}
                               style={{ width:'100%', display:'flex', alignItems:'center', gap:8, padding:'9px 12px', background:'none', border:'none', cursor:'pointer', fontFamily:'Poppins', fontSize:13, color:'#050505', borderBottom:'1px solid #F0F2F5', textAlign:'left' }}>
-                              <HiAtSymbol size={14} color="#1877F2"/> {f.fullName}
+                              <HiAtSymbol size={14} color="#1877F2"/>
+                              <span style={{ minWidth:0, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
+                                {f.fullName}{f.username ? <span style={{ color:'#65676B' }}> @{f.username}</span> : null}
+                              </span>
                             </button>
                           ))}
                         </div>
