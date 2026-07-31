@@ -130,7 +130,7 @@ export default function Profile() {
   const [selectedPost,   setSelectedPost] = useState(null);
   const [reportOpen,     setReportOpen]    = useState(false);
   const [boostTarget,    setBoostTarget]   = useState(null); // { type, id, ownerUid, title, thumbnailURL }
-  const [photoViewer,    setPhotoViewer]   = useState(null); // { index } dans allPhotos
+  const [photoViewer,    setPhotoViewer]   = useState(null); // { album:'profile'|'cover'|'posts', index }
   const [friendStatus,   setFriendStatus] = useState('none');
 
   const photoRef  = useRef();
@@ -496,13 +496,43 @@ export default function Profile() {
     uid:targetUid, authorName:profile.fullName, authorPhoto:profile.photoURL||'',
     authorIsVip:profile.isVip||false, content:'', reactions:{}, comments:[],
   });
-  const profilePhoto = profile.photoURL
-    ? [posts.find(p => p.isProfilePhoto && p.mediaURL === profile.photoURL) || synth('profile-photo', profile.photoURL, 'isProfilePhoto')]
-    : [];
-  const coverPhotoArr = coverURL
-    ? [posts.find(p => p.isCoverPhoto && p.mediaURL === coverURL) || synth('cover-photo', coverURL, 'isCoverPhoto')]
-    : [];
-  const allPhotos = [...coverPhotoArr, ...profilePhoto, ...photoPosts];
+  // ═══ ALBUM PHOTO — fomba Facebook ════════════════════════════════════════
+  // Album telo mizaka ny tenany. Ny viewer dia voafetra amin'ny album iray
+  // ihany : tsy mifangaro intsony ny "suivant".
+  // Ny tantara dia efa ao anatin'ny `posts` (isProfilePhoto / isCoverPhoto).
+  const uniqByUrl = (arr) => {
+    const seen = new Set(); const out = [];
+    for (const p of arr) {
+      if (!p || !p.mediaURL || seen.has(p.mediaURL)) continue;
+      seen.add(p.mediaURL); out.push(p);
+    }
+    return out;
+  };
+  // Ny sary ANKEHITRINY aloha, dia ny tantara. Raha tsy misy publication
+  // mifanaraka aminy (kaonty tranainy / Register) dia `synth()` no ampiasaina.
+  const albumProfile = uniqByUrl([
+    ...(profile.photoURL
+      ? [posts.find(p => p.isProfilePhoto && p.mediaURL === profile.photoURL)
+         || synth('profile-photo', profile.photoURL, 'isProfilePhoto')]
+      : []),
+    ...posts.filter(p => p.isProfilePhoto && p.mediaURL),
+  ]);
+  const albumCover = uniqByUrl([
+    ...(coverURL
+      ? [posts.find(p => p.isCoverPhoto && p.mediaURL === coverURL)
+         || synth('cover-photo', coverURL, 'isCoverPhoto')]
+      : []),
+    ...posts.filter(p => p.isCoverPhoto && p.mediaURL),
+  ]);
+  const albumPosts = photoPosts.filter(p => !p.isProfilePhoto && !p.isCoverPhoto);
+
+  const PHOTO_ALBUMS = {
+    profile: { title: 'Photos de profil',     items: albumProfile },
+    cover:   { title: 'Photos de couverture', items: albumCover },
+    posts:   { title: 'Photos',               items: albumPosts },
+  };
+  const albumOf = (k) => (PHOTO_ALBUMS[k] ? PHOTO_ALBUMS[k].items : []);
+  const totalPhotos = albumProfile.length + albumCover.length + albumPosts.length;
 
   function renderPost(post) {
     const rc     = countReactions(post.reactions);
@@ -820,14 +850,14 @@ export default function Profile() {
       )}
       <div>
       <div style={{ height:200, background:'linear-gradient(135deg,#1877F2,#63A9FF,#FFB3D9)', position:'relative' }}>
-        {coverURL && <img src={coverURL} alt='cover' onClick={()=>setPhotoViewer({ index: allPhotos.findIndex(p => p.mediaURL === coverURL) })} style={{ width:'100%', height:'100%', objectFit:'cover', position:'absolute', inset:0, cursor:'pointer' }}/>}
+        {coverURL && <img src={coverURL} alt='cover' onClick={()=>setPhotoViewer({ album:'cover', index: Math.max(0, albumCover.findIndex(p => p.mediaURL === coverURL)) })} style={{ width:'100%', height:'100%', objectFit:'cover', position:'absolute', inset:0, cursor:'pointer' }}/>}
         {isOwn && <>
           <button onClick={()=>coverRef.current.click()} disabled={uploadingCover} style={{ position:'absolute', bottom:10, right:10, background:'#1877F2', border:'2px solid white', borderRadius:'50%', width:32, height:32, cursor:'pointer', color:'white', display:'flex', alignItems:'center', justifyContent:'center', zIndex:2 }}>{uploadingCover?'...':<HiCamera size={16}/>}</button>
           <input ref={coverRef} type='file' accept='image/*' onChange={uploadCoverPhoto} style={{ display:'none' }}/>
         </>}
         <div style={{ position:'absolute', bottom:-55, left:'50%', transform:'translateX(-50%)' }}>
           <div style={{ position:'relative' }}>
-            <img src={profile.photoURL||`https://ui-avatars.com/api/?name=${encodeURIComponent(profile.fullName)}&background=1877F2&color=fff&size=100`} alt="" className="avatar avatar-ring" onClick={()=>profile.photoURL && setPhotoViewer({ index: allPhotos.findIndex(p => p.mediaURL === profile.photoURL) })} style={{ width:100, height:100, border: activeStoryUids.has(targetUid) ? '4px solid #1877F2' : '4px solid white', boxShadow: activeStoryUids.has(targetUid) ? '0 0 0 3px white, 0 0 0 6px #63A9FF' : 'none', objectFit:'cover', cursor:'pointer' }}/>
+            <img src={profile.photoURL||`https://ui-avatars.com/api/?name=${encodeURIComponent(profile.fullName)}&background=1877F2&color=fff&size=100`} alt="" className="avatar avatar-ring" onClick={()=>profile.photoURL && setPhotoViewer({ album:'profile', index: Math.max(0, albumProfile.findIndex(p => p.mediaURL === profile.photoURL)) })} style={{ width:100, height:100, border: activeStoryUids.has(targetUid) ? '4px solid #1877F2' : '4px solid white', boxShadow: activeStoryUids.has(targetUid) ? '0 0 0 3px white, 0 0 0 6px #63A9FF' : 'none', objectFit:'cover', cursor:'pointer' }}/>
             {isOwn&&<><button onClick={() => photoRef.current.click()} disabled={uploadingPhoto} style={{ position:'absolute', bottom:2, right:2, background:'#1877F2', border:'2px solid white', borderRadius:'50%', width:28, height:28, cursor:'pointer', color:'white', display:'flex', alignItems:'center', justifyContent:'center' }}>{uploadingPhoto?'...':<HiCamera size={14}/>}</button><input ref={photoRef} type="file" accept="image/*" onChange={uploadProfilePhoto} style={{ display:'none' }}/></>}
           </div>
         </div>
@@ -1053,10 +1083,24 @@ export default function Profile() {
       )}
 
       <div style={{ padding:12 }}>
-        {activeTab==='photos'&&(photoPosts.length===0
+        {activeTab==='photos'&&(totalPhotos===0
           ? <div style={{ textAlign:'center', padding:40, color:'#65676B' }}>Aucune photo</div>
-          : <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:4 }}>
-              {allPhotos.map((p, i) => <SmartImage key={p.id} src={p.mediaURL} onClick={() => setPhotoViewer({ index: i })} minH={110} style={{ aspectRatio:'1', width:'100%', height:'100%', borderRadius:8, objectFit:'cover', cursor:'pointer' }}/>)}
+          : <div>
+              {Object.entries(PHOTO_ALBUMS).map(([key, alb]) => alb.items.length === 0 ? null : (
+                <div key={key} style={{ marginBottom:18 }}>
+                  <div style={{ display:'flex', alignItems:'baseline', justifyContent:'space-between', marginBottom:8 }}>
+                    <p style={{ fontSize:15, fontWeight:700 }}>{alb.title}</p>
+                    <span style={{ fontSize:12, color:'#65676B' }}>{alb.items.length}</span>
+                  </div>
+                  <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:4 }}>
+                    {alb.items.map((p, i) => (
+                      <SmartImage key={p.id} src={p.thumbURL || p.mediaURL}
+                        onClick={() => setPhotoViewer({ album: key, index: i })} minH={110}
+                        style={{ aspectRatio:'1', width:'100%', height:'100%', borderRadius:8, objectFit:'cover', cursor:'pointer' }}/>
+                    ))}
+                  </div>
+                </div>
+              ))}
             </div>
         )}
 
@@ -1175,14 +1219,15 @@ export default function Profile() {
           onClose={() => setFollowListOpen(null)}
         />
       )}
-      {photoViewer && allPhotos[photoViewer.index] && (() => {
-        const cur = allPhotos[photoViewer.index];
+      {photoViewer && albumOf(photoViewer.album)[photoViewer.index] && (() => {
+        const album = albumOf(photoViewer.album);
+        const cur = album[photoViewer.index];
         return (
           <MediaViewer
             post={cur}
-            galleryUrls={allPhotos.map(p => p.mediaURL)}
+            galleryUrls={album.map(p => p.mediaURL)}
             startIndex={photoViewer.index}
-            onIndexChange={(i) => setPhotoViewer({ index: i })}
+            onIndexChange={(i) => setPhotoViewer({ album: photoViewer.album, index: i })}
             onClose={() => setPhotoViewer(null)}
             currentUser={currentUser}
             userProfile={userProfile}
