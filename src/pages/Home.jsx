@@ -589,10 +589,16 @@ export default function Home() {
   //  • Classement : récence mibahana → post-nao → namana (miseho matetika) →
   //    engagement → localisation + inscriptions vaovao → fiovaovana isaky ny refresh
   // ═══════════════════════════════════════════════════════════════════════════
-  const PAGE_SIZE = 20;
-  // Chargement voalohany : 30 (mba hisian'ny récence samy hafa hifangaro), avy eo
-  // 20 isaky ny pagination (scroll). Mitsitsy forfait, tsy misy loading tsy mijanona.
-  const FIRST_PAGE = 30;
+  // ── MODE LITE : pejy kely kokoa ────────────────────────────────────────
+  // Ny document post dia mitondra ny COMMENTAIRE REHETRA (voatahiry ao anatiny,
+  // tsy amin'ny sous-collection) nefa ny carte dia mampiasa ny ISANY ihany.
+  // Ny Firestore dia tsy mahavita projection amin'ny client → ny hany fomba
+  // hampihenana ny octet dia ny fampihenana ny ISAN'NY document alaina.
+  //   Lite     : 12 amin'ny fidirana, 10 isaky ny scroll
+  //   Mahazatra: 30 / 20 (tsy misy fiovana)
+  // `visibleCount` manomboka amin'ny 20 → ny 12 dia miseho avy hatrany.
+  const PAGE_SIZE = lite ? 10 : 20;
+  const FIRST_PAGE = lite ? 12 : 30;
   const [order, setOrder] = useState([]);            // ids araka ny filaharana miseho
   const orderSetRef = useRef(new Set());
   // Mes publications arrivees par le temps reel : gardees en tete jusqu'au
