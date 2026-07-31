@@ -1104,7 +1104,7 @@ const fields = {
       if (post.uid !== currentUser.uid) {
         await addDoc(collection(db,'notifications'), {
           toUid: post.uid, fromUid: currentUser.uid,
-          fromName: userProfile.fullName, fromPhoto: userProfile.photoURL || '',
+          fromName: userProfile.fullName, fromPhoto: (userProfile.photoThumb || userProfile.photoURL) || '',
           type: 'reaction', postId, emoji,
           message: `${userProfile.fullName} a réagi ${emoji} à votre publication`,
           read: false, createdAt: serverTimestamp(),
@@ -1139,7 +1139,7 @@ const fields = {
     const post = posts.find(p => p.id === postId);
     const cmt = {
       id: uuidv4(), uid: currentUser.uid,
-      authorName: userProfile.fullName, authorPhoto: userProfile.photoURL || '',
+      authorName: userProfile.fullName, authorPhoto: (userProfile.photoThumb || userProfile.photoURL) || '',
       authorIsVip: userProfile.isVip || false,
       text: text.slice(0, MAX_COMMENT), mediaURL, mediaType: cMT,
       createdAt: new Date().toISOString(),
@@ -1151,7 +1151,7 @@ const fields = {
     if (post && post.uid !== currentUser.uid) {
       await addDoc(collection(db,'notifications'), {
         toUid: post.uid, fromUid: currentUser.uid,
-        fromName: userProfile.fullName, fromPhoto: userProfile.photoURL || '',
+        fromName: userProfile.fullName, fromPhoto: (userProfile.photoThumb || userProfile.photoURL) || '',
         type: 'comment', postId,
         message: `${userProfile.fullName} a commenté votre publication`,
         read: false, createdAt: serverTimestamp(),
@@ -1168,7 +1168,7 @@ const fields = {
       mentioned.slice(0, 10).forEach(f => {
         addDoc(collection(db,'notifications'), {
           toUid: f.uid, fromUid: currentUser.uid,
-          fromName: userProfile.fullName, fromPhoto: userProfile.photoURL || '',
+          fromName: userProfile.fullName, fromPhoto: (userProfile.photoThumb || userProfile.photoURL) || '',
           type: 'mention', postId,
           message: `${userProfile.fullName} vous a mentionné dans un commentaire`,
           read: false, createdAt: serverTimestamp(),
@@ -1220,7 +1220,7 @@ const fields = {
       setUserProfile(p => ({ ...p, following: already ? (p.following||[]).filter(u=>u!==uid) : [...(p.following||[]), uid] }));
       if (!already) {
         await addDoc(collection(db, 'notifications'), {
-          toUid: uid, fromUid: currentUser.uid, fromName: userProfile.fullName, fromPhoto: userProfile.photoURL || '',
+          toUid: uid, fromUid: currentUser.uid, fromName: userProfile.fullName, fromPhoto: (userProfile.photoThumb || userProfile.photoURL) || '',
           type: 'general', message: `${userProfile.fullName} s'est abonné(e) à votre profil`, read: false, createdAt: serverTimestamp(),
         });
       }
@@ -1330,14 +1330,14 @@ const fields = {
     if (isFriend(toUid) || hasSentReq(toUid)) return;
     await addDoc(collection(db,'friendRequests'), {
       fromUid: currentUser.uid, toUid,
-      fromName: userProfile.fullName, fromPhoto: userProfile.photoURL||'',
+      fromName: userProfile.fullName, fromPhoto: (userProfile.photoThumb || userProfile.photoURL)||'',
       status: 'pending', createdAt: serverTimestamp(),
     });
     await updateDoc(doc(db,'users',currentUser.uid), { sentRequests: arrayUnion(toUid) });
     setUserProfile(p=>({...p, sentRequests:[...(p.sentRequests||[]),toUid]}));
     await addDoc(collection(db,'notifications'), {
       toUid, fromUid: currentUser.uid,
-      fromName: userProfile.fullName, fromPhoto: userProfile.photoURL||'',
+      fromName: userProfile.fullName, fromPhoto: (userProfile.photoThumb || userProfile.photoURL)||'',
       type: 'friendRequest',
       message: `${userProfile.fullName} vous a envoyé une demande d'ami`,
       read: false, createdAt: serverTimestamp(),
@@ -1379,7 +1379,7 @@ const fields = {
       await addDoc(collection(db, 'stories'), {
         uid: currentUser.uid,
         authorName: userProfile.fullName,
-        authorPhoto: userProfile.photoURL || '',
+        authorPhoto: (userProfile.photoThumb || userProfile.photoURL) || '',
         mediaURL: r.url,
         thumbURL: storyThumbURL,
         mediaType: r.type === 'video' ? 'video' : 'image',
@@ -1414,7 +1414,7 @@ const fields = {
       await addDoc(collection(db, 'stories'), {
         uid: currentUser.uid,
         authorName: userProfile.fullName,
-        authorPhoto: userProfile.photoURL || '',
+        authorPhoto: (userProfile.photoThumb || userProfile.photoURL) || '',
         mediaType: 'text',
         text: textStoryValue.trim().slice(0, 280),
         bgColor: textStoryBg,
@@ -1444,7 +1444,7 @@ const fields = {
       const preview = st.mediaType === 'text' ? (st.text || '').slice(0, 40) : (st.mediaType === 'video' ? '🎬 Vidéo' : '📷 Photo');
       await dbPush(dbRef(rtdb, `conversations/${chatId}/messages`), {
         fromUid: currentUser.uid, toUid: st.uid,
-        fromName: userProfile.fullName, fromPhoto: userProfile.photoURL || '',
+        fromName: userProfile.fullName, fromPhoto: (userProfile.photoThumb || userProfile.photoURL) || '',
         text: `↪️ En réponse à votre story (${preview}) : ${storyReply.trim()}`,
         ts: Date.now(), read: false,
       });

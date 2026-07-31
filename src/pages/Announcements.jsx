@@ -34,7 +34,7 @@ export default function Announcements() {
     setPosting(true);
     try {
       await addDoc(collection(db, 'announcements'), {
-        uid: currentUser.uid, authorName: userProfile.fullName, authorPhoto: userProfile.photoURL || '',
+        uid: currentUser.uid, authorName: userProfile.fullName, authorPhoto: (userProfile.photoThumb || userProfile.photoURL) || '',
         title: title.trim().slice(0, 120), description: desc.trim().slice(0, 1000),
         category, contact: contact.trim(), lieu: lieu.trim(),
         createdAt: serverTimestamp(),

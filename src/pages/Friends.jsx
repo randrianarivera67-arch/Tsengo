@@ -124,12 +124,12 @@ export default function Friends() {
       if (!snap.empty) return;
       await addDoc(collection(db, 'friendRequests'), {
         fromUid: currentUser.uid, toUid: toUser.uid,
-        fromName: userProfile.fullName, fromPhoto: userProfile.photoURL || '',
+        fromName: userProfile.fullName, fromPhoto: (userProfile.photoThumb || userProfile.photoURL) || '',
         status: 'pending', createdAt: serverTimestamp(),
       });
       await addDoc(collection(db, 'notifications'), {
         toUid: toUser.uid, fromUid: currentUser.uid,
-        fromName: userProfile.fullName, fromPhoto: userProfile.photoURL || '',
+        fromName: userProfile.fullName, fromPhoto: (userProfile.photoThumb || userProfile.photoURL) || '',
         type: 'friendRequest',
         message: `${userProfile.fullName} ${t('addFriend').toLowerCase()}`,
         read: false, createdAt: serverTimestamp(),
@@ -168,7 +168,7 @@ export default function Friends() {
     try {
       await addDoc(collection(db, 'notifications'), {
         toUid: req.fromUid, fromUid: currentUser.uid,
-        fromName: userProfile.fullName, fromPhoto: userProfile.photoURL || '',
+        fromName: userProfile.fullName, fromPhoto: (userProfile.photoThumb || userProfile.photoURL) || '',
         type: 'friendAccepted',
         message: `${userProfile.fullName} a accepté votre demande d'ami`,
         read: false, createdAt: serverTimestamp(),

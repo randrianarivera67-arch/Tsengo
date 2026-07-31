@@ -364,7 +364,7 @@ export default function Messages() {
           fromUid: currentUser.uid,
           ...(otherUid ? { toUid: otherUid } : {}),
           fromName: userProfile.fullName,
-          fromPhoto: userProfile.photoURL || '',
+          fromPhoto: (userProfile.photoThumb || userProfile.photoURL) || '',
           text: text.trim(),
           mediaURL, mediaType: finalMT,
           ts: Date.now(),
@@ -404,7 +404,7 @@ export default function Messages() {
               toExternalId: m,
               title: `${activeGroup.name} — ${userProfile.fullName}`,
               message: notifBody,
-              fromPhoto: userProfile.photoURL || '',
+              fromPhoto: (userProfile.photoThumb || userProfile.photoURL) || '',
               data: { type: 'message', conversationId: activeChatId },
             })
           );
@@ -413,7 +413,7 @@ export default function Messages() {
             toExternalId: otherUid,
             title: userProfile.fullName,
             message: notifBody,
-            fromPhoto: userProfile.photoURL || '',
+            fromPhoto: (userProfile.photoThumb || userProfile.photoURL) || '',
             data: { type: 'message', conversationId: activeChatId },
           });
         }
@@ -461,11 +461,11 @@ export default function Messages() {
       if (msg && msg.fromUid!==currentUser.uid) {
         await addDoc(collection(db,'notifications'),{
           toUid:msg.fromUid, fromUid:currentUser.uid,
-          fromName:userProfile.fullName, fromPhoto:userProfile.photoURL||'',
+          fromName:userProfile.fullName, fromPhoto: (userProfile.photoThumb || userProfile.photoURL)||'',
           type:'reaction', message:`${userProfile.fullName} a réagi ${emoji} à votre message`,
           read:false, createdAt:serverTimestamp(),
         });
-        sendPushNotification({toExternalId:msg.fromUid, title:userProfile.fullName, message:`a réagi ${emoji} à votre message`, fromPhoto:userProfile.photoURL||'', data:{type:'message'}});
+        sendPushNotification({toExternalId:msg.fromUid, title:userProfile.fullName, message:`a réagi ${emoji} à votre message`, fromPhoto: (userProfile.photoThumb || userProfile.photoURL)||'', data:{type:'message'}});
       }
     }
     setBottomSheet(null);
@@ -576,7 +576,7 @@ export default function Messages() {
       const batch = writeBatch(db);
       uids.forEach(uid => batch.set(doc(collection(db, 'notifications')), {
         toUid: uid, fromUid: currentUser.uid,
-        fromName: userProfile.fullName, fromPhoto: userProfile.photoURL || '',
+        fromName: userProfile.fullName, fromPhoto: (userProfile.photoThumb || userProfile.photoURL) || '',
         type: 'general', link: `/messages/group_${activeGroup.id}`,
         message: `${userProfile.fullName} vous a ajouté(e) à la discussion "${activeGroup.name}"`,
         read: false, createdAt: serverTimestamp(),
@@ -658,7 +658,7 @@ export default function Messages() {
           <div style={{ background: "white", borderRadius: "20px 20px 0 0", padding: 24, width: "100%", maxHeight: "60vh", overflowY: "auto" }} onClick={e => e.stopPropagation()}>
             <p style={{ fontWeight: 700, fontSize: 16, color: "#050505", marginBottom: 16 }}>↪️ Transférer à...</p>
             {conversations.map(conv => (
-              <div key={conv.chatId} onClick={async () => { await push(ref(rtdb, `conversations/${conv.chatId}/messages`), { fromUid: currentUser.uid, toUid: conv.otherUid, fromName: userProfile.fullName, fromPhoto: userProfile.photoURL || "", text: transferMsg.text || "", mediaURL: transferMsg.mediaURL || "", mediaType: transferMsg.mediaType || "", ts: Date.now(), read: false, forwarded: true }); setTransferMsg(null); }}
+              <div key={conv.chatId} onClick={async () => { await push(ref(rtdb, `conversations/${conv.chatId}/messages`), { fromUid: currentUser.uid, toUid: conv.otherUid, fromName: userProfile.fullName, fromPhoto: (userProfile.photoThumb || userProfile.photoURL) || "", text: transferMsg.text || "", mediaURL: transferMsg.mediaURL || "", mediaType: transferMsg.mediaType || "", ts: Date.now(), read: false, forwarded: true }); setTransferMsg(null); }}
                 style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 0", cursor: "pointer", borderBottom: "1px solid #E4E6EB" }}>
                 <img src={conv.user.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(conv.user.fullName)}&background=1877F2&color=fff`} alt="" style={{ width: 40, height: 40, borderRadius: "50%", objectFit: "cover" }} />
                 <p style={{ fontWeight: 600, fontSize: 14 }}>{conv.user.fullName}</p>

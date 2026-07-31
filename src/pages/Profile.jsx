@@ -25,7 +25,7 @@ import VideoThumb from '../components/VideoThumb';
 import { useActiveStoryUids } from '../hooks/useActiveStoryUids';
 import { NeonBriefcase, NeonGraduation, NeonPhone, NeonGlobe, NeonLocation, NeonHome, NeonMic, NeonArchive, NeonClock, NeonLike, NeonComment, NeonShare, NeonStar, NeonPeople } from '../components/NeonIcons';
 import { GENDERS, detectLocation } from '../utils/geoLocate';
-import { uploadToTelegram } from '../utils/telegram';
+import { uploadToTelegram, makeThumb } from '../utils/telegram';
 import { getChatId } from '../utils/chat';
 import { sendPushNotification } from '../utils/onesignal';
 import { v4 as uuidv4 } from 'uuid';
@@ -189,8 +189,16 @@ export default function Profile() {
     setUploading(true);
     try {
       const r = await uploadToTelegram(file);
-      await updateDoc(doc(db,'users',currentUser.uid), { photoURL: r.url });
-      setProfile(p=>({...p,photoURL:r.url})); setUserProfile(p=>({...p,photoURL:r.url}));
+      // ── Avatar Lite : vignette 160 px (~10 kB) ho an'ny fampisehoana rehetra.
+      // Ny `photoURL` 720 px dia tazonina ho an'ny publication sary profil
+      // (aseho fullscreen). Tsy manakana : raha tsy mety dia '' no apetraka.
+      let thumb = '';
+      try {
+        const th = await makeThumb(file, 160);
+        if (th) { const tr = await uploadToTelegram(th); thumb = tr.url || ''; }
+      } catch (e) { thumb = ''; }
+      await updateDoc(doc(db,'users',currentUser.uid), { photoURL: r.url, photoThumb: thumb });
+      setProfile(p=>({...p,photoURL:r.url,photoThumb:thumb})); setUserProfile(p=>({...p,photoURL:r.url,photoThumb:thumb}));
       await addDoc(collection(db,'posts'),{
         ...profilePhotoPost({ uid: currentUser.uid, url: r.url, fullName: userProfile.fullName, username: userProfile.username, isVip: userProfile.isVip || false }),
         createdAt: serverTimestamp(),
@@ -209,7 +217,7 @@ export default function Profile() {
       setProfile(p=>({...p,coverURL:r.url}));
       // Voatahiry ao amin'ny photos tab
       await addDoc(collection(db,'posts'), {
-        ...coverPhotoPost({ uid: currentUser.uid, url: r.url, fullName: userProfile.fullName, username: userProfile.username, isVip: userProfile.isVip || false, authorPhoto: userProfile.photoURL || '' }),
+        ...coverPhotoPost({ uid: currentUser.uid, url: r.url, fullName: userProfile.fullName, username: userProfile.username, isVip: userProfile.isVip || false, authorPhoto: (userProfile.photoThumb || userProfile.photoURL) || '' }),
         createdAt: serverTimestamp(),
       });
     } catch(err) { alert('Erreur upload cover'); }
@@ -239,9 +247,9 @@ export default function Profile() {
 
   async function sendFriendRequest() {
     if (!currentUser||!targetUid) return;
-    await addDoc(collection(db,'friendRequests'), { fromUid:currentUser.uid, toUid:targetUid, fromName:userProfile.fullName, fromPhoto:userProfile.photoURL||'', status:'pending', createdAt:serverTimestamp() });
+    await addDoc(collection(db,'friendRequests'), { fromUid:currentUser.uid, toUid:targetUid, fromName:userProfile.fullName, fromPhoto: (userProfile.photoThumb || userProfile.photoURL)||'', status:'pending', createdAt:serverTimestamp() });
     await updateDoc(doc(db,'users',currentUser.uid), { sentRequests:arrayUnion(targetUid) });
-    await addDoc(collection(db,'notifications'), { toUid:targetUid, fromUid:currentUser.uid, fromName:userProfile.fullName, fromPhoto:userProfile.photoURL||'', type:'friendRequest', message:`${userProfile.fullName} vous a envoyé une demande d'ami`, read:false, createdAt:serverTimestamp() });
+    await addDoc(collection(db,'notifications'), { toUid:targetUid, fromUid:currentUser.uid, fromName:userProfile.fullName, fromPhoto: (userProfile.photoThumb || userProfile.photoURL)||'', type:'friendRequest', message:`${userProfile.fullName} vous a envoyé une demande d'ami`, read:false, createdAt:serverTimestamp() });
     setFriendStatus('requested');
   }
 
@@ -346,7 +354,7 @@ export default function Profile() {
       setUserProfile(p => ({ ...p, following: isFollowing ? (p.following || []).filter(u => u !== targetUid) : [...(p.following || []), targetUid] }));
       if (!isFollowing) {
         await addDoc(collection(db, 'notifications'), {
-          toUid: targetUid, fromUid: currentUser.uid, fromName: userProfile.fullName, fromPhoto: userProfile.photoURL || '',
+          toUid: targetUid, fromUid: currentUser.uid, fromName: userProfile.fullName, fromPhoto: (userProfile.photoThumb || userProfile.photoURL) || '',
           type: 'general', message: `${userProfile.fullName} s'est abonné(e) à votre profil`, read: false, createdAt: serverTimestamp(),
         });
       }
@@ -365,7 +373,7 @@ export default function Profile() {
       if (post.uid !== currentUser.uid) {
         await addDoc(collection(db,'notifications'), {
           toUid:post.uid, fromUid:currentUser.uid,
-          fromName:userProfile.fullName, fromPhoto:userProfile.photoURL||'',
+          fromName:userProfile.fullName, fromPhoto: (userProfile.photoThumb || userProfile.photoURL)||'',
           type:'reaction', postId, emoji,
           message:`${userProfile.fullName} a réagi ${emoji} à votre publication`,
           read:false, createdAt:serverTimestamp(),
@@ -412,7 +420,7 @@ export default function Profile() {
     const post = posts.find(p=>p.id===postId);
     const cmt = {
       id:uuidv4(), uid:currentUser.uid,
-      authorName:userProfile.fullName, authorPhoto:userProfile.photoURL||'',
+      authorName:userProfile.fullName, authorPhoto: (userProfile.photoThumb || userProfile.photoURL)||'',
       authorIsVip:userProfile.isVip||false,
       text:text.slice(0,500), mediaURL, mediaType:cMT,
       createdAt:new Date().toISOString(),
@@ -424,7 +432,7 @@ export default function Profile() {
     if (post && post.uid !== currentUser.uid) {
       await addDoc(collection(db,'notifications'), {
         toUid:post.uid, fromUid:currentUser.uid,
-        fromName:userProfile.fullName, fromPhoto:userProfile.photoURL||'',
+        fromName:userProfile.fullName, fromPhoto: (userProfile.photoThumb || userProfile.photoURL)||'',
         type:'comment', postId,
         message:`${userProfile.fullName} a commenté votre publication`,
         read:false, createdAt:serverTimestamp(),

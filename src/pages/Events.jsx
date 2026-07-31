@@ -63,7 +63,7 @@ export default function Events() {
       // ✅ Mifandray amin'ny fil d'actualités : publication miaraka amin'ilay événement
       const postRef = await addDoc(collection(db, 'posts'), {
         uid: currentUser.uid, authorName: userProfile.fullName, authorUsername: userProfile.username,
-        authorPhoto: userProfile.photoURL || '', authorIsVip: userProfile.isVip || false,
+        authorPhoto: (userProfile.photoThumb || userProfile.photoURL) || '', authorIsVip: userProfile.isVip || false,
         content: desc.trim().slice(0, 2000), mediaURL: '', mediaType: '',
         isSale: false, price: '', contact: '', lieu: '',
         eventFrom: { id: evRef.id, title: title.trim(), date, lieu: lieu.trim(), coverURL },
@@ -74,7 +74,7 @@ export default function Events() {
       if (targets.length > 0) {
         const batch = writeBatch(db);
         targets.forEach(fUid => batch.set(doc(collection(db, 'notifications')), {
-          toUid: fUid, fromUid: currentUser.uid, fromName: userProfile.fullName, fromPhoto: userProfile.photoURL || '',
+          toUid: fUid, fromUid: currentUser.uid, fromName: userProfile.fullName, fromPhoto: (userProfile.photoThumb || userProfile.photoURL) || '',
           type: 'post', postId: postRef.id, message: `${userProfile.fullName} a créé un événement : ${title.trim()}`,
           read: false, createdAt: serverTimestamp(),
         }));

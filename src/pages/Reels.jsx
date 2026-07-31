@@ -202,7 +202,7 @@ export default function Reels() {
       if (post.uid!==currentUser.uid) {
         await addDoc(collection(db,'notifications'),{
           toUid:post.uid, fromUid:currentUser.uid,
-          fromName:userProfile.fullName, fromPhoto:userProfile.photoURL||'',
+          fromName:userProfile.fullName, fromPhoto: (userProfile.photoThumb || userProfile.photoURL)||'',
           type:'reaction', postId, emoji,
           message:`${userProfile.fullName} a réagi ${emoji} à votre reel`,
           read:false, createdAt:serverTimestamp(),
@@ -248,7 +248,7 @@ export default function Reels() {
     if (media) { try { const r=await uploadToTelegram(media.file); mediaURL=r.url; cMT=r.type; } catch {} }
     const cmt = {
       id:uuidv4(), uid:currentUser.uid,
-      authorName:userProfile.fullName, authorPhoto:userProfile.photoURL||'',
+      authorName:userProfile.fullName, authorPhoto: (userProfile.photoThumb || userProfile.photoURL)||'',
       authorIsVip:userProfile.isVip||false,
       text:text.slice(0,500), mediaURL, mediaType:cMT,
       createdAt:new Date().toISOString(),
@@ -258,7 +258,7 @@ export default function Reels() {
     if (post.uid!==currentUser.uid) {
       await addDoc(collection(db,'notifications'),{
         toUid:post.uid, fromUid:currentUser.uid,
-        fromName:userProfile.fullName, fromPhoto:userProfile.photoURL||'',
+        fromName:userProfile.fullName, fromPhoto: (userProfile.photoThumb || userProfile.photoURL)||'',
         type:'comment', postId,
         message:`${userProfile.fullName} a commenté votre reel`,
         read:false, createdAt:serverTimestamp(),

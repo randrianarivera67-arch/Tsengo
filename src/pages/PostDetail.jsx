@@ -75,7 +75,7 @@ export default function PostDetail() {
     else {
       await updateDoc(doc(db,'posts',postId),{[`reactions.${currentUser.uid}`]:emoji});
       if (post.uid!==currentUser.uid) {
-        await addDoc(collection(db,'notifications'), { toUid:post.uid, fromUid:currentUser.uid, fromName:userProfile.fullName, fromPhoto:userProfile.photoURL||'', type:'reaction', postId, emoji, message:`${userProfile.fullName} a réagi ${emoji}`, read:false, createdAt:serverTimestamp() });
+        await addDoc(collection(db,'notifications'), { toUid:post.uid, fromUid:currentUser.uid, fromName:userProfile.fullName, fromPhoto: (userProfile.photoThumb || userProfile.photoURL)||'', type:'reaction', postId, emoji, message:`${userProfile.fullName} a réagi ${emoji}`, read:false, createdAt:serverTimestamp() });
       }
     }
     setShowReact(false);
@@ -84,10 +84,10 @@ export default function PostDetail() {
   async function submitViewerComment(text) {
     const v = (text||'').trim();
     if (!v || !post) return;
-    const cmt = { id:uuidv4(), uid:currentUser.uid, authorName:userProfile.fullName, authorPhoto:userProfile.photoURL||'', authorIsVip:userProfile.isVip||false, text:v.slice(0,500), mediaURL:'', mediaType:'', createdAt:new Date().toISOString() };
+    const cmt = { id:uuidv4(), uid:currentUser.uid, authorName:userProfile.fullName, authorPhoto: (userProfile.photoThumb || userProfile.photoURL)||'', authorIsVip:userProfile.isVip||false, text:v.slice(0,500), mediaURL:'', mediaType:'', createdAt:new Date().toISOString() };
     await updateDoc(doc(db,'posts',postId), { comments:arrayUnion(cmt) });
     if (post.uid!==currentUser.uid) {
-      await addDoc(collection(db,'notifications'), { toUid:post.uid, fromUid:currentUser.uid, fromName:userProfile.fullName, fromPhoto:userProfile.photoURL||'', type:'comment', postId, message:`${userProfile.fullName} a commenté votre publication`, read:false, createdAt:serverTimestamp() });
+      await addDoc(collection(db,'notifications'), { toUid:post.uid, fromUid:currentUser.uid, fromName:userProfile.fullName, fromPhoto: (userProfile.photoThumb || userProfile.photoURL)||'', type:'comment', postId, message:`${userProfile.fullName} a commenté votre publication`, read:false, createdAt:serverTimestamp() });
     }
   }
 
@@ -107,11 +107,11 @@ export default function PostDetail() {
     if (!text&&!media) return;
     let mediaURL='', mT='';
     if (media) { try { const r=await uploadToTelegram(media.file); mediaURL=r.url; mT=r.type; } catch {} }
-    const cmt = { id:uuidv4(), uid:currentUser.uid, authorName:userProfile.fullName, authorPhoto:userProfile.photoURL||'', authorIsVip:userProfile.isVip||false, text:text.slice(0,500), mediaURL, mediaType:mT, createdAt:new Date().toISOString() };
+    const cmt = { id:uuidv4(), uid:currentUser.uid, authorName:userProfile.fullName, authorPhoto: (userProfile.photoThumb || userProfile.photoURL)||'', authorIsVip:userProfile.isVip||false, text:text.slice(0,500), mediaURL, mediaType:mT, createdAt:new Date().toISOString() };
     await updateDoc(doc(db,'posts',postId), { comments:arrayUnion(cmt) });
     setCmtText(''); setCmtMedia(null); setReplyTo(null);
     if (post.uid!==currentUser.uid) {
-      await addDoc(collection(db,'notifications'), { toUid:post.uid, fromUid:currentUser.uid, fromName:userProfile.fullName, fromPhoto:userProfile.photoURL||'', type:'comment', postId, message:`${userProfile.fullName} a commenté votre publication`, read:false, createdAt:serverTimestamp() });
+      await addDoc(collection(db,'notifications'), { toUid:post.uid, fromUid:currentUser.uid, fromName:userProfile.fullName, fromPhoto: (userProfile.photoThumb || userProfile.photoURL)||'', type:'comment', postId, message:`${userProfile.fullName} a commenté votre publication`, read:false, createdAt:serverTimestamp() });
     }
   }
 
@@ -242,7 +242,7 @@ export default function PostDetail() {
               {post.uid!==currentUser.uid&&<button onClick={() => navigate(`/messages/${getChatId(currentUser.uid,post.uid)}`)} style={{ background:'#E4E6EB', border:'none', borderRadius:20, padding:'6px 12px', cursor:'pointer', color:'#1877F2', fontSize:12, fontWeight:600 }}><HiPaperAirplane size={13} style={{ transform:'rotate(90deg)', display:'inline', marginRight:4 }}/>Message</button>}
               {post.uid!==currentUser.uid&&!isFriend(post.uid)&&!(userProfile?.sentRequests||[]).includes(post.uid)&&(
                 <button onClick={async()=>{
-                  await addDoc(collection(db,'friendRequests'),{fromUid:currentUser.uid,toUid:post.uid,fromName:userProfile.fullName,fromPhoto:userProfile.photoURL||'',status:'pending',createdAt:serverTimestamp()});
+                  await addDoc(collection(db,'friendRequests'),{fromUid:currentUser.uid,toUid:post.uid,fromName:userProfile.fullName,fromPhoto: (userProfile.photoThumb || userProfile.photoURL)||'',status:'pending',createdAt:serverTimestamp()});
                   alert('Demande envoyée !');
                 }} style={{ background:'none', border:'1px solid #E4E6EB', borderRadius:20, padding:'6px 12px', cursor:'pointer', color:'#65676B', fontSize:12, display:'flex', alignItems:'center', gap:4 }}><HiUserAdd size={13}/></button>
               )}

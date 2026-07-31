@@ -9,7 +9,7 @@ import { useAuth } from '../context/AuthContext';
 import { useLang } from '../context/LanguageContext';
 import { collection, query, where, getDocs, doc, updateDoc, getDoc, addDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../firebase';
-import { uploadToTelegram } from '../utils/telegram';
+import { uploadToTelegram, makeThumb } from '../utils/telegram';
 import { profilePhotoPost, coverPhotoPost } from '../utils/photoPost';
 
 // Teny miafina : 6 tarehintsoratra farafahakeliny — io no fetra HENTITRA takin'ny
@@ -188,6 +188,11 @@ export default function Register() {
         if (profileFile) {
           const r = await uploadToTelegram(profileFile, p => setUploadPct(p));
           photoUpdates.photoURL = r.url;
+          // Avatar Lite : vignette 160 px ho an'ny fampisehoana rehetra
+          try {
+            const th = await makeThumb(profileFile, 160);
+            if (th) { const tr = await uploadToTelegram(th); photoUpdates.photoThumb = tr.url || ''; }
+          } catch (e) { /* tsy manakana ny fisoratana anarana */ }
         }
         if (coverFile) {
           setUploadPct(0);

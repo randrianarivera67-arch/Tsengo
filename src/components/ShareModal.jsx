@@ -71,7 +71,7 @@ export default function ShareModal({ post, onClose, asPage = null }) {
         const batch = writeBatch(db);
         targets.forEach(fUid => batch.set(doc(collection(db, 'notifications')), {
           toUid: fUid, fromUid: currentUser.uid,
-          fromName: userProfile.fullName, fromPhoto: userProfile.photoURL || '',
+          fromName: userProfile.fullName, fromPhoto: (userProfile.photoThumb || userProfile.photoURL) || '',
           type: 'post', postId: postRef.id,
           message: group ? `${userProfile.fullName} a partagé une publication dans ${group.name}` : `${userProfile.fullName} a partagé une publication`,
           read: false, createdAt: serverTimestamp(),

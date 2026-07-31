@@ -321,7 +321,7 @@ export default function GroupPage() {
       const batch = writeBatch(db);
       uids.forEach(uid => batch.set(doc(collection(db, 'notifications')), {
         toUid: uid, fromUid: currentUser.uid,
-        fromName: userProfile.fullName, fromPhoto: userProfile.photoURL || '',
+        fromName: userProfile.fullName, fromPhoto: (userProfile.photoThumb || userProfile.photoURL) || '',
         type: 'general', link: `/groups/${groupId}`,
         message: `${userProfile.fullName} vous a ajouté(e) au groupe ${group.name}`,
         read: false, createdAt: serverTimestamp(),
@@ -355,7 +355,7 @@ export default function GroupPage() {
   async function finalizePublish(caption, mediaURL, finalMT, thumbURL, mediaURLs, thumbURLs) {
     const postRef = await addDoc(collection(db, 'posts'), {
       uid: currentUser.uid, authorName: userProfile.fullName,
-      authorUsername: userProfile.username, authorPhoto: userProfile.photoURL || '',
+      authorUsername: userProfile.username, authorPhoto: (userProfile.photoThumb || userProfile.photoURL) || '',
       authorIsVip: userProfile.isVip || false,
       content: (caption || '').trim().slice(0, 2000), mediaURL, mediaType: finalMT, thumbURL: thumbURL || '',
       ...(Array.isArray(mediaURLs) && mediaURLs.length > 1 ? { mediaURLs } : {}),
@@ -374,7 +374,7 @@ export default function GroupPage() {
         const batch = writeBatch(db);
         targets.forEach(fUid => batch.set(doc(collection(db, 'notifications')), {
           toUid: fUid, fromUid: currentUser.uid,
-          fromName: userProfile.fullName, fromPhoto: userProfile.photoURL || '',
+          fromName: userProfile.fullName, fromPhoto: (userProfile.photoThumb || userProfile.photoURL) || '',
           type: 'post', postId: postRef.id,
           message: `${userProfile.fullName} a publié dans le groupe ${group.name}`,
           read: false, createdAt: serverTimestamp(),
