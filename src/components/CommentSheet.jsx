@@ -35,11 +35,33 @@ const ava = (url, name) => url ||
 /* ── Commentaire iray ────────────────────────────────────────────────── */
 function Comment({ c, isReply, meUid, postUid, onReply, onReact, onEdit, onDelete }) {
   const [picker, setPicker] = useState(false);
+  const [pickerPos, setPickerPos] = useState(null);   // { top, left, flip }
+  const likeElRef = useRef(null);                     // ancre ho an'ny fandrefesana
   const [menu, setMenu] = useState(false);
   const pressRef = useRef(null);
   const movedRef = useRef(false);
   const likePressRef = useRef(null);   // appui long amin'ny « J'aime »
   const likeLongRef  = useRef(false);  // marika : appui long ve sa tsindry fohy
+
+  /**
+   * Manokatra ny picker eo amin'ny toerana MARINA.
+   * Misy toerana ambony → ambony ; tsy misy → mivadika ambany (flip).
+   * Voafetra ny sisiny mba tsy hivoaka amin'ny écran.
+   */
+  const openPicker = () => {
+    const W = 232, H = 44, PAD = 8;
+    const el = likeElRef.current;
+    if (!el || typeof el.getBoundingClientRect !== 'function') {
+      setPickerPos({ top: PAD, left: PAD, flip: false }); setPicker(true); return;
+    }
+    const r = el.getBoundingClientRect();
+    const vw = window.innerWidth || 360;
+    const flip = r.top < (H + 22);                      // tsy ampy toerana ambony
+    const top = flip ? r.bottom + 6 : r.top - H - 6;
+    const left = Math.max(PAD, Math.min(r.left - 6, vw - W - PAD));
+    setPickerPos({ top: Math.round(top), left: Math.round(left), flip });
+    setPicker(true);
+  };
 
   const mine = reactCount(c) ? (c.reactions || {})[meUid] : null;
   const n = reactCount(c);
@@ -95,9 +117,10 @@ function Comment({ c, isReply, meUid, postUid, onReply, onReact, onEdit, onDelet
                       fontSize: 11.5, color: C.gris, fontWeight: 600 }}>
           <span style={{ fontWeight: 400, color: C.gris2 }}>{c.createdAt ? timeAgo(c.createdAt) : ''}</span>
           <span
+            ref={likeElRef}
             onPointerDown={() => {
               likeLongRef.current = false;
-              likePressRef.current = setTimeout(() => { likeLongRef.current = true; setPicker(true); }, 480);
+              likePressRef.current = setTimeout(() => { likeLongRef.current = true; openPicker(); }, 480);
             }}
             onPointerUp={() => clearTimeout(likePressRef.current)}
             onPointerLeave={() => clearTimeout(likePressRef.current)}
@@ -114,7 +137,7 @@ function Comment({ c, isReply, meUid, postUid, onReply, onReact, onEdit, onDelet
           <span onClick={() => onReply && onReply(c)} style={{ cursor: 'pointer' }}>Répondre</span>
 
           {n > 0 && (
-            <span onClick={() => setPicker(p => !p)}
+            <span onClick={() => (picker ? setPicker(false) : openPicker())}
               style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 2, background: 'white',
                        border: '1px solid ' + C.bord, borderRadius: 100, padding: '1px 6px 1px 3px',
                        fontSize: 11, color: C.gris, boxShadow: '0 1px 2px rgba(0,0,0,.07)', cursor: 'pointer' }}>
@@ -123,21 +146,21 @@ function Comment({ c, isReply, meUid, postUid, onReply, onReact, onEdit, onDelet
           )}
         </div>
 
-        {picker && (
+        {picker && pickerPos && createPortal(
           <>
-          <div onClick={() => setPicker(false)}
-            style={{ position: 'fixed', inset: 0, zIndex: 4 }} />
-          <div onClick={e => e.stopPropagation()}
-            style={{ position: 'absolute', bottom: '100%', left: 0, marginBottom: 5, display: 'flex', gap: 5,
-                     background: 'white', borderRadius: 22, padding: '5px 9px', zIndex: 5,
-                     boxShadow: '0 3px 14px rgba(0,0,0,.2)', border: '1px solid ' + C.bord }}>
-            {REACTIONS.map(e => (
-              <span key={e} onClick={() => { onReact && onReact(c, e); setPicker(false); }}
-                style={{ fontSize: 21, cursor: 'pointer' }}>{e}</span>
-            ))}
-          </div>
-          </>
-        )}
+            <div onClick={() => setPicker(false)}
+              style={{ position: 'fixed', inset: 0, zIndex: 9600 }} />
+            {/* Toerana REFESINA : ambony raha misy, ambany raha tsy misy (flip) */}
+            <div onClick={e => e.stopPropagation()}
+              style={{ position: 'fixed', top: pickerPos.top, left: pickerPos.left, zIndex: 9601,
+                       display: 'flex', gap: 5, background: 'white', borderRadius: 22, padding: '5px 9px',
+                       boxShadow: '0 3px 14px rgba(0,0,0,.2)', border: '1px solid ' + C.bord }}>
+              {REACTIONS.map(e => (
+                <span key={e} onClick={() => { onReact && onReact(c, e); setPicker(false); }}
+                  style={{ fontSize: 21, cursor: 'pointer', lineHeight: 1.35 }}>{e}</span>
+              ))}
+            </div>
+          </>, document.body)}
 
         {menu && createPortal(
           <div onClick={() => setMenu(false)}

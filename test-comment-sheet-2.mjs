@@ -101,7 +101,7 @@ console.log('\n6) Appui long — réaction');
   const CS = fs.readFileSync('./src/components/CommentSheet.jsx', 'utf8');
   ok('ref appui long', CS.includes('const likePressRef = useRef(null);'));
   ok('marika long/fohy', CS.includes('const likeLongRef  = useRef(false);'));
-  ok('480 ms', CS.includes('likeLongRef.current = true; setPicker(true); }, 480)'));
+  ok('480 ms', CS.includes('likeLongRef.current = true; openPicker(); }, 480)'));
   ok('appui long tsy manao réaction koa', CS.includes('if (likeLongRef.current) { likeLongRef.current = false; return; }'));
   ok('tsindry fohy → réaction', CS.includes("onReact(c, mine || '\ud83d\udc4d')"));
   eq('cleanup 3 toerana (up/leave/move)', (CS.match(/clearTimeout\(likePressRef\.current\)/g) || []).length, 3);
