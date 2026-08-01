@@ -46,7 +46,9 @@ export default function MentionPanel({ open, query = '', people = [], showSpecia
     (p.fullName || '').toLowerCase().includes(q) || (p.username || '').toLowerCase().includes(q)
   ).slice(0, 30);
 
-  if (!specials.length && !list.length) return null;
+  // ⚠️ TSY mamerina `null` intsony raha foana : nanjavona mangina ny panneau,
+  // ka toa "tsy miasa". Aleo maneho hoe tsy misy vokatra.
+  const empty = !specials.length && !list.length;
 
   const Row = ({ children, onClick, key }) => (
     <button key={key} onClick={onClick}
@@ -72,6 +74,11 @@ export default function MentionPanel({ open, query = '', people = [], showSpecia
         }}
         onClick={e => e.stopPropagation()}
       >
+        {empty && (
+          <div style={{ padding: '16px 18px', fontSize: 13.5, color: '#65676B' }}>
+            {q ? 'Aucun résultat pour « ' + q + ' »' : 'Commencez à taper un nom…'}
+          </div>
+        )}
         {specials.map(s => (
           <Row key={s.tag} onClick={() => onPick(s.tag)}>
             <GroupIcon />

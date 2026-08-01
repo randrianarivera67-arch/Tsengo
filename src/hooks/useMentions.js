@@ -8,7 +8,7 @@
 //   <MentionPanel open={m.isOpen(key)} query={m.query} people={m.people}
 //                 onPick={tag => setV(m.insert(v, tag))} onClose={m.close} />
 import { useState, useRef, useCallback } from 'react';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, getDoc, collection, query, orderBy, startAt, endAt, limit, getDocs } from 'firebase/firestore';
 import { db } from '../firebase';
 
 /** Mifanaraka amin'ny parser ao amin'ny appLink.js */
@@ -16,8 +16,10 @@ const AT_RE = /@([\p{L}0-9_.-]*)$/u;
 
 export default function useMentions(userProfile, currentUser) {
   const [active, setActive] = useState(null);   // { key, q } | null
-  const [people, setPeople] = useState([]);
+  const [people, setPeople] = useState([]);     // fifandraisana (friends/followers/following)
+  const [found, setFound]   = useState([]);     // vokatry ny fikarohana mivantana
   const loadingRef = useRef(false);
+  const searchRef  = useRef({ q: null, t: null });
 
   /** Namana + abonnés + abonnements (fetra 60, dédoublonné). */
   const loadPeople = useCallback(async () => {
@@ -43,11 +45,41 @@ export default function useMentions(userProfile, currentUser) {
   }, [people.length, userProfile, currentUser]);
 
   /** Antsoina isaky ny fanovana ny champ. `key` manavaka ny champ. */
+  /**
+   * Fikarohana MIVANTANA ao amin'ny `users` (prefix username).
+   * Ampiasaina raha FOANA ny lisitra fifandraisana — raha tsy izany dia
+   * manjavona mangina ny panneau ho an'ny kaonty vaovao.
+   */
+  const searchUsers = useCallback((q) => {
+    if (!q || q.length < 1) { setFound([]); return; }
+    if (searchRef.current.q === q) return;
+    searchRef.current.q = q;
+    clearTimeout(searchRef.current.t);
+    searchRef.current.t = setTimeout(async () => {
+      try {
+        const snap = await getDocs(query(
+          collection(db, 'users'), orderBy('username'),
+          startAt(q), endAt(q + ''), limit(8),
+        ));
+        setFound(snap.docs
+          .filter(d => d.id !== currentUser?.uid)
+          .map(d => ({
+            uid: d.id, fullName: d.data().fullName || '', username: d.data().username || '',
+            photo: d.data().photoThumb || d.data().photoURL || '',
+          })));
+      } catch (e) { setFound([]); }
+    }, 280);
+  }, [currentUser]);
+
   const onType = useCallback((value, key = 'default') => {
     const m = String(value || '').match(AT_RE);
-    if (m) { loadPeople(); setActive({ key, q: m[1].toLowerCase() }); }
-    else setActive(null);
-  }, [loadPeople]);
+    if (m) {
+      const q = m[1].toLowerCase();
+      loadPeople();
+      searchUsers(q);
+      setActive({ key, q });
+    } else setActive(null);
+  }, [loadPeople, searchUsers]);
 
   const isOpen = useCallback((key = 'default') => active?.key === key, [active]);
   const close  = useCallback(() => setActive(null), []);
@@ -58,5 +90,11 @@ export default function useMentions(userProfile, currentUser) {
     return String(value || '').replace(AT_RE, '@' + tag + ' ');
   }, []);
 
-  return { people, query: active?.q || '', isOpen, onType, close, insert };
+  // Fifandraisana aloha, dia ny vokatry ny fikarohana (dédoublonné)
+  const merged = (() => {
+    const seen = new Set(people.map(p => p.uid));
+    return [...people, ...found.filter(f => !seen.has(f.uid))];
+  })();
+
+  return { people: merged, query: active?.q || '', isOpen, onType, close, insert };
 }
