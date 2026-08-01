@@ -30,6 +30,7 @@ import { timeAgo } from '../utils/timeAgo';
 import { isDataSaverOn, subscribeDataSaver } from '../utils/dataSaver';
 import { isLiteOn, subscribeLite } from '../utils/liteMode';
 import MentionPanel from '../components/MentionPanel';
+import { mentionedEntities } from '../utils/appLink';
 import { downloadMedia } from '../utils/download';
 import ShareModal from '../components/ShareModal';
 import MusicPostCard from '../components/MusicPostCard';
@@ -1195,11 +1196,15 @@ const fields = {
       // miaraka amin'ny fetra teny. Teo aloha dia `includes('@'+anarana)` —
       // ka `@tony` dia nifanaraka tamin'ny `@tonyzz`, ary ny mailaka
       // `x@tony.mg` dia noraisina ho mention.
+      // ① Token entité @[Anarana](uid) → ny uid MIVANTANA, tsy misy fampifanarahana
+      const entityUids = new Set(mentionedEntities(text).map(e => e.uid));
+      // ② @username tsotra (nosoratana an-tanana)
       const RE = /(^|[^\p{L}\p{N}_@])@([a-zA-Z0-9_.]{2,30})/gu;
-      const mentionUsernames = new Set();
+      const mentionUsernames = new Set([...entityUids].map(u => String(u).toLowerCase()));
       let mm; RE.lastIndex = 0;
       while ((mm = RE.exec(text)) !== null) mentionUsernames.add(mm[2].toLowerCase());
       const mentioned = mentionFriends.filter(f => {
+        if (entityUids.has(f.uid)) return true;        // token entité : mazava
         const u = (f.username || '').toLowerCase();
         if (u && mentionUsernames.has(u)) return true;
         // Fiverenana amin'ny endrika taloha (@AnaranaVoalohany) — ho an'ny

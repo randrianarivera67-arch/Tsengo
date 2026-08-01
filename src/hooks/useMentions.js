@@ -85,10 +85,26 @@ export default function useMentions(userProfile, currentUser) {
   const close  = useCallback(() => setActive(null), []);
 
   /** Mamerina ny lahatsoratra misy ny mention voafidy. */
-  const insert = useCallback((value, tag) => {
+  /**
+   * Mamerina ny lahatsoratra misy ny mention voafidy.
+   * @param {string} value
+   * @param {{name:string, uid:string}|string} pick  entité na tag tsotra
+   *
+   * Token entité :  @[Anarana Feno](uid)  → aseho « @Anarana Feno »
+   * Ny anarana dia diovina : ny `[` `]` dia hanapaka ny token.
+   */
+  const insert = useCallback((value, pick) => {
     setActive(null);
-    return String(value || '').replace(AT_RE, '@' + tag + ' ');
+    const v = String(value || '');
+    if (pick && typeof pick === 'object' && pick.uid) {
+      const name = String(pick.name || '').replace(/[\[\]\n]/g, '').trim() || 'Utilisateur';
+      return v.replace(AT_RE, '@[' + name + '](' + pick.uid + ') ');
+    }
+    return v.replace(AT_RE, '@' + pick + ' ');
   }, []);
+
+  /** Alias mazava kokoa — mitovy amin'ny `insert`. */
+  const insertEntity = insert;
 
   // Fifandraisana aloha, dia ny vokatry ny fikarohana (dédoublonné)
   const merged = (() => {
@@ -96,5 +112,5 @@ export default function useMentions(userProfile, currentUser) {
     return [...people, ...found.filter(f => !seen.has(f.uid))];
   })();
 
-  return { people: merged, query: active?.q || '', isOpen, onType, close, insert };
+  return { people: merged, query: active?.q || '', isOpen, onType, close, insert, insertEntity };
 }

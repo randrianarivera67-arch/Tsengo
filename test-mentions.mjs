@@ -117,8 +117,9 @@ console.log('\n7) Fampiharana');
   ok('route /u/:username', AP.includes('path="/u/:username"'));
   ok('UserByName lazy', AP.includes("lazy(() => import('./pages/UserByName'))"));
   ok('UserByName misy', fs.existsSync('./src/pages/UserByName.jsx'));
-  ok('dropdown mampiditra @username (MentionPanel)',
-   fs.readFileSync('./src/components/MentionPanel.jsx','utf8').includes("onPick(p.username || (p.fullName || '').split(' ')[0])"));
+  // Nosoloina token entité : ny ANARANA no aseho, ny uid no mitondra.
+ok('dropdown mampiditra entité { name, uid }',
+   fs.readFileSync('./src/components/MentionPanel.jsx','utf8').includes("onPick({ name: p.fullName || p.username"));
   ok('lisitra mitondra username', HO.includes("username: sn.data().username || ''"));
   ok('filtre amin\'ny username koa (MentionPanel)',
    fs.readFileSync('./src/components/MentionPanel.jsx','utf8').includes("(p.username || '').toLowerCase().includes(q)"));

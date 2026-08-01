@@ -37,6 +37,13 @@ export function trimUrlTail(raw) {
  * ⚠️ Ny `(^|[^\\p{L}\\p{N}_])` dia MANAKANA ny mailaka : ao amin'ny
  * `rakoto@tony.mg` dia misy litera mialoha ny '@' → tsy mention.
  */
+/**
+ * Token entité :  @[Anarana Feno](uid)
+ * Ny anarana no ASEHO, ny uid no MITONDRA — mitovy amin'ny Facebook.
+ * Ny anarana dia mety misy elanelana sy marika ; ny `[^\\]]` no fetra.
+ */
+const ENTITY_RE = /@\[([^\]\n]{1,80})\]\(([A-Za-z0-9_-]{1,64})\)/g;
+
 const MENTION_RE = /(^|[^\p{L}\p{N}_@])@([a-zA-Z0-9_.]{2,30})/gu;
 
 /**
@@ -48,17 +55,45 @@ export function splitRich(text) {
   const out = [];
   for (const p of parts) {
     if (p.type !== 'text') { out.push(p); continue; }
+    // ── ① Token entité @[Anarana](uid) — mandeha ALOHA ────────────────
+    const chunks = [];
     let last = 0, m;
-    MENTION_RE.lastIndex = 0;
-    while ((m = MENTION_RE.exec(p.value)) !== null) {
-      const at = m.index + m[1].length;              // toerana marin'ny '@'
-      if (at > last) out.push({ type: 'text', value: p.value.slice(last, at) });
-      out.push({ type: 'mention', value: '@' + m[2], username: m[2] });
-      last = at + 1 + m[2].length;
+    ENTITY_RE.lastIndex = 0;
+    while ((m = ENTITY_RE.exec(p.value)) !== null) {
+      if (m.index > last) chunks.push({ text: p.value.slice(last, m.index) });
+      chunks.push({ entity: { type: 'mention', value: '@' + m[1], name: m[1], uid: m[2] } });
+      last = m.index + m[0].length;
     }
-    if (last < p.value.length) out.push({ type: 'text', value: p.value.slice(last) });
+    if (last < p.value.length) chunks.push({ text: p.value.slice(last) });
+
+    // ── ② @username tsotra ao anatin'ny ampahany sisa ─────────────────
+    for (const c of chunks) {
+      if (c.entity) { out.push(c.entity); continue; }
+      let l2 = 0, m2;
+      MENTION_RE.lastIndex = 0;
+      while ((m2 = MENTION_RE.exec(c.text)) !== null) {
+        const at = m2.index + m2[1].length;           // toerana marin'ny '@'
+        if (at > l2) out.push({ type: 'text', value: c.text.slice(l2, at) });
+        out.push({ type: 'mention', value: '@' + m2[2], username: m2[2] });
+        l2 = at + 1 + m2[2].length;
+      }
+      if (l2 < c.text.length) out.push({ type: 'text', value: c.text.slice(l2) });
+    }
   }
   return out.length ? out : parts;
+}
+
+/**
+ * Ny uid REHETRA voatonona ao anaty lahatsoratra (token entité ihany).
+ * Ampiasain'ny notification : mazava, tsy misy fampifanarahana anarana.
+ * @returns {{uid:string, name:string}[]}
+ */
+export function mentionedEntities(text) {
+  const out = [];
+  if (!text) return out;
+  let m; ENTITY_RE.lastIndex = 0;
+  while ((m = ENTITY_RE.exec(text)) !== null) out.push({ uid: m[2], name: m[1] });
+  return out;
 }
 
 /** Mizara ny lahatsoratra ho ampahany : { type: 'text'|'link', value, internal } */

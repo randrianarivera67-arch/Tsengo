@@ -67,7 +67,7 @@ console.log('\n3) Logika mpandray');
 console.log('\n4) Rendu — badge fa tsy lien');
 ok('SPECIAL_TAGS ao amin\'ny Linkify', LK.includes("const SPECIAL_TAGS = { followers: 'Abonnés', everyone: 'Tout le monde' };"));
 ok('badge tsy clicable (span)', /if \(sp\) \{[^]{0,200}<span key=\{i\}/.test(LK));
-ok('sora-baventy tsy misy dikany', LK.includes('String(p.username).toLowerCase()'));
+ok('sora-baventy tsy misy dikany', LK.includes('String(p.uid || p.username).toLowerCase()'));
 ok('mention mahazatra mbola lien', LK.includes('navigate(`/u/${p.username}`)'));
 
 console.log('\n   Parsing');

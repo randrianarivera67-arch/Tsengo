@@ -80,7 +80,7 @@ export default function MentionPanel({ open, query = '', people = [], showSpecia
           </div>
         )}
         {specials.map(s => (
-          <Row key={s.tag} onClick={() => onPick(s.tag)}>
+          <Row key={s.tag} onClick={() => onPick({ name: s.label.replace(/^@/, ''), uid: s.tag })}>
             <GroupIcon />
             <span style={{ minWidth: 0, flex: 1 }}>
               <span style={{ display: 'block', fontSize: 15, fontWeight: 600, color: '#050505' }}>{s.label}</span>
@@ -91,7 +91,7 @@ export default function MentionPanel({ open, query = '', people = [], showSpecia
         ))}
 
         {list.map(p => (
-          <Row key={p.uid} onClick={() => onPick(p.username || (p.fullName || '').split(' ')[0])}>
+          <Row key={p.uid} onClick={() => onPick({ name: p.fullName || p.username || 'Utilisateur', uid: p.uid })}>
             <img
               src={p.photo || `https://ui-avatars.com/api/?name=${encodeURIComponent(p.fullName || 'U')}&background=1877F2&color=fff`}
               alt="" loading="lazy"

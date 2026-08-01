@@ -16,8 +16,9 @@ export default function Linkify({ text, color }) {
         if (p.type === 'mention') {
           // Token manokana : tsy profil izy, ka aseho ho badge tsy clicable.
           // Raha tsy izao dia handeha ho /u/followers (tsy misy).
+          // Token manokana (@followers / @everyone) : badge, tsy lien
           const SPECIAL_TAGS = { followers: 'Abonnés', everyone: 'Tout le monde' };
-          const sp = SPECIAL_TAGS[String(p.username).toLowerCase()];
+          const sp = SPECIAL_TAGS[String(p.uid || p.username).toLowerCase()];
           if (sp) {
             return (
               <span key={i} style={{ color: color || '#1877F2', fontWeight: 600 }}>@{sp}</span>
@@ -25,6 +26,16 @@ export default function Linkify({ text, color }) {
           }
           // Mention → profil. Ny fanovana username → uid dia atao ao amin'ny
           // route /u/:username (requête `users`, index single-field automatique).
+          // Token entité : ny uid no mitondra — mazava, tsy misy fikarohana
+          if (p.uid) {
+            return (
+              <a key={i} href={`/profile/${p.uid}`}
+                style={{ color: color || '#1877F2', fontWeight: 600, cursor: 'pointer', textDecoration: 'none' }}
+                onClick={e => { e.preventDefault(); e.stopPropagation(); navigate(`/profile/${p.uid}`); }}>
+                {p.value}
+              </a>
+            );
+          }
           return (
             <a key={i} href={`/u/${p.username}`}
               style={{ color: color || '#1877F2', fontWeight: 600, cursor: 'pointer', textDecoration: 'none' }}
