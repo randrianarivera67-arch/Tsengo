@@ -29,6 +29,7 @@ import { trimVideoTo30s } from '../utils/trimVideo';
 import { timeAgo } from '../utils/timeAgo';
 import { isDataSaverOn, subscribeDataSaver } from '../utils/dataSaver';
 import { isLiteOn, subscribeLite } from '../utils/liteMode';
+import MentionPanel from '../components/MentionPanel';
 import { downloadMedia } from '../utils/download';
 import ShareModal from '../components/ShareModal';
 import MusicPostCard from '../components/MusicPostCard';
@@ -2027,31 +2028,17 @@ const fields = {
                     else setMentionQuery(null);
                   }}
                   rows={3} style={{ resize:'none', width:'100%', border:'none', fontSize:17 }} maxLength={MAX_POST} autoFocus/>
-                {mentionQuery?.postId === '__composer__' && (() => {
-                  const q = mentionQuery.q;
-                  const opts = mentionFriends.filter(f => f.fullName.toLowerCase().includes(q)
-                    || (f.username || '').toLowerCase().includes(q)).slice(0, 6);
-                  if (!opts.length) return null;
-                  return (
-                    <div onClick={e => e.stopPropagation()} style={{ position:'absolute', top:'100%', left:0, right:0, background:'white', border:'1px solid #E4E6EB', borderRadius:12, boxShadow:'0 6px 20px rgba(0,0,0,.15)', zIndex:60, overflow:'hidden', maxHeight:260, overflowY:'auto' }}>
-                      {opts.map(f => (
-                        <button key={f.uid} onClick={() => {
-                            const tag = f.username || f.fullName.split(' ')[0];
-                            setContent(prev => prev.replace(/@([\p{L}0-9_-]*)$/u, '@' + tag + ' '));
-                            setMentionQuery(null);
-                          }}
-                          style={{ width:'100%', display:'flex', alignItems:'center', gap:10, padding:'8px 12px', background:'none', border:'none', cursor:'pointer', fontFamily:'Poppins', textAlign:'left', borderBottom:'1px solid #F0F2F5' }}>
-                          <img src={f.photo || `https://ui-avatars.com/api/?name=${encodeURIComponent(f.fullName||'U')}&background=1877F2&color=fff`}
-                            alt="" style={{ width:34, height:34, borderRadius:'50%', objectFit:'cover', flexShrink:0, background:'#F0F2F5' }} />
-                          <span style={{ minWidth:0, flex:1 }}>
-                            <span style={{ display:'block', fontSize:13, fontWeight:600, color:'#050505', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{f.fullName}</span>
-                            {f.username && <span style={{ display:'block', fontSize:11, color:'#65676B', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>@{f.username}</span>}
-                          </span>
-                        </button>
-                      ))}
-                    </div>
-                  );
-                })()}
+                <MentionPanel
+                  open={mentionQuery?.postId === '__composer__'}
+                  query={mentionQuery?.q || ''}
+                  people={mentionFriends}
+                  showSpecials={false}
+                  onPick={(tag) => {
+                    setContent(prev => prev.replace(/@([\p{L}0-9_-]*)$/u, '@' + tag + ' '));
+                    setMentionQuery(null);
+                  }}
+                  onClose={() => setMentionQuery(null)}
+                />
               </div>
             )}
             {content.length > 0 && <p style={{ fontSize:11, color:charColor, textAlign:'right', marginTop:2 }}>{rem} restants</p>}
@@ -2709,51 +2696,17 @@ const fields = {
                         else setMentionQuery(null);
                       }}
                       onKeyDown={e=>e.key==='Enter'&&!mentionQuery&&addComment(post.id)} style={{ width:'100%', padding:'7px 12px', fontSize:13 }} maxLength={MAX_COMMENT}/>
-                    {mentionQuery?.postId === post.id && (() => {
-                      const q = mentionQuery.q;
-                      const isOwner = post.uid === currentUser.uid;
-                      const specials = isOwner
-                        ? MENTION_SPECIALS.filter(sp => sp.tag.startsWith(q) || sp.label.toLowerCase().includes(q))
-                        : [];
-                      const opts = mentionFriends.filter(f => f.fullName.toLowerCase().includes(q)
-                        || (f.username || '').toLowerCase().includes(q)).slice(0,5);
-                      if (!opts.length && !specials.length) return null;
-                      return (
-                        <div onClick={e=>e.stopPropagation()} style={{ position:'absolute', bottom:'110%', left:0, right:0, background:'white', border:'1px solid #E4E6EB', borderRadius:12, boxShadow:'0 6px 20px rgba(0,0,0,.15)', zIndex:60, overflow:'hidden' }}>
-                          {specials.map(sp => (
-                            <button key={sp.key} onClick={() => {
-                                setCmtText(prev => ({ ...prev, [post.id]: (prev[post.id]||'').replace(/@([\p{L}0-9_-]*)$/u, '@'+sp.tag+' ') }));
-                                setMentionQuery(null);
-                              }}
-                              style={{ width:'100%', display:'flex', alignItems:'center', gap:10, padding:'8px 12px', background:'none', border:'none', cursor:'pointer', fontFamily:'Poppins', textAlign:'left', borderBottom:'1px solid #F0F2F5' }}>
-                              <span style={{ width:34, height:34, borderRadius:'50%', flexShrink:0, background:'linear-gradient(145deg,#7EB6FF,#2B6CF6)', display:'flex', alignItems:'center', justifyContent:'center' }}>
-                                <HiAtSymbol size={17} color="white"/>
-                              </span>
-                              <span style={{ minWidth:0, flex:1 }}>
-                                <span style={{ display:'block', fontSize:13, fontWeight:600, color:'#050505' }}>{sp.label}</span>
-                                <span style={{ display:'block', fontSize:11, color:'#65676B' }}>{sp.desc}</span>
-                              </span>
-                            </button>
-                          ))}
-                          {opts.map(f => (
-                            <button key={f.uid} onClick={() => {
-                                // @username (tokana) fa tsy anarana voalohany : mba tsy hifangaro
-                                const tag = f.username || f.fullName.split(' ')[0];
-                                setCmtText(prev => ({ ...prev, [post.id]: (prev[post.id]||'').replace(/@([\p{L}0-9_-]*)$/u, '@'+tag+' ') }));
-                                setMentionQuery(null);
-                              }}
-                              style={{ width:'100%', display:'flex', alignItems:'center', gap:10, padding:'8px 12px', background:'none', border:'none', cursor:'pointer', fontFamily:'Poppins', textAlign:'left', borderBottom:'1px solid #F0F2F5' }}>
-                              <img src={f.photo || `https://ui-avatars.com/api/?name=${encodeURIComponent(f.fullName||'U')}&background=1877F2&color=fff`}
-                                alt="" style={{ width:34, height:34, borderRadius:'50%', objectFit:'cover', flexShrink:0, background:'#F0F2F5' }} />
-                              <span style={{ minWidth:0, flex:1 }}>
-                                <span style={{ display:'block', fontSize:13, fontWeight:600, color:'#050505', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{f.fullName}</span>
-                                {f.username && <span style={{ display:'block', fontSize:11, color:'#65676B', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>@{f.username}</span>}
-                              </span>
-                            </button>
-                          ))}
-                        </div>
-                      );
-                    })()}
+                    <MentionPanel
+                      open={mentionQuery?.postId === post.id}
+                      query={mentionQuery?.q || ''}
+                      people={mentionFriends}
+                      showSpecials={post.uid === currentUser.uid}
+                      onPick={(tag) => {
+                        setCmtText(prev => ({ ...prev, [post.id]: (prev[post.id]||'').replace(/@([\p{L}0-9_-]*)$/u, '@' + tag + ' ') }));
+                        setMentionQuery(null);
+                      }}
+                      onClose={() => setMentionQuery(null)}
+                    />
                   </div>
                   <button onClick={() => cPhotoRef.current[post.id]?.click()} style={{ background:'none', border:'none', cursor:'pointer', color:'#65676B', padding:4 }}><HiPhotograph size={18}/></button>
                   <button onClick={() => cVideoRef.current[post.id]?.click()} style={{ background:'none', border:'none', cursor:'pointer', color:'#65676B', padding:4 }}><HiVideoCamera size={18}/></button>

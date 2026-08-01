@@ -117,9 +117,11 @@ console.log('\n7) Fampiharana');
   ok('route /u/:username', AP.includes('path="/u/:username"'));
   ok('UserByName lazy', AP.includes("lazy(() => import('./pages/UserByName'))"));
   ok('UserByName misy', fs.existsSync('./src/pages/UserByName.jsx'));
-  ok('dropdown mampiditra @username', HO.includes('const tag = f.username || f.fullName.split(\' \')[0];'));
+  ok('dropdown mampiditra @username (MentionPanel)',
+   fs.readFileSync('./src/components/MentionPanel.jsx','utf8').includes("onPick(p.username || (p.fullName || '').split(' ')[0])"));
   ok('lisitra mitondra username', HO.includes("username: sn.data().username || ''"));
-  ok('filtre amin\'ny username koa', HO.includes("(f.username || '').toLowerCase().includes(q)"));
+  ok('filtre amin\'ny username koa (MentionPanel)',
+   fs.readFileSync('./src/components/MentionPanel.jsx','utf8').includes("(p.username || '').toLowerCase().includes(q)"));
 
   const UB = fs.readFileSync('./src/pages/UserByName.jsx', 'utf8');
   ok('requête users where username', UB.includes("where('username', '==', v)"));

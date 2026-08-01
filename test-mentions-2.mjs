@@ -15,15 +15,16 @@ const ok = (label, cond, info = '') => {
 };
 
 const HO = fs.readFileSync('./src/pages/Home.jsx', 'utf8');
+const MP = fs.readFileSync('./src/components/MentionPanel.jsx', 'utf8');
 const LK = fs.readFileSync('./src/components/Linkify.jsx', 'utf8');
 const { splitRich } = await import('./src/utils/appLink.js');
 
 /* ═══ 1. Picker ═════════════════════════════════════════════════════════ */
 console.log('1) Picker fomba Facebook');
 ok('sary alaina ao amin\'ny lisitra', HO.includes("photo: sn.data().photoThumb || sn.data().photoURL || ''"));
-ok('avatar aseho (34 px)', HO.includes("width:34, height:34, borderRadius:'50%', objectFit:'cover'"));
+ok('avatar aseho (44 px, MentionPanel)', MP.includes("width: 44, height: 44, borderRadius: '50%', objectFit: 'cover'"));
 ok('anarana feno', HO.includes("fontSize:13, fontWeight:600, color:'#050505'"));
-ok('@username ambany', HO.includes("<span style={{ display:'block', fontSize:11, color:'#65676B'"));
+ok('@username ambany (MentionPanel)', MP.includes("fontSize: 12, color: '#65676B'"));
 ok('fallback ui-avatars', HO.includes('ui-avatars.com/api/?name=${encodeURIComponent(f.fullName'));
 
 /* ═══ 2. Safidy manokana ════════════════════════════════════════════════ */
@@ -32,8 +33,8 @@ ok('MENTION_SPECIALS voafaritra', HO.includes('const MENTION_SPECIALS = ['));
 ok('label Abonnés', HO.includes("label: 'Abonnés'"));
 ok('label Tout le monde', HO.includes("label: 'Tout le monde'"));
 ok('fetra 200', HO.includes('const MENTION_MAX = 200;'));
-ok('tompo ihany ao amin\'ny picker', HO.includes('const isOwner = post.uid === currentUser.uid;'));
-ok('picker : specials raha tompo', HO.includes('const specials = isOwner'));
+ok('tompo ihany ao amin\'ny picker', HO.includes('showSpecials={post.uid === currentUser.uid}'));
+ok('picker : specials raha tompo', MP.includes('const specials = showSpecials'));
 
 console.log('\n   Fiarovana amin\'ny fandefasana');
 ok('fanamarinana tompo INDRAY', HO.includes("if (post && post.uid === currentUser.uid) {"));

@@ -57,8 +57,10 @@ console.log('\n④ Composer — picker ampiana');
 ok('key __composer__', HO.includes("setMentionQuery({ postId: '__composer__'"));
 ok('panneau ao amin\'ny composer', HO.includes("mentionQuery?.postId === '__composer__'"));
 ok('mampiditra ao amin\'ny content', HO.includes("setContent(prev => prev.replace(/@([\\p{L}0-9_-]*)$/u, '@' + tag + ' '))"));
-ok('avatar ao amin\'ny composer', /__composer__[^]{0,2200}borderRadius:'50%', objectFit:'cover'/.test(HO));
-ok('textarea voafono div relative', /position:'relative' \}\}>\s*<textarea className="input" placeholder=\{t\('whatsOnMind'\)\}/.test(HO));
+// Ny rendu dia nifindra tany amin'ny MentionPanel (portal) — jerena ao izy.
+ok('avatar ao amin\'ny MentionPanel',
+   fs.readFileSync('./src/components/MentionPanel.jsx','utf8').includes("borderRadius: '50%', objectFit: 'cover'"));
+ok('composer mampiasa MentionPanel', HO.includes("open={mentionQuery?.postId === '__composer__'}"));
 
 /* ═══ Fanakatonana mbola mandeha ═══════════════════════════════════════ */
 console.log('\n⑤ Fanakatonana — mbola mandeha');

@@ -17,6 +17,7 @@ import PullToRefresh from './PullToRefresh';
 import UpdateBanner from './UpdateBanner';
 import { clearPins, requestFeedReset } from '../utils/feedPins';
 import { isLiteOn, setLite, subscribeLite } from '../utils/liteMode';
+import useKeyboardInset from '../hooks/useKeyboardInset';
 import ScrollReveal from './ScrollReveal';
 import { subscribeUpload } from '../utils/uploadManager';
 import {
@@ -159,6 +160,8 @@ export default function Layout({ children }) {
 
   const [drawerOpen,    setDrawerOpen]    = useState(false);
   const [liteOn,        setLiteOn]        = useState(isLiteOn());
+  // Dock miafina rehefa miakatra ny clavier — tsy manelingelina ny fanoratana
+  const kbInset = useKeyboardInset();
   useEffect(() => subscribeLite(setLiteOn), []);
   const [search,        setSearch]        = useState('');
   const [searchResults, setSearchResults] = useState({ users: [], posts: [] });
@@ -646,7 +649,7 @@ export default function Layout({ children }) {
       )}
 
       {/* ── Dock flottant — clay 3D, JEJO au centre ────────────── */}
-      <nav className="floating-dock">
+      <nav className="floating-dock" style={kbInset > 0 ? { display: 'none' } : undefined}>
         {bottomNav.map(({ path, navState, icon, badge, color, isJejo, label }) => {
           const active = isActive(path);
           const FilledIcon = icon === 'home' ? HiHome : icon === 'amis' ? HiUserGroup : icon === 'plane' ? HiPaperAirplane : HiUser;
