@@ -147,10 +147,10 @@ console.log('\n8) CommentSheet — endrika sy fitsipika');
   ok('MentionPanel voarohy', S.includes('<MentionPanel'));
   ok('clavier voahaja', S.includes('useKeyboardInset'));
 
-  // ⚠️ Tsy voarohy amin'ny pejy amin'ity dingana ity
+  // Dingana 2 : PostDetail IHANY no voarohy
   const pages = ['Home', 'PostDetail', 'Profile', 'Reels'];
   const used = pages.filter(p => fs.readFileSync('./src/pages/' + p + '.jsx', 'utf8').includes('CommentSheet'));
-  eq('TSY VOAROHY (dingana 1)', used, []);
+  eq('voarohy amin\'ny PostDetail ihany', used, ['PostDetail']);
 }
 
 console.log('\n─────────────────────────────');

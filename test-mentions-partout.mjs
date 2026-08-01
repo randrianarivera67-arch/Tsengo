@@ -26,10 +26,13 @@ console.log('1) Fandrakofana — toerana rehetra misy commentaire');
     'Profile.jsx':    './src/pages/Profile.jsx',
     'Reels.jsx':      './src/pages/Reels.jsx',
   };
+  const CS = R('./src/components/CommentSheet.jsx');
   for (const [n, p] of Object.entries(PAGES)) {
     const s = R(p);
-    ok(n.padEnd(16) + ' misy MentionPanel', s.includes('<MentionPanel'),
-       (s.match(/<MentionPanel/g) || []).length + '×');
+    // PostDetail : nifindra tao anatin'ny CommentSheet ny panneau (dingana 2)
+    const via = n.startsWith('PostDetail') && s.includes('mentions={mentions}') && CS.includes('<MentionPanel');
+    ok(n.padEnd(16) + ' mahazo MentionPanel', s.includes('<MentionPanel') || via,
+       via ? 'via CommentSheet' : (s.match(/<MentionPanel/g) || []).length + '×');
   }
 
   // Tsy misy champ commentaire tsy voarakotra
@@ -37,7 +40,7 @@ console.log('1) Fandrakofana — toerana rehetra misy commentaire');
   for (const [n, p] of Object.entries(PAGES)) {
     const s = R(p);
     const hasInput = /placeholder=\{[^}]*writeComment|Écrire un commentaire/.test(s);
-    const hasPanel = s.includes('<MentionPanel');
+    const hasPanel = s.includes('<MentionPanel') || s.includes('mentions={mentions}');
     if (hasInput && !hasPanel) orphans.push(n);
   }
   eq('champ commentaire tsy voarakotra', orphans, []);
@@ -87,14 +90,16 @@ console.log('\n4) Fifandraisana amin\'ny champ');
   const PF = R('./src/pages/Profile.jsx');
   const RL = R('./src/pages/Reels.jsx');
 
-  ok('PostDetail onChange manetsika', PD.includes('mentions.onType(e.target.value)'));
-  ok('PostDetail onPick mampiditra', PD.includes('setCmtText(v => mentions.insert(v, tag))'));
+  // PostDetail : nifindra tao amin'ny CommentSheet
+  const CS2 = R('./src/components/CommentSheet.jsx');
+  ok('CommentSheet onChange manetsika', CS2.includes("mentions.onType(e.target.value, post?.id || 'sheet')"));
+  ok('CommentSheet onPick mampiditra', CS2.includes('mentions.insert(value, tag)'));
   ok('Profile key = post.id', PF.includes('mentions.onType(e.target.value, post.id)'));
   ok('Profile isOpen(post.id)', PF.includes('mentions.isOpen(post.id)'));
   ok('Reels onChange manetsika', RL.includes('mentions.onType(e.target.value)'));
   ok('Reels onPick mampiditra', RL.includes('setCommentText(v => mentions.insert(v, tag))'));
 
-  ok('PostDetail specials ho an\'ny tompo', PD.includes('showSpecials={post?.uid === currentUser?.uid}'));
+  ok('CommentSheet specials ho an\'ny tompo', CS2.includes('showSpecials={post?.uid === meUid}'));
   ok('Profile specials ho an\'ny tompo', PF.includes('showSpecials={post.uid === currentUser?.uid}'));
 }
 

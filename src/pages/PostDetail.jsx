@@ -1,6 +1,7 @@
 // src/pages/PostDetail.jsx
 import Linkify from '../components/Linkify';
 import MentionPanel from '../components/MentionPanel';
+import CommentSheet from '../components/CommentSheet';
 import useMentions from '../hooks/useMentions';
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
@@ -48,7 +49,8 @@ export default function PostDetail() {
   const mentions = useMentions(userProfile, currentUser);
   const [commentMedia,  setCmtMedia]   = useState(null);
   const [editCmt,       setEditCmt]    = useState(null);
-  const [replyTo,       setReplyTo]    = useState(null);
+  const [replyTo,       setReplyTo]    = useState(null);   // { id, authorName } — ilaina ho an'ny parentId
+  const [sheetOpen,     setSheetOpen]  = useState(true);   // misokatra ho azy (fomba Facebook)
   const [cmtReactPicker, setCmtReactPicker] = useState(null);
   const [viewerState,   setViewerState] = useState(null); // { index }
   const cPhotoRef = useRef(); const cVideoRef = useRef();
@@ -104,13 +106,13 @@ export default function PostDetail() {
   }
 
   async function addComment() {
-    const rt   = replyTo;
-    const raw  = rt ? `@${rt} ${commentText}` : commentText;
-    const text = raw.trim(); const media = commentMedia;
+    // ⚠️ Ny `@Anarana` teo aloha (ampiana amin'ny lahatsoratra) dia ESORINA :
+    // ny FIL no maneho ny valiny izao, tsy ny lahatsoratra.
+    const text = (commentText || '').trim(); const media = commentMedia;
     if (!text&&!media) return;
     let mediaURL='', mT='';
     if (media) { try { const r=await uploadToTelegram(media.file); mediaURL=r.url; mT=r.type; } catch {} }
-    const cmt = { id:uuidv4(), uid:currentUser.uid, authorName:userProfile.fullName, authorPhoto: (userProfile.photoThumb || userProfile.photoURL)||'', authorIsVip:userProfile.isVip||false, text:text.slice(0,500), mediaURL, mediaType:mT, createdAt:new Date().toISOString() };
+    const cmt = { id:uuidv4(), uid:currentUser.uid, authorName:userProfile.fullName, authorPhoto: (userProfile.photoThumb || userProfile.photoURL)||'', authorIsVip:userProfile.isVip||false, text:text.slice(0,500), mediaURL, mediaType:mT, createdAt:new Date().toISOString(), ...(replyTo?.id ? { parentId: replyTo.id } : {}) };
     await updateDoc(doc(db,'posts',postId), { comments:arrayUnion(cmt) });
     setCmtText(''); setCmtMedia(null); setReplyTo(null);
     if (post.uid!==currentUser.uid) {
@@ -368,58 +370,41 @@ export default function PostDetail() {
 
         {/* Comments */}
         <div style={{ padding:'0 16px 16px', borderTop:'1px solid #E4E6EB' }}>
-          <p style={{ fontWeight:700, fontSize:14, marginTop:10, marginBottom:12 }}>Commentaires ({post.comments?.length||0})</p>
-
-          {post.comments?.map(c => (
-            <div key={c.id} style={{ display:'flex', gap:8, marginBottom:12 }}>
-              <Avatar uid={c.uid} src={c.authorPhoto} name={c.authorName} size={32} />
-              <div style={{ background:'#F0F2F5', borderRadius:12, padding:'8px 12px', flex:1 }}>
-                <p style={{ fontWeight:700, fontSize:13 }}>{c.authorName}{c.authorIsVip&&<VIPBadge/>}</p>
-                {c.text&&<p style={{ fontSize:13, lineHeight:1.5, marginTop:2 }}><Linkify text={c.text} /></p>}
-                {c.mediaURL&&<div style={{ marginTop:6 }}>{c.mediaType==='image'?<img src={c.mediaURL} alt="" style={{ maxWidth:200, borderRadius:8 }}/>:<video src={c.mediaURL} controls style={{ maxWidth:200, borderRadius:8 }}/>}</div>}
-                <p style={{ fontSize:10, color:'#65676B', marginTop:4 }}>{c.createdAt?timeAgo(c.createdAt):''}</p>
-                <div style={{ display:'flex', gap:10, marginTop:4 }}>
-                  <button onClick={() => setReplyTo(c.authorName)} style={{ background:'none', border:'none', cursor:'pointer', color:'#65676B', fontSize:11, display:'flex', alignItems:'center', gap:3 }}><HiReply size={11}/> Répondre</button><button onClick={() => setCmtReactPicker(p=>p===c.id?null:c.id)} style={{ background:'none', border:'none', cursor:'pointer', color:'#65676B', fontSize:11 }}>{c.reactions?.[currentUser.uid]||'😊'} {Object.keys(c.reactions||{}).length||''}</button>{cmtReactPicker===c.id&&<div style={{ display:'flex', gap:4, background:'white', borderRadius:20, padding:'4px 8px', boxShadow:'0 2px 12px rgba(0,0,0,.15)' }}>{['❤️','😂','😮','😢','👍','🔥'].map(em=><span key={em} onClick={()=>reactToCmt(c.id,em)} style={{ fontSize:18, cursor:'pointer' }}>{em}</span>)}</div>}
-                  {c.uid===currentUser.uid && (
-                    <button onClick={() => setEditCmt({cmt:c,text:c.text})} style={{ background:'none', border:'none', cursor:'pointer', color:'#65676B', fontSize:11, display:'flex', alignItems:'center', gap:3 }}><HiPencil size={11}/> Modifier</button>
-                  )}
-                  {(c.uid===currentUser.uid||post.uid===currentUser.uid) && (
-                    <button onClick={() => deleteCmt(c)} style={{ background:'none', border:'none', cursor:'pointer', color:'#FF2D8D', fontSize:11, display:'flex', alignItems:'center', gap:3 }}><HiTrash size={11}/> Supprimer</button>
-                  )}
-                </div>
-              </div>
-            </div>
-          ))}
-
-          {replyTo&&(
-            <div style={{ display:'flex', alignItems:'center', gap:6, marginBottom:8, background:'#F0F2F5', padding:'6px 10px', borderRadius:10 }}>
-              <HiReply size={14} color="#1877F2"/>
-              <span style={{ fontSize:12, color:'#65676B' }}>Répondre à <strong>{replyTo}</strong></span>
-              <button onClick={() => setReplyTo(null)} style={{ marginLeft:'auto', background:'none', border:'none', cursor:'pointer', color:'#65676B' }}><HiX size={14}/></button>
-            </div>
-          )}
-
-          {commentMedia&&(
-            <div style={{ position:'relative', marginBottom:8, display:'inline-block' }}>
-              {commentMedia.type==='image'?<img src={commentMedia.preview} alt="" style={{ maxWidth:130, borderRadius:8 }}/>:<video src={commentMedia.preview} style={{ maxWidth:130, borderRadius:8 }}/>}
-              <button onClick={() => setCmtMedia(null)} style={{ position:'absolute', top:2, right:2, background:'rgba(0,0,0,.5)', border:'none', borderRadius:'50%', width:20, height:20, cursor:'pointer', color:'white', fontSize:10, display:'flex', alignItems:'center', justifyContent:'center' }}>✕</button>
-            </div>
-          )}
-
-          <div style={{ display:'flex', gap:8, alignItems:'center', marginTop:10 }}>
-            <img src={userProfile?.photoURL||`https://ui-avatars.com/api/?name=${encodeURIComponent(userProfile?.fullName||'U')}&background=1877F2&color=fff`} alt="" className="avatar" style={{ width:32, height:32, flexShrink:0 }}/>
-            <MentionPanel open={mentions.isOpen()} query={mentions.query} people={mentions.people}
-              showSpecials={post?.uid === currentUser?.uid}
-              onPick={tag => setCmtText(v => mentions.insert(v, tag))} onClose={mentions.close} />
-            <input className="input" placeholder={replyTo?`Répondre à ${replyTo}...`:t('writeComment')} value={commentText} onChange={e=>{ setCmtText(e.target.value); mentions.onType(e.target.value); }} onKeyDown={e=>e.key==='Enter'&&addComment()} style={{ flex:1, padding:'8px 12px', fontSize:13 }}/>
-            <input ref={cPhotoRef} type="file" accept="image/*" style={{ display:'none' }} onChange={e=>{const f=e.target.files[0];if(f)setCmtMedia({file:f,type:'image',preview:URL.createObjectURL(f)});}}/>
-            <input ref={cVideoRef} type="file" accept="video/*" style={{ display:'none' }} onChange={e=>{const f=e.target.files[0];if(f)setCmtMedia({file:f,type:'video',preview:URL.createObjectURL(f)});}}/>
-            <button onClick={() => cPhotoRef.current?.click()} style={{ background:'none', border:'none', cursor:'pointer', color:'#65676B', padding:4 }}><HiPhotograph size={20}/></button>
-            <button onClick={() => cVideoRef.current?.click()} style={{ background:'none', border:'none', cursor:'pointer', color:'#65676B', padding:4 }}><HiVideoCamera size={20}/></button>
-            <button onClick={addComment} style={{ background:'linear-gradient(135deg,#FF2D8D,#FF7AB8)', border:'none', borderRadius:'50%', width:36, height:36, cursor:'pointer', color:'white', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>➤</button>
+          {/* Bokotra fanokafana — rehefa nakatona ny panneau */}
+          <div onClick={() => setSheetOpen(true)}
+            style={{ display:'flex', alignItems:'center', gap:8, marginTop:10, padding:'10px 12px',
+                     background:'#F0F2F5', borderRadius:100, cursor:'pointer' }}>
+            <img src={(userProfile?.photoThumb || userProfile?.photoURL) || `https://ui-avatars.com/api/?name=${encodeURIComponent(userProfile?.fullName||'U')}&background=1877F2&color=fff`}
+              alt="" style={{ width:30, height:30, borderRadius:'50%', objectFit:'cover' }} />
+            <span style={{ fontSize:13.5, color:'#65676B' }}>
+              {post.comments?.length ? `Voir les ${post.comments.length} commentaires` : 'Écrire un commentaire…'}
+            </span>
           </div>
+
+          <input ref={cPhotoRef} type="file" accept="image/*" style={{ display:'none' }} onChange={e=>{const f=e.target.files[0];if(f)setCmtMedia({file:f,type:'image',preview:URL.createObjectURL(f)});}}/>
+          <input ref={cVideoRef} type="file" accept="video/*" style={{ display:'none' }} onChange={e=>{const f=e.target.files[0];if(f)setCmtMedia({file:f,type:'video',preview:URL.createObjectURL(f)});}}/>
         </div>
       </div>
+
+      <CommentSheet
+        open={sheetOpen && !!post}
+        onClose={() => setSheetOpen(false)}
+        post={post}
+        comments={post?.comments || []}
+        meUid={currentUser?.uid}
+        userProfile={userProfile}
+        value={commentText}
+        onChange={setCmtText}
+        onSend={addComment}
+        replyTo={replyTo}
+        onCancelReply={() => setReplyTo(null)}
+        onReply={(root) => setReplyTo({ id: root.id, authorName: root.authorName })}
+        onReact={(c, emoji) => reactToCmt(c.id, emoji)}
+        onEdit={(c) => setEditCmt({ cmt: c, text: c.text })}
+        onDelete={(c) => deleteCmt(c)}
+        onPickMedia={() => cPhotoRef.current?.click()}
+        mentions={mentions}
+      />
 
       {viewerState && post && (
         <MediaViewer

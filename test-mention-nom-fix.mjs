@@ -74,10 +74,13 @@ ok('MentionPanel mandefa objet', fs.readFileSync('./src/components/MentionPanel.
    .includes('onPick({ name: p.fullName || p.username'));
 ok('useMentions.insert mandray objet', fs.readFileSync('./src/hooks/useMentions.js', 'utf8')
    .includes("if (pick && typeof pick === 'object' && pick.uid)"));
+// PostDetail : ny mention dia ao anatin'ny CommentSheet izao (dingana 2)
+ok('CommentSheet mampiasa mentions.insert',
+   fs.readFileSync('./src/components/CommentSheet.jsx', 'utf8').includes('mentions.insert(value, tag)'));
+ok('PostDetail mandefa ny hook', fs.readFileSync('./src/pages/PostDetail.jsx', 'utf8').includes('mentions={mentions}'));
 for (const [n, p] of Object.entries({
-  PostDetail: './src/pages/PostDetail.jsx',
-  Profile:    './src/pages/Profile.jsx',
-  Reels:      './src/pages/Reels.jsx',
+  Profile: './src/pages/Profile.jsx',
+  Reels:   './src/pages/Reels.jsx',
 })) ok(n + ' mampiasa mentions.insert', fs.readFileSync(p, 'utf8').includes('mentions.insert('));
 
 console.log('\n─────────────────────────────');
