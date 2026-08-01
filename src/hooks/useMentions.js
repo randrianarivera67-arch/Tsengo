@@ -20,6 +20,9 @@ export default function useMentions(userProfile, currentUser) {
   const [found, setFound]   = useState([]);     // vokatry ny fikarohana mivantana
   const loadingRef = useRef(false);
   const searchRef  = useRef({ q: null, t: null });
+  // Mention voafidy : { name, uid }. Ampiasaina amin'ny FANDEFASANA mba
+  // hanoloana ny « @Anarana » ho token « @[Anarana](uid) ».
+  const pickedRef = useRef([]);
 
   /** Namana + abonnés + abonnements (fetra 60, dédoublonné). */
   const loadPeople = useCallback(async () => {
@@ -98,10 +101,36 @@ export default function useMentions(userProfile, currentUser) {
     const v = String(value || '');
     if (pick && typeof pick === 'object' && pick.uid) {
       const name = String(pick.name || '').replace(/[\[\]\n]/g, '').trim() || 'Utilisateur';
-      return v.replace(AT_RE, '@[' + name + '](' + pick.uid + ') ');
+      // ⚠️ ASEHO ny anarana TSOTRA — ny token dia endrika fitehirizana, tsy
+      // tokony ho hitan'ny mpampiasa eo am-panoratana.
+      pickedRef.current = [...pickedRef.current.filter(p => p.uid !== pick.uid), { name, uid: pick.uid }];
+      return v.replace(AT_RE, '@' + name + ' ');
     }
     return v.replace(AT_RE, '@' + pick + ' ');
   }, []);
+
+  // Fanafarana marika regex — tsy misy regex literal eto (simba ny escapement).
+  const SPECIAL = ['.', '*', '+', '?', '^', '(', ')', '|', '[', ']', String.fromCharCode(123),
+                   String.fromCharCode(125), String.fromCharCode(36), String.fromCharCode(92)];
+  const esc = (t) => String(t).split('').map(ch => SPECIAL.indexOf(ch) >= 0 ? String.fromCharCode(92) + ch : ch).join('');
+
+  /**
+   * Lahatsoratra ASEHO -> lahatsoratra TEHIRIZINA.
+   * Soloina token ny « @Anarana » tsirairay voafidy (indray mandeha isaky ny
+   * mention). Raha novain'ny mpampiasa ny anarana dia tsy lasa lien — tsy misy
+   * simba, lahatsoratra tsotra fotsiny.
+   */
+  const toStorage = useCallback((text) => {
+    let out = String(text || '');
+    for (const p of pickedRef.current) {
+      const re = new RegExp('@' + esc(p.name) + '(?![\p{L}\p{N}_])', 'u');
+      if (re.test(out)) out = out.replace(re, () => '@[' + p.name + '](' + p.uid + ')');
+    }
+    return out;
+  }, []);
+
+  /** Antsoina aorian'ny fandefasana. */
+  const clearPicked = useCallback(() => { pickedRef.current = []; }, []);
 
   /** Alias mazava kokoa — mitovy amin'ny `insert`. */
   const insertEntity = insert;
@@ -112,5 +141,5 @@ export default function useMentions(userProfile, currentUser) {
     return [...people, ...found.filter(f => !seen.has(f.uid))];
   })();
 
-  return { people: merged, query: active?.q || '', isOpen, onType, close, insert, insertEntity };
+  return { people: merged, query: active?.q || '', isOpen, onType, close, insert, insertEntity, toStorage, clearPicked };
 }

@@ -108,13 +108,14 @@ export default function PostDetail() {
   async function addComment() {
     // ⚠️ Ny `@Anarana` teo aloha (ampiana amin'ny lahatsoratra) dia ESORINA :
     // ny FIL no maneho ny valiny izao, tsy ny lahatsoratra.
-    const text = (commentText || '').trim(); const media = commentMedia;
+    // ASEHO → TEHIRIZINA : ny « @Anarana » lasa token « @[Anarana](uid) »
+    const text = mentions.toStorage((commentText || '').trim()); const media = commentMedia;
     if (!text&&!media) return;
     let mediaURL='', mT='';
     if (media) { try { const r=await uploadToTelegram(media.file); mediaURL=r.url; mT=r.type; } catch {} }
     const cmt = { id:uuidv4(), uid:currentUser.uid, authorName:userProfile.fullName, authorPhoto: (userProfile.photoThumb || userProfile.photoURL)||'', authorIsVip:userProfile.isVip||false, text:text.slice(0,500), mediaURL, mediaType:mT, createdAt:new Date().toISOString(), ...(replyTo?.id ? { parentId: replyTo.id } : {}) };
     await updateDoc(doc(db,'posts',postId), { comments:arrayUnion(cmt) });
-    setCmtText(''); setCmtMedia(null); setReplyTo(null);
+    setCmtText(''); setCmtMedia(null); setReplyTo(null); mentions.clearPicked();
     if (post.uid!==currentUser.uid) {
       await addDoc(collection(db,'notifications'), { toUid:post.uid, fromUid:currentUser.uid, fromName:userProfile.fullName, fromPhoto: (userProfile.photoThumb || userProfile.photoURL)||'', type:'comment', postId, message:`${userProfile.fullName} a commenté votre publication`, read:false, createdAt:serverTimestamp() });
     }

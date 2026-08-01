@@ -49,19 +49,19 @@ function Comment({ c, isReply, meUid, postUid, onReply, onReact, onEdit, onDelet
   const down = () => {
     movedRef.current = false;
     pressRef.current = setTimeout(() => {
-      if (!movedRef.current && (canEdit(c, meUid) || canDelete(c, meUid, postUid))) setMenu(true);
+      if (!movedRef.current) setMenu(true);   // Copier : azon'ny rehetra
     }, 480);
   };
   const up = () => clearTimeout(pressRef.current);
   const move = () => { movedRef.current = true; clearTimeout(pressRef.current); };
 
   return (
-    <div style={{ display: 'flex', gap: 8, marginBottom: 13, marginLeft: isReply ? 40 : 0,
+    <div style={{ display: 'flex', gap: 8, marginBottom: 13, marginLeft: isReply ? 48 : 0,
                   position: 'relative' }}>
       {/* Connecteur — mampiseho mazava fa VALINY izy (fomba Facebook) */}
       {isReply && (
-        <span aria-hidden="true" style={{ position: 'absolute', left: -22, top: -13, bottom: '50%',
-                                          width: 18, borderLeft: '2px solid ' + C.bord,
+        <span aria-hidden="true" style={{ position: 'absolute', left: -26, top: -13, bottom: '50%',
+                                          width: 22, borderLeft: '2px solid ' + C.bord,
                                           borderBottom: '2px solid ' + C.bord,
                                           borderBottomLeftRadius: 10 }} />
       )}
@@ -146,6 +146,20 @@ function Comment({ c, isReply, meUid, postUid, onReply, onReact, onEdit, onDelet
             <div onClick={e => e.stopPropagation()}
               style={{ background: 'white', width: '100%', borderRadius: '16px 16px 0 0', padding: '8px 0 14px' }}>
               <div style={{ width: 38, height: 4, background: '#CFD2D6', borderRadius: 2, margin: '0 auto 8px' }} />
+              <button onClick={() => {
+                  setMenu(false);
+                  const t = c.text || '';
+                  if (navigator.clipboard?.writeText) navigator.clipboard.writeText(t).catch(() => {});
+                  else {
+                    const ta = document.createElement('textarea');
+                    ta.value = t; ta.style.position = 'fixed'; ta.style.opacity = '0';
+                    document.body.appendChild(ta); ta.select();
+                    try { document.execCommand('copy'); } catch (e) {}
+                    document.body.removeChild(ta);
+                  }
+                }}
+                style={{ width: '100%', padding: '13px 20px', border: 'none', background: 'none', textAlign: 'left',
+                         fontFamily: 'Poppins', fontSize: 14.5, color: C.txt, cursor: 'pointer' }}>Copier</button>
               {canEdit(c, meUid) && (
                 <button onClick={() => { setMenu(false); onEdit && onEdit(c); }}
                   style={{ width: '100%', padding: '13px 20px', border: 'none', background: 'none', textAlign: 'left',
@@ -254,7 +268,7 @@ export default function CommentSheet({
                 ))}
                 {rest > 0 && (
                   <div onClick={() => setExpanded(e => ({ ...e, [c.id]: true }))}
-                    style={{ marginLeft: 40, fontSize: 12.5, color: C.gris, fontWeight: 600,
+                    style={{ marginLeft: 48, fontSize: 12.5, color: C.gris, fontWeight: 600,
                              padding: '2px 0 11px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
                     <span style={{ width: 18, height: 1.5, background: '#CFD2D6', display: 'block' }} />
                     Voir {rest} autre{rest > 1 ? 's' : ''} réponse{rest > 1 ? 's' : ''}

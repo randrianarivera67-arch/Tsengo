@@ -137,7 +137,7 @@ console.log('\n8) CommentSheet — endrika sy fitsipika');
   ok('Modifier/Supprimer TSY ao anaty andalana', !S.includes('HiPencil') && !S.includes('HiTrash'));
   ok('ligne : daty · J\'aime · Répondre', S.includes("J'aime") && S.includes('Répondre'));
   ok('pastille manidina ankavanana', S.includes("marginLeft: 'auto'"));
-  ok('valiny mitanila 40 px', S.includes('marginLeft: isReply ? 40 : 0'));
+  ok('valiny mitanila 48 px', S.includes('marginLeft: isReply ? 48 : 0'));
   ok('avatar valiny 26 px', S.includes('isReply ? 26 : 32'));
   ok('« Voir N autres réponses »', S.includes('Voir {rest} autre'));
   ok('valiny mipetaka amin\'ny FOTOTRA', S.includes('onReply && onReply(c, r)'));
