@@ -1,5 +1,7 @@
 // src/pages/Profile.jsx
 import Linkify from '../components/Linkify';
+import MentionPanel from '../components/MentionPanel';
+import useMentions from '../hooks/useMentions';
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
@@ -74,6 +76,7 @@ export default function Profile() {
   const [shareModalPost, setShareModalPost] = useState(null);
   const [souvenirs,    setSouvenirs]    = useState(null);   // null | []
   const targetUid = uid  || currentUser?.uid;
+  const mentions = useMentions(userProfile, currentUser);
 
   const [profile,        setProfile]     = useState(null);
   const [posts,          setPosts]       = useState([]);
@@ -745,7 +748,10 @@ export default function Profile() {
               <img src={userProfile?.photoURL||`https://ui-avatars.com/api/?name=${encodeURIComponent(userProfile?.fullName||'U')}&background=1877F2&color=fff`} alt="" className="avatar" style={{ width:30, height:30, flexShrink:0 }}/>
               <input ref={el=>cPhotoRef.current[post.id]=el} type="file" accept="image/jpeg,image/png,image/gif,image/webp" style={{ display:'none' }} onChange={e=>{const f=e.target.files[0];if(f)setCmtMedia(p=>({...p,[post.id]:{file:f,type:'image',preview:URL.createObjectURL(f)}}));}}/>
               <input ref={el=>cVideoRef.current[post.id]=el} type="file" accept="video/mp4,video/webm,video/quicktime" style={{ display:'none' }} onChange={e=>{const f=e.target.files[0];if(f)setCmtMedia(p=>({...p,[post.id]:{file:f,type:'video',preview:URL.createObjectURL(f)}}));}}/>
-              <input className="input" placeholder={replyTo[post.id]?`Répondre à ${replyTo[post.id]}...`:t('writeComment')} value={cmtText[post.id]||''} onChange={e=>setCmtText(p=>({...p,[post.id]:e.target.value}))} onKeyDown={e=>e.key==='Enter'&&addComment(post.id)} style={{ flex:1, padding:'7px 12px', fontSize:13 }} maxLength={500}/>
+              <MentionPanel open={mentions.isOpen(post.id)} query={mentions.query} people={mentions.people}
+                showSpecials={post.uid === currentUser?.uid}
+                onPick={tag => setCmtText(p => ({ ...p, [post.id]: mentions.insert(p[post.id] || '', tag) }))} onClose={mentions.close} />
+              <input className="input" placeholder={replyTo[post.id]?`Répondre à ${replyTo[post.id]}...`:t('writeComment')} value={cmtText[post.id]||''} onChange={e=>{ setCmtText(p=>({...p,[post.id]:e.target.value})); mentions.onType(e.target.value, post.id); }} onKeyDown={e=>e.key==='Enter'&&addComment(post.id)} style={{ flex:1, padding:'7px 12px', fontSize:13 }} maxLength={500}/>
               <button onClick={() => cPhotoRef.current[post.id]?.click()} style={{ background:'none', border:'none', cursor:'pointer', color:'#65676B', padding:4 }}><HiPhotograph size={18}/></button>
               <button onClick={() => cVideoRef.current[post.id]?.click()} style={{ background:'none', border:'none', cursor:'pointer', color:'#65676B', padding:4 }}><HiVideoCamera size={18}/></button>
               <button onClick={() => addComment(post.id)} style={{ background:'linear-gradient(135deg,#FF2D8D,#FF7AB8)', border:'none', borderRadius:'50%', width:32, height:32, cursor:'pointer', color:'white', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>➤</button>

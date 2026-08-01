@@ -1,5 +1,7 @@
 // src/pages/Reels.jsx — TikTok style vertical scroll
 import Linkify from '../components/Linkify';
+import MentionPanel from '../components/MentionPanel';
+import useMentions from '../hooks/useMentions';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import {
@@ -237,6 +239,8 @@ export default function Reels() {
     await updateDoc(doc(db,'posts',postId),{comments:updated});
     setCmtReactPicker(null);
   }
+
+  const mentions = useMentions(userProfile, currentUser);
 
   async function addComment(postId) {
     const post = posts.find(p=>p.id===postId); if (!post) return;
@@ -519,10 +523,13 @@ export default function Reels() {
 
           <div style={{ display:'flex', gap:8, alignItems:'center' }}>
             <button onClick={()=>cPhotoRef.current?.click()} style={{ background:'none', border:'none', cursor:'pointer', color:'#65676B' }}><HiPhotograph size={20}/></button>
+            <MentionPanel open={mentions.isOpen()} query={mentions.query} people={mentions.people}
+              showSpecials={false}
+              onPick={tag => setCommentText(v => mentions.insert(v, tag))} onClose={mentions.close} />
             <button onClick={()=>cVideoRef.current?.click()} style={{ background:'none', border:'none', cursor:'pointer', color:'#65676B' }}><HiVideoCamera size={20}/></button>
             <input
               placeholder={replyTo?`Répondre à ${replyTo}...`:"Écrire un commentaire..."}
-              value={commentText} onChange={e=>setCommentText(e.target.value)}
+              value={commentText} onChange={e=>{ setCommentText(e.target.value); mentions.onType(e.target.value); }}
               onKeyDown={e=>e.key==='Enter'&&addComment(activePost.id)}
               style={{ flex:1, background:'#050505', border:'1px solid #232733', borderRadius:25, padding:'9px 14px', color:'white', fontFamily:'Poppins', fontSize:13 }}
             />

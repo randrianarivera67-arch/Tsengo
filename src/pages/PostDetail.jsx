@@ -1,5 +1,7 @@
 // src/pages/PostDetail.jsx
 import Linkify from '../components/Linkify';
+import MentionPanel from '../components/MentionPanel';
+import useMentions from '../hooks/useMentions';
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import Avatar from '../components/Avatar';
@@ -43,6 +45,7 @@ export default function PostDetail() {
   const [showReactions, setShowReact]  = useState(false);
   const [reactionModal, setRM]         = useState(null);
   const [commentText,   setCmtText]    = useState('');
+  const mentions = useMentions(userProfile, currentUser);
   const [commentMedia,  setCmtMedia]   = useState(null);
   const [editCmt,       setEditCmt]    = useState(null);
   const [replyTo,       setReplyTo]    = useState(null);
@@ -405,7 +408,10 @@ export default function PostDetail() {
 
           <div style={{ display:'flex', gap:8, alignItems:'center', marginTop:10 }}>
             <img src={userProfile?.photoURL||`https://ui-avatars.com/api/?name=${encodeURIComponent(userProfile?.fullName||'U')}&background=1877F2&color=fff`} alt="" className="avatar" style={{ width:32, height:32, flexShrink:0 }}/>
-            <input className="input" placeholder={replyTo?`Répondre à ${replyTo}...`:t('writeComment')} value={commentText} onChange={e=>setCmtText(e.target.value)} onKeyDown={e=>e.key==='Enter'&&addComment()} style={{ flex:1, padding:'8px 12px', fontSize:13 }}/>
+            <MentionPanel open={mentions.isOpen()} query={mentions.query} people={mentions.people}
+              showSpecials={post?.uid === currentUser?.uid}
+              onPick={tag => setCmtText(v => mentions.insert(v, tag))} onClose={mentions.close} />
+            <input className="input" placeholder={replyTo?`Répondre à ${replyTo}...`:t('writeComment')} value={commentText} onChange={e=>{ setCmtText(e.target.value); mentions.onType(e.target.value); }} onKeyDown={e=>e.key==='Enter'&&addComment()} style={{ flex:1, padding:'8px 12px', fontSize:13 }}/>
             <input ref={cPhotoRef} type="file" accept="image/*" style={{ display:'none' }} onChange={e=>{const f=e.target.files[0];if(f)setCmtMedia({file:f,type:'image',preview:URL.createObjectURL(f)});}}/>
             <input ref={cVideoRef} type="file" accept="video/*" style={{ display:'none' }} onChange={e=>{const f=e.target.files[0];if(f)setCmtMedia({file:f,type:'video',preview:URL.createObjectURL(f)});}}/>
             <button onClick={() => cPhotoRef.current?.click()} style={{ background:'none', border:'none', cursor:'pointer', color:'#65676B', padding:4 }}><HiPhotograph size={20}/></button>
