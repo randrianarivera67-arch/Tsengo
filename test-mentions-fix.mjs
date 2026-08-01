@@ -56,7 +56,9 @@ console.log('\n③ Scroll — tsy manakatona ny panneau intsony');
 console.log('\n④ Composer — picker ampiana');
 ok('key __composer__', HO.includes("setMentionQuery({ postId: '__composer__'"));
 ok('panneau ao amin\'ny composer', HO.includes("mentionQuery?.postId === '__composer__'"));
-ok('mampiditra ao amin\'ny content', HO.includes("setContent(prev => prev.replace(/@([\\p{L}0-9_-]*)$/u, '@' + tag + ' '))"));
+// Nosoloina token entité (mentionToken) — ny '@' + tag dia namokatra [object Object]
+ok('mampiditra ao amin\'ny content (token entité)',
+   HO.includes("setContent(prev => prev.replace(/@([\\p{L}0-9_-]*)$/u, mentionToken(tag)))"));
 // Ny rendu dia nifindra tany amin'ny MentionPanel (portal) — jerena ao izy.
 ok('avatar ao amin\'ny MentionPanel',
    fs.readFileSync('./src/components/MentionPanel.jsx','utf8').includes("borderRadius: '50%', objectFit: 'cover'"));

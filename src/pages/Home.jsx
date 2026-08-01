@@ -432,6 +432,19 @@ export default function Home() {
   ];
   const MENTION_MAX = 200;   // fetra mpandray isaky ny commentaire
 
+  /**
+   * Token mention — endrika mitovy amin'ny `useMentions.insert`.
+   * ⚠️ Ny `MentionPanel` dia mandefa OBJET { name, uid } : ny fampiarahana
+   * tsotra (`'@' + tag`) dia mamokatra « @[object Object] ».
+   */
+  const mentionToken = (pick) => {
+    if (pick && typeof pick === 'object' && pick.uid) {
+      const name = String(pick.name || '').replace(/[\[\]\n]/g, '').trim() || 'Utilisateur';
+      return '@[' + name + '](' + pick.uid + ') ';
+    }
+    return '@' + pick + ' ';
+  };
+
   // ── Namana ho an'ny mention @ ──
   // ⚠️ TALOHA : namana ihany, ary niverina avy hatrany raha tsy nisy namana
   // → ny mpampiasa tsy manana "ami" dia tsy nahazo soso-kevitra mihitsy.
@@ -2039,7 +2052,7 @@ const fields = {
                   people={mentionFriends}
                   showSpecials={false}
                   onPick={(tag) => {
-                    setContent(prev => prev.replace(/@([\p{L}0-9_-]*)$/u, '@' + tag + ' '));
+                    setContent(prev => prev.replace(/@([\p{L}0-9_-]*)$/u, mentionToken(tag)));
                     setMentionQuery(null);
                   }}
                   onClose={() => setMentionQuery(null)}
@@ -2707,7 +2720,7 @@ const fields = {
                       people={mentionFriends}
                       showSpecials={post.uid === currentUser.uid}
                       onPick={(tag) => {
-                        setCmtText(prev => ({ ...prev, [post.id]: (prev[post.id]||'').replace(/@([\p{L}0-9_-]*)$/u, '@' + tag + ' ') }));
+                        setCmtText(prev => ({ ...prev, [post.id]: (prev[post.id]||'').replace(/@([\p{L}0-9_-]*)$/u, mentionToken(tag)) }));
                         setMentionQuery(null);
                       }}
                       onClose={() => setMentionQuery(null)}

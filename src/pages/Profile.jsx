@@ -653,7 +653,7 @@ export default function Profile() {
               </>}
             </div>
             {post.comments?.length > 0 && (
-              <span onClick={() => setOpenCmt(p=>({...p,[post.id]:!p[post.id]}))} style={{ fontSize:13, color:'#65676B', cursor:'pointer' }}>
+              <span onClick={() => navigate(`/post/${post.id}`)} /* → PostDetail */ style={{ fontSize:13, color:'#65676B', cursor:'pointer' }}>
                 {post.comments.length} commentaire{post.comments.length>1?'s':''}
               </span>
             )}
@@ -684,7 +684,7 @@ export default function Profile() {
               </div>
             )}
           </div>
-          <button onClick={() => setOpenCmt(p=>({...p,[post.id]:!p[post.id]}))} className='post-action-btn'>
+          <button onClick={() => navigate(`/post/${post.id}`)} className='post-action-btn'>
             <NeonComment size={18}/> Commenter
           </button>
           <button onClick={() => sharePost(post)} className='post-action-btn'>
