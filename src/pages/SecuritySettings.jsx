@@ -1,11 +1,12 @@
 // src/pages/SecuritySettings.jsx
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { verifyBeforeUpdateEmail, updatePassword, EmailAuthProvider, reauthenticateWithCredential } from 'firebase/auth';
-import { auth } from '../firebase';
+import { verifyBeforeUpdateEmail, updatePassword, EmailAuthProvider, reauthenticateWithCredential, deleteUser, signOut } from 'firebase/auth';
+import { doc, updateDoc, serverTimestamp } from 'firebase/firestore';
+import { auth, db } from '../firebase';
 import { useAuth } from '../context/AuthContext';
 import { useLang } from '../context/LanguageContext';
-import { HiArrowLeft, HiMail, HiLockClosed, HiQuestionMarkCircle, HiChevronRight, HiCheckCircle, HiX } from 'react-icons/hi';
+import { HiArrowLeft, HiMail, HiLockClosed, HiQuestionMarkCircle, HiChevronRight, HiCheckCircle, HiX, HiPause, HiTrash } from 'react-icons/hi';
 
 export default function SecuritySettings() {
   const { currentUser } = useAuth();
@@ -20,6 +21,7 @@ export default function SecuritySettings() {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState(null);
   const [error, setError] = useState(null);
+  const [confirmText, setConfirmText] = useState('');   // fanamarinana « SUPPRIMER »
 
   async function reauthenticate() {
     const credential = EmailAuthProvider.credential(currentUser.email, currentPassword);
@@ -55,10 +57,74 @@ export default function SecuritySettings() {
     setLoading(false);
   }
 
+  /**
+   * DÉSACTIVER — azo averina. Ny publication sy commentaire TAZONINA.
+   * Miverina ho velona rehefa miditra indray ny mpampiasa.
+   */
+  async function handleDeactivate() {
+    if (!currentPassword) { setError('Entrez votre mot de passe.'); return; }
+    if (!window.confirm(
+      'Désactiver votre compte ?\n\n' +
+      "Votre profil ne sera plus visible. Vos publications et commentaires sont conservés.\n" +
+      'Vous pouvez réactiver à tout moment en vous reconnectant.'
+    )) return;
+    setLoading(true); setError(null); setMessage(null);
+    try {
+      await reauthenticate();
+      await updateDoc(doc(db, 'users', currentUser.uid), {
+        disabled: true, disabledAt: serverTimestamp(),
+      });
+      await signOut(auth);
+    } catch (e) {
+      setError(e.code === 'auth/wrong-password' ? 'Mot de passe incorrect.'
+             : e.code === 'auth/too-many-requests' ? 'Trop de tentatives. Réessayez plus tard.'
+             : 'Erreur : ' + (e.message || e.code));
+    } finally { setLoading(false); }
+  }
+
+  /**
+   * SUPPRIMER — TSY AZO AVERINA.
+   *
+   * ⚠️ Ny publication sy ny commentaire dia TSY fafana eto : an-jatony ny
+   * écriture, ary raha tapaka eo antenatenany dia hisy données very antsasany.
+   * Ny fomba mety dia asa backend (fanadiovana miandalana). Eto dia :
+   *   • marihina deletedAt sy disabled
+   *   • diovina ny données manokana (sary, bio, telefaona…)
+   *   • fafana ny kaonty Auth → tsy azo idirana intsony
+   */
+  async function handleDeleteAccount() {
+    if (!currentPassword) { setError('Entrez votre mot de passe.'); return; }
+    if (confirmText.trim().toUpperCase() !== 'SUPPRIMER') {
+      setError('Tapez SUPPRIMER pour confirmer.'); return;
+    }
+    if (!window.confirm(
+      'SUPPRIMER DÉFINITIVEMENT votre compte ?\n\n' +
+      'Cette action est IRRÉVERSIBLE.\n' +
+      'Vous perdrez l\'accès à votre profil, vos messages et votre boutique.'
+    )) return;
+    setLoading(true); setError(null); setMessage(null);
+    try {
+      await reauthenticate();
+      // Fanadiovana ny données manokana ALOHAN'ny famafana ny Auth
+      await updateDoc(doc(db, 'users', currentUser.uid), {
+        disabled: true, deletedAt: serverTimestamp(),
+        photoURL: '', photoThumb: '', coverURL: '', bio: '', phone: '',
+      }).catch(() => {});
+      await deleteUser(currentUser);
+    } catch (e) {
+      setError(e.code === 'auth/wrong-password' ? 'Mot de passe incorrect.'
+             : e.code === 'auth/requires-recent-login' ? 'Reconnectez-vous puis réessayez.'
+             : e.code === 'auth/too-many-requests' ? 'Trop de tentatives. Réessayez plus tard.'
+             : 'Erreur : ' + (e.message || e.code));
+    } finally { setLoading(false); }
+  }
+
   const items = [
     { key: 'email', icon: HiMail, label: 'Modifier l\'email', desc: currentUser?.email, color: '#3b82f6' },
     { key: 'password', icon: HiLockClosed, label: 'Modifier le mot de passe', desc: '••••••••', color: '#8b5cf6' },
     { key: 'help', icon: HiQuestionMarkCircle, label: 'Aide & Support', desc: 'Contacter l\'assistance', color: '#10b981' },
+    { key: 'deactivate', icon: HiPause, label: 'Désactiver mon compte', desc: 'Réversible à tout moment', color: '#f59e0b' },
+    { key: 'delete', icon: HiTrash, label: 'Supprimer mon compte', desc: 'Action irréversible', color: '#ef4444' },
   ];
 
   return (
@@ -161,6 +227,63 @@ export default function SecuritySettings() {
           </div>
         </div>
       )}
+      {(section === 'deactivate' || section === 'delete') && (() => {
+        const isDel = section === 'delete';
+        const col = isDel ? '#ef4444' : '#f59e0b';
+        return (
+          <div className="card" style={{ padding: 20 }}>
+            <div style={{ background: isDel ? '#fef2f2' : '#fffbeb',
+                          border: '1px solid ' + (isDel ? '#fca5a5' : '#fcd34d'),
+                          borderRadius: 12, padding: 14, marginBottom: 18 }}>
+              <p style={{ fontSize: 13.5, fontWeight: 700, color: isDel ? '#991b1b' : '#92400e', marginBottom: 6 }}>
+                {isDel ? 'Action irréversible' : 'Action réversible'}
+              </p>
+              <p style={{ fontSize: 12.5, lineHeight: 1.65, color: '#65676B' }}>
+                {isDel
+                  ? "Votre compte sera supprimé définitivement. Vous perdrez l'accès à votre profil, vos messages et votre boutique. Cette action ne peut pas être annulée."
+                  : "Votre profil ne sera plus visible. Vos publications et commentaires sont conservés. Reconnectez-vous à tout moment pour réactiver."}
+              </p>
+            </div>
+
+            <label style={{ display: 'block', fontSize: 13, fontWeight: 600, marginBottom: 6 }}>
+              Mot de passe actuel
+            </label>
+            <input type="password" className="input" value={currentPassword}
+              onChange={e => setCurrentPassword(e.target.value)} placeholder="••••••••"
+              style={{ width: '100%', padding: '11px 14px', fontSize: 14, marginBottom: 14 }} />
+
+            {isDel && (
+              <>
+                <label style={{ display: 'block', fontSize: 13, fontWeight: 600, marginBottom: 6 }}>
+                  Tapez <b style={{ color: col }}>SUPPRIMER</b> pour confirmer
+                </label>
+                <input className="input" value={confirmText}
+                  onChange={e => setConfirmText(e.target.value)} placeholder="SUPPRIMER"
+                  style={{ width: '100%', padding: '11px 14px', fontSize: 14, marginBottom: 14 }} />
+              </>
+            )}
+
+            <button
+              onClick={isDel ? handleDeleteAccount : handleDeactivate}
+              disabled={loading || !currentPassword || (isDel && confirmText.trim().toUpperCase() !== 'SUPPRIMER')}
+              style={{
+                width: '100%', padding: '13px', borderRadius: 25, border: 'none',
+                background: col, color: 'white', fontFamily: 'Poppins', fontSize: 14, fontWeight: 700,
+                cursor: 'pointer',
+                opacity: (loading || !currentPassword || (isDel && confirmText.trim().toUpperCase() !== 'SUPPRIMER')) ? .5 : 1,
+              }}>
+              {loading ? 'Veuillez patienter…' : (isDel ? 'Supprimer définitivement' : 'Désactiver mon compte')}
+            </button>
+
+            <button onClick={() => { setSection(null); setConfirmText(''); setCurrentPassword(''); setError(null); }}
+              style={{ width: '100%', padding: '11px', marginTop: 10, borderRadius: 25,
+                       border: '1px solid #E4E6EB', background: 'white', fontFamily: 'Poppins',
+                       fontSize: 14, color: '#65676B', cursor: 'pointer' }}>
+              Annuler
+            </button>
+          </div>
+        );
+      })()}
     </div>
   );
 }

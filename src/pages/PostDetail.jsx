@@ -114,8 +114,16 @@ export default function PostDetail() {
     let mediaURL='', mT='';
     if (media) { try { const r=await uploadToTelegram(media.file); mediaURL=r.url; mT=r.type; } catch {} }
     const cmt = { id:uuidv4(), uid:currentUser.uid, authorName:userProfile.fullName, authorPhoto: (userProfile.photoThumb || userProfile.photoURL)||'', authorIsVip:userProfile.isVip||false, text:text.slice(0,500), mediaURL, mediaType:mT, createdAt:new Date().toISOString(), ...(replyTo?.id ? { parentId: replyTo.id } : {}) };
-    await updateDoc(doc(db,'posts',postId), { comments:arrayUnion(cmt) });
+    /* optimiste */
+    const beforeAdd = post.comments || [];
+    setPost(p => (p ? { ...p, comments: [...(p.comments || []), cmt] } : p));
     setCmtText(''); setCmtMedia(null); setReplyTo(null); mentions.clearPicked();
+    try {
+      await updateDoc(doc(db,'posts',postId), { comments:arrayUnion(cmt) });
+    } catch (e) {
+      setPost(p => (p ? { ...p, comments: beforeAdd } : p));
+      return;
+    }
     if (post.uid!==currentUser.uid) {
       await addDoc(collection(db,'notifications'), { toUid:post.uid, fromUid:currentUser.uid, fromName:userProfile.fullName, fromPhoto: (userProfile.photoThumb || userProfile.photoURL)||'', type:'comment', postId, message:`${userProfile.fullName} a commenté votre publication`, read:false, createdAt:serverTimestamp() });
     }
@@ -124,15 +132,29 @@ export default function PostDetail() {
   async function deleteCmt(cmt) {
     if (cmt.uid!==currentUser.uid && post.uid!==currentUser.uid) return;
     if (!window.confirm('Supprimer ce commentaire ?')) return;
-    await updateDoc(doc(db,'posts',postId), { comments:arrayRemove(cmt) });
+    /* optimiste */
+    const beforeDel = post.comments;
+    setPost(p => (p ? { ...p, comments: (p.comments || []).filter(x => x.id !== cmt.id) } : p));
+    try {
+      await updateDoc(doc(db,'posts',postId), { comments:arrayRemove(cmt) });
+    } catch (e) {
+      setPost(p => (p ? { ...p, comments: beforeDel } : p));
+    }
   }
 
   async function saveEditCmt(oldCmt, newText) {
     if (oldCmt.uid !== currentUser.uid) return;
     if (!newText.trim()) return;
     const updated = post.comments.map(c => c.id===oldCmt.id?{...c,text:newText.trim()}:c);
-    await updateDoc(doc(db,'posts',postId), { comments:updated });
+    /* optimiste */
+    const beforeEdit = post.comments;
+    setPost(p => (p ? { ...p, comments: updated } : p));
     setEditCmt(null);
+    try {
+      await updateDoc(doc(db,'posts',postId), { comments:updated });
+    } catch (e) {
+      setPost(p => (p ? { ...p, comments: beforeEdit } : p));
+    }
   }
 
   async function reactToCmt(cmtId, emoji) {
@@ -142,8 +164,16 @@ export default function PostDetail() {
       if (my===emoji) { const u={...reactions}; delete u[currentUser.uid]; return {...c,reactions:u}; }
       return {...c,reactions:{...reactions,[currentUser.uid]:emoji}};
     });
-    await updateDoc(doc(db,'posts',postId),{comments:updated});
+    /* optimiste */
+    // Aseho AVY HATRANY, tsy miandry ny serveur. Raha tsy mety dia averina.
+    const before = post.comments;
+    setPost(p => (p ? { ...p, comments: updated } : p));
     setCmtReactPicker(null);
+    try {
+      await updateDoc(doc(db,'posts',postId),{comments:updated});
+    } catch (e) {
+      setPost(p => (p ? { ...p, comments: before } : p));   // rollback
+    }
   }
 
   function sharePost() {
