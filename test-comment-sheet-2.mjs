@@ -95,6 +95,40 @@ for (const p of ['Home', 'Profile', 'Reels']) {
      !fs.readFileSync('./src/pages/' + p + '.jsx', 'utf8').includes('CommentSheet'));
 }
 
+/* ═══ 6. Appui long réaction (dingana 3) ═══════════════════════════════ */
+console.log('\n6) Appui long — réaction');
+{
+  const CS = fs.readFileSync('./src/components/CommentSheet.jsx', 'utf8');
+  ok('ref appui long', CS.includes('const likePressRef = useRef(null);'));
+  ok('marika long/fohy', CS.includes('const likeLongRef  = useRef(false);'));
+  ok('480 ms', CS.includes('likeLongRef.current = true; setPicker(true); }, 480)'));
+  ok('appui long tsy manao réaction koa', CS.includes('if (likeLongRef.current) { likeLongRef.current = false; return; }'));
+  ok('tsindry fohy → réaction', CS.includes("onReact(c, mine || '\ud83d\udc4d')"));
+  eq('cleanup 3 toerana (up/leave/move)', (CS.match(/clearTimeout\(likePressRef\.current\)/g) || []).length, 3);
+  ok('« Je n\'aime plus » raha efa nanao', CS.includes("mine ? 'Je n\\'aime plus'"));
+  ok('picker mikatona amin\'ny ivelany', CS.includes('onClick={() => setPicker(false)}'));
+  ok('connecteur valiny', CS.includes('borderBottomLeftRadius: 10'));
+}
+
+console.log('\n   Logika appui long (naverina)');
+{
+  const sim = () => {
+    let picker = false, long = false, react = null;
+    return {
+      longFire() { long = true; picker = true; },
+      click(mine) { if (long) { long = false; return; } react = mine || '\ud83d\udc4d'; },
+      get state() { return { picker, react }; },
+    };
+  };
+  let a = sim(); a.click(null);
+  eq('tsindry fohy → \ud83d\udc4d', a.state, { picker: false, react: '\ud83d\udc4d' });
+  let b = sim(); b.longFire(); b.click(null);
+  eq('appui long → panneau IHANY', b.state, { picker: true, react: null });
+  let d = sim(); d.click('\u2764\ufe0f');
+  eq('efa nanao \u2764\ufe0f → manala azy', d.state, { picker: false, react: '\u2764\ufe0f' });
+}
+
 console.log('\n─────────────────────────────');
 console.log(pass + ' pass, ' + fail + ' fail');
+
 process.exit(fail ? 1 : 0);

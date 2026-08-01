@@ -38,6 +38,8 @@ function Comment({ c, isReply, meUid, postUid, onReply, onReact, onEdit, onDelet
   const [menu, setMenu] = useState(false);
   const pressRef = useRef(null);
   const movedRef = useRef(false);
+  const likePressRef = useRef(null);   // appui long amin'ny « J'aime »
+  const likeLongRef  = useRef(false);  // marika : appui long ve sa tsindry fohy
 
   const mine = reactCount(c) ? (c.reactions || {})[meUid] : null;
   const n = reactCount(c);
@@ -54,7 +56,15 @@ function Comment({ c, isReply, meUid, postUid, onReply, onReact, onEdit, onDelet
   const move = () => { movedRef.current = true; clearTimeout(pressRef.current); };
 
   return (
-    <div style={{ display: 'flex', gap: 8, marginBottom: 13, marginLeft: isReply ? 40 : 0 }}>
+    <div style={{ display: 'flex', gap: 8, marginBottom: 13, marginLeft: isReply ? 40 : 0,
+                  position: 'relative' }}>
+      {/* Connecteur — mampiseho mazava fa VALINY izy (fomba Facebook) */}
+      {isReply && (
+        <span aria-hidden="true" style={{ position: 'absolute', left: -22, top: -13, bottom: '50%',
+                                          width: 18, borderLeft: '2px solid ' + C.bord,
+                                          borderBottom: '2px solid ' + C.bord,
+                                          borderBottomLeftRadius: 10 }} />
+      )}
       <img src={ava(c.authorPhoto, c.authorName)} alt="" loading="lazy"
         style={{ width: sz, height: sz, borderRadius: '50%', objectFit: 'cover', flexShrink: 0, background: C.bulle }} />
 
@@ -84,8 +94,23 @@ function Comment({ c, isReply, meUid, postUid, onReply, onReact, onEdit, onDelet
         <div style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '5px 12px 0',
                       fontSize: 11.5, color: C.gris, fontWeight: 600 }}>
           <span style={{ fontWeight: 400, color: C.gris2 }}>{c.createdAt ? timeAgo(c.createdAt) : ''}</span>
-          <span onClick={() => onReact && onReact(c, '👍')}
-            style={{ cursor: 'pointer', color: mine ? C.bleu : C.gris }}>J'aime</span>
+          <span
+            onPointerDown={() => {
+              likeLongRef.current = false;
+              likePressRef.current = setTimeout(() => { likeLongRef.current = true; setPicker(true); }, 480);
+            }}
+            onPointerUp={() => clearTimeout(likePressRef.current)}
+            onPointerLeave={() => clearTimeout(likePressRef.current)}
+            onPointerMove={() => clearTimeout(likePressRef.current)}
+            onClick={() => {
+              // Appui long : ny panneau no misokatra — tsy manao 👍 koa.
+              if (likeLongRef.current) { likeLongRef.current = false; return; }
+              onReact && onReact(c, mine || '👍');
+            }}
+            style={{ cursor: 'pointer', color: mine ? C.bleu : C.gris,
+                     WebkitUserSelect: 'none', userSelect: 'none', touchAction: 'manipulation' }}>
+            {mine ? 'Je n\'aime plus' : "J'aime"}
+          </span>
           <span onClick={() => onReply && onReply(c)} style={{ cursor: 'pointer' }}>Répondre</span>
 
           {n > 0 && (
@@ -99,6 +124,9 @@ function Comment({ c, isReply, meUid, postUid, onReply, onReact, onEdit, onDelet
         </div>
 
         {picker && (
+          <>
+          <div onClick={() => setPicker(false)}
+            style={{ position: 'fixed', inset: 0, zIndex: 4 }} />
           <div onClick={e => e.stopPropagation()}
             style={{ position: 'absolute', bottom: '100%', left: 0, marginBottom: 5, display: 'flex', gap: 5,
                      background: 'white', borderRadius: 22, padding: '5px 9px', zIndex: 5,
@@ -108,6 +136,7 @@ function Comment({ c, isReply, meUid, postUid, onReply, onReact, onEdit, onDelet
                 style={{ fontSize: 21, cursor: 'pointer' }}>{e}</span>
             ))}
           </div>
+          </>
         )}
 
         {menu && createPortal(
