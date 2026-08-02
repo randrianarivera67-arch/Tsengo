@@ -2613,9 +2613,9 @@ const fields = {
                   onMouseDown={() => startLongPress(post.id)} onMouseUp={endLongPress} onMouseLeave={endLongPress}
                   className={'post-action-btn'+(myR?' active':'')}
                   style={myR ? { color:'#FF2D8D', fontWeight:700 } : {}}>
-                  {myR
-                    ? <span style={{ fontSize:18, lineHeight:1 }}>{myR}</span>
-                    : <NeonLike size={19} color={'#65676B'}/>}
+                  {myR && myR !== '👍'
+                    ? <span style={{ fontSize:24, lineHeight:1 }}>{myR}</span>
+                    : <NeonLike size={25} color={myR ? '#FF2D8D' : '#65676B'}/>}
                   {' '}{myR ? (FB_REACTIONS.find(r => r.emoji === myR)?.label || "J'aime") : "J'aime"}
                 </button>
                 {showReact[post.id] && (
@@ -2637,10 +2637,10 @@ const fields = {
                 )}
               </div>
               <button onClick={() => openPost(post.id, null, true)} className='post-action-btn'>
-                <NeonComment size={18}/> Commenter
+                <NeonComment size={25}/> Commenter
               </button>
               <button onClick={() => sharePost(post)} className='post-action-btn'>
-                <NeonShare size={18}/> Partager
+                <NeonShare size={25}/> Partager
               </button>
             </div>
 

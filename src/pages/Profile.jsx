@@ -666,7 +666,7 @@ export default function Profile() {
               onContextMenu={e => { e.preventDefault(); setShowReact(p=>({...p,[post.id]:!p[post.id]})); }}
               className={'post-action-btn'+(myR?' active':'')}
               style={myR ? { color:'#1877F2', fontWeight:700 } : {}}>
-              <NeonLike size={19} color={myR ? '#1877F2' : '#65676B'}/> J'aime
+              <NeonLike size={25} color={myR ? '#FF2D8D' : '#65676B'}/> J'aime
             </button>
             {showReact[post.id] && (
               <div onClick={e=>e.stopPropagation()} style={{ position:'absolute', bottom:'calc(100% + 8px)', left:0, background:'white', borderRadius:20, padding:'10px 8px 6px', display:'flex', gap:4, boxShadow:'0 4px 24px rgba(0,0,0,.18)', zIndex:50, border:'1px solid #E4E6EB', whiteSpace:'nowrap' }}>
@@ -685,10 +685,10 @@ export default function Profile() {
             )}
           </div>
           <button onClick={() => navigate(`/post/${post.id}`)} className='post-action-btn'>
-            <NeonComment size={18}/> Commenter
+            <NeonComment size={25}/> Commenter
           </button>
           <button onClick={() => sharePost(post)} className='post-action-btn'>
-            <NeonShare size={18}/> Partager
+            <NeonShare size={25}/> Partager
           </button>
         </div>
 
@@ -842,13 +842,13 @@ export default function Profile() {
             <div className="post-actions-row">
               <button onClick={() => reactToPost(selectedPost.id, selectedPost.reactions?.[currentUser.uid] || '❤️')}
                 className={'post-action-btn'+(selectedPost.reactions?.[currentUser.uid]?' active':'')}>
-                <NeonLike size={19} color={selectedPost.reactions?.[currentUser.uid]?'#FF2D8D':'#65676B'}/> J'aime
+                <NeonLike size={25} color={selectedPost.reactions?.[currentUser.uid]?'#FF2D8D':'#65676B'}/> J'aime
               </button>
               <button onClick={() => navigate(`/post/${selectedPost.id}`)} className="post-action-btn">
-                <NeonComment size={18}/> Commenter
+                <NeonComment size={25}/> Commenter
               </button>
               <button onClick={() => sharePost(selectedPost)} className="post-action-btn">
-                <NeonShare size={18}/> Partager
+                <NeonShare size={25}/> Partager
               </button>
             </div>
           </div>

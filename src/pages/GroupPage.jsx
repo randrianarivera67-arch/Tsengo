@@ -7,7 +7,7 @@ import {
   addDoc, serverTimestamp, arrayUnion, arrayRemove, getDoc, writeBatch
 } from 'firebase/firestore';
 import { db } from '../firebase';
-import { NeonPlaneWhite } from '../components/NeonIcons';
+import { NeonPlaneWhite, NeonLike, NeonComment, NeonShare } from '../components/NeonIcons';
 import MusicPostCard from '../components/MusicPostCard';
 import { useAuth } from '../context/AuthContext';
 import { timeAgo } from '../utils/timeAgo';
@@ -928,8 +928,11 @@ export default function GroupPage() {
                 <button onClick={() => reactToPost(post.id, myR || '👍')}
                   onContextMenu={e => { e.preventDefault(); setShowReact(p => ({ ...p, [post.id]: !p[post.id] })); }}
                   className={'post-action-btn' + (myR ? ' active' : '')}
-                  style={myR ? { color: myR === '👍' ? '#1877F2' : '#FF2D8D', fontWeight: 700 } : {}}>
-                  <span style={{ fontSize: 17 }}>{myR || '👍'}</span> J'aime
+                  style={myR ? { color: '#FF2D8D', fontWeight: 700 } : {}}>
+                  {myR && myR !== '👍'
+                    ? <span style={{ fontSize: 24, lineHeight: 1 }}>{myR}</span>
+                    : <NeonLike size={25} color={myR ? '#FF2D8D' : '#65676B'}/>}
+                  {' '}J'aime
                 </button>
                 {showReact[post.id] && (
                   <div style={{ position: 'absolute', bottom: '110%', left: 8, background: 'white', borderRadius: 30, padding: '8px 12px', display: 'flex', gap: 6, boxShadow: '0 4px 20px rgba(0,0,0,.2)', zIndex: 10, border: '1px solid #E4E6EB' }}>
@@ -938,10 +941,10 @@ export default function GroupPage() {
                 )}
               </div>
               <button onClick={() => openPost(post.id)} className='post-action-btn'>
-                <HiChat size={18} /> Commenter{post.comments?.length > 0 ? ` (${post.comments.length})` : ''}
+                <NeonComment size={25} /> Commenter{post.comments?.length > 0 ? ` (${post.comments.length})` : ''}
               </button>
               <button onClick={() => sharePost(post)} className='post-action-btn'>
-                <HiShare size={18} /> Partager
+                <NeonShare size={25} /> Partager
               </button>
             </div>
           </div>
