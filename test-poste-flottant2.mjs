@@ -96,9 +96,11 @@ ok('tsy misy flexDirection amin\'ny carte', !H.includes("flexDirection:'column',
 
 /* ═══ 6. Pejy hafa ═════════════════════════════════════════════════════ */
 console.log('\n6) Pejy hafa tsy voakasika');
-for (const [n,p] of Object.entries({ 'Profile':'./src/pages/Profile.jsx',
-  'GroupPage':'./src/pages/GroupPage.jsx', 'PostDetail':'./src/pages/PostDetail.jsx' }))
-  ok(n, !fs.readFileSync(p,'utf8').includes('FARITRA MANIDINA'));
+// Profile : voapatch izao (rafitra mitovy). GroupPage : mbola tsy.
+ok('Profile voapatch (rafitra mitovy)', fs.readFileSync('./src/pages/Profile.jsx','utf8').includes('FARITRA MANIDINA'));
+for (const [n,p] of Object.entries({ 'GroupPage':'./src/pages/GroupPage.jsx',
+  'PostDetail':'./src/pages/PostDetail.jsx' }))
+  ok(n + ' tsy voakasika', !fs.readFileSync(p,'utf8').includes('FARITRA MANIDINA'));
 
 console.log('\n─────────────────────────────');
 console.log(pass + ' pass, ' + fail + ' fail');

@@ -545,14 +545,19 @@ export default function Profile() {
     const boosted = post.isBoosted && post.boostUntil && new Date(post.boostUntil)>new Date();
 
     return (
-      <div key={post.id} className="card post-card animate-fade" style={{ marginBottom:14, border:boosted?'1px solid #a855f755':undefined }}>
+      <div key={post.id} className="card post-card animate-fade" style={{ marginBottom:14, position:'relative', overflow:'hidden', border:boosted?'1px solid #a855f755':undefined }}>
         {boosted && (
           <div style={{ background:'linear-gradient(135deg,#7c3aed18,#a855f718)', borderBottom:'1px solid #a855f733', padding:'5px 14px' }}>
             <span style={{ fontSize:10, color:'#a855f7', fontWeight:600 }}>⚡ Sponsorisé</span>
           </div>
         )}
 
-        <div style={{ padding:'14px 16px 0', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+        <div style={(!!(post.mediaURL || (post.mediaURLs && post.mediaURLs.length)) && !(post.sharedFrom || post.eventFrom)) ? {
+              position:'absolute', top:10, left:10, right:10, zIndex:4,
+              padding:'4px 8px', display:'flex', alignItems:'center', justifyContent:'space-between',
+              background:'rgba(255,255,255,.95)', backdropFilter:'blur(14px)', WebkitBackdropFilter:'blur(14px)',
+              borderRadius:100, boxShadow:'0 4px 16px rgba(5,5,5,.18)',
+            } : { padding:'14px 16px 0', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
           <div style={{ display:'flex', alignItems:'center', gap:10, flex:1, minWidth:0 }}>
             <img src={profile.photoURL||`https://ui-avatars.com/api/?name=${encodeURIComponent(profile.fullName||'U')}&background=1877F2&color=fff`} alt="" className="avatar" style={{ width:40, height:40, flexShrink:0 }}/>
             <div style={{ minWidth:0 }}>
@@ -589,6 +594,53 @@ export default function Profile() {
             </div>
           </div>
         </div>
+        {/* ── FARITRA MANIDINA : média + en-tête + actions ── */}
+        {(!!(post.mediaURL || (post.mediaURLs && post.mediaURLs.length)) && !(post.sharedFrom || post.eventFrom)) && (
+          <div style={{ position:'relative' }}>
+            {post.mediaURLs?.length > 1 ? (
+              <div style={{ marginTop:8 }}>
+                <PhotoCarousel urls={post.mediaURLs} thumbs={post.thumbURLs} onOpen={()=>navigate(`/post/${post.id}`)} />
+              </div>
+            ) : post.mediaURL && (
+              <div style={{ marginTop:8 }}>
+                {post.mediaType==='image'
+                  ? <SmartImage src={post.thumbURL || post.mediaURL} onClick={()=>navigate(`/post/${post.id}`)} minH={220} style={{ width:'100%', borderRadius:10, maxHeight:350, objectFit:'cover', cursor:'zoom-in' }}/>
+                  : <VideoThumb src={post.mediaURL} poster={post.thumbURL} onClick={()=>navigate('/reels',{state:{startId:post.id}})} style={{ width:'100%', maxHeight:350, borderRadius:10 }} playSize={50}/>}
+              </div>
+            )}
+              <div className='post-actions-row' style={{ position:'absolute', left:10, right:10, bottom:10, zIndex:3, margin:0, background:'rgba(255,255,255,.95)', backdropFilter:'blur(14px)', WebkitBackdropFilter:'blur(14px)', borderRadius:100, boxShadow:'0 4px 16px rgba(5,5,5,.18)', padding:'3px 6px', border:'none' }}>
+          <div style={{ position:'relative', flex:1, display:'flex' }}>
+            <button onClick={() => { const m = post.reactions?.[currentUser.uid]; reactToPost(post.id, m || '❤️'); }}
+              onContextMenu={e => { e.preventDefault(); setShowReact(p=>({...p,[post.id]:!p[post.id]})); }}
+              className={'post-action-btn'+(myR?' active':'')}
+              style={myR ? { color:'#1877F2', fontWeight:700 } : {}}>
+              <NeonLike size={25} color={myR ? '#FF2D8D' : '#65676B'} filled={!!myR}/> J'aime
+            </button>
+            {showReact[post.id] && (
+              <div onClick={e=>e.stopPropagation()} style={{ position:'absolute', bottom:'calc(100% + 8px)', left:0, background:'white', borderRadius:20, padding:'10px 8px 6px', display:'flex', gap:4, boxShadow:'0 4px 24px rgba(0,0,0,.18)', zIndex:50, border:'1px solid #E4E6EB', whiteSpace:'nowrap' }}>
+                {FB_REACTIONS.map(r => (
+                  <button key={r.emoji}
+                    onClick={()=>{ reactToPost(post.id, r.emoji); setShowReact(p=>({...p,[post.id]:false})); }}
+                    style={{ background:'none', border:'none', cursor:'pointer', display:'flex', flexDirection:'column', alignItems:'center', gap:3, padding:'0 4px', minWidth:44 }}>
+                    <span style={{ fontSize:28, lineHeight:1, display:'block', transition:'transform .15s' }}
+                      onTouchStart={ev=>ev.currentTarget.style.transform='scale(1.35) translateY(-4px)'}
+                      onTouchEnd={ev=>ev.currentTarget.style.transform='scale(1)'}
+                    >{r.emoji}</span>
+                    <span style={{ fontSize:10, color:'#65676B', fontWeight:600, fontFamily:'Poppins' }}>{r.label}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+          <button onClick={() => navigate(`/post/${post.id}`)} className='post-action-btn'>
+            <NeonComment size={25}/> Commenter
+          </button>
+          <button onClick={() => sharePost(post)} className='post-action-btn'>
+            <NeonShare size={25}/> Partager
+          </button>
+        </div>
+          </div>
+        )}
 
         <div style={{ padding:'10px 16px', cursor:'pointer' }} onClick={() => navigate(`/post/${post.id}`)}>
           {post.content && (<>
@@ -631,6 +683,10 @@ export default function Profile() {
               )}
             </div>
           )}
+        </div>
+
+        {/* Média — eto IHANY raha TSY manidina */}
+        {(post.sharedFrom || post.eventFrom || !(post.mediaURL || (post.mediaURLs && post.mediaURLs.length))) && (<>
           {post.mediaURLs?.length > 1 ? (
             <div style={{ marginTop:8 }}>
               <PhotoCarousel urls={post.mediaURLs} thumbs={post.thumbURLs} onOpen={()=>navigate(`/post/${post.id}`)} />
@@ -642,7 +698,7 @@ export default function Profile() {
                 : <VideoThumb src={post.mediaURL} poster={post.thumbURL} onClick={()=>navigate('/reels',{state:{startId:post.id}})} style={{ width:'100%', maxHeight:350, borderRadius:10 }} playSize={50}/>}
             </div>
           )}
-        </div>
+        </>)}
 
         {(total > 0 || post.comments?.length > 0) && (
           <div style={{ padding:'0 16px 8px', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
@@ -660,6 +716,9 @@ export default function Profile() {
           </div>
         )}
 
+
+        {/* Actions — eto IHANY raha TSY manidina */}
+        {(post.sharedFrom || post.eventFrom || !(post.mediaURL || (post.mediaURLs && post.mediaURLs.length))) && (
         <div className='post-actions-row'>
           <div style={{ position:'relative', flex:1, display:'flex' }}>
             <button onClick={() => { const m = post.reactions?.[currentUser.uid]; reactToPost(post.id, m || '❤️'); }}
@@ -691,6 +750,7 @@ export default function Profile() {
             <NeonShare size={25}/> Partager
           </button>
         </div>
+        )}
 
         {isOwnPost && !boosted && (
           <div style={{ padding:'0 16px 12px' }}>
