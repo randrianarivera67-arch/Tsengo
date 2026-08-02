@@ -16,8 +16,6 @@ import { NeonChart } from './NeonIcons';
 import PullToRefresh from './PullToRefresh';
 import UpdateBanner from './UpdateBanner';
 import { clearPins, requestFeedReset } from '../utils/feedPins';
-import { isLiteOn, setLite, subscribeLite } from '../utils/liteMode';
-import useKeyboardInset from '../hooks/useKeyboardInset';
 import ScrollReveal from './ScrollReveal';
 import { subscribeUpload } from '../utils/uploadManager';
 import {
@@ -26,7 +24,8 @@ import {
   HiBell, HiOutlineBell, HiMenu, HiX, HiSearch, HiLogout, HiCog,
   HiOutlineCog, HiTag, HiFilm, HiPhotograph,
   HiBookmark, HiOutlineBookmark, HiCalendar, HiSpeakerphone, HiShoppingBag, HiChevronRight,
-  HiMicrophone, HiIdentification, HiDocumentText, HiChartBar, HiSwitchHorizontal, HiCheck, HiShoppingCart, HiShieldCheck, HiPlay } from 'react-icons/hi';
+  HiMicrophone, HiIdentification, HiDocumentText, HiChartBar, HiSwitchHorizontal, HiCheck, HiShoppingCart, HiShieldCheck,
+} from 'react-icons/hi';
 
 // Icône "JEJO" — wordmark rose clay 3D + étoiles + smiley (style bijou)
 function JejoIcon({ w = 90 }) {
@@ -62,15 +61,10 @@ function JejoIcon({ w = 90 }) {
   );
 }
 
-// Icône navbar claymorphism 3D (état NON sélectionné — icône couleur, sans fond)
+// Icône navbar claymorphism 3D (état NON sélectionné) — v9 : MAINTY clay 3D.
+// Ny endrika 3D dia tazonina amin'ny gradient sy reflet (fa tsy amin'ny loko).
 function ClayNavIcon({ type, color = '#1877F2', size = 38 }) {
-  // ⚠️ Karazana loko TELO izao. Ny fanamarinana dia atao MAZAVA isaky ny iray
-  // (fa tsy ternaire mifanindry) mba tsy hisy fifangaroana.
-  const blue = color === '#1877F2';
-  const rose = color === '#FF2D8D';
-  const l = rose ? '#FF9CC9' : blue ? '#7CB8FF' : '#FFE08A';
-  const m = rose ? '#FF3E97' : blue ? '#2E8BFF' : '#F5C518';
-  const d = rose ? '#DA0F68' : blue ? '#1667D8' : '#D69A00';
+  const l = '#5A5F66', m = '#2B2F35', d = '#0E1013';
   const gid = 'clayG_' + type, shid = 'clayS_' + type;
   return (
     <svg width={size} height={size} viewBox="0 0 64 64">
@@ -99,12 +93,6 @@ function ClayNavIcon({ type, color = '#1877F2', size = 38 }) {
           <path d="M52 14 C54 13.2 55.5 15 54.7 17 L44 48 C43.3 50 40.7 50.4 39.4 48.7 L32 39 L46 22 L26 35 L14.5 30.5 C12.6 29.7 12.5 27 14.4 26.2 Z" fill={'url(#' + gid + ')'}/>
           <path d="M32 39 L32 50 C32 51.6 34 52.3 35 51 L39.4 45.5 Z" fill={d} opacity="0.6"/>
           <ellipse cx="30" cy="24" rx="6" ry="2.4" fill="#fff" opacity="0.4" transform="rotate(-30 30 24)"/>
-        </>}
-        {type === 'play' && <>
-          {/* Sela boribory + ▶ — endrika mitovy amin'ny icône hafa */}
-          <circle cx="32" cy="32" r="22" fill={'url(#' + gid + ')'}/>
-          <path d="M27.5 22.8 C26.4 22.1 25 22.9 25 24.2 L25 39.8 C25 41.1 26.4 41.9 27.5 41.2 L40.8 33.4 C41.9 32.8 41.9 31.2 40.8 30.6 Z" fill="#fff"/>
-          <ellipse cx="25" cy="24" rx="7" ry="4.2" fill="#fff" opacity="0.3" transform="rotate(-32 25 24)"/>
         </>}
         {type === 'profil' && <>
           <circle cx="32" cy="22" r="11" fill={'url(#' + gid + ')'}/>
@@ -167,10 +155,6 @@ export default function Layout({ children }) {
   }, []);
 
   const [drawerOpen,    setDrawerOpen]    = useState(false);
-  const [liteOn,        setLiteOn]        = useState(isLiteOn());
-  // Dock miafina rehefa miakatra ny clavier — tsy manelingelina ny fanoratana
-  const kbInset = useKeyboardInset();
-  useEffect(() => subscribeLite(setLiteOn), []);
   const [search,        setSearch]        = useState('');
   const [searchResults, setSearchResults] = useState({ users: [], posts: [] });
   const [searchOpen,    setSearchOpen]    = useState(false);
@@ -211,7 +195,7 @@ export default function Layout({ children }) {
     isPageMode
       ? { path: `/pages/${identity.id}`, navState: { openFollowers: true }, icon: 'amis', color: '#F5C518', label: 'Abonnés' }
       : { path: '/friends', icon: 'amis',   color: '#F5C518', label: 'Amis', badge: friendReqCount },
-    { path: '/reels',      icon: 'play',   color: '#FF2D8D', label: 'Jejo' },
+    { path: '/reels',      isJejo: true,   label: 'JEJO' },
     { path: '/messages',   icon: 'plane',  color: '#F5C518', label: 'Messages', badge: msgCount },
     { path: profilePath,   icon: 'profil', color: '#1877F2', label: isPageMode ? 'Page' : 'Profil' },
   ];
@@ -471,8 +455,8 @@ export default function Layout({ children }) {
           )}
         </nav>
 
-        {/* Bloc-notes + Mode Lite */}
-        <div style={{ padding: '0 14px 14px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+        {/* Bloc-notes */}
+        <div style={{ padding: '0 14px 14px', display: 'grid', gridTemplateColumns: '1fr', gap: 10 }}>
           <button onClick={() => { navigate('/notes'); setDrawerOpen(false); }}
             style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 8, padding: '14px', textAlign: 'left', background: isDark ? '#15181F' : 'white', border: `1.5px solid ${bdr}`, borderRadius: 16, cursor: 'pointer', boxShadow: '0 1px 3px rgba(0,0,0,.06)' }}>
             <span className="icon-badge-3d" style={{ width: 44, height: 44, borderRadius: 13, background: 'linear-gradient(145deg,#FFD84D,#F2B300)' }}>
@@ -480,39 +464,6 @@ export default function Layout({ children }) {
             </span>
             <span style={{ fontWeight: 700, fontSize: 14, color: text }}>Bloc-notes</span>
             <span style={{ fontSize: 11, color: '#65676B', marginTop: -6 }}>Vos notes privées</span>
-          </button>
-
-          {/* ── MODE LITE ── Mihetsika avy hatrany, tsy mila manokatra indray ── */}
-          <button onClick={() => setLite(!liteOn)}
-            aria-pressed={liteOn}
-            style={{
-              display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 8, padding: '14px',
-              textAlign: 'left', background: isDark ? '#15181F' : 'white',
-              border: '1.5px solid ' + (liteOn ? '#12A48D' : bdr), borderRadius: 16, cursor: 'pointer',
-              boxShadow: '0 1px 3px rgba(0,0,0,.06)', position: 'relative',
-            }}>
-            <span className="icon-badge-3d" style={{
-              width: 44, height: 44, borderRadius: 13,
-              background: liteOn ? 'linear-gradient(145deg,#7FE6B4,#12A48D)' : 'linear-gradient(145deg,#C7D0DD,#7C8591)',
-            }}>
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                <path d="M13 2 4.5 13.2h5.8L11 22l8.5-11.2h-5.8L13 2Z" fill="white" />
-              </svg>
-            </span>
-            <span style={{ fontWeight: 700, fontSize: 14, color: text }}>Mode Lite</span>
-            <span style={{ fontSize: 11, color: liteOn ? '#12A48D' : '#65676B', marginTop: -6 }}>
-              {liteOn ? 'Activé — données réduites' : 'Économiser vos données'}
-            </span>
-            <span style={{
-              position: 'absolute', top: 12, right: 12, width: 34, height: 19, borderRadius: 999,
-              background: liteOn ? '#12A48D' : (isDark ? '#3A3B3C' : '#D6DAE0'), transition: 'background .2s',
-            }}>
-              <span style={{
-                position: 'absolute', top: 2.5, left: liteOn ? 17 : 2.5, width: 14, height: 14,
-                borderRadius: '50%', background: 'white', transition: 'left .2s',
-                boxShadow: '0 1px 2px rgba(0,0,0,.25)',
-              }} />
-            </span>
           </button>
         </div>
 
@@ -656,24 +607,39 @@ export default function Layout({ children }) {
         </div>
       )}
 
-      {/* ── Dock flottant — clay 3D, JEJO au centre ────────────── */}
-      <nav className="floating-dock" style={kbInset > 0 ? { display: 'none' } : undefined}>
-        {bottomNav.map(({ path, navState, icon, badge, color, label }) => {
+      {/* ── Dock flottant v9 — vague concave + JEJO rond surélevé au centre ── */}
+      <nav className="floating-dock dock-v9">
+        {/* Fond SVG : « vague » concave qui accueille le bouton central */}
+        <svg className="dock-v9-bg" preserveAspectRatio="none" viewBox="0 0 420 62">
+          <path fill="var(--dock-fill)" d="M24 0 H167.3 A16 16 0 0 1 178.6 4.7 A45 45 0 0 0 241.4 4.7 A16 16 0 0 1 252.7 0 H396 A24 24 0 0 1 420 24 V38 A24 24 0 0 1 396 62 H24 A24 24 0 0 1 0 38 V24 A24 24 0 0 1 24 0 Z"/>
+        </svg>
+
+        {bottomNav.map(({ path, navState, icon, badge, color, isJejo, label }) => {
           const active = isActive(path);
-          const FilledIcon = icon === 'home' ? HiHome : icon === 'amis' ? HiUserGroup
-                           : icon === 'plane' ? HiPaperAirplane : icon === 'play' ? HiPlay : HiUser;
+          const FilledIcon = icon === 'home' ? HiHome : icon === 'amis' ? HiUserGroup : icon === 'plane' ? HiPaperAirplane : HiUser;
+          const go = () => {
+            if (path === '/' && location.pathname === '/') { window.dispatchEvent(new CustomEvent('trengo:refresh-home')); return; }
+            const tabPaths = bottomNav.map(it => it.path);
+            const isLateralTabSwitch = path !== '/' && location.pathname !== '/' && tabPaths.includes(location.pathname);
+            navigate(path, { replace: isLateralTabSwitch, state: navState });
+          };
+
+          // JEJO : bouton rond rose SURÉLEVÉ au centre (garde navigate('/reels'))
+          if (isJejo) {
+            return (
+              <button key={label} className="dock-v9-play" onClick={go} aria-label="JEJO">
+                <JejoIcon w={54} />
+              </button>
+            );
+          }
+
           return (
-            <button key={label} className={`dock-item ${active ? 'active' : ''}`} onClick={() => {
-                if (path === '/' && location.pathname === '/') { window.dispatchEvent(new CustomEvent('trengo:refresh-home')); return; }
-                const tabPaths = bottomNav.map(it => it.path);
-                const isLateralTabSwitch = path !== '/' && location.pathname !== '/' && tabPaths.includes(location.pathname);
-                navigate(path, { replace: isLateralTabSwitch, state: navState });
-              }}
-              style={{ background: 'none', border: 'none', cursor: 'pointer', position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5, flex: 1, padding: '4px 0' }}>
+            <button key={label} className={`dock-item ${active ? 'active' : ''}`} onClick={go}
+              style={{ background: 'none', border: 'none', cursor: 'pointer', position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5, flex: 1, padding: '4px 0', zIndex: 2 }}>
               {active ? (
                 <span style={{
                   width: 46, height: 46, borderRadius: 15, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  background: `linear-gradient(150deg, ${color === '#1877F2' ? '#4E9BFF' : color === '#FF2D8D' ? '#FF7DC0' : '#FFD84D'}, ${color === '#1877F2' ? '#1667D8' : color === '#FF2D8D' ? '#DA0F68' : '#D69A00'})`,
+                  background: `linear-gradient(150deg, ${color === '#1877F2' ? '#4E9BFF' : '#FFD84D'}, ${color === '#1877F2' ? '#1667D8' : '#D69A00'})`,
                   boxShadow: `0 5px 12px ${color}66, inset 0 1.5px 2px rgba(255,255,255,.5), inset 0 -3px 5px rgba(0,0,0,.18)`,
                 }}>
                   <FilledIcon size={24} color="#fff" />
