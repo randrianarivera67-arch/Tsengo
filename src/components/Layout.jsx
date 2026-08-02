@@ -677,10 +677,10 @@ export default function Layout({ children }) {
               <button key={label} className="dock-v9-item" onClick={go} aria-label={label}>
                 {active ? (
                   <span className="dock-v9-cell" style={{ '--gl': 'rgba(0,0,0,.38)', background: `linear-gradient(150deg, ${color === '#1877F2' ? '#4E9BFF' : '#FFD84D'}, ${color === '#1877F2' ? '#1667D8' : '#D69A00'})` }}>
-                    <FilledIcon size={26} color="#fff" />
+                    <FilledIcon size={24} color="#fff" />
                   </span>
                 ) : (
-                  <ClayNavIcon type={icon} color={color} size={48} />
+                  <ClayNavIcon type={icon} color={color} size={42} />
                 )}
                 {badge > 0 && <span className="notif-badge" style={{ top: 6, right: 'calc(50% - 22px)' }}>{badge > 9 ? '9+' : badge}</span>}
               </button>
