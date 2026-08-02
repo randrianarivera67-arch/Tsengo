@@ -2360,7 +2360,7 @@ const fields = {
                 return { padding:'14px 16px 0', display:'flex', alignItems:'center', justifyContent:'space-between' };
               }
               return {
-                position:'absolute', top:boosted?34:10, left:10, right:10, zIndex:4,
+                position:'absolute', top:boosted?34:16, left:16, right:16, zIndex:4,
                 padding:'7px 8px', display:'flex', alignItems:'center', justifyContent:'space-between',
                 background:'rgba(255,255,255,.95)', backdropFilter:'blur(14px)', WebkitBackdropFilter:'blur(14px)',
                 borderRadius:100, boxShadow:'0 4px 16px rgba(5,5,5,.18)',
@@ -2500,7 +2500,7 @@ const fields = {
                     {post.isMusic ? <MusicPostCard post={post} height={140}/> : post.mediaType==='image' ? <SmartImage src={post.thumbURL || post.mediaURL} onClick={e=>{e.stopPropagation();openPost(post.id);}} style={{ width:'100%', borderRadius:0, maxHeight:'72vh', objectFit:'cover', display:'block', cursor:'zoom-in' }}/> : <FeedVideo src={post.mediaURL} poster={post.thumbURL} dataSaver={dataSaver || lite} onOpenReels={()=>navigate('/reels',{state:{startId:post.id}})} style={{ width:'100%', borderRadius:0, maxHeight:'72vh', objectFit:'cover', display:'block', background:'#000' }} />}
                   </div>
                 )}
-                  <div className='post-actions-row' style={{ position:'absolute', left:10, right:10, bottom:10, zIndex:3, margin:0, background:'rgba(255,255,255,.95)', backdropFilter:'blur(14px)', WebkitBackdropFilter:'blur(14px)', borderRadius:100, boxShadow:'0 4px 16px rgba(5,5,5,.18)', padding:6, border:'none' }}>
+                  <div className='post-actions-row' style={{ position:'absolute', left:16, right:16, bottom:16, zIndex:3, margin:0, background:'rgba(255,255,255,.95)', backdropFilter:'blur(14px)', WebkitBackdropFilter:'blur(14px)', borderRadius:100, boxShadow:'0 4px 16px rgba(5,5,5,.18)', padding:6, border:'none' }}>
               <div style={{ position:'relative', flex:1, display:'flex' }}>
                 <button
                   onClick={() => quickLike(post)}
@@ -2510,7 +2510,7 @@ const fields = {
                   style={myR ? { color:'#FF2D8D', fontWeight:700 } : {}}>
                   {myR && myR !== '👍'
                     ? <span style={{ fontSize:24, lineHeight:1 }}>{myR}</span>
-                    : <NeonLike size={25} color={myR ? '#FF2D8D' : '#65676B'}/>}
+                    : <NeonLike size={25} color={myR ? '#FF2D8D' : '#65676B'} filled={!!myR}/>}
                   {' '}{myR ? (FB_REACTIONS.find(r => r.emoji === myR)?.label || "J'aime") : "J'aime"}
                 </button>
                 {showReact[post.id] && (
@@ -2695,7 +2695,7 @@ const fields = {
                   style={myR ? { color:'#FF2D8D', fontWeight:700 } : {}}>
                   {myR && myR !== '👍'
                     ? <span style={{ fontSize:24, lineHeight:1 }}>{myR}</span>
-                    : <NeonLike size={25} color={myR ? '#FF2D8D' : '#65676B'}/>}
+                    : <NeonLike size={25} color={myR ? '#FF2D8D' : '#65676B'} filled={!!myR}/>}
                   {' '}{myR ? (FB_REACTIONS.find(r => r.emoji === myR)?.label || "J'aime") : "J'aime"}
                 </button>
                 {showReact[post.id] && (

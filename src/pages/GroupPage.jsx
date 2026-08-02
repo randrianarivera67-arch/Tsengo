@@ -931,7 +931,7 @@ export default function GroupPage() {
                   style={myR ? { color: '#FF2D8D', fontWeight: 700 } : {}}>
                   {myR && myR !== '👍'
                     ? <span style={{ fontSize: 24, lineHeight: 1 }}>{myR}</span>
-                    : <NeonLike size={25} color={myR ? '#FF2D8D' : '#65676B'}/>}
+                    : <NeonLike size={25} color={myR ? '#FF2D8D' : '#65676B'} filled={!!myR}/>}
                   {' '}J'aime
                 </button>
                 {showReact[post.id] && (

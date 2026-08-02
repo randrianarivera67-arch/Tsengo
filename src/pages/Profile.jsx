@@ -666,7 +666,7 @@ export default function Profile() {
               onContextMenu={e => { e.preventDefault(); setShowReact(p=>({...p,[post.id]:!p[post.id]})); }}
               className={'post-action-btn'+(myR?' active':'')}
               style={myR ? { color:'#1877F2', fontWeight:700 } : {}}>
-              <NeonLike size={25} color={myR ? '#FF2D8D' : '#65676B'}/> J'aime
+              <NeonLike size={25} color={myR ? '#FF2D8D' : '#65676B'} filled={!!myR}/> J'aime
             </button>
             {showReact[post.id] && (
               <div onClick={e=>e.stopPropagation()} style={{ position:'absolute', bottom:'calc(100% + 8px)', left:0, background:'white', borderRadius:20, padding:'10px 8px 6px', display:'flex', gap:4, boxShadow:'0 4px 24px rgba(0,0,0,.18)', zIndex:50, border:'1px solid #E4E6EB', whiteSpace:'nowrap' }}>

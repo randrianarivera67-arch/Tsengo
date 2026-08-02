@@ -141,7 +141,18 @@ export function NeonPlaneWhite({ size = 16 }) {
 }
 
 // Pouce "J'aime" (format Facebook)
-export function NeonLike({ size = 18, color = '#65676B' }) {
+export function NeonLike({ size = 18, color = '#65676B', filled = false }) {
+  // ⚠️ Ny path bordure dia misy sous-chemin ROA : tsy azo ampiana `fill`
+  // fotsiny (endrika simba). Path RAMPLI misaraka no ampiasaina.
+  // TSY MIREHATRA : tsy misy glow() — nangatahina mazava.
+  if (filled) {
+    return (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill={color}>
+        <rect x="2.6" y="10.4" width="4.6" height="11" rx="1.4" />
+        <path d="M8.4 10.6 L11.9 3.6 C12.3 2.7 13.4 2.4 14.2 2.9 C15.1 3.5 15.5 4.5 15.3 5.5 L14.4 9 L19.3 9 C20.7 9 21.7 10.3 21.4 11.6 L19.7 19.3 C19.4 20.5 18.3 21.4 17 21.4 L9.6 21.4 C8.9 21.4 8.4 20.9 8.4 20.2 Z" />
+      </svg>
+    );
+  }
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
       <path d="M7 11 L7 21 M7 11 L11.2 3.4 C11.6 2.6 12.6 2.3 13.4 2.8 C14.2 3.3 14.6 4.2 14.4 5.1 L13.4 9 L19.2 9 C20.4 9 21.3 10.1 21 11.3 L19.3 19.1 C19 20.2 18 21 16.8 21 L7 21 M7 11 L3.8 11 C3.3 11 3 11.3 3 11.8 L3 20.2 C3 20.7 3.3 21 3.8 21 L7 21"/>
