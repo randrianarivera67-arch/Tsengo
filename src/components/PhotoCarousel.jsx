@@ -72,7 +72,7 @@ export default function PhotoCarousel({ urls = [], thumbs = [], onOpen }) {
 
   if (n === 1) {
     return (
-      <div onClick={open(list[0].u)} style={{ position: 'relative', overflow: 'hidden', cursor: 'pointer', background: '#eceff3', maxHeight: 520 }}>
+      <div onClick={open(list[0].u)} style={{ position: 'relative', overflow: 'hidden', cursor: 'pointer', background: '#eceff3', maxHeight: '72vh' }}>
         <Img u={list[0].d} />
       </div>
     );

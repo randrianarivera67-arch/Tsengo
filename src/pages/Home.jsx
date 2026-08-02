@@ -2497,7 +2497,7 @@ const fields = {
                   </div>
                 ) : post.mediaURL && (
                   <div style={{ marginTop:8, marginLeft:-16, marginRight:-16 }}>
-                    {post.isMusic ? <MusicPostCard post={post} height={140}/> : post.mediaType==='image' ? <SmartImage src={post.thumbURL || post.mediaURL} onClick={e=>{e.stopPropagation();openPost(post.id);}} style={{ width:'100%', borderRadius:0, maxHeight:520, objectFit:'cover', display:'block', cursor:'zoom-in' }}/> : <FeedVideo src={post.mediaURL} poster={post.thumbURL} dataSaver={dataSaver || lite} onOpenReels={()=>navigate('/reels',{state:{startId:post.id}})} style={{ width:'100%', borderRadius:0, maxHeight:520, objectFit:'cover', display:'block', background:'#000' }} />}
+                    {post.isMusic ? <MusicPostCard post={post} height={140}/> : post.mediaType==='image' ? <SmartImage src={post.thumbURL || post.mediaURL} onClick={e=>{e.stopPropagation();openPost(post.id);}} style={{ width:'100%', borderRadius:0, maxHeight:'72vh', objectFit:'cover', display:'block', cursor:'zoom-in' }}/> : <FeedVideo src={post.mediaURL} poster={post.thumbURL} dataSaver={dataSaver || lite} onOpenReels={()=>navigate('/reels',{state:{startId:post.id}})} style={{ width:'100%', borderRadius:0, maxHeight:'72vh', objectFit:'cover', display:'block', background:'#000' }} />}
                   </div>
                 )}
                   <div className='post-actions-row' style={{ position:'absolute', left:10, right:10, bottom:10, zIndex:3, margin:0, background:'rgba(255,255,255,.95)', backdropFilter:'blur(14px)', WebkitBackdropFilter:'blur(14px)', borderRadius:100, boxShadow:'0 4px 16px rgba(5,5,5,.18)', padding:6, border:'none' }}>
@@ -2615,7 +2615,7 @@ const fields = {
                 </div>
               ) : post.mediaURL && (
                 <div style={{ marginTop:8, marginLeft:-16, marginRight:-16 }}>
-                  {post.isMusic ? <MusicPostCard post={post} height={140}/> : post.mediaType==='image' ? <SmartImage src={post.thumbURL || post.mediaURL} onClick={e=>{e.stopPropagation();openPost(post.id);}} style={{ width:'100%', borderRadius:0, maxHeight:520, objectFit:'cover', display:'block', cursor:'zoom-in' }}/> : <FeedVideo src={post.mediaURL} poster={post.thumbURL} dataSaver={dataSaver || lite} onOpenReels={()=>navigate('/reels',{state:{startId:post.id}})} style={{ width:'100%', borderRadius:0, maxHeight:520, objectFit:'cover', display:'block', background:'#000' }} />}
+                  {post.isMusic ? <MusicPostCard post={post} height={140}/> : post.mediaType==='image' ? <SmartImage src={post.thumbURL || post.mediaURL} onClick={e=>{e.stopPropagation();openPost(post.id);}} style={{ width:'100%', borderRadius:0, maxHeight:'72vh', objectFit:'cover', display:'block', cursor:'zoom-in' }}/> : <FeedVideo src={post.mediaURL} poster={post.thumbURL} dataSaver={dataSaver || lite} onOpenReels={()=>navigate('/reels',{state:{startId:post.id}})} style={{ width:'100%', borderRadius:0, maxHeight:'72vh', objectFit:'cover', display:'block', background:'#000' }} />}
                 </div>
               )}
               </>)}
