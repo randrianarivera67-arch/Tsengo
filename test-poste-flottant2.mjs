@@ -41,7 +41,7 @@ console.log('\n   Média : indroa (manidina + mahazatra)');
 
 console.log('\n   Actions : indroa');
 eq('bloc actions', (H.match(/className='post-actions-row'/g) || []).length, 2);
-ok('manidina : absolute bottom', H.includes("position:'absolute', left:10, right:10, bottom:10, zIndex:3"));
+ok('manidina : absolute bottom', H.includes("position:'absolute', left:16, right:16, bottom:10, zIndex:3"));
 ok('mahazatra tazonina', H.includes('{/* Actions — eto IHANY raha TSY manidina */}'));
 
 /* ═══ 2. Fitsipika manidina ════════════════════════════════════════════ */
@@ -70,7 +70,7 @@ console.log('\n   Logika (naverina)');
 /* ═══ 3. En-tête ═══════════════════════════════════════════════════════ */
 console.log('\n3) En-tête');
 ok('roa lalana (mahazatra / manidina)', H.includes("return { padding:'14px 16px 0', display:'flex'"));
-ok('manidina raha canFloat', H.includes("position:'absolute', top:boosted?34:10, left:10, right:10, zIndex:4"));
+ok('manidina raha canFloat', H.includes("position:'absolute', top:boosted?34:10, left:16, right:16, zIndex:4"));
 ok('boost voahaja', H.includes('top:boosted?34:10'));
 ok('carte relative', H.includes("position:'relative', overflow:'hidden' }}>"));
 

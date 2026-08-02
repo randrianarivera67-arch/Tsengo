@@ -2360,7 +2360,7 @@ const fields = {
                 return { padding:'14px 16px 0', display:'flex', alignItems:'center', justifyContent:'space-between' };
               }
               return {
-                position:'absolute', top:boosted?34:16, left:16, right:16, zIndex:4,
+                position:'absolute', top:boosted?34:10, left:16, right:16, zIndex:4,
                 padding:'7px 8px', display:'flex', alignItems:'center', justifyContent:'space-between',
                 background:'rgba(255,255,255,.95)', backdropFilter:'blur(14px)', WebkitBackdropFilter:'blur(14px)',
                 borderRadius:100, boxShadow:'0 4px 16px rgba(5,5,5,.18)',
@@ -2416,7 +2416,7 @@ const fields = {
                   </StoryRing>
                   <div style={{ minWidth:0 }}>
                     <p style={{ fontWeight:600, fontSize:14, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{post.authorName}{post.authorIsVip&&<VIPBadge/>}</p>
-                    <p style={{ fontSize:12, color:'#65676B' }}>@{post.authorUsername} · {post.createdAt?timeAgo(post.createdAt):"À l'instant"}</p>
+                    <p style={{ fontSize:12, color:'#65676B' }}>{post.createdAt?timeAgo(post.createdAt):"À l'instant"}</p>
                     {post.taggedNames?.length > 0 && <p style={{ fontSize:12, color:'#65676B' }}>avec {post.taggedNames.join(', ')}</p>}
                     {(post.mood || post.location) && (
                       <p style={{ fontSize:12, color:'#65676B' }}>
@@ -2500,7 +2500,7 @@ const fields = {
                     {post.isMusic ? <MusicPostCard post={post} height={140}/> : post.mediaType==='image' ? <SmartImage src={post.thumbURL || post.mediaURL} onClick={e=>{e.stopPropagation();openPost(post.id);}} style={{ width:'100%', borderRadius:0, maxHeight:'72vh', objectFit:'cover', display:'block', cursor:'zoom-in' }}/> : <FeedVideo src={post.mediaURL} poster={post.thumbURL} dataSaver={dataSaver || lite} onOpenReels={()=>navigate('/reels',{state:{startId:post.id}})} style={{ width:'100%', borderRadius:0, maxHeight:'72vh', objectFit:'cover', display:'block', background:'#000' }} />}
                   </div>
                 )}
-                  <div className='post-actions-row' style={{ position:'absolute', left:16, right:16, bottom:16, zIndex:3, margin:0, background:'rgba(255,255,255,.95)', backdropFilter:'blur(14px)', WebkitBackdropFilter:'blur(14px)', borderRadius:100, boxShadow:'0 4px 16px rgba(5,5,5,.18)', padding:6, border:'none' }}>
+                  <div className='post-actions-row' style={{ position:'absolute', left:16, right:16, bottom:10, zIndex:3, margin:0, background:'rgba(255,255,255,.95)', backdropFilter:'blur(14px)', WebkitBackdropFilter:'blur(14px)', borderRadius:100, boxShadow:'0 4px 16px rgba(5,5,5,.18)', padding:6, border:'none' }}>
               <div style={{ position:'relative', flex:1, display:'flex' }}>
                 <button
                   onClick={() => quickLike(post)}
