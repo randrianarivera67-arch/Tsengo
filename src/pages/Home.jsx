@@ -2344,7 +2344,7 @@ const fields = {
           {false && feedAds.length > 0 && pIdx > 0 && pIdx % 4 === 0 && (
             <SponsoredPost ad={feedAds[(Math.floor(pIdx / 4) - 1) % feedAds.length]} />
           )}
-          <div className="card post-card animate-fade" style={{ marginBottom:14, border:boosted?'1px solid #a855f755':undefined }}>
+          <div className="card post-card animate-fade" style={{ marginBottom:14, border:boosted?'1px solid #a855f755':undefined, position:'relative', overflow:'hidden' }}>
             {boosted && (
               <div style={{ background:'linear-gradient(135deg,#7c3aed18,#a855f718)', borderBottom:'1px solid #a855f733', padding:'5px 14px' }}>
                 <span style={{ fontSize:10, color:'#a855f7', fontWeight:600 }}>⚡ Sponsorisé</span>
@@ -2352,7 +2352,20 @@ const fields = {
             )}
 
             {/* Header */}
-            <div style={{ padding:'14px 16px 0', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+            {/* POST_FLOAT : en-tête manidina raha misy faritra média */}
+            <div style={(() => {
+              const ownMedia = !!(post.mediaURL || (post.mediaURLs && post.mediaURLs.length));
+              const nested   = !!(post.sharedFrom || post.eventFrom);
+              if (!(ownMedia && !nested)) {
+                return { padding:'14px 16px 0', display:'flex', alignItems:'center', justifyContent:'space-between' };
+              }
+              return {
+                position:'absolute', top:boosted?34:10, left:10, right:10, zIndex:4,
+                padding:'7px 8px', display:'flex', alignItems:'center', justifyContent:'space-between',
+                background:'rgba(255,255,255,.95)', backdropFilter:'blur(14px)', WebkitBackdropFilter:'blur(14px)',
+                borderRadius:100, boxShadow:'0 4px 16px rgba(5,5,5,.18)',
+              };
+            })()}>
               {post.groupName ? (
                 /* Pub de groupe : photo + nom du groupe (→ groupe), auteur dessous (→ profil) */
                 <div style={{ display:'flex', alignItems:'center', gap:10, flex:1, minWidth:0 }}>
@@ -2467,6 +2480,67 @@ const fields = {
                 </div>
               </div>
             </div>
+            {/* ── FARITRA MANIDINA : média + en-tête + actions ─────────────
+                Ny média dia NAFINDRA avy tao amin'ny contenu (tsy `order` :
+                tsy flex ny contenu, ka tsy nanan-kery izany).
+                Partagée / événement → endrika mahazatra (misy carte anatiny). */}
+            {(() => {
+              const ownMedia = !!(post.mediaURL || (post.mediaURLs && post.mediaURLs.length));
+              const nested   = !!(post.sharedFrom || post.eventFrom);
+              const canFloat = ownMedia && !nested;
+              if (!canFloat) return null;
+              return (
+                <div style={{ position:'relative' }}>
+                {post.mediaURLs?.length > 1 ? (
+                  <div style={{ marginTop:8, marginLeft:-16, marginRight:-16 }}>
+                    <PhotoCarousel urls={post.mediaURLs} thumbs={post.thumbURLs} onOpen={() => openPost(post.id)} />
+                  </div>
+                ) : post.mediaURL && (
+                  <div style={{ marginTop:8, marginLeft:-16, marginRight:-16 }}>
+                    {post.isMusic ? <MusicPostCard post={post} height={140}/> : post.mediaType==='image' ? <SmartImage src={post.thumbURL || post.mediaURL} onClick={e=>{e.stopPropagation();openPost(post.id);}} style={{ width:'100%', borderRadius:0, maxHeight:520, objectFit:'cover', display:'block', cursor:'zoom-in' }}/> : <FeedVideo src={post.mediaURL} poster={post.thumbURL} dataSaver={dataSaver || lite} onOpenReels={()=>navigate('/reels',{state:{startId:post.id}})} style={{ width:'100%', borderRadius:0, maxHeight:520, objectFit:'cover', display:'block', background:'#000' }} />}
+                  </div>
+                )}
+                  <div className='post-actions-row' style={{ position:'absolute', left:10, right:10, bottom:10, zIndex:3, margin:0, background:'rgba(255,255,255,.95)', backdropFilter:'blur(14px)', WebkitBackdropFilter:'blur(14px)', borderRadius:100, boxShadow:'0 4px 16px rgba(5,5,5,.18)', padding:6, border:'none' }}>
+              <div style={{ position:'relative', flex:1, display:'flex' }}>
+                <button
+                  onClick={() => quickLike(post)}
+                  onTouchStart={() => startLongPress(post.id)} onTouchEnd={endLongPress}
+                  onMouseDown={() => startLongPress(post.id)} onMouseUp={endLongPress} onMouseLeave={endLongPress}
+                  className={'post-action-btn'+(myR?' active':'')}
+                  style={myR ? { color:'#FF2D8D', fontWeight:700 } : {}}>
+                  {myR && myR !== '👍'
+                    ? <span style={{ fontSize:24, lineHeight:1 }}>{myR}</span>
+                    : <NeonLike size={25} color={myR ? '#FF2D8D' : '#65676B'}/>}
+                  {' '}{myR ? (FB_REACTIONS.find(r => r.emoji === myR)?.label || "J'aime") : "J'aime"}
+                </button>
+                {showReact[post.id] && (
+                  <div onClick={e=>e.stopPropagation()} style={{ position:'absolute', bottom:'calc(100% + 8px)', left:0, background:'white', borderRadius:20, padding:'10px 8px 6px', display:'flex', gap:4, boxShadow:'0 4px 24px rgba(0,0,0,.18)', zIndex:50, border:'1px solid #E4E6EB', whiteSpace:'nowrap' }}>
+                    {FB_REACTIONS.map(r => (
+                      <button key={r.emoji}
+                        onClick={() => { reactToPost(post.id, r.emoji); setShowReact(p=>({...p,[post.id]:false})); }}
+                        style={{ background:'none', border:'none', cursor:'pointer', display:'flex', flexDirection:'column', alignItems:'center', gap:3, padding:'0 4px', minWidth:44 }}>
+                        <span style={{ fontSize:28, lineHeight:1, transition:'transform .15s', display:'block' }}
+                          onMouseEnter={ev=>ev.currentTarget.style.transform='scale(1.35) translateY(-4px)'}
+                          onMouseLeave={ev=>ev.currentTarget.style.transform='scale(1)'}
+                          onTouchStart={ev=>ev.currentTarget.style.transform='scale(1.35) translateY(-4px)'}
+                          onTouchEnd={ev=>ev.currentTarget.style.transform='scale(1)'}
+                        >{r.emoji}</span>
+                        <span style={{ fontSize:10, color:'#65676B', fontWeight:600, fontFamily:'Poppins' }}>{r.label}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+              <button onClick={() => openPost(post.id, null, true)} className='post-action-btn'>
+                <NeonComment size={25}/> Commenter
+              </button>
+              <button onClick={() => sharePost(post)} className='post-action-btn'>
+                <NeonShare size={25}/> Partager
+              </button>
+            </div>
+                </div>
+              );
+            })()}
 
             {/* Content */}
             <div style={{ padding: post.textBg ? 0 : '10px 16px', cursor:'pointer' }} onClick={() => openPost(post.id)}>
@@ -2532,6 +2606,9 @@ const fields = {
                   </div>
                 </div>
               )}
+              {/* ── Article boutique : informations ambanin'ny sary (sary 3) ── */}
+              {/* Média — aseho eto IHANY raha TSY manidina */}
+              {(post.sharedFrom || post.eventFrom || !(post.mediaURL || (post.mediaURLs && post.mediaURLs.length))) && (<>
               {post.mediaURLs?.length > 1 ? (
                 <div style={{ marginTop:8, marginLeft:-16, marginRight:-16 }}>
                   <PhotoCarousel urls={post.mediaURLs} thumbs={post.thumbURLs} onOpen={() => openPost(post.id)} />
@@ -2541,7 +2618,7 @@ const fields = {
                   {post.isMusic ? <MusicPostCard post={post} height={140}/> : post.mediaType==='image' ? <SmartImage src={post.thumbURL || post.mediaURL} onClick={e=>{e.stopPropagation();openPost(post.id);}} style={{ width:'100%', borderRadius:0, maxHeight:520, objectFit:'cover', display:'block', cursor:'zoom-in' }}/> : <FeedVideo src={post.mediaURL} poster={post.thumbURL} dataSaver={dataSaver || lite} onOpenReels={()=>navigate('/reels',{state:{startId:post.id}})} style={{ width:'100%', borderRadius:0, maxHeight:520, objectFit:'cover', display:'block', background:'#000' }} />}
                 </div>
               )}
-              {/* ── Article boutique : informations ambanin'ny sary (sary 3) ── */}
+              </>)}
               {post.shopId && post.isSale && (
                 <div onClick={e => e.stopPropagation()} style={{ marginTop:10 }}>
                   <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:10 }}>
@@ -2605,6 +2682,9 @@ const fields = {
             )}
 
             {/* Actions : J'aime · Commenter · Partager (format Facebook) */}
+
+            {/* Actions — eto IHANY raha TSY manidina */}
+            {(post.sharedFrom || post.eventFrom || !(post.mediaURL || (post.mediaURLs && post.mediaURLs.length))) && (
             <div className='post-actions-row'>
               <div style={{ position:'relative', flex:1, display:'flex' }}>
                 <button
@@ -2643,6 +2723,7 @@ const fields = {
                 <NeonShare size={25}/> Partager
               </button>
             </div>
+            )}
 
             {post.uid === currentUser.uid && !post.isBoosted && (
               <div style={{ padding:'0 14px 12px' }}>
