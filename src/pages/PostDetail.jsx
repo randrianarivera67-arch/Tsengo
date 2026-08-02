@@ -50,7 +50,12 @@ export default function PostDetail() {
   const [commentMedia,  setCmtMedia]   = useState(null);
   const [editCmt,       setEditCmt]    = useState(null);
   const [replyTo,       setReplyTo]    = useState(null);   // { id, authorName } — ilaina ho an'ny parentId
-  const [sheetOpen,     setSheetOpen]  = useState(true);   // misokatra ho azy (fomba Facebook)
+  // Misokatra IHANY raha avy amin'ny bokotra commentaire (?c=1).
+  // Ny clic amin'ny sary na ny lahatsoratra dia tsy tokony hamoaka azy.
+  const [sheetOpen,     setSheetOpen]  = useState(() => {
+    try { return new URLSearchParams(window.location.search).get('c') === '1'; }
+    catch (e) { return false; }
+  });
   const [cmtReactPicker, setCmtReactPicker] = useState(null);
   const [viewerState,   setViewerState] = useState(null); // { index }
   const cPhotoRef = useRef(); const cVideoRef = useRef();

@@ -802,7 +802,7 @@ export default function Home() {
   // Premiere page (20)
   // Manindry publication → tehirizina ny toetry ny fil sy ny toerana scroll
   // anchorId = ny publication hiverenana (ny carte ao amin'ny fil)
-  const openPost = (id, anchorId) => {
+  const openPost = (id, anchorId, withComments) => {
     const aId = anchorId || id;
     const el  = document.getElementById('post-' + aId);
     feedSnapshot = {
@@ -814,7 +814,7 @@ export default function Home() {
       anchorTop: el ? el.getBoundingClientRect().top : null,
       ts: Date.now(),
     };
-    navigate('/post/' + id);
+    navigate('/post/' + id + (withComments ? '?c=1' : ''));
   };
 
   useEffect(() => {
@@ -1142,11 +1142,26 @@ const fields = {
     const post = posts.find(p => p.id === postId); if (!post) return;
     const reactions = post.reactions || {};
     const my = reactions[currentUser.uid];
+
+    /* réaction optimiste */
+    // ⚠️ Ny MODE LITE dia mamono ny listener feed. Raha miandry azy isika dia
+    // TSY MISEHO MIHITSY ny réaction raha tsy manao refresh. Ka ovaina eo
+    // an-toerana avy hatrany, dia averina raha tsy mety ny fandefasana.
+    const nextReactions = (my === emoji)
+      ? (() => { const u = { ...reactions }; delete u[currentUser.uid]; return u; })()
+      : { ...reactions, [currentUser.uid]: emoji };
+    const beforeReactions = reactions;
+    setFeedRaw(prev => prev.map(p => (p.id === postId ? { ...p, reactions: nextReactions } : p)));
+    const rollback = () =>
+      setFeedRaw(prev => prev.map(p => (p.id === postId ? { ...p, reactions: beforeReactions } : p)));
+
     if (my === emoji) {
       const u = { ...reactions }; delete u[currentUser.uid];
-      await updateDoc(doc(db,'posts',postId), { reactions: u });
+      try { await updateDoc(doc(db,'posts',postId), { reactions: u }); }
+      catch (e) { rollback(); return; }
     } else {
-      await updateDoc(doc(db,'posts',postId), { [`reactions.${currentUser.uid}`]: emoji });
+      try { await updateDoc(doc(db,'posts',postId), { [`reactions.${currentUser.uid}`]: emoji }); }
+      catch (e) { rollback(); return; }
       if (post.uid !== currentUser.uid) {
         await addDoc(collection(db,'notifications'), {
           toUid: post.uid, fromUid: currentUser.uid,
@@ -2621,7 +2636,7 @@ const fields = {
                   </div>
                 )}
               </div>
-              <button onClick={() => openPost(post.id)} className='post-action-btn'>
+              <button onClick={() => openPost(post.id, null, true)} className='post-action-btn'>
                 <NeonComment size={18}/> Commenter
               </button>
               <button onClick={() => sharePost(post)} className='post-action-btn'>
