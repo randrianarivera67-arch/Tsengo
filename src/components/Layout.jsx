@@ -1,5 +1,5 @@
 // src/components/Layout.jsx
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useLang }  from '../context/LanguageContext';
 import { useAuth }  from '../context/AuthContext';
@@ -139,41 +139,49 @@ export default function Layout({ children }) {
   useEffect(() => subscribeCart(items => setCartCount(items.length)), []);
 
   // ── Dock v9 : vague concave dessinée dynamiquement selon la largeur réelle ──
-  // (⚠️ preserveAspectRatio="none" sur un viewBox fixe DÉFORME la vague → on
-  //  recalcule le path à la vraie largeur, exactement comme l'aperçu v9.)
+  // (⚠️ preserveAspectRatio="none" + viewBox fixe DÉFORME la vague → on
+  //  recalcule le path à la vraie largeur. Le tracé est lancé PAR LE ref
+  //  callback dès que le SVG est monté — pas de dépendance au timing.)
   const dockRef = useRef(null), dockBgRef = useRef(null);
-  useEffect(() => {
-    const H = 62, R_CIRCLE = 38, GAP = 7, CY = -9, CORNER = 24, FILLET = 16;
+  const drawWave = useCallback(() => {
+    const dock = dockRef.current, svg = dockBgRef.current;
+    if (!dock || !svg) return;
+    const w = dock.clientWidth || dock.getBoundingClientRect().width;
+    if (!w) { requestAnimationFrame(drawWave); return; }
+    const H = 62, R_CIRCLE = 35, GAP = 7, CY = -9, CORNER = 24, FILLET = 16;
     const Rn = R_CIRCLE + GAP;
     const DXF = Math.sqrt((Rn + FILLET) ** 2 - (FILLET - CY) ** 2);
     const _n  = Math.hypot(DXF, CY - FILLET);
     const TX  = DXF - (DXF / _n) * FILLET;
     const TY  = FILLET + ((CY - FILLET) / _n) * FILLET;
-    const draw = () => {
-      const dock = dockRef.current, svg = dockBgRef.current;
-      if (!dock || !svg) return;
-      const w = dock.clientWidth; if (!w) return;
-      const cx = w / 2;
-      const l1 = cx - DXF, l2 = cx - TX, r2 = cx + TX, r1 = cx + DXF;
-      svg.setAttribute('viewBox', `0 0 ${w} ${H}`);
-      svg.querySelector('path').setAttribute('d',
-        `M${CORNER} 0 H${l1.toFixed(1)}` +
-        ` A ${FILLET} ${FILLET} 0 0 1 ${l2.toFixed(1)} ${TY.toFixed(1)}` +
-        ` A ${Rn} ${Rn} 0 0 0 ${r2.toFixed(1)} ${TY.toFixed(1)}` +
-        ` A ${FILLET} ${FILLET} 0 0 1 ${r1.toFixed(1)} 0` +
-        ` H${w - CORNER} A ${CORNER} ${CORNER} 0 0 1 ${w} ${CORNER}` +
-        ` V${H - CORNER} A ${CORNER} ${CORNER} 0 0 1 ${w - CORNER} ${H}` +
-        ` H${CORNER} A ${CORNER} ${CORNER} 0 0 1 0 ${H - CORNER}` +
-        ` V${CORNER} A ${CORNER} ${CORNER} 0 0 1 ${CORNER} 0 Z`);
-    };
-    draw();
-    requestAnimationFrame(draw);          // mount voalohany : miandry ny render
-    setTimeout(draw, 60);                  // filet de sécurité (fonts/layout)
-    window.addEventListener('resize', draw);
-    const ro = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(draw) : null;
-    if (ro && dockRef.current) ro.observe(dockRef.current);
-    return () => { window.removeEventListener('resize', draw); if (ro) ro.disconnect(); };
+    const cx = w / 2;
+    const l1 = cx - DXF, l2 = cx - TX, r2 = cx + TX, r1 = cx + DXF;
+    svg.setAttribute('viewBox', `0 0 ${w} ${H}`);
+    svg.querySelector('path').setAttribute('d',
+      `M${CORNER} 0 H${l1.toFixed(1)}` +
+      ` A ${FILLET} ${FILLET} 0 0 1 ${l2.toFixed(1)} ${TY.toFixed(1)}` +
+      ` A ${Rn} ${Rn} 0 0 0 ${r2.toFixed(1)} ${TY.toFixed(1)}` +
+      ` A ${FILLET} ${FILLET} 0 0 1 ${r1.toFixed(1)} 0` +
+      ` H${w - CORNER} A ${CORNER} ${CORNER} 0 0 1 ${w} ${CORNER}` +
+      ` V${H - CORNER} A ${CORNER} ${CORNER} 0 0 1 ${w - CORNER} ${H}` +
+      ` H${CORNER} A ${CORNER} ${CORNER} 0 0 1 0 ${H - CORNER}` +
+      ` V${CORNER} A ${CORNER} ${CORNER} 0 0 1 ${CORNER} 0 Z`);
   }, []);
+  // ref callback : mihodina rehefa TENA voarina ny <div dock> ao amin'ny DOM
+  const setDockNode = useCallback((node) => {
+    dockRef.current = node;
+    if (node) {
+      requestAnimationFrame(drawWave);
+      if (typeof ResizeObserver !== 'undefined') {
+        const ro = new ResizeObserver(drawWave);
+        ro.observe(node);
+      }
+    }
+  }, [drawWave]);
+  useEffect(() => {
+    window.addEventListener('resize', drawWave);
+    return () => window.removeEventListener('resize', drawWave);
+  }, [drawWave]);
 
 
   // Page Sera supprimée — subscribeIdentity retiré
@@ -646,7 +654,7 @@ export default function Layout({ children }) {
 
       {/* ── Dock flottant v9 — vague concave dynamique + rond ⏸ surélevé ── */}
       <nav className="dock-v9-wrap">
-        <div className="dock-v9" ref={dockRef}>
+        <div className="dock-v9" ref={setDockNode}>
           <svg className="dock-v9-bg" ref={dockBgRef} preserveAspectRatio="none" viewBox="0 0 420 62">
             <path fill="var(--dock-fill)" d="M24 0 H159 A16 16 0 0 1 170.4 4.7 A45 45 0 0 0 249.6 4.7 A16 16 0 0 1 261 0 H396 A24 24 0 0 1 420 24 V38 A24 24 0 0 1 396 62 H24 A24 24 0 0 1 0 38 V24 A24 24 0 0 1 24 0 Z"/>
           </svg>
@@ -661,15 +669,19 @@ export default function Layout({ children }) {
               navigate(path, { replace: isLateralTabSwitch, state: navState });
             };
 
-            // Centre : bouton rond rose SURÉLEVÉ (⏸ noir), garde navigate('/reels')
+            // Centre : occupe la colonne 3 (grid) ; le rond rose est surélevé
+            // via translateY. Il DOIT prendre sa colonne sinon plane/profil
+            // décalent (bug : bouton absolu = pas de colonne → items glissent).
             if (isCenter) {
               return (
-                <button key={label} className="dock-v9-play" onClick={go} aria-label={label}>
-                  <svg width="34" height="34" viewBox="24 21 19 22">
-                    <rect x="26.5" y="22.4" width="5.8" height="19.2" rx="2.7" fill="#0E1013"/>
-                    <rect x="35.2" y="22.4" width="5.8" height="19.2" rx="2.7" fill="#0E1013"/>
-                  </svg>
-                </button>
+                <div key={label} className="dock-v9-center">
+                  <button className="dock-v9-play" onClick={go} aria-label={label}>
+                    <svg width="34" height="34" viewBox="24 21 19 22">
+                      <rect x="26.5" y="22.4" width="5.8" height="19.2" rx="2.7" fill="#0E1013"/>
+                      <rect x="35.2" y="22.4" width="5.8" height="19.2" rx="2.7" fill="#0E1013"/>
+                    </svg>
+                  </button>
+                </div>
               );
             }
 
