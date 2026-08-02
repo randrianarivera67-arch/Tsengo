@@ -143,7 +143,7 @@ export default function Layout({ children }) {
   //  recalcule le path à la vraie largeur, exactement comme l'aperçu v9.)
   const dockRef = useRef(null), dockBgRef = useRef(null);
   useEffect(() => {
-    const H = 62, R_CIRCLE = 33, GAP = 7, CY = -9, CORNER = 24, FILLET = 16;
+    const H = 62, R_CIRCLE = 38, GAP = 7, CY = -9, CORNER = 24, FILLET = 16;
     const Rn = R_CIRCLE + GAP;
     const DXF = Math.sqrt((Rn + FILLET) ** 2 - (FILLET - CY) ** 2);
     const _n  = Math.hypot(DXF, CY - FILLET);
@@ -167,6 +167,8 @@ export default function Layout({ children }) {
         ` V${CORNER} A ${CORNER} ${CORNER} 0 0 1 ${CORNER} 0 Z`);
     };
     draw();
+    requestAnimationFrame(draw);          // mount voalohany : miandry ny render
+    setTimeout(draw, 60);                  // filet de sécurité (fonts/layout)
     window.addEventListener('resize', draw);
     const ro = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(draw) : null;
     if (ro && dockRef.current) ro.observe(dockRef.current);
@@ -645,7 +647,9 @@ export default function Layout({ children }) {
       {/* ── Dock flottant v9 — vague concave dynamique + rond ⏸ surélevé ── */}
       <nav className="dock-v9-wrap">
         <div className="dock-v9" ref={dockRef}>
-          <svg className="dock-v9-bg" ref={dockBgRef} preserveAspectRatio="none"><path fill="var(--dock-fill)"/></svg>
+          <svg className="dock-v9-bg" ref={dockBgRef} preserveAspectRatio="none" viewBox="0 0 420 62">
+            <path fill="var(--dock-fill)" d="M24 0 H159 A16 16 0 0 1 170.4 4.7 A45 45 0 0 0 249.6 4.7 A16 16 0 0 1 261 0 H396 A24 24 0 0 1 420 24 V38 A24 24 0 0 1 396 62 H24 A24 24 0 0 1 0 38 V24 A24 24 0 0 1 24 0 Z"/>
+          </svg>
 
           {bottomNav.map(({ path, navState, icon, badge, color, isCenter, label }) => {
             const active = isActive(path);

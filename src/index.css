@@ -396,7 +396,7 @@ input::placeholder, textarea::placeholder { color: #8A8D91 !important; font-size
 }
 .dark .dock-v9 { --dock-fill: #15181F; }
 .dock-v9-bg {
-  position: absolute; inset: 0; width: 100%; height: 100%;
+  position: absolute; inset: 0; width: 100%; height: 100%; z-index: 1;
   filter: drop-shadow(0 10px 26px rgba(5,5,5,.24)); pointer-events: none;
 }
 .dock-v9-item {
