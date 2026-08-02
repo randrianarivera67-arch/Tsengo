@@ -21,7 +21,9 @@ const { buildThread } = await import('./src/utils/commentThread.js');
 console.log('1) Fifandraisana');
 ok('CommentSheet importé', PD.includes("import CommentSheet from '../components/CommentSheet'"));
 eq('ampiasaina indray mandeha', (PD.match(/<CommentSheet/g) || []).length, 1);
-ok('misokatra ho azy', PD.includes('const [sheetOpen,     setSheetOpen]  = useState(true);'));
+// Misokatra IHANY raha avy amin'ny bokotra commentaire (?c=1) — fanovana nangatahina
+ok('misokatra araka ny marika ?c=1', PD.includes("get('c') === '1'"));
+ok('tsy misokatra amin\'ny clic sary/lahatsoratra', !PD.includes('useState(true);   // misokatra ho azy'));
 ok('open miankina amin\'ny post', PD.includes('open={sheetOpen && !!post}'));
 
 console.log('\n   Props');

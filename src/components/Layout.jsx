@@ -26,8 +26,7 @@ import {
   HiBell, HiOutlineBell, HiMenu, HiX, HiSearch, HiLogout, HiCog,
   HiOutlineCog, HiTag, HiFilm, HiPhotograph,
   HiBookmark, HiOutlineBookmark, HiCalendar, HiSpeakerphone, HiShoppingBag, HiChevronRight,
-  HiMicrophone, HiIdentification, HiDocumentText, HiChartBar, HiSwitchHorizontal, HiCheck, HiShoppingCart, HiShieldCheck,
-} from 'react-icons/hi';
+  HiMicrophone, HiIdentification, HiDocumentText, HiChartBar, HiSwitchHorizontal, HiCheck, HiShoppingCart, HiShieldCheck, HiPlay } from 'react-icons/hi';
 
 // Icône "JEJO" — wordmark rose clay 3D + étoiles + smiley (style bijou)
 function JejoIcon({ w = 90 }) {
@@ -65,10 +64,13 @@ function JejoIcon({ w = 90 }) {
 
 // Icône navbar claymorphism 3D (état NON sélectionné — icône couleur, sans fond)
 function ClayNavIcon({ type, color = '#1877F2', size = 38 }) {
+  // ⚠️ Karazana loko TELO izao. Ny fanamarinana dia atao MAZAVA isaky ny iray
+  // (fa tsy ternaire mifanindry) mba tsy hisy fifangaroana.
   const blue = color === '#1877F2';
-  const l = blue ? '#7CB8FF' : '#FFE08A';
-  const m = blue ? '#2E8BFF' : '#F5C518';
-  const d = blue ? '#1667D8' : '#D69A00';
+  const rose = color === '#FF2D8D';
+  const l = rose ? '#FF9CC9' : blue ? '#7CB8FF' : '#FFE08A';
+  const m = rose ? '#FF3E97' : blue ? '#2E8BFF' : '#F5C518';
+  const d = rose ? '#DA0F68' : blue ? '#1667D8' : '#D69A00';
   const gid = 'clayG_' + type, shid = 'clayS_' + type;
   return (
     <svg width={size} height={size} viewBox="0 0 64 64">
@@ -97,6 +99,12 @@ function ClayNavIcon({ type, color = '#1877F2', size = 38 }) {
           <path d="M52 14 C54 13.2 55.5 15 54.7 17 L44 48 C43.3 50 40.7 50.4 39.4 48.7 L32 39 L46 22 L26 35 L14.5 30.5 C12.6 29.7 12.5 27 14.4 26.2 Z" fill={'url(#' + gid + ')'}/>
           <path d="M32 39 L32 50 C32 51.6 34 52.3 35 51 L39.4 45.5 Z" fill={d} opacity="0.6"/>
           <ellipse cx="30" cy="24" rx="6" ry="2.4" fill="#fff" opacity="0.4" transform="rotate(-30 30 24)"/>
+        </>}
+        {type === 'play' && <>
+          {/* Sela boribory + ▶ — endrika mitovy amin'ny icône hafa */}
+          <circle cx="32" cy="32" r="22" fill={'url(#' + gid + ')'}/>
+          <path d="M27.5 22.8 C26.4 22.1 25 22.9 25 24.2 L25 39.8 C25 41.1 26.4 41.9 27.5 41.2 L40.8 33.4 C41.9 32.8 41.9 31.2 40.8 30.6 Z" fill="#fff"/>
+          <ellipse cx="25" cy="24" rx="7" ry="4.2" fill="#fff" opacity="0.3" transform="rotate(-32 25 24)"/>
         </>}
         {type === 'profil' && <>
           <circle cx="32" cy="22" r="11" fill={'url(#' + gid + ')'}/>
@@ -203,7 +211,7 @@ export default function Layout({ children }) {
     isPageMode
       ? { path: `/pages/${identity.id}`, navState: { openFollowers: true }, icon: 'amis', color: '#F5C518', label: 'Abonnés' }
       : { path: '/friends', icon: 'amis',   color: '#F5C518', label: 'Amis', badge: friendReqCount },
-    { path: '/reels',      isJejo: true,   label: 'JEJO' },
+    { path: '/reels',      icon: 'play',   color: '#FF2D8D', label: 'Jejo' },
     { path: '/messages',   icon: 'plane',  color: '#F5C518', label: 'Messages', badge: msgCount },
     { path: profilePath,   icon: 'profil', color: '#1877F2', label: isPageMode ? 'Page' : 'Profil' },
   ];
@@ -650,9 +658,10 @@ export default function Layout({ children }) {
 
       {/* ── Dock flottant — clay 3D, JEJO au centre ────────────── */}
       <nav className="floating-dock" style={kbInset > 0 ? { display: 'none' } : undefined}>
-        {bottomNav.map(({ path, navState, icon, badge, color, isJejo, label }) => {
+        {bottomNav.map(({ path, navState, icon, badge, color, label }) => {
           const active = isActive(path);
-          const FilledIcon = icon === 'home' ? HiHome : icon === 'amis' ? HiUserGroup : icon === 'plane' ? HiPaperAirplane : HiUser;
+          const FilledIcon = icon === 'home' ? HiHome : icon === 'amis' ? HiUserGroup
+                           : icon === 'plane' ? HiPaperAirplane : icon === 'play' ? HiPlay : HiUser;
           return (
             <button key={label} className={`dock-item ${active ? 'active' : ''}`} onClick={() => {
                 if (path === '/' && location.pathname === '/') { window.dispatchEvent(new CustomEvent('trengo:refresh-home')); return; }
@@ -661,14 +670,10 @@ export default function Layout({ children }) {
                 navigate(path, { replace: isLateralTabSwitch, state: navState });
               }}
               style={{ background: 'none', border: 'none', cursor: 'pointer', position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5, flex: 1, padding: '4px 0' }}>
-              {isJejo ? (
-                <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 46, transform: active ? 'scale(1.06)' : 'scale(1)', transition: 'transform .2s' }}>
-                  <JejoIcon w={90} />
-                </span>
-              ) : active ? (
+              {active ? (
                 <span style={{
                   width: 46, height: 46, borderRadius: 15, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  background: `linear-gradient(150deg, ${color === '#1877F2' ? '#4E9BFF' : '#FFD84D'}, ${color === '#1877F2' ? '#1667D8' : '#D69A00'})`,
+                  background: `linear-gradient(150deg, ${color === '#1877F2' ? '#4E9BFF' : color === '#FF2D8D' ? '#FF7DC0' : '#FFD84D'}, ${color === '#1877F2' ? '#1667D8' : color === '#FF2D8D' ? '#DA0F68' : '#D69A00'})`,
                   boxShadow: `0 5px 12px ${color}66, inset 0 1.5px 2px rgba(255,255,255,.5), inset 0 -3px 5px rgba(0,0,0,.18)`,
                 }}>
                   <FilledIcon size={24} color="#fff" />
@@ -679,7 +684,7 @@ export default function Layout({ children }) {
                 </span>
               )}
               {badge > 0 && <span className="notif-badge" style={{ top: 2, right: 'calc(50% - 26px)' }}>{badge > 9 ? '9+' : badge}</span>}
-              {!isJejo && <span className="dock-label" style={{ color: active ? '#111' : '#8A8F98', fontWeight: active ? 800 : 600 }}>{label}</span>}
+              <span className="dock-label" style={{ color: active ? '#111' : '#8A8F98', fontWeight: active ? 800 : 600 }}>{label}</span>
             </button>
           );
         })}
