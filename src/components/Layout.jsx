@@ -154,7 +154,7 @@ export default function Layout({ children }) {
   }, []);
   // Path de la vague calculé à partir de la largeur réelle (rendu par React)
   const wavePath = (() => {
-    const H = 62, R_CIRCLE = 35, GAP = 7, CY = -9, CORNER = 24, FILLET = 16;
+    const H = 62, R_CIRCLE = 35, GAP = 7, CY = 24, CORNER = 24, FILLET = 16;
     const w = dockW || 384;
     const Rn = R_CIRCLE + GAP;
     const DXF = Math.sqrt((Rn + FILLET) ** 2 - (FILLET - CY) ** 2);
@@ -667,8 +667,8 @@ export default function Layout({ children }) {
                 <div key={label} className="dock-v9-center">
                   <button className="dock-v9-play" onClick={go} aria-label={label}>
                     <svg width="34" height="34" viewBox="24 21 19 22">
-                      <rect x="26.5" y="22.4" width="5.8" height="19.2" rx="2.7" fill="#FFFFFF" stroke="#2B2F35" strokeWidth="1.6"/>
-                      <rect x="35.2" y="22.4" width="5.8" height="19.2" rx="2.7" fill="#FFFFFF" stroke="#2B2F35" strokeWidth="1.6"/>
+                      <rect x="26.5" y="22.4" width="5.8" height="19.2" rx="2.7" fill="#FFFFFF"/>
+                      <rect x="35.2" y="22.4" width="5.8" height="19.2" rx="2.7" fill="#FFFFFF"/>
                     </svg>
                   </button>
                 </div>
