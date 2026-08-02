@@ -384,31 +384,35 @@ input::placeholder, textarea::placeholder { color: #8A8D91 !important; font-size
 }
 .dark .floating-dock { background: rgba(21,24,31,.92); border-color: #232733; }
 
-/* ═══ Dock v9 : fond « vague » SVG concave + JEJO rond surélevé ═══ */
+/* ═══ Dock v9 — copie fidèle de l'aperçu (vague concave + ⏸ rond surélevé) ═══ */
+.dock-v9-wrap {
+  position: fixed; left: 0; right: 0; bottom: 12px; z-index: 100;
+  display: flex; justify-content: center; padding: 0 14px;
+}
 .dock-v9 {
   --dock-fill: #ffffff;
-  background: none !important;
-  border: none !important;
-  box-shadow: none !important;
-  backdrop-filter: none !important;
-  -webkit-backdrop-filter: none !important;
-  border-radius: 0 !important;
-  padding: 0 !important;
-  height: 62px;
-  align-items: center;
-  overflow: visible;
+  position: relative; width: 100%; max-width: 420px; height: 62px;
+  display: grid; grid-template-columns: 1fr 1fr 106px 1fr 1fr; align-items: center;
 }
 .dark .dock-v9 { --dock-fill: #15181F; }
 .dock-v9-bg {
   position: absolute; inset: 0; width: 100%; height: 100%;
-  filter: drop-shadow(0 10px 26px rgba(5,5,5,.24));
-  pointer-events: none; z-index: 1;
+  filter: drop-shadow(0 10px 26px rgba(5,5,5,.24)); pointer-events: none;
 }
-/* JEJO — rond rose 8 px au-dessus du bord du dock */
+.dock-v9-item {
+  background: none; border: none; cursor: pointer; position: relative; z-index: 2;
+  display: flex; align-items: center; justify-content: center; height: 100%;
+  transition: transform .16s cubic-bezier(.2,.7,.3,1);
+}
+.dock-v9-item:active { transform: scale(.9); }
+.dock-v9-cell {
+  width: 54px; height: 54px; border-radius: 17px; display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 5px 12px var(--gl), inset 0 1.5px 2px rgba(255,255,255,.5), inset 0 -3px 5px rgba(0,0,0,.18);
+}
+/* ⏸ — rond rose 8 px au-dessus du bord du dock */
 .dock-v9-play {
-  position: absolute; left: 50%; top: -30px; transform: translateX(-50%);
-  z-index: 3; width: 66px; height: 66px; border-radius: 50%;
-  border: none; cursor: pointer;
+  position: absolute; left: 50%; top: -47px; transform: translateX(-50%); z-index: 3;
+  width: 76px; height: 76px; border-radius: 50%; border: none; cursor: pointer;
   background: linear-gradient(150deg,#FF7DC0,#FF2D8D 55%,#DA0F68);
   box-shadow: 0 12px 26px rgba(255,45,141,.48), 0 4px 10px rgba(0,0,0,.20),
               inset 0 2px 4px rgba(255,255,255,.6), inset 0 -5px 9px rgba(0,0,0,.24);

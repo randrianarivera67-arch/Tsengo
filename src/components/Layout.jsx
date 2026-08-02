@@ -138,6 +138,41 @@ export default function Layout({ children }) {
   const [cartCount, setCartCount] = useState(() => { try { return getCart().length; } catch { return 0; } });
   useEffect(() => subscribeCart(items => setCartCount(items.length)), []);
 
+  // ── Dock v9 : vague concave dessinée dynamiquement selon la largeur réelle ──
+  // (⚠️ preserveAspectRatio="none" sur un viewBox fixe DÉFORME la vague → on
+  //  recalcule le path à la vraie largeur, exactement comme l'aperçu v9.)
+  const dockRef = useRef(null), dockBgRef = useRef(null);
+  useEffect(() => {
+    const H = 62, R_CIRCLE = 33, GAP = 7, CY = -9, CORNER = 24, FILLET = 16;
+    const Rn = R_CIRCLE + GAP;
+    const DXF = Math.sqrt((Rn + FILLET) ** 2 - (FILLET - CY) ** 2);
+    const _n  = Math.hypot(DXF, CY - FILLET);
+    const TX  = DXF - (DXF / _n) * FILLET;
+    const TY  = FILLET + ((CY - FILLET) / _n) * FILLET;
+    const draw = () => {
+      const dock = dockRef.current, svg = dockBgRef.current;
+      if (!dock || !svg) return;
+      const w = dock.clientWidth; if (!w) return;
+      const cx = w / 2;
+      const l1 = cx - DXF, l2 = cx - TX, r2 = cx + TX, r1 = cx + DXF;
+      svg.setAttribute('viewBox', `0 0 ${w} ${H}`);
+      svg.querySelector('path').setAttribute('d',
+        `M${CORNER} 0 H${l1.toFixed(1)}` +
+        ` A ${FILLET} ${FILLET} 0 0 1 ${l2.toFixed(1)} ${TY.toFixed(1)}` +
+        ` A ${Rn} ${Rn} 0 0 0 ${r2.toFixed(1)} ${TY.toFixed(1)}` +
+        ` A ${FILLET} ${FILLET} 0 0 1 ${r1.toFixed(1)} 0` +
+        ` H${w - CORNER} A ${CORNER} ${CORNER} 0 0 1 ${w} ${CORNER}` +
+        ` V${H - CORNER} A ${CORNER} ${CORNER} 0 0 1 ${w - CORNER} ${H}` +
+        ` H${CORNER} A ${CORNER} ${CORNER} 0 0 1 0 ${H - CORNER}` +
+        ` V${CORNER} A ${CORNER} ${CORNER} 0 0 1 ${CORNER} 0 Z`);
+    };
+    draw();
+    window.addEventListener('resize', draw);
+    const ro = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(draw) : null;
+    if (ro && dockRef.current) ro.observe(dockRef.current);
+    return () => { window.removeEventListener('resize', draw); if (ro) ro.disconnect(); };
+  }, []);
+
 
   // Page Sera supprimée — subscribeIdentity retiré
 
@@ -195,7 +230,7 @@ export default function Layout({ children }) {
     isPageMode
       ? { path: `/pages/${identity.id}`, navState: { openFollowers: true }, icon: 'amis', color: '#F5C518', label: 'Abonnés' }
       : { path: '/friends', icon: 'amis',   color: '#F5C518', label: 'Amis', badge: friendReqCount },
-    { path: '/reels',      isJejo: true,   label: 'JEJO' },
+    { path: '/reels',      isCenter: true, label: 'JEJO' },
     { path: '/messages',   icon: 'plane',  color: '#F5C518', label: 'Messages', badge: msgCount },
     { path: profilePath,   icon: 'profil', color: '#1877F2', label: isPageMode ? 'Page' : 'Profil' },
   ];
@@ -607,53 +642,47 @@ export default function Layout({ children }) {
         </div>
       )}
 
-      {/* ── Dock flottant v9 — vague concave + JEJO rond surélevé au centre ── */}
-      <nav className="floating-dock dock-v9">
-        {/* Fond SVG : « vague » concave qui accueille le bouton central */}
-        <svg className="dock-v9-bg" preserveAspectRatio="none" viewBox="0 0 420 62">
-          <path fill="var(--dock-fill)" d="M24 0 H167.3 A16 16 0 0 1 178.6 4.7 A45 45 0 0 0 241.4 4.7 A16 16 0 0 1 252.7 0 H396 A24 24 0 0 1 420 24 V38 A24 24 0 0 1 396 62 H24 A24 24 0 0 1 0 38 V24 A24 24 0 0 1 24 0 Z"/>
-        </svg>
+      {/* ── Dock flottant v9 — vague concave dynamique + rond ⏸ surélevé ── */}
+      <nav className="dock-v9-wrap">
+        <div className="dock-v9" ref={dockRef}>
+          <svg className="dock-v9-bg" ref={dockBgRef} preserveAspectRatio="none"><path fill="var(--dock-fill)"/></svg>
 
-        {bottomNav.map(({ path, navState, icon, badge, color, isJejo, label }) => {
-          const active = isActive(path);
-          const FilledIcon = icon === 'home' ? HiHome : icon === 'amis' ? HiUserGroup : icon === 'plane' ? HiPaperAirplane : HiUser;
-          const go = () => {
-            if (path === '/' && location.pathname === '/') { window.dispatchEvent(new CustomEvent('trengo:refresh-home')); return; }
-            const tabPaths = bottomNav.map(it => it.path);
-            const isLateralTabSwitch = path !== '/' && location.pathname !== '/' && tabPaths.includes(location.pathname);
-            navigate(path, { replace: isLateralTabSwitch, state: navState });
-          };
+          {bottomNav.map(({ path, navState, icon, badge, color, isCenter, label }) => {
+            const active = isActive(path);
+            const FilledIcon = icon === 'home' ? HiHome : icon === 'amis' ? HiUserGroup : icon === 'plane' ? HiPaperAirplane : HiUser;
+            const go = () => {
+              if (path === '/' && location.pathname === '/') { window.dispatchEvent(new CustomEvent('trengo:refresh-home')); return; }
+              const tabPaths = bottomNav.map(it => it.path);
+              const isLateralTabSwitch = path !== '/' && location.pathname !== '/' && tabPaths.includes(location.pathname);
+              navigate(path, { replace: isLateralTabSwitch, state: navState });
+            };
 
-          // JEJO : bouton rond rose SURÉLEVÉ au centre (garde navigate('/reels'))
-          if (isJejo) {
+            // Centre : bouton rond rose SURÉLEVÉ (⏸ noir), garde navigate('/reels')
+            if (isCenter) {
+              return (
+                <button key={label} className="dock-v9-play" onClick={go} aria-label={label}>
+                  <svg width="34" height="34" viewBox="24 21 19 22">
+                    <rect x="26.5" y="22.4" width="5.8" height="19.2" rx="2.7" fill="#0E1013"/>
+                    <rect x="35.2" y="22.4" width="5.8" height="19.2" rx="2.7" fill="#0E1013"/>
+                  </svg>
+                </button>
+              );
+            }
+
             return (
-              <button key={label} className="dock-v9-play" onClick={go} aria-label="JEJO">
-                <JejoIcon w={54} />
+              <button key={label} className="dock-v9-item" onClick={go} aria-label={label}>
+                {active ? (
+                  <span className="dock-v9-cell" style={{ '--gl': 'rgba(0,0,0,.38)', background: `linear-gradient(150deg, ${color === '#1877F2' ? '#4E9BFF' : '#FFD84D'}, ${color === '#1877F2' ? '#1667D8' : '#D69A00'})` }}>
+                    <FilledIcon size={26} color="#fff" />
+                  </span>
+                ) : (
+                  <ClayNavIcon type={icon} color={color} size={48} />
+                )}
+                {badge > 0 && <span className="notif-badge" style={{ top: 6, right: 'calc(50% - 22px)' }}>{badge > 9 ? '9+' : badge}</span>}
               </button>
             );
-          }
-
-          return (
-            <button key={label} className={`dock-item ${active ? 'active' : ''}`} onClick={go}
-              style={{ background: 'none', border: 'none', cursor: 'pointer', position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5, flex: 1, padding: '4px 0', zIndex: 2 }}>
-              {active ? (
-                <span style={{
-                  width: 46, height: 46, borderRadius: 15, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  background: `linear-gradient(150deg, ${color === '#1877F2' ? '#4E9BFF' : '#FFD84D'}, ${color === '#1877F2' ? '#1667D8' : '#D69A00'})`,
-                  boxShadow: `0 5px 12px ${color}66, inset 0 1.5px 2px rgba(255,255,255,.5), inset 0 -3px 5px rgba(0,0,0,.18)`,
-                }}>
-                  <FilledIcon size={24} color="#fff" />
-                </span>
-              ) : (
-                <span style={{ width: 46, height: 46, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <ClayNavIcon type={icon} color={color} size={38} />
-                </span>
-              )}
-              {badge > 0 && <span className="notif-badge" style={{ top: 2, right: 'calc(50% - 26px)' }}>{badge > 9 ? '9+' : badge}</span>}
-              <span className="dock-label" style={{ color: active ? '#111' : '#8A8F98', fontWeight: active ? 800 : 600 }}>{label}</span>
-            </button>
-          );
-        })}
+          })}
+        </div>
       </nav>
     </div>
   );
