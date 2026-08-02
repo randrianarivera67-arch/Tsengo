@@ -54,6 +54,7 @@ import OAuthCallback from './pages/OAuthCallback';
 const Home               = lazy(() => import('./pages/Home'));
 const Profile            = lazy(() => import('./pages/Profile'));
 const UserByName = lazy(() => import('./pages/UserByName'));
+const HashtagPage = lazy(() => import('./pages/HashtagPage'));
 const Friends            = lazy(() => import('./pages/Friends'));
 const Messages           = lazy(() => import('./pages/Messages'));
 const MessagesSettings   = lazy(() => import('./pages/MessagesSettings'));
@@ -115,6 +116,7 @@ function AppRoutes() {
         <Route path="/"               element={<PrivateRoute><Layout><Home /></Layout></PrivateRoute>} />
         <Route path="/profile/:uid?"  element={<PrivateRoute><Layout><Profile /></Layout></PrivateRoute>} />
         <Route path="/u/:username"    element={<PrivateRoute><Layout><UserByName /></Layout></PrivateRoute>} />
+        <Route path="/hashtag/:tag"   element={<PrivateRoute><Layout><HashtagPage /></Layout></PrivateRoute>} />
         <Route path="/friends"        element={<PrivateRoute><Layout><Friends /></Layout></PrivateRoute>} />
         <Route path="/groups"         element={<PrivateRoute><Layout><Groups /></Layout></PrivateRoute>} />
         <Route path="/groups/:groupId" element={<PrivateRoute><Layout><GroupPage /></Layout></PrivateRoute>} />

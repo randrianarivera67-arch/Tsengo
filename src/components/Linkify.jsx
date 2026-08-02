@@ -13,6 +13,15 @@ export default function Linkify({ text, color }) {
     <>
       {parts.map((p, i) => {
         if (p.type === 'text') return <span key={i}>{p.value}</span>;
+        if (p.type === 'hashtag') {
+          return (
+            <a key={i} href={`/hashtag/${p.tag}`}
+              style={{ color: color || '#1877F2', fontWeight: 600, cursor: 'pointer', textDecoration: 'none' }}
+              onClick={e => { e.preventDefault(); e.stopPropagation(); navigate(`/hashtag/${p.tag}`); }}>
+              {p.value}
+            </a>
+          );
+        }
         if (p.type === 'mention') {
           // Token manokana : tsy profil izy, ka aseho ho badge tsy clicable.
           // Raha tsy izao dia handeha ho /u/followers (tsy misy).

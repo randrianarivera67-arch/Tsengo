@@ -44,6 +44,35 @@ export function trimUrlTail(raw) {
  */
 const ENTITY_RE = /@\[([^\]\n]{1,80})\]\(([A-Za-z0-9_-]{1,64})\)/g;
 
+/**
+ * Hashtag :  litera, isa, '_' — 2 ka hatramin'ny 50.
+ * Ny `(^|[^...])` dia manakana ny `#` ao anaty teny (`abc#def`) sy ny `##`.
+ * ⚠️ Ny `#` ao anaty URL dia tsy voakasika : ny splitLinks no mandeha ALOHA.
+ */
+const HASHTAG_RE = /(^|[^\p{L}\p{N}_#])#([\p{L}\p{N}_]{2,50})/gu;
+
+/** Misy litera farafahakeliny ? (ny `#2026` dia daty, tsy marika) */
+function validTag(t) { return /\p{L}/u.test(t); }
+
+/**
+ * Ny marika REHETRA ao anaty lahatsoratra, amin'ny sora-baventy KELY.
+ * Ampiasaina amin'ny fitehirizana sy ny fikarohana.
+ * @returns {string[]}  tsy misy doublon, fetra 10
+ */
+export function extractHashtags(text, max = 10) {
+  const out = [];
+  if (!text) return out;
+  const seen = new Set();
+  let m; HASHTAG_RE.lastIndex = 0;
+  while ((m = HASHTAG_RE.exec(text)) !== null) {
+    const t = m[2].toLowerCase();
+    if (!validTag(t) || seen.has(t)) continue;
+    seen.add(t); out.push(t);
+    if (out.length >= max) break;
+  }
+  return out;
+}
+
 const MENTION_RE = /(^|[^\p{L}\p{N}_@])@([a-zA-Z0-9_.]{2,30})/gu;
 
 /**
@@ -80,6 +109,23 @@ export function splitRich(text) {
       if (l2 < c.text.length) out.push({ type: 'text', value: c.text.slice(l2) });
     }
   }
+
+  // ── ③ Hashtag ao anatin'ny ampahany TEXT sisa ────────────────────────
+  const withTags = [];
+  for (const p of out) {
+    if (p.type !== 'text') { withTags.push(p); continue; }
+    let l3 = 0, m3;
+    HASHTAG_RE.lastIndex = 0;
+    while ((m3 = HASHTAG_RE.exec(p.value)) !== null) {
+      const at = m3.index + m3[1].length;            // toerana marin'ny '#'
+      if (!validTag(m3[2])) continue;                // `#2026` → lahatsoratra
+      if (at > l3) withTags.push({ type: 'text', value: p.value.slice(l3, at) });
+      withTags.push({ type: 'hashtag', value: '#' + m3[2], tag: m3[2].toLowerCase() });
+      l3 = at + 1 + m3[2].length;
+    }
+    if (l3 < p.value.length) withTags.push({ type: 'text', value: p.value.slice(l3) });
+  }
+  out.length = 0; out.push(...withTags);
   return out.length ? out : parts;
 }
 

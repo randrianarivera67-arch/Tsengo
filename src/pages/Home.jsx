@@ -30,7 +30,7 @@ import { timeAgo } from '../utils/timeAgo';
 import { isDataSaverOn, subscribeDataSaver } from '../utils/dataSaver';
 import { isLiteOn, subscribeLite } from '../utils/liteMode';
 import MentionPanel from '../components/MentionPanel';
-import { mentionedEntities } from '../utils/appLink';
+import { mentionedEntities, extractHashtags } from '../utils/appLink';
 import { downloadMedia } from '../utils/download';
 import ShareModal from '../components/ShareModal';
 import MusicPostCard from '../components/MusicPostCard';
@@ -983,6 +983,7 @@ const fields = {
       authorUsername: asPage ? '' : userProfile.username,
       authorPhoto: asPage ? (_idn.photoURL || '') : (userProfile.photoURL || ''),      authorIsVip: asPage ? false : (userProfile.isVip || false),
       content: content.trim().slice(0, MAX_POST),
+      hashtags: extractHashtags(content),   // fikarohana haingana (array-contains)
       textBg: textBg || null,
       isSale, price: isSale ? parseFloat(price) : '',
       contact: isSale ? contact.trim() : '', lieu: isSale ? lieu.trim() : '', saleCategory: isSale ? saleCategory : '',
