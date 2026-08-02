@@ -61,45 +61,32 @@ function JejoIcon({ w = 90 }) {
   );
 }
 
-// Icône navbar claymorphism 3D (état NON sélectionné) — v9 : MAINTY clay 3D.
-// Ny endrika 3D dia tazonina amin'ny gradient sy reflet (fa tsy amin'ny loko).
-function ClayNavIcon({ type, color = '#1877F2', size = 38 }) {
-  const l = '#5A5F66', m = '#2B2F35', d = '#0E1013';
-  const gid = 'clayG_' + type, shid = 'clayS_' + type;
+// Icône navbar v9 — DEUX états :
+//  • non-actif : rempli BLANC + contour gris foncé (outline)
+//  • actif     : rempli COULEUR (bleu/doré), sans cellule
+function ClayNavIcon({ type, color = '#1877F2', size = 38, active = false }) {
+  const fill = active ? color : '#FFFFFF';
+  const stroke = active ? color : '#2B2F35';
+  const sw = active ? 0 : 2.4;   // contour visible seulement en non-actif
+  const P = { fill, stroke, strokeWidth: sw, strokeLinejoin: 'round', strokeLinecap: 'round' };
   return (
     <svg width={size} height={size} viewBox="0 0 64 64">
-      <defs>
-        <radialGradient id={gid} cx="35%" cy="28%" r="90%">
-          <stop offset="0" stopColor={l}/><stop offset="45%" stopColor={m}/><stop offset="100%" stopColor={d}/>
-        </radialGradient>
-        <filter id={shid} x="-40%" y="-40%" width="180%" height="180%">
-          <feDropShadow dx="0" dy="3.5" stdDeviation="2.8" floodColor={d} floodOpacity="0.4"/>
-        </filter>
-      </defs>
-      <g filter={'url(#' + shid + ')'}>
-        {type === 'home' && <>
-          <path d="M32 12 C33.4 12 34.5 12.7 35.6 13.6 L54 28 C55.4 29.2 56 30.6 56 32.4 L56 47 C56 50 54 52 51 52 L13 52 C10 52 8 50 8 47 L8 32.4 C8 30.6 8.6 29.2 10 28 L28.4 13.6 C29.5 12.7 30.6 12 32 12 Z" fill={'url(#' + gid + ')'}/>
-          <rect x="26" y="38" width="12" height="14" rx="4" fill={d} opacity="0.5"/>
-          <ellipse cx="24" cy="24" rx="7" ry="4" fill="#fff" opacity="0.28" transform="rotate(-32 24 24)"/>
-        </>}
-        {type === 'amis' && <>
-          <circle cx="42" cy="21" r="8" fill={'url(#' + gid + ')'}/>
-          <path d="M30 50 C30 41 35 36 42 36 C49 36 54 41 54 50 C54 52 52.5 53 51 53 L33 53 C31.5 53 30 52 30 50 Z" fill={'url(#' + gid + ')'}/>
-          <circle cx="24" cy="23" r="9.5" fill={'url(#' + gid + ')'}/>
-          <path d="M9 53 C9 43 15 37 24 37 C33 37 39 43 39 53 C39 55 37.5 56 36 56 L12 56 C10.5 56 9 55 9 53 Z" fill={'url(#' + gid + ')'}/>
-          <ellipse cx="20" cy="20" rx="4.5" ry="3" fill="#fff" opacity="0.4" transform="rotate(-30 20 20)"/>
-        </>}
-        {type === 'plane' && <>
-          <path d="M52 14 C54 13.2 55.5 15 54.7 17 L44 48 C43.3 50 40.7 50.4 39.4 48.7 L32 39 L46 22 L26 35 L14.5 30.5 C12.6 29.7 12.5 27 14.4 26.2 Z" fill={'url(#' + gid + ')'}/>
-          <path d="M32 39 L32 50 C32 51.6 34 52.3 35 51 L39.4 45.5 Z" fill={d} opacity="0.6"/>
-          <ellipse cx="30" cy="24" rx="6" ry="2.4" fill="#fff" opacity="0.4" transform="rotate(-30 30 24)"/>
-        </>}
-        {type === 'profil' && <>
-          <circle cx="32" cy="22" r="11" fill={'url(#' + gid + ')'}/>
-          <path d="M12 52 C12 40 21 33 32 33 C43 33 52 40 52 52 C52 54.5 50 56 47.5 56 L16.5 56 C14 56 12 54.5 12 52 Z" fill={'url(#' + gid + ')'}/>
-          <ellipse cx="27" cy="18" rx="5" ry="3.2" fill="#fff" opacity="0.4" transform="rotate(-30 27 18)"/>
-        </>}
-      </g>
+      {type === 'home' && (
+        <path {...P} d="M32 12 C33.4 12 34.5 12.7 35.6 13.6 L54 28 C55.4 29.2 56 30.6 56 32.4 L56 47 C56 50 54 52 51 52 L13 52 C10 52 8 50 8 47 L8 32.4 C8 30.6 8.6 29.2 10 28 L28.4 13.6 C29.5 12.7 30.6 12 32 12 Z"/>
+      )}
+      {type === 'amis' && <>
+        <circle {...P} cx="42" cy="21" r="8"/>
+        <path {...P} d="M30 50 C30 41 35 36 42 36 C49 36 54 41 54 50 C54 52 52.5 53 51 53 L33 53 C31.5 53 30 52 30 50 Z"/>
+        <circle {...P} cx="24" cy="23" r="9.5"/>
+        <path {...P} d="M9 53 C9 43 15 37 24 37 C33 37 39 43 39 53 C39 55 37.5 56 36 56 L12 56 C10.5 56 9 55 9 53 Z"/>
+      </>}
+      {type === 'plane' && (
+        <path {...P} d="M52 14 C54 13.2 55.5 15 54.7 17 L44 48 C43.3 50 40.7 50.4 39.4 48.7 L32 39 L46 22 L26 35 L14.5 30.5 C12.6 29.7 12.5 27 14.4 26.2 Z"/>
+      )}
+      {type === 'profil' && <>
+        <circle {...P} cx="32" cy="22" r="11"/>
+        <path {...P} d="M12 52 C12 40 21 33 32 33 C43 33 52 40 52 52 C52 54.5 50 56 47.5 56 L16.5 56 C14 56 12 54.5 12 52 Z"/>
+      </>}
     </svg>
   );
 }
@@ -142,13 +129,33 @@ export default function Layout({ children }) {
   // (⚠️ preserveAspectRatio="none" + viewBox fixe DÉFORME la vague → on
   //  recalcule le path à la vraie largeur. Le tracé est lancé PAR LE ref
   //  callback dès que le SVG est monté — pas de dépendance au timing.)
-  const dockRef = useRef(null), dockBgRef = useRef(null);
-  const drawWave = useCallback(() => {
-    const dock = dockRef.current, svg = dockBgRef.current;
-    if (!dock || !svg) return;
-    const w = dock.clientWidth || dock.getBoundingClientRect().width;
-    if (!w) { requestAnimationFrame(drawWave); return; }
+  const dockRef = useRef(null);
+  const [dockW, setDockW] = useState(0);
+  const setDockNode = useCallback((node) => {
+    dockRef.current = node;
+    if (!node) return;
+    const measure = () => {
+      const w = node.clientWidth || node.getBoundingClientRect().width;
+      if (w) setDockW(w); else requestAnimationFrame(measure);
+    };
+    requestAnimationFrame(measure);
+    if (typeof ResizeObserver !== 'undefined') {
+      const ro = new ResizeObserver(() => {
+        const w = node.clientWidth || node.getBoundingClientRect().width;
+        if (w) setDockW(w);
+      });
+      ro.observe(node);
+    }
+  }, []);
+  useEffect(() => {
+    const onResize = () => { const n = dockRef.current; if (n) setDockW(n.clientWidth || n.getBoundingClientRect().width || 0); };
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, []);
+  // Path de la vague calculé à partir de la largeur réelle (rendu par React)
+  const wavePath = (() => {
     const H = 62, R_CIRCLE = 35, GAP = 7, CY = -9, CORNER = 24, FILLET = 16;
+    const w = dockW || 384;
     const Rn = R_CIRCLE + GAP;
     const DXF = Math.sqrt((Rn + FILLET) ** 2 - (FILLET - CY) ** 2);
     const _n  = Math.hypot(DXF, CY - FILLET);
@@ -156,32 +163,16 @@ export default function Layout({ children }) {
     const TY  = FILLET + ((CY - FILLET) / _n) * FILLET;
     const cx = w / 2;
     const l1 = cx - DXF, l2 = cx - TX, r2 = cx + TX, r1 = cx + DXF;
-    svg.setAttribute('viewBox', `0 0 ${w} ${H}`);
-    svg.querySelector('path').setAttribute('d',
-      `M${CORNER} 0 H${l1.toFixed(1)}` +
-      ` A ${FILLET} ${FILLET} 0 0 1 ${l2.toFixed(1)} ${TY.toFixed(1)}` +
-      ` A ${Rn} ${Rn} 0 0 0 ${r2.toFixed(1)} ${TY.toFixed(1)}` +
-      ` A ${FILLET} ${FILLET} 0 0 1 ${r1.toFixed(1)} 0` +
-      ` H${w - CORNER} A ${CORNER} ${CORNER} 0 0 1 ${w} ${CORNER}` +
-      ` V${H - CORNER} A ${CORNER} ${CORNER} 0 0 1 ${w - CORNER} ${H}` +
-      ` H${CORNER} A ${CORNER} ${CORNER} 0 0 1 0 ${H - CORNER}` +
-      ` V${CORNER} A ${CORNER} ${CORNER} 0 0 1 ${CORNER} 0 Z`);
-  }, []);
-  // ref callback : mihodina rehefa TENA voarina ny <div dock> ao amin'ny DOM
-  const setDockNode = useCallback((node) => {
-    dockRef.current = node;
-    if (node) {
-      requestAnimationFrame(drawWave);
-      if (typeof ResizeObserver !== 'undefined') {
-        const ro = new ResizeObserver(drawWave);
-        ro.observe(node);
-      }
-    }
-  }, [drawWave]);
-  useEffect(() => {
-    window.addEventListener('resize', drawWave);
-    return () => window.removeEventListener('resize', drawWave);
-  }, [drawWave]);
+    return `M${CORNER} 0 H${l1.toFixed(1)}`
+      + ` A ${FILLET} ${FILLET} 0 0 1 ${l2.toFixed(1)} ${TY.toFixed(1)}`
+      + ` A ${Rn} ${Rn} 0 0 0 ${r2.toFixed(1)} ${TY.toFixed(1)}`
+      + ` A ${FILLET} ${FILLET} 0 0 1 ${r1.toFixed(1)} 0`
+      + ` H${w - CORNER} A ${CORNER} ${CORNER} 0 0 1 ${w} ${CORNER}`
+      + ` V${H - CORNER} A ${CORNER} ${CORNER} 0 0 1 ${w - CORNER} ${H}`
+      + ` H${CORNER} A ${CORNER} ${CORNER} 0 0 1 0 ${H - CORNER}`
+      + ` V${CORNER} A ${CORNER} ${CORNER} 0 0 1 ${CORNER} 0 Z`;
+  })();
+  const waveViewBox = `0 0 ${dockW || 384} 62`;
 
 
   // Page Sera supprimée — subscribeIdentity retiré
@@ -655,13 +646,12 @@ export default function Layout({ children }) {
       {/* ── Dock flottant v9 — vague concave dynamique + rond ⏸ surélevé ── */}
       <nav className="dock-v9-wrap">
         <div className="dock-v9" ref={setDockNode}>
-          <svg className="dock-v9-bg" ref={dockBgRef} preserveAspectRatio="none" viewBox="0 0 420 62">
-            <path fill="var(--dock-fill)" d="M24 0 H159 A16 16 0 0 1 170.4 4.7 A45 45 0 0 0 249.6 4.7 A16 16 0 0 1 261 0 H396 A24 24 0 0 1 420 24 V38 A24 24 0 0 1 396 62 H24 A24 24 0 0 1 0 38 V24 A24 24 0 0 1 24 0 Z"/>
+          <svg className="dock-v9-bg" preserveAspectRatio="none" viewBox={waveViewBox}>
+            <path fill="var(--dock-fill)" d={wavePath}/>
           </svg>
 
           {bottomNav.map(({ path, navState, icon, badge, color, isCenter, label }) => {
             const active = isActive(path);
-            const FilledIcon = icon === 'home' ? HiHome : icon === 'amis' ? HiUserGroup : icon === 'plane' ? HiPaperAirplane : HiUser;
             const go = () => {
               if (path === '/' && location.pathname === '/') { window.dispatchEvent(new CustomEvent('trengo:refresh-home')); return; }
               const tabPaths = bottomNav.map(it => it.path);
@@ -677,8 +667,8 @@ export default function Layout({ children }) {
                 <div key={label} className="dock-v9-center">
                   <button className="dock-v9-play" onClick={go} aria-label={label}>
                     <svg width="34" height="34" viewBox="24 21 19 22">
-                      <rect x="26.5" y="22.4" width="5.8" height="19.2" rx="2.7" fill="#0E1013"/>
-                      <rect x="35.2" y="22.4" width="5.8" height="19.2" rx="2.7" fill="#0E1013"/>
+                      <rect x="26.5" y="22.4" width="5.8" height="19.2" rx="2.7" fill="#FFFFFF" stroke="#2B2F35" strokeWidth="1.6"/>
+                      <rect x="35.2" y="22.4" width="5.8" height="19.2" rx="2.7" fill="#FFFFFF" stroke="#2B2F35" strokeWidth="1.6"/>
                     </svg>
                   </button>
                 </div>
@@ -687,13 +677,7 @@ export default function Layout({ children }) {
 
             return (
               <button key={label} className="dock-v9-item" onClick={go} aria-label={label}>
-                {active ? (
-                  <span className="dock-v9-cell" style={{ '--gl': 'rgba(0,0,0,.38)', background: `linear-gradient(150deg, ${color === '#1877F2' ? '#4E9BFF' : '#FFD84D'}, ${color === '#1877F2' ? '#1667D8' : '#D69A00'})` }}>
-                    <FilledIcon size={24} color="#fff" />
-                  </span>
-                ) : (
-                  <ClayNavIcon type={icon} color={color} size={42} />
-                )}
+                <ClayNavIcon type={icon} color={color} size={42} active={active} />
                 {badge > 0 && <span className="notif-badge" style={{ top: 6, right: 'calc(50% - 22px)' }}>{badge > 9 ? '9+' : badge}</span>}
               </button>
             );

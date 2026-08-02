@@ -417,7 +417,8 @@ input::placeholder, textarea::placeholder { color: #8A8D91 !important; font-size
 }
 .dock-v9-play {
   position: absolute; left: 50%; top: 50%; transform: translate(-50%, -84%); z-index: 3;
-  width: 70px; height: 70px; border-radius: 50%; border: none; cursor: pointer;
+  width: 70px; height: 70px; border-radius: 50%; cursor: pointer;
+  border: 3px solid #F5C518;   /* bordure dorée */
   background: linear-gradient(150deg,#FF7DC0,#FF2D8D 55%,#DA0F68);
   box-shadow: 0 12px 26px rgba(255,45,141,.48), 0 4px 10px rgba(0,0,0,.20),
               inset 0 2px 4px rgba(255,255,255,.6), inset 0 -5px 9px rgba(0,0,0,.24);
