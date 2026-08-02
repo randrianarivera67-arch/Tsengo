@@ -1,0 +1,920 @@
+import React, { useState, useCallback, useMemo, useRef, useEffect } from "react";
+import { Crown, RotateCcw, Cpu, User, ChevronRight, Wifi, Copy } from "lucide-react";
+import {
+  createFanoronaRoom,
+  joinFanoronaRoom,
+  subscribeFanoronaRoom,
+  submitFanoronaTurn,
+} from "./fanoronaOnline";
+
+/* ============================================================
+   FANORONA — CORE ENGINE
+   Board: 5 rows x 9 cols (45 points). Diagonal edges exist at
+   a point (r,c) when (r+c) is even — standard Fanorona lattice.
+   ============================================================ */
+
+const ROWS = 5;
+const COLS = 9;
+const SIZE = ROWS * COLS;
+
+const idx = (r, c) => r * COLS + c;
+const rc = (i) => [Math.floor(i / COLS), i % COLS];
+const inBounds = (r, c) => r >= 0 && r < ROWS && c >= 0 && c < COLS;
+
+const ORTHO = [
+  [-1, 0], [1, 0], [0, -1], [0, 1],
+];
+const DIAG = [
+  [-1, -1], [-1, 1], [1, -1], [1, 1],
+];
+
+// Precompute neighbor directions available from every point.
+const NEIGHBOR_DIRS = (() => {
+  const table = [];
+  for (let i = 0; i < SIZE; i++) {
+    const [r, c] = rc(i);
+    const dirs = [...ORTHO];
+    if ((r + c) % 2 === 0) dirs.push(...DIAG);
+    table[i] = dirs.filter(([dr, dc]) => inBounds(r + dr, c + dc));
+  }
+  return table;
+})();
+
+function initialBoard() {
+  const board = new Array(SIZE).fill(null);
+  // Rows 0-1: White (W) fill entirely
+  for (let c = 0; c < COLS; c++) {
+    board[idx(0, c)] = "W";
+    board[idx(1, c)] = "W";
+  }
+  // Row 2: left half White, right half Black, center empty
+  for (let c = 0; c < 4; c++) board[idx(2, c)] = "W";
+  board[idx(2, 4)] = null;
+  for (let c = 5; c < COLS; c++) board[idx(2, c)] = "B";
+  // Rows 3-4: Black fill entirely
+  for (let c = 0; c < COLS; c++) {
+    board[idx(3, c)] = "B";
+    board[idx(4, c)] = "B";
+  }
+  return board;
+}
+
+const opponent = (p) => (p === "W" ? "B" : "W");
+
+// Walk from a point in a direction, collecting contiguous opponent
+// pieces until an empty square or the edge is hit. If an empty
+// square terminates the run, those pieces are captured; if the
+// board edge or own piece terminates it, nothing is captured.
+function captureRun(board, start, dir, mover) {
+  const [dr, dc] = dir;
+  let [r, c] = rc(start);
+  const captured = [];
+  r += dr; c += dc;
+  while (inBounds(r, c)) {
+    const p = board[idx(r, c)];
+    if (p === opponent(mover)) {
+      captured.push(idx(r, c));
+      r += dr; c += dc;
+    } else if (p === null) {
+      return captured; // clean run terminated by empty square
+    } else {
+      return []; // own piece blocks — no capture
+    }
+  }
+  return []; // ran off the board — no capture
+}
+
+// All single-step options from a given piece: quiet moves and
+// capturing moves (approach / withdrawal), each tagged with a
+// direction so chain-capture rules (no reuse, no revisit) apply.
+function stepOptions(board, from, player) {
+  const options = [];
+  for (const dir of NEIGHBOR_DIRS[from]) {
+    const [r, c] = rc(from);
+    const [dr, dc] = dir;
+    const to = idx(r + dr, c + dc);
+    if (board[to] !== null) continue; // destination must be empty
+    const approach = captureRun(board, to, dir, player);
+    const withdrawal = captureRun(board, from, [-dr, -dc], player);
+    if (approach.length) {
+      options.push({ from, to, dir, type: "approach", captured: approach });
+    }
+    if (withdrawal.length) {
+      options.push({ from, to, dir, type: "withdrawal", captured: withdrawal });
+    }
+    if (!approach.length && !withdrawal.length) {
+      options.push({ from, to, dir, type: "quiet", captured: [] });
+    }
+  }
+  return options;
+}
+
+function applyStep(board, step) {
+  const next = board.slice();
+  const mover = board[step.from];
+  next[step.from] = null;
+  next[step.to] = mover;
+  for (const cap of step.captured) next[cap] = null;
+  return next;
+}
+
+// Recursively expand every legal *turn*. A turn is one quiet move,
+// or a mandatory-first capture optionally extended into a chain.
+// A chain step must change direction from the previous step and
+// may not land on a previously visited point.
+function expandCaptureChain(board, step, visited, lastDir) {
+  const turns = [{ path: [step], board: applyStep(board, step) }];
+  const nextBoard = applyStep(board, step);
+  const nextVisited = new Set(visited);
+  nextVisited.add(step.to);
+
+  for (const dir of NEIGHBOR_DIRS[step.to]) {
+    if (dir[0] === lastDir[0] && dir[1] === lastDir[1]) continue; // no immediate reuse
+    const [r, c] = rc(step.to);
+    const to = idx(r + dir[0], c + dir[1]);
+    if (nextBoard[to] !== null) continue;
+    if (nextVisited.has(to)) continue;
+    const approach = captureRun(nextBoard, to, dir, board[step.from]);
+    const withdrawal = captureRun(nextBoard, step.to, [-dir[0], -dir[1]], board[step.from]);
+    const kinds = [];
+    if (approach.length) kinds.push({ type: "approach", captured: approach });
+    if (withdrawal.length) kinds.push({ type: "withdrawal", captured: withdrawal });
+    for (const k of kinds) {
+      const contStep = { from: step.to, to, dir, ...k };
+      const sub = expandCaptureChain(nextBoard, contStep, nextVisited, dir);
+      for (const s of sub) {
+        turns.push({ path: [step, ...s.path], board: s.board });
+      }
+    }
+  }
+  return turns;
+}
+
+function getAllTurns(board, player) {
+  const captureFirsts = [];
+  const quiets = [];
+  for (let i = 0; i < SIZE; i++) {
+    if (board[i] !== player) continue;
+    for (const opt of stepOptions(board, i, player)) {
+      if (opt.type === "quiet") quiets.push(opt);
+      else captureFirsts.push(opt);
+    }
+  }
+  if (captureFirsts.length > 0) {
+    let turns = [];
+    for (const first of captureFirsts) {
+      const visited = new Set([first.from]);
+      turns = turns.concat(expandCaptureChain(board, first, visited, first.dir));
+    }
+    return turns;
+  }
+  return quiets.map((q) => ({ path: [q], board: applyStep(board, q) }));
+}
+
+function countPieces(board) {
+  let w = 0, b = 0;
+  for (const p of board) { if (p === "W") w++; else if (p === "B") b++; }
+  return { W: w, B: b };
+}
+
+function checkWinner(board, toMove) {
+  const { W, B } = countPieces(board);
+  if (W === 0) return "B";
+  if (B === 0) return "W";
+  if (getAllTurns(board, toMove).length === 0) return opponent(toMove);
+  return null;
+}
+
+/* ============================================================
+   AI — minimax with alpha-beta over complete turns
+   ============================================================ */
+
+function evaluate(board, aiPlayer) {
+  const { W, B } = countPieces(board);
+  const me = aiPlayer === "W" ? W : B;
+  const opp = aiPlayer === "W" ? B : W;
+  const mobility = getAllTurns(board, aiPlayer).length - getAllTurns(board, opponent(aiPlayer)).length;
+  return (me - opp) * 10 + mobility * 0.3;
+}
+
+function minimax(board, player, depth, alpha, beta, aiPlayer) {
+  const winner = checkWinner(board, player);
+  if (winner) return winner === aiPlayer ? 10000 - depth : -10000 + depth;
+  if (depth === 0) return evaluate(board, aiPlayer);
+
+  const turns = getAllTurns(board, player);
+  if (turns.length === 0) return evaluate(board, aiPlayer);
+
+  const maximizing = player === aiPlayer;
+  let best = maximizing ? -Infinity : Infinity;
+  for (const t of turns) {
+    const val = minimax(t.board, opponent(player), depth - 1, alpha, beta, aiPlayer);
+    if (maximizing) {
+      best = Math.max(best, val);
+      alpha = Math.max(alpha, best);
+    } else {
+      best = Math.min(best, val);
+      beta = Math.min(beta, best);
+    }
+    if (beta <= alpha) break;
+  }
+  return best;
+}
+
+function chooseAiTurn(board, aiPlayer, difficulty) {
+  const depth = { easy: 1, medium: 2, hard: 3 }[difficulty] ?? 2;
+  const turns = getAllTurns(board, aiPlayer);
+  if (turns.length === 0) return null;
+  if (difficulty === "easy" && Math.random() < 0.35) {
+    return turns[Math.floor(Math.random() * turns.length)];
+  }
+  let bestVal = -Infinity;
+  let bestTurns = [];
+  for (const t of turns) {
+    const val = minimax(t.board, opponent(aiPlayer), depth - 1, -Infinity, Infinity, aiPlayer);
+    if (val > bestVal) { bestVal = val; bestTurns = [t]; }
+    else if (val === bestVal) bestTurns.push(t);
+  }
+  return bestTurns[Math.floor(Math.random() * bestTurns.length)];
+}
+
+/* ============================================================
+   UI
+   ============================================================ */
+
+const COLORS = {
+  bgDeep: "#150E09",
+  bgPanel: "#1F160F",
+  wood: "#3E2A1C",
+  woodLight: "#5A3E28",
+  woodLine: "#7A5A3A",
+  ivory: "#EAE0C8",
+  ivoryShadow: "#B9AC8C",
+  onyx: "#17110C",
+  onyxShine: "#3A3229",
+  brass: "#A9834B",
+  brassBright: "#D9A653",
+  oxblood: "#8B3A2F",
+  textMuted: "#B8A88C",
+};
+
+function PointDot({ x, y, r = 6 }) {
+  return <circle cx={x} cy={y} r={r} fill={COLORS.woodLine} opacity={0.55} />;
+}
+
+function usePointLayout(cellSize, pad) {
+  return useMemo(() => {
+    const pts = [];
+    for (let i = 0; i < SIZE; i++) {
+      const [r, c] = rc(i);
+      pts.push({ i, x: pad + c * cellSize, y: pad + r * cellSize });
+    }
+    return pts;
+  }, [cellSize, pad]);
+}
+
+export default function FanoronaPremium() {
+  const [board, setBoard] = useState(initialBoard);
+  const [toMove, setToMove] = useState("W");
+  const [human, setHuman] = useState("W");
+  const [difficulty, setDifficulty] = useState("medium");
+  const [selected, setSelected] = useState(null);
+  const [chainPath, setChainPath] = useState([]); // points visited during an in-progress human chain
+  const [availableOptions, setAvailableOptions] = useState([]); // options for currently selected piece / chain point
+  const [inChain, setInChain] = useState(false);
+  const [lastDir, setLastDir] = useState(null);
+  const [visited, setVisited] = useState(new Set());
+  const [log, setLog] = useState([]);
+  const [winner, setWinner] = useState(null);
+  const [thinking, setThinking] = useState(false);
+  const [trail, setTrail] = useState([]); // brass capture-trail for last completed turn
+  const boardRef = useRef(null);
+
+  // --- Online multiplayer state ---
+  const [mode, setMode] = useState("bot"); // "bot" | "online"
+  const [roomCode, setRoomCode] = useState(null);
+  const [roomStatus, setRoomStatus] = useState(null); // "waiting" | "ongoing" | "finished"
+  const [joinInput, setJoinInput] = useState("");
+  const [onlineError, setOnlineError] = useState(null);
+  const [onlineBusy, setOnlineBusy] = useState(false);
+
+  const cellSize = 56;
+  const pad = 40;
+  const points = usePointLayout(cellSize, pad);
+  const width = pad * 2 + (COLS - 1) * cellSize;
+  const height = pad * 2 + (ROWS - 1) * cellSize;
+
+  const aiPlayer = opponent(human);
+  const counts = useMemo(() => countPieces(board), [board]);
+
+  const resetGame = useCallback((startHuman = "W") => {
+    setBoard(initialBoard());
+    setToMove("W");
+    setHuman(startHuman);
+    setSelected(null);
+    setChainPath([]);
+    setAvailableOptions([]);
+    setInChain(false);
+    setLastDir(null);
+    setVisited(new Set());
+    setLog([]);
+    setWinner(null);
+    setTrail([]);
+  }, []);
+
+  const leaveRoom = useCallback(() => {
+    setRoomCode(null);
+    setRoomStatus(null);
+    setOnlineError(null);
+    resetGame("W");
+  }, [resetGame]);
+
+  const switchMode = (nextMode) => {
+    setMode(nextMode);
+    leaveRoom();
+  };
+
+  const handleCreateRoom = async () => {
+    setOnlineBusy(true);
+    setOnlineError(null);
+    try {
+      const { code, color } = await createFanoronaRoom(initialBoard());
+      setRoomCode(code);
+      setHuman(color);
+      setRoomStatus("waiting");
+      resetGame(color);
+    } catch (e) {
+      setOnlineError("Tsy afaka namorona lalao — hamarino ny Firebase config");
+    } finally {
+      setOnlineBusy(false);
+    }
+  };
+
+  const handleJoinRoom = async () => {
+    if (!joinInput.trim()) return;
+    setOnlineBusy(true);
+    setOnlineError(null);
+    try {
+      const { code, color } = await joinFanoronaRoom(joinInput.trim());
+      setRoomCode(code);
+      setHuman(color);
+    } catch (e) {
+      setOnlineError(
+        e.message === "room-not-found" ? "Tsy hita io kaody io" :
+        e.message === "room-full" ? "Feno io lalao io" :
+        "Tsy afaka niditra — andramo indray"
+      );
+    } finally {
+      setOnlineBusy(false);
+    }
+  };
+
+  // Subscribe to the room once one exists; the room document is the
+  // source of truth for both players in online mode.
+  useEffect(() => {
+    if (mode !== "online" || !roomCode) return;
+    const unsub = subscribeFanoronaRoom(roomCode, (data) => {
+      setBoard(data.board);
+      setToMove(data.toMove);
+      setRoomStatus(data.status);
+      setWinner(data.winner ?? null);
+      if (data.log && data.log[0]) {
+        setLog((l) => (l[0]?.notation === data.log[0].notation ? l : [data.log[0], ...l].slice(0, 40)));
+      }
+    });
+    return () => unsub();
+  }, [mode, roomCode]);
+
+  const pointLabel = (i) => {
+    const [r, c] = rc(i);
+    return `${String.fromCharCode(65 + c)}${ROWS - r}`;
+  };
+
+  const commitTurn = useCallback((path, boardAfter, mover) => {
+    const notation = path
+      .map((s) => `${pointLabel(s.from)}→${pointLabel(s.to)}${s.captured.length ? `×${s.captured.length}` : ""}`)
+      .join(" ");
+    const next = opponent(mover);
+    const w = checkWinner(boardAfter, next);
+
+    if (mode === "online" && roomCode) {
+      // Firestore's realtime snapshot (see the subscribe effect above)
+      // is the source of truth — this just pushes the validated move.
+      submitFanoronaTurn(roomCode, {
+        boardAfter,
+        nextToMove: next,
+        winner: w,
+        logEntry: { mover, notation },
+      }).catch(() => setOnlineError("Tsy voatahiry ilay mihetsika — jereo ny fifandraisana"));
+    } else {
+      setBoard(boardAfter);
+      setLog((l) => [{ mover, notation }, ...l].slice(0, 40));
+      if (w) setWinner(w); else setToMove(next);
+    }
+
+    setTrail(path.map((s) => s.to));
+    setSelected(null);
+    setAvailableOptions([]);
+    setInChain(false);
+    setChainPath([]);
+    setVisited(new Set());
+    setLastDir(null);
+  }, [mode, roomCode]);
+
+  // Human piece selection / move handling
+  const handlePointClick = (i) => {
+    if (winner || thinking) return;
+    if (toMove !== human) return;
+
+    if (inChain) {
+      const opt = availableOptions.find((o) => o.to === i);
+      if (opt) {
+        const boardAfter = applyStep(board, opt);
+        const newVisited = new Set(visited);
+        newVisited.add(opt.to);
+        const path = [...chainPath, opt];
+        // check for further mandatory-optional continuation
+        const cont = NEIGHBOR_DIRS[opt.to]
+          .filter((d) => !(d[0] === opt.dir[0] && d[1] === opt.dir[1]))
+          .flatMap((dir) => {
+            const [r, c] = rc(opt.to);
+            const to = idx(r + dir[0], c + dir[1]);
+            if (!inBounds(r + dir[0], c + dir[1]) || boardAfter[to] !== null || newVisited.has(to)) return [];
+            const approach = captureRun(boardAfter, to, dir, human);
+            const withdrawal = captureRun(boardAfter, opt.to, [-dir[0], -dir[1]], human);
+            const out = [];
+            if (approach.length) out.push({ from: opt.to, to, dir, type: "approach", captured: approach });
+            if (withdrawal.length) out.push({ from: opt.to, to, dir, type: "withdrawal", captured: withdrawal });
+            return out;
+          });
+        if (cont.length > 0) {
+          setBoard(boardAfter);
+          setChainPath(path);
+          setVisited(newVisited);
+          setLastDir(opt.dir);
+          setAvailableOptions(cont);
+          setSelected(opt.to);
+        } else {
+          commitTurn(path, boardAfter, human);
+        }
+      } else if (i === selected) {
+        // deselect / stop chain early
+        commitTurn(chainPath, board, human);
+      }
+      return;
+    }
+
+    if (selected === null) {
+      if (board[i] !== human) return;
+      const allTurns = getAllTurns(board, human);
+      const mustCapture = allTurns.some((t) => t.path[0].captured.length > 0);
+      const myOptions = stepOptions(board, i, human).filter(
+        (o) => !mustCapture || o.captured.length > 0
+      );
+      if (myOptions.length === 0) return;
+      setSelected(i);
+      setAvailableOptions(myOptions);
+    } else {
+      if (i === selected) { setSelected(null); setAvailableOptions([]); return; }
+      const opt = availableOptions.find((o) => o.to === i);
+      if (!opt) {
+        if (board[i] === human) {
+          const allTurns = getAllTurns(board, human);
+          const mustCapture = allTurns.some((t) => t.path[0].captured.length > 0);
+          const myOptions = stepOptions(board, i, human).filter(
+            (o) => !mustCapture || o.captured.length > 0
+          );
+          if (myOptions.length) { setSelected(i); setAvailableOptions(myOptions); }
+        }
+        return;
+      }
+      if (opt.captured.length > 0) {
+        const boardAfter = applyStep(board, opt);
+        const newVisited = new Set([opt.from, opt.to]);
+        const cont = NEIGHBOR_DIRS[opt.to]
+          .filter((d) => !(d[0] === opt.dir[0] && d[1] === opt.dir[1]))
+          .flatMap((dir) => {
+            const [r, c] = rc(opt.to);
+            const to = idx(r + dir[0], c + dir[1]);
+            if (!inBounds(r + dir[0], c + dir[1]) || boardAfter[to] !== null || newVisited.has(to)) return [];
+            const approach = captureRun(boardAfter, to, dir, human);
+            const withdrawal = captureRun(boardAfter, opt.to, [-dir[0], -dir[1]], human);
+            const out = [];
+            if (approach.length) out.push({ from: opt.to, to, dir, type: "approach", captured: approach });
+            if (withdrawal.length) out.push({ from: opt.to, to, dir, type: "withdrawal", captured: withdrawal });
+            return out;
+          });
+        if (cont.length > 0) {
+          setInChain(true);
+          setBoard(boardAfter);
+          setChainPath([opt]);
+          setVisited(newVisited);
+          setLastDir(opt.dir);
+          setAvailableOptions(cont);
+          setSelected(opt.to);
+        } else {
+          commitTurn([opt], boardAfter, human);
+        }
+      } else {
+        const boardAfter = applyStep(board, opt);
+        commitTurn([opt], boardAfter, human);
+      }
+    }
+  };
+
+  // AI turn
+  useEffect(() => {
+    if (mode !== "bot" || winner || toMove !== aiPlayer) return;
+    setThinking(true);
+    const t = setTimeout(() => {
+      const turn = chooseAiTurn(board, aiPlayer, difficulty);
+      if (turn) {
+        commitTurn(turn.path, turn.board, aiPlayer);
+      } else {
+        setWinner(human);
+      }
+      setThinking(false);
+    }, 550);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mode, toMove, winner]);
+
+  const highlightSet = new Set(availableOptions.map((o) => o.to));
+  const captureTargets = new Set(availableOptions.flatMap((o) => o.captured));
+
+  return (
+    <div
+      style={{
+        minHeight: "100vh",
+        background: `radial-gradient(ellipse at top, ${COLORS.bgPanel} 0%, ${COLORS.bgDeep} 65%)`,
+        fontFamily: "'Inter', system-ui, sans-serif",
+        color: COLORS.ivory,
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        padding: "32px 16px",
+      }}
+    >
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap');
+        .fp-display { font-family: 'Fraunces', Georgia, serif; }
+        .fp-mono { font-family: 'IBM Plex Mono', monospace; }
+        @keyframes fp-pulse { 0%,100% { opacity: .55; } 50% { opacity: 1; } }
+        .fp-pulse { animation: fp-pulse 1.4s ease-in-out infinite; }
+        @keyframes fp-fade-in { from { opacity: 0; transform: translateY(4px);} to { opacity:1; transform:translateY(0);} }
+        .fp-fade { animation: fp-fade-in .35s ease both; }
+      `}</style>
+
+      <header className="fp-fade" style={{ textAlign: "center", marginBottom: 28 }}>
+        <h1 className="fp-display" style={{ fontSize: 40, fontWeight: 600, margin: "6px 0 4px", letterSpacing: "-0.01em" }}>
+          Fanorona
+        </h1>
+        <p style={{ color: COLORS.textMuted, fontSize: 13, maxWidth: 380 }}>
+          Ny lalao malagasy nandritra ny taonjato maro — mifidiana lalana, samboro ny mpanohitra
+        </p>
+        <div style={{ display: "flex", gap: 6, justifyContent: "center", marginTop: 16 }}>
+          {[
+            { key: "bot", label: "Robot", Icon: Cpu },
+            { key: "online", label: "Olona", Icon: Wifi },
+          ].map(({ key, label, Icon }) => (
+            <button
+              key={key}
+              onClick={() => switchMode(key)}
+              style={{
+                display: "flex", alignItems: "center", gap: 6,
+                padding: "8px 16px", borderRadius: 999,
+                border: `1px solid ${mode === key ? COLORS.brassBright : COLORS.woodLine + "55"}`,
+                background: mode === key ? COLORS.brass + "33" : "transparent",
+                color: mode === key ? COLORS.brassBright : COLORS.textMuted,
+                fontSize: 13, cursor: "pointer",
+              }}
+            >
+              <Icon size={14} /> {label}
+            </button>
+          ))}
+        </div>
+      </header>
+
+      {mode === "online" && !roomCode && (
+        <div className="fp-fade" style={{
+          background: COLORS.bgPanel, borderRadius: 14, padding: 24, width: 320,
+          border: `1px solid ${COLORS.woodLine}33`, marginBottom: 24, textAlign: "center",
+        }}>
+          <Wifi size={20} color={COLORS.brassBright} />
+          <p style={{ fontSize: 13, color: COLORS.textMuted, margin: "10px 0 16px" }}>
+            Mamorona lalao vaovao ka izarao ilay kaody, na ampidiro ny kaody nomen'ny namanao
+          </p>
+          <button
+            onClick={handleCreateRoom}
+            disabled={onlineBusy}
+            style={{
+              width: "100%", padding: "10px 0", borderRadius: 8, border: "none",
+              background: COLORS.brass, color: "#1C130D", fontWeight: 600, fontSize: 13, cursor: "pointer",
+              marginBottom: 10, opacity: onlineBusy ? 0.6 : 1,
+            }}
+          >
+            Mamorona lalao
+          </button>
+          <div style={{ display: "flex", gap: 8 }}>
+            <input
+              value={joinInput}
+              onChange={(e) => setJoinInput(e.target.value.toUpperCase())}
+              placeholder="Kaody (5 marika)"
+              maxLength={5}
+              className="fp-mono"
+              style={{
+                flex: 1, padding: "9px 10px", borderRadius: 8, border: `1px solid ${COLORS.woodLine}55`,
+                background: "transparent", color: COLORS.ivory, fontSize: 13, letterSpacing: "0.1em",
+              }}
+            />
+            <button
+              onClick={handleJoinRoom}
+              disabled={onlineBusy}
+              style={{
+                padding: "0 16px", borderRadius: 8, border: `1px solid ${COLORS.woodLine}55`,
+                background: "transparent", color: COLORS.ivory, fontSize: 13, cursor: "pointer", opacity: onlineBusy ? 0.6 : 1,
+              }}
+            >
+              Miditra
+            </button>
+          </div>
+          {onlineError && <p style={{ color: COLORS.oxblood, fontSize: 12, marginTop: 10 }}>{onlineError}</p>}
+        </div>
+      )}
+
+      {mode === "online" && roomCode && roomStatus === "waiting" && (
+        <div className="fp-fade" style={{
+          background: COLORS.bgPanel, borderRadius: 14, padding: 20, width: 320,
+          border: `1px solid ${COLORS.woodLine}33`, marginBottom: 24, textAlign: "center",
+        }}>
+          <p style={{ fontSize: 12, color: COLORS.textMuted, marginBottom: 8 }}>Miandry namana hiditra…</p>
+          <div style={{
+            display: "flex", alignItems: "center", justifyContent: "center", gap: 10,
+            fontSize: 26, letterSpacing: "0.3em", fontWeight: 600,
+          }} className="fp-mono fp-pulse">
+            {roomCode}
+            <Copy
+              size={16}
+              style={{ cursor: "pointer" }}
+              onClick={() => navigator.clipboard?.writeText(roomCode)}
+            />
+          </div>
+        </div>
+      )}
+
+      <div style={{ display: "flex", gap: 28, flexWrap: "wrap", justifyContent: "center", alignItems: "flex-start", opacity: mode === "online" && !(roomCode && roomStatus !== "waiting") ? 0.35 : 1, pointerEvents: mode === "online" && !(roomCode && roomStatus !== "waiting") ? "none" : "auto" }}>
+        {/* Board */}
+        <div
+          className="fp-fade"
+          style={{
+            background: `linear-gradient(160deg, ${COLORS.woodLight}, ${COLORS.wood} 60%)`,
+            borderRadius: 18,
+            padding: 22,
+            boxShadow: "0 24px 60px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.06)",
+            border: `1px solid ${COLORS.woodLine}55`,
+          }}
+        >
+          <svg ref={boardRef} width={width} height={height} style={{ display: "block" }}>
+            <defs>
+              <radialGradient id="ivoryGrad" cx="35%" cy="30%" r="75%">
+                <stop offset="0%" stopColor="#FFFBF0" />
+                <stop offset="55%" stopColor={COLORS.ivory} />
+                <stop offset="100%" stopColor={COLORS.ivoryShadow} />
+              </radialGradient>
+              <radialGradient id="onyxGrad" cx="35%" cy="30%" r="75%">
+                <stop offset="0%" stopColor={COLORS.onyxShine} />
+                <stop offset="60%" stopColor={COLORS.onyx} />
+                <stop offset="100%" stopColor="#000000" />
+              </radialGradient>
+            </defs>
+
+            {/* grid lines */}
+            {points.map(({ i, x, y }) =>
+              NEIGHBOR_DIRS[i].map((dir, k) => {
+                const [r, c] = rc(i);
+                const ni = idx(r + dir[0], c + dir[1]);
+                if (ni < i) return null; // draw each edge once
+                const p2 = points[ni];
+                return (
+                  <line
+                    key={`${i}-${k}`}
+                    x1={x} y1={y} x2={p2.x} y2={p2.y}
+                    stroke={COLORS.woodLine}
+                    strokeWidth={1.5}
+                    opacity={0.45}
+                  />
+                );
+              })
+            )}
+
+            {/* brass capture trail from the last completed turn */}
+            {trail.length > 1 &&
+              trail.slice(1).map((to, k) => {
+                const from = trail[k];
+                const p1 = points[from];
+                const p2 = points[to];
+                return (
+                  <line
+                    key={`trail-${k}`}
+                    x1={p1.x} y1={p1.y} x2={p2.x} y2={p2.y}
+                    stroke={COLORS.brassBright}
+                    strokeWidth={3}
+                    opacity={0.85}
+                    strokeLinecap="round"
+                  />
+                );
+              })}
+
+            {points.map(({ i, x, y }) => (
+              <PointDot key={i} x={x} y={y} />
+            ))}
+
+            {/* capture targets (about to be removed) */}
+            {[...captureTargets].map((i) => {
+              const p = points[i];
+              return <circle key={`cap-${i}`} cx={p.x} cy={p.y} r={cellSize * 0.32} fill="none" stroke={COLORS.oxblood} strokeWidth={2.5} opacity={0.9} />;
+            })}
+
+            {/* legal destination highlights */}
+            {[...highlightSet].map((i) => {
+              const p = points[i];
+              return (
+                <circle
+                  key={`hi-${i}`}
+                  cx={p.x} cy={p.y} r={cellSize * 0.16}
+                  fill={COLORS.brassBright}
+                  className="fp-pulse"
+                />
+              );
+            })}
+
+            {/* pieces */}
+            {points.map(({ i, x, y }) => {
+              const p = board[i];
+              if (!p) return null;
+              const isSelected = selected === i;
+              return (
+                <g key={`piece-${i}`} onClick={() => handlePointClick(i)} style={{ cursor: toMove === human ? "pointer" : "default" }}>
+                  {isSelected && (
+                    <circle cx={x} cy={y} r={cellSize * 0.34} fill="none" stroke={COLORS.brassBright} strokeWidth={2.5} />
+                  )}
+                  <circle
+                    cx={x} cy={y} r={cellSize * 0.3}
+                    fill={p === "W" ? "url(#ivoryGrad)" : "url(#onyxGrad)"}
+                    stroke={p === "W" ? COLORS.ivoryShadow : "#000"}
+                    strokeWidth={1}
+                  />
+                </g>
+              );
+            })}
+
+            {/* empty-point click targets */}
+            {points.map(({ i, x, y }) =>
+              board[i] === null ? (
+                <circle
+                  key={`hit-${i}`}
+                  cx={x} cy={y} r={cellSize * 0.34}
+                  fill="transparent"
+                  onClick={() => handlePointClick(i)}
+                  style={{ cursor: highlightSet.has(i) ? "pointer" : "default" }}
+                />
+              ) : null
+            )}
+          </svg>
+        </div>
+
+        {/* Side panel */}
+        <div className="fp-fade" style={{ width: 300, display: "flex", flexDirection: "column", gap: 16 }}>
+          <div style={{ background: COLORS.bgPanel, borderRadius: 14, padding: 18, border: `1px solid ${COLORS.woodLine}33` }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <div style={{ width: 22, height: 22, borderRadius: "50%", background: "url(#) " + COLORS.ivory, boxShadow: `0 0 0 2px ${COLORS.ivoryShadow} inset` }} />
+                <span style={{ fontSize: 13, color: COLORS.textMuted }}>{human === "W" ? "Ianao" : mode === "bot" ? "Robot" : "Namanao"}</span>
+              </div>
+              <span className="fp-mono" style={{ fontSize: 18 }}>{counts.W}</span>
+            </div>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 10 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <div style={{ width: 22, height: 22, borderRadius: "50%", background: COLORS.onyx, boxShadow: `0 0 0 2px #000 inset` }} />
+                <span style={{ fontSize: 13, color: COLORS.textMuted }}>{human === "B" ? "Ianao" : mode === "bot" ? "Robot" : "Namanao"}</span>
+              </div>
+              <span className="fp-mono" style={{ fontSize: 18 }}>{counts.B}</span>
+            </div>
+
+            <div style={{ marginTop: 14, paddingTop: 14, borderTop: `1px solid ${COLORS.woodLine}33`, fontSize: 13 }}>
+              {winner ? (
+                <div style={{ display: "flex", alignItems: "center", gap: 8, color: COLORS.brassBright }}>
+                  <Crown size={16} />
+                  <span>{winner === human ? "Nandresy ianao!" : mode === "bot" ? "Nandresy ny robot" : "Nandresy ny namanao"}</span>
+                </div>
+              ) : mode === "online" && roomStatus === "waiting" ? (
+                <div style={{ display: "flex", alignItems: "center", gap: 8, color: COLORS.textMuted }}>
+                  <Wifi size={14} className="fp-pulse" />
+                  <span>Miandry namana…</span>
+                </div>
+              ) : thinking ? (
+                <div style={{ display: "flex", alignItems: "center", gap: 8, color: COLORS.textMuted }}>
+                  <Cpu size={14} className="fp-pulse" />
+                  <span>Mieritreritra ny robot…</span>
+                </div>
+              ) : (
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  {toMove === human ? <User size={14} /> : <Cpu size={14} />}
+                  <span>
+                    {toMove === human
+                      ? (inChain ? "Manohy fisamborana — na tsindrio ny pion mba hijanona" : "Toronao no mietsika")
+                      : mode === "bot" ? "Tolon'ny robot" : "Tolon'ny namanao"}
+                  </span>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {mode === "bot" ? (
+            <div style={{ background: COLORS.bgPanel, borderRadius: 14, padding: 18, border: `1px solid ${COLORS.woodLine}33` }}>
+              <div style={{ fontSize: 11, letterSpacing: "0.14em", textTransform: "uppercase", color: COLORS.textMuted, marginBottom: 10 }}>
+                Robot
+              </div>
+              <div style={{ display: "flex", gap: 6 }}>
+                {["easy", "medium", "hard"].map((d) => (
+                  <button
+                    key={d}
+                    onClick={() => setDifficulty(d)}
+                    style={{
+                      flex: 1,
+                      padding: "8px 0",
+                      borderRadius: 8,
+                      border: `1px solid ${difficulty === d ? COLORS.brassBright : COLORS.woodLine + "55"}`,
+                      background: difficulty === d ? COLORS.brass + "33" : "transparent",
+                      color: difficulty === d ? COLORS.brassBright : COLORS.textMuted,
+                      fontSize: 12,
+                      cursor: "pointer",
+                    }}
+                  >
+                    {d === "easy" ? "Mora" : d === "medium" ? "Antonony" : "Sarotra"}
+                  </button>
+                ))}
+              </div>
+              <button
+                onClick={() => resetGame(human)}
+                style={{
+                  marginTop: 12, width: "100%", padding: "10px 0", borderRadius: 8, border: "none",
+                  background: COLORS.brass, color: "#1C130D", fontWeight: 600, fontSize: 13,
+                  display: "flex", alignItems: "center", justifyContent: "center", gap: 6, cursor: "pointer",
+                }}
+              >
+                <RotateCcw size={14} /> Lalao vaovao
+              </button>
+              <button
+                onClick={() => resetGame(human === "W" ? "B" : "W")}
+                style={{
+                  marginTop: 8, width: "100%", padding: "9px 0", borderRadius: 8,
+                  border: `1px solid ${COLORS.woodLine}55`, background: "transparent", color: COLORS.textMuted, fontSize: 12, cursor: "pointer",
+                }}
+              >
+                Mifanakalo loko
+              </button>
+            </div>
+          ) : (
+            <div style={{ background: COLORS.bgPanel, borderRadius: 14, padding: 18, border: `1px solid ${COLORS.woodLine}33` }}>
+              <div style={{ fontSize: 11, letterSpacing: "0.14em", textTransform: "uppercase", color: COLORS.textMuted, marginBottom: 10 }}>
+                Lalao an-tserasera
+              </div>
+              {roomCode && (
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
+                  <span className="fp-mono" style={{ fontSize: 16, letterSpacing: "0.15em" }}>{roomCode}</span>
+                  <span style={{ fontSize: 12, color: COLORS.textMuted }}>
+                    {human === "W" ? "Fotsy" : "Mainty"}
+                  </span>
+                </div>
+              )}
+              <button
+                onClick={leaveRoom}
+                style={{
+                  width: "100%", padding: "9px 0", borderRadius: 8,
+                  border: `1px solid ${COLORS.woodLine}55`, background: "transparent", color: COLORS.textMuted, fontSize: 12, cursor: "pointer",
+                }}
+              >
+                Miala amin'ny lalao
+              </button>
+            </div>
+          )}
+
+          <div style={{ background: COLORS.bgPanel, borderRadius: 14, padding: 18, border: `1px solid ${COLORS.woodLine}33`, maxHeight: 220, overflowY: "auto" }}>
+            <div style={{ fontSize: 11, letterSpacing: "0.14em", textTransform: "uppercase", color: COLORS.textMuted, marginBottom: 10 }}>
+              Tantaram-pilalaovana
+            </div>
+            {log.length === 0 && <div style={{ fontSize: 12, color: COLORS.textMuted + "aa" }}>Mbola tsy nisy fihetsehana</div>}
+            {log.map((entry, k) => (
+              <div key={k} className="fp-mono" style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, padding: "3px 0", color: entry.mover === "W" ? COLORS.ivory : COLORS.textMuted }}>
+                <ChevronRight size={12} style={{ opacity: 0.5 }} />
+                <span style={{ opacity: 0.6 }}>{entry.mover}</span>
+                <span>{entry.notation}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
