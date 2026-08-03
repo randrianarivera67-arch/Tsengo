@@ -681,7 +681,8 @@ input::placeholder, textarea::placeholder { color: #8A8D91 !important; font-size
       dia zanaka mivantana koa — voasimba izy ireo raha atao izany. */
 .media-cristal {
   position: relative;
-  aspect-ratio: 4 / 5;
+  aspect-ratio: 9 / 16;
+  padding: 10px;
   border-radius: 16px;
   overflow: hidden;
   display: flex; align-items: center; justify-content: center;
