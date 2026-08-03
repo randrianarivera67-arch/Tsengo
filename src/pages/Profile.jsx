@@ -652,7 +652,7 @@ export default function Profile() {
               })()} onClick={() => navigate(`/post/${post.id}`)}>
           {post.content && (<>
             {post.textBg ? (
-            <p style={{ background: post.textBg, width:'100%', height:'100%', minHeight:180, borderRadius:16, display:'flex', alignItems:'center', justifyContent:'center', textAlign:'center', color:'#fff', fontSize:24, fontWeight:800, padding:'24px 18px', lineHeight:1.4, wordBreak:'break-word', whiteSpace:'pre-wrap', margin:0, borderRadius:8 }}><Linkify text={post.content} color="#FFFFFF" /></p>
+            <p style={{ background: post.textBg, width:'100%', height:'100%', minHeight:200, borderRadius:16, display:'flex', alignItems:'center', justifyContent:'center', textAlign:'center', color:'#fff', fontSize:26, fontWeight:800, padding:'28px 20px', lineHeight:1.4, wordBreak:'break-word', whiteSpace:'pre-wrap', margin:0 }}><Linkify text={post.content} color="#FFFFFF" /></p>
             ) : (
             <p style={{ fontSize:15, lineHeight:1.6, wordBreak:'break-word',
               ...(expandedPosts[post.id] ? {} : { display:'-webkit-box', WebkitLineClamp:2, WebkitBoxOrient:'vertical', overflow:'hidden' }) }}>
