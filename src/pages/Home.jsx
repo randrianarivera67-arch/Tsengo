@@ -2580,7 +2580,15 @@ const fields = {
                       alt="" style={{ width:30, height:30, borderRadius:'50%', objectFit:'cover' }}/>
                     <p style={{ fontWeight:700, fontSize:13 }}>{post.sharedFrom.groupName ? `${post.sharedFrom.groupName} · ${post.sharedFrom.authorName}` : post.sharedFrom.authorName}</p>
                   </div>
-                  {post.sharedFrom.content && <p style={{ padding:'0 12px 8px', fontSize:13, color:'#050505' }}><Linkify text={post.sharedFrom.content} /></p>}
+                  {post.sharedFrom.content && (<>
+                    <p style={{ padding:'0 12px 8px', fontSize:13, color:'#050505' , ...(expandedPosts[post.id + ':s'] ? {} : { display:'-webkit-box', WebkitLineClamp:4, WebkitBoxOrient:'vertical', overflow:'hidden' }) }}><Linkify text={post.sharedFrom.content} /></p>
+                    {post.sharedFrom.content.length > 140 && (
+                      <button onClick={e => { e.stopPropagation(); setExpandedPosts(p => ({ ...p, [post.id + ':s']: !p[post.id + ':s'] })); }}
+                        style={{ background:'none', border:'none', padding:'0 12px 8px', cursor:'pointer', color:'#65676B', fontSize:12.5, fontWeight:600, fontFamily:'Poppins' }}>
+                        {expandedPosts[post.id + ':s'] ? 'Voir moins' : 'Voir plus'}
+                      </button>
+                    )}
+                  </>)}
                   {post.sharedFrom.mediaURLs?.length > 1 ? (
                     <PhotoCarousel urls={post.sharedFrom.mediaURLs} thumbs={post.sharedFrom.thumbURLs} onOpen={() => openPost(post.sharedFrom.id)} />
                   ) : post.sharedFrom.mediaURL && (
