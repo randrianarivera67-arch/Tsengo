@@ -681,8 +681,9 @@ input::placeholder, textarea::placeholder { color: #8A8D91 !important; font-size
       dia zanaka mivantana koa — voasimba izy ireo raha atao izany. */
 .media-cristal {
   position: relative;
-  aspect-ratio: 9 / 16;
-  padding: 10px;
+  /* Tsy aspect raikitra : ny conteneur manaraka ny sary. Ny padding no
+     manome fond MITOVY manodidina, na portrait na paysage na video. */
+  padding: 14px;
   border-radius: 16px;
   overflow: hidden;
   display: flex; align-items: center; justify-content: center;
@@ -721,8 +722,8 @@ input::placeholder, textarea::placeholder { color: #8A8D91 !important; font-size
   display: flex !important; align-items: center; justify-content: center;
 }
 .media-fit img, .media-fit video {
-  width: 100% !important; height: 100% !important;
-  max-width: none !important; max-height: none !important;
+  width: 100% !important; height: auto !important;
+  max-width: 100% !important; max-height: 78vh !important;
   object-fit: contain !important;
   border-radius: 16px !important;
   display: block !important;
