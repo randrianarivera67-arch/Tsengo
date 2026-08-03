@@ -2356,7 +2356,7 @@ const fields = {
             <div style={(() => {
               const ownMedia = !!(post.mediaURL || (post.mediaURLs && post.mediaURLs.length));
               const nested   = !!(post.sharedFrom || post.eventFrom);
-              if (!(ownMedia && !nested)) {
+              if (false) {
                 return { padding:'14px 16px 0', display:'flex', alignItems:'center', justifyContent:'space-between' };
               }
               return {
@@ -2543,7 +2543,15 @@ const fields = {
             })()}
 
             {/* Content */}
-            <div style={{ padding: post.textBg ? 0 : '10px 16px', cursor:'pointer' }} onClick={() => openPost(post.id)}>
+            <div /* CRISTAL_TEXTE */ className={(post.sharedFrom || post.eventFrom || !(post.mediaURL || (post.mediaURLs && post.mediaURLs.length))) ? 'media-cristal' : undefined}
+              style={(() => {
+                const own = !!(post.mediaURL || (post.mediaURLs && post.mediaURLs.length));
+                const nest = !!(post.sharedFrom || post.eventFrom);
+                if (own && !nest) return { padding: post.textBg ? 0 : '10px 16px', cursor:'pointer' };
+                // Faritra manidinana : toerana ho an'ny en-tête (ambony) sy ny barre (ambany)
+                return { position:'relative', cursor:'pointer', aspectRatio:'auto',
+                         minHeight:300, padding:'78px 14px 78px' };
+              })()} onClick={() => openPost(post.id)}>
               {post.content && (
                 <p
                   onClick={e => {
@@ -2648,6 +2656,47 @@ const fields = {
                   </button>
                 </div>
               )}
+            {/* Actions — eto IHANY raha TSY manidina */}
+            {(post.sharedFrom || post.eventFrom || !(post.mediaURL || (post.mediaURLs && post.mediaURLs.length))) && (
+              <div className='post-actions-row' style={{ position:'absolute', left:16, right:16, bottom:10, zIndex:3, margin:0, background:'rgba(255,255,255,.95)', backdropFilter:'blur(14px)', WebkitBackdropFilter:'blur(14px)', borderRadius:100, boxShadow:'0 4px 16px rgba(5,5,5,.18)', padding:'3px 6px', border:'none' }}>
+              <div style={{ position:'relative', flex:1, display:'flex' }}>
+                <button
+                  onClick={() => quickLike(post)}
+                  onTouchStart={() => startLongPress(post.id)} onTouchEnd={endLongPress}
+                  onMouseDown={() => startLongPress(post.id)} onMouseUp={endLongPress} onMouseLeave={endLongPress}
+                  className={'post-action-btn'+(myR?' active':'')}
+                  style={myR ? { color:'#FF2D8D', fontWeight:700 } : {}}>
+                  {myR && myR !== '👍'
+                    ? <span style={{ fontSize:24, lineHeight:1 }}>{myR}</span>
+                    : <NeonLike size={25} color={myR ? '#FF2D8D' : '#65676B'} filled={!!myR}/>}
+                  {' '}{myR ? (FB_REACTIONS.find(r => r.emoji === myR)?.label || "J'aime") : "J'aime"}
+                </button>
+                {showReact[post.id] && (
+                  <div onClick={e=>e.stopPropagation()} style={{ position:'absolute', bottom:'calc(100% + 8px)', left:0, background:'white', borderRadius:20, padding:'10px 8px 6px', display:'flex', gap:4, boxShadow:'0 4px 24px rgba(0,0,0,.18)', zIndex:50, border:'1px solid #E4E6EB', whiteSpace:'nowrap' }}>
+                    {FB_REACTIONS.map(r => (
+                      <button key={r.emoji}
+                        onClick={() => { reactToPost(post.id, r.emoji); setShowReact(p=>({...p,[post.id]:false})); }}
+                        style={{ background:'none', border:'none', cursor:'pointer', display:'flex', flexDirection:'column', alignItems:'center', gap:3, padding:'0 4px', minWidth:44 }}>
+                        <span style={{ fontSize:28, lineHeight:1, transition:'transform .15s', display:'block' }}
+                          onMouseEnter={ev=>ev.currentTarget.style.transform='scale(1.35) translateY(-4px)'}
+                          onMouseLeave={ev=>ev.currentTarget.style.transform='scale(1)'}
+                          onTouchStart={ev=>ev.currentTarget.style.transform='scale(1.35) translateY(-4px)'}
+                          onTouchEnd={ev=>ev.currentTarget.style.transform='scale(1)'}
+                        >{r.emoji}</span>
+                        <span style={{ fontSize:10, color:'#65676B', fontWeight:600, fontFamily:'Poppins' }}>{r.label}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+              <button onClick={() => openPost(post.id, null, true)} className='post-action-btn'>
+                <NeonComment size={25}/> Commenter
+              </button>
+              <button onClick={() => sharePost(post)} className='post-action-btn'>
+                <NeonShare size={25}/> Partager
+              </button>
+            </div>
+            )}
             </div>
 
             {/* Résumé réactions · commentaires (format Facebook) */}
@@ -2691,47 +2740,6 @@ const fields = {
 
             {/* Actions : J'aime · Commenter · Partager (format Facebook) */}
 
-            {/* Actions — eto IHANY raha TSY manidina */}
-            {(post.sharedFrom || post.eventFrom || !(post.mediaURL || (post.mediaURLs && post.mediaURLs.length))) && (
-            <div className='post-actions-row'>
-              <div style={{ position:'relative', flex:1, display:'flex' }}>
-                <button
-                  onClick={() => quickLike(post)}
-                  onTouchStart={() => startLongPress(post.id)} onTouchEnd={endLongPress}
-                  onMouseDown={() => startLongPress(post.id)} onMouseUp={endLongPress} onMouseLeave={endLongPress}
-                  className={'post-action-btn'+(myR?' active':'')}
-                  style={myR ? { color:'#FF2D8D', fontWeight:700 } : {}}>
-                  {myR && myR !== '👍'
-                    ? <span style={{ fontSize:24, lineHeight:1 }}>{myR}</span>
-                    : <NeonLike size={25} color={myR ? '#FF2D8D' : '#65676B'} filled={!!myR}/>}
-                  {' '}{myR ? (FB_REACTIONS.find(r => r.emoji === myR)?.label || "J'aime") : "J'aime"}
-                </button>
-                {showReact[post.id] && (
-                  <div onClick={e=>e.stopPropagation()} style={{ position:'absolute', bottom:'calc(100% + 8px)', left:0, background:'white', borderRadius:20, padding:'10px 8px 6px', display:'flex', gap:4, boxShadow:'0 4px 24px rgba(0,0,0,.18)', zIndex:50, border:'1px solid #E4E6EB', whiteSpace:'nowrap' }}>
-                    {FB_REACTIONS.map(r => (
-                      <button key={r.emoji}
-                        onClick={() => { reactToPost(post.id, r.emoji); setShowReact(p=>({...p,[post.id]:false})); }}
-                        style={{ background:'none', border:'none', cursor:'pointer', display:'flex', flexDirection:'column', alignItems:'center', gap:3, padding:'0 4px', minWidth:44 }}>
-                        <span style={{ fontSize:28, lineHeight:1, transition:'transform .15s', display:'block' }}
-                          onMouseEnter={ev=>ev.currentTarget.style.transform='scale(1.35) translateY(-4px)'}
-                          onMouseLeave={ev=>ev.currentTarget.style.transform='scale(1)'}
-                          onTouchStart={ev=>ev.currentTarget.style.transform='scale(1.35) translateY(-4px)'}
-                          onTouchEnd={ev=>ev.currentTarget.style.transform='scale(1)'}
-                        >{r.emoji}</span>
-                        <span style={{ fontSize:10, color:'#65676B', fontWeight:600, fontFamily:'Poppins' }}>{r.label}</span>
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-              <button onClick={() => openPost(post.id, null, true)} className='post-action-btn'>
-                <NeonComment size={25}/> Commenter
-              </button>
-              <button onClick={() => sharePost(post)} className='post-action-btn'>
-                <NeonShare size={25}/> Partager
-              </button>
-            </div>
-            )}
 
             {post.uid === currentUser.uid && !post.isBoosted && (
               <div style={{ padding:'0 14px 12px' }}>
