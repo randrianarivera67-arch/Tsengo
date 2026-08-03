@@ -2563,7 +2563,7 @@ const fields = {
                   onPointerUp={endTextPress}
                   onPointerLeave={endTextPress}
                   onPointerCancel={endTextPress}
-                  style={ post.textBg ? { background: post.textBg, minHeight:200, display:'flex', alignItems:'center', justifyContent:'center', textAlign:'center', color:'#fff', fontSize:26, fontWeight:800, padding:'28px 20px', lineHeight:1.4, wordBreak:'break-word', whiteSpace:'pre-wrap', margin:0 } : { fontSize:15, lineHeight:1.6, wordBreak:'break-word', whiteSpace:'pre-wrap', cursor:'pointer',
+                  style={ post.textBg ? { background: post.textBg, width:'100%', height:'100%', minHeight:200, borderRadius:16, display:'flex', alignItems:'center', justifyContent:'center', textAlign:'center', color:'#fff', fontSize:26, fontWeight:800, padding:'28px 20px', lineHeight:1.4, wordBreak:'break-word', whiteSpace:'pre-wrap', margin:0 } : { fontSize:15, lineHeight:1.6, wordBreak:'break-word', whiteSpace:'pre-wrap', cursor:'pointer',
                     ...(expandedPosts[post.id] ? {} : { display:'-webkit-box', WebkitLineClamp:2, WebkitBoxOrient:'vertical', overflow:'hidden' }) } }
                 ><Linkify text={post.content} color={post.textBg ? '#FFFFFF' : '#1877F2'} /></p>
               )}
