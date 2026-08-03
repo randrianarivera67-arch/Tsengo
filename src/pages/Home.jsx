@@ -2490,14 +2490,14 @@ const fields = {
               const canFloat = ownMedia && !nested;
               if (!canFloat) return null;
               return (
-                <div style={{ position:'relative' }}>
+                <div className="media-cristal">
                 {post.mediaURLs?.length > 1 ? (
                   <div style={{ marginTop:8, marginLeft:-16, marginRight:-16 }}>
                     <PhotoCarousel urls={post.mediaURLs} thumbs={post.thumbURLs} onOpen={() => openPost(post.id)} />
                   </div>
                 ) : post.mediaURL && (
                   <div style={{ marginTop:8, marginLeft:-16, marginRight:-16 }}>
-                    {post.isMusic ? <MusicPostCard post={post} height={140}/> : post.mediaType==='image' ? <SmartImage src={post.mediaURL || post.thumbURL} onClick={e=>{e.stopPropagation();openPost(post.id);}} style={{ width:'100%', borderRadius:0, maxHeight:'72vh', objectFit:'cover', display:'block', cursor:'zoom-in' }}/> : <FeedVideo src={post.mediaURL} poster={post.thumbURL} dataSaver={dataSaver || lite} onOpenReels={()=>navigate('/reels',{state:{startId:post.id}})} style={{ width:'100%', borderRadius:0, maxHeight:'72vh', objectFit:'cover', display:'block', background:'#000' }} />}
+                    {post.isMusic ? <MusicPostCard post={post} height={140}/> : post.mediaType==='image' ? <SmartImage className="media-fit" src={post.mediaURL || post.thumbURL} onClick={e=>{e.stopPropagation();openPost(post.id);}} style={{ width:'100%', borderRadius:0, maxHeight:'100%', objectFit:'contain', display:'block', cursor:'zoom-in' }}/> : <FeedVideo /* media-fit voafono */ src={post.mediaURL} poster={post.thumbURL} dataSaver={dataSaver || lite} onOpenReels={()=>navigate('/reels',{state:{startId:post.id}})} style={{ width:'100%', borderRadius:0, maxHeight:'100%', objectFit:'contain', display:'block', background:'#000' }} />}
                   </div>
                 )}
                   <div className='post-actions-row' style={{ position:'absolute', left:10, right:10, bottom:10, zIndex:3, margin:0, background:'rgba(255,255,255,.95)', backdropFilter:'blur(14px)', WebkitBackdropFilter:'blur(14px)', borderRadius:100, boxShadow:'0 4px 16px rgba(5,5,5,.18)', padding:'3px 6px', border:'none' }}>

@@ -596,7 +596,7 @@ export default function Profile() {
         </div>
         {/* ── FARITRA MANIDINA : média + en-tête + actions ── */}
         {(!!(post.mediaURL || (post.mediaURLs && post.mediaURLs.length)) && !(post.sharedFrom || post.eventFrom)) && (
-          <div style={{ position:'relative' }}>
+          <div className="media-cristal">
             {post.mediaURLs?.length > 1 ? (
               <div style={{ marginTop:8 }}>
                 <PhotoCarousel urls={post.mediaURLs} thumbs={post.thumbURLs} onOpen={()=>navigate(`/post/${post.id}`)} />
@@ -604,7 +604,7 @@ export default function Profile() {
             ) : post.mediaURL && (
               <div style={{ marginTop:8 }}>
                 {post.mediaType==='image'
-                  ? <SmartImage src={post.mediaURL || post.thumbURL} onClick={()=>navigate(`/post/${post.id}`)} minH={220} style={{ width:'100%', borderRadius:10, maxHeight:350, objectFit:'cover', cursor:'zoom-in' }}/>
+                  ? <SmartImage className="media-fit" src={post.mediaURL || post.thumbURL} onClick={()=>navigate(`/post/${post.id}`)} minH={220} style={{ width:'100%', borderRadius:10, maxHeight:350, objectFit:'contain', cursor:'zoom-in' }}/>
                   : <VideoThumb src={post.mediaURL} poster={post.thumbURL} onClick={()=>navigate('/reels',{state:{startId:post.id}})} style={{ width:'100%', maxHeight:350, borderRadius:10 }} playSize={50}/>}
               </div>
             )}
