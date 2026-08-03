@@ -2493,7 +2493,7 @@ const fields = {
                 <div className="media-cristal">
                 {post.mediaURLs?.length > 1 ? (
                   <div style={{ marginTop:8, marginLeft:-16, marginRight:-16 }}>
-                    <div className="media-fit"><PhotoCarousel urls={post.mediaURLs} thumbs={post.thumbURLs} onOpen={() => openPost(post.id)} /></div>
+                    <PhotoCarousel urls={post.mediaURLs} thumbs={post.thumbURLs} onOpen={() => openPost(post.id)} />
                   </div>
                 ) : post.mediaURL && (
                   <div style={{ marginTop:8, marginLeft:-16, marginRight:-16 }}>

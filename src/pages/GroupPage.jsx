@@ -870,7 +870,7 @@ export default function GroupPage() {
               <div className="media-cristal">
                 {post.mediaURLs?.length > 1 ? (
                   <div style={{ marginTop: 8, marginLeft: -16, marginRight: -16 }}>
-                    <div className="media-fit"><PhotoCarousel urls={post.mediaURLs} thumbs={post.thumbURLs} onOpen={() => setViewerState({ post, index: 0 })} /></div>
+                    <PhotoCarousel urls={post.mediaURLs} thumbs={post.thumbURLs} onOpen={() => setViewerState({ post, index: 0 })} />
                   </div>
                 ) : post.mediaURL && (
                   <div style={{ marginTop: 8, marginLeft: -16, marginRight: -16 }}>
