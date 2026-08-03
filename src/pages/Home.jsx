@@ -332,6 +332,15 @@ export default function Home() {
   const [moodPickerOpen, setMoodPickerOpen] = useState(false);
   const [composerTagOpen, setComposerTagOpen] = useState(false);
   const [composerTagSel, setComposerTagSel] = useState({});
+  // Refy ny média — voafetra 9/16 → 4/3 (portrait avo, paysage fond kely)
+  const [mediaRatio, setMediaRatio] = useState({});
+  const onMediaLoad = (id) => (e) => {
+    const t = e?.target || {};
+    const w = t.naturalWidth || t.videoWidth, h = t.naturalHeight || t.videoHeight;
+    if (!w || !h) return;
+    const r = Math.min(Math.max(w / h, 9 / 16), 4 / 3);
+    setMediaRatio(p => (p[id] === r ? p : { ...p, [id]: r }));
+  };
   const [composerTagList, setComposerTagList] = useState([]);
   const MOODS = ['😊 se sent heureux(se)', '😢 se sent triste', '🥳 fait la fête', '😴 fatigué(e)', '🙏 reconnaissant(e)', '💪 motivé(e)', '😍 amoureux(se)', '🤒 malade'];
   const [storyReactors, setStoryReactors] = useState(null);   // null | [{uid,name,photo,emoji}]
@@ -2490,14 +2499,14 @@ const fields = {
               const canFloat = ownMedia && !nested;
               if (!canFloat) return null;
               return (
-                <div style={{ position:'relative' }}>
+                <div className="media-cristal" style={{ aspectRatio: mediaRatio[post.id] || '4 / 5' }}>
                 {post.mediaURLs?.length > 1 ? (
                   <div style={{ marginTop:8, marginLeft:-16, marginRight:-16 }}>
                     <PhotoCarousel urls={post.mediaURLs} thumbs={post.thumbURLs} onOpen={() => openPost(post.id)} />
                   </div>
                 ) : post.mediaURL && (
                   <div style={{ marginTop:8, marginLeft:-16, marginRight:-16 }}>
-                    {post.isMusic ? <MusicPostCard post={post} height={140}/> : post.mediaType==='image' ? <SmartImage src={post.mediaURL || post.thumbURL} onClick={e=>{e.stopPropagation();openPost(post.id);}} style={{ width:'100%', borderRadius:0, maxHeight:'72vh', objectFit:'cover', display:'block', cursor:'zoom-in' }}/> : <FeedVideo src={post.mediaURL} poster={post.thumbURL} dataSaver={dataSaver || lite} onOpenReels={()=>navigate('/reels',{state:{startId:post.id}})} style={{ width:'100%', borderRadius:0, maxHeight:'72vh', objectFit:'cover', display:'block', background:'#000' }} />}
+                    {post.isMusic ? <MusicPostCard post={post} height={140}/> : post.mediaType==='image' ? <SmartImage onLoad={onMediaLoad(post.id)} src={post.mediaURL || post.thumbURL} onClick={e=>{e.stopPropagation();openPost(post.id);}} style={{ width:'auto', borderRadius:10, maxHeight:'100%', objectFit:'contain', display:'block', cursor:'zoom-in' }}/> : <FeedVideo onLoadedMetadata={onMediaLoad(post.id)} src={post.mediaURL} poster={post.thumbURL} dataSaver={dataSaver || lite} onOpenReels={()=>navigate('/reels',{state:{startId:post.id}})} style={{ width:'auto', borderRadius:10, maxHeight:'100%', objectFit:'contain', display:'block', background:'#000' }} />}
                   </div>
                 )}
                   <div className='post-actions-row' style={{ position:'absolute', left:10, right:10, bottom:10, zIndex:3, margin:0, background:'rgba(255,255,255,.95)', backdropFilter:'blur(14px)', WebkitBackdropFilter:'blur(14px)', borderRadius:100, boxShadow:'0 4px 16px rgba(5,5,5,.18)', padding:'3px 6px', border:'none' }}>
