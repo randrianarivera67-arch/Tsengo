@@ -642,7 +642,14 @@ export default function Profile() {
           </div>
         )}
 
-        <div style={{ padding:'10px 16px', cursor:'pointer' }} onClick={() => navigate(`/post/${post.id}`)}>
+        <div /* CRISTAL_TEXTE */ className={(post.sharedFrom || post.eventFrom || !(post.mediaURL || (post.mediaURLs && post.mediaURLs.length))) ? 'media-cristal' : undefined}
+              style={(() => {
+                const own = !!(post.mediaURL || (post.mediaURLs && post.mediaURLs.length));
+                const nest = !!(post.sharedFrom || post.eventFrom);
+                if (own && !nest) return { padding:'10px 16px', cursor:'pointer' };
+                return { position:'relative', cursor:'pointer', aspectRatio:'auto',
+                         minHeight:300, padding:'78px 14px 78px' };
+              })()} onClick={() => navigate(`/post/${post.id}`)}>
           {post.content && (<>
             {post.textBg ? (
             <p style={{ background: post.textBg, minHeight:180, display:'flex', alignItems:'center', justifyContent:'center', textAlign:'center', color:'#fff', fontSize:24, fontWeight:800, padding:'24px 18px', lineHeight:1.4, wordBreak:'break-word', whiteSpace:'pre-wrap', margin:0, borderRadius:8 }}><Linkify text={post.content} color="#FFFFFF" /></p>
@@ -691,6 +698,40 @@ export default function Profile() {
               )}
             </div>
           )}
+        {/* Actions — eto IHANY raha TSY manidina */}
+        {(post.sharedFrom || post.eventFrom || !(post.mediaURL || (post.mediaURLs && post.mediaURLs.length))) && (
+          <div className='post-actions-row' style={{ position:'absolute', left:16, right:16, bottom:10, zIndex:3, margin:0, background:'rgba(255,255,255,.95)', backdropFilter:'blur(14px)', WebkitBackdropFilter:'blur(14px)', borderRadius:100, boxShadow:'0 4px 16px rgba(5,5,5,.18)', padding:'3px 6px', border:'none' }}>
+          <div style={{ position:'relative', flex:1, display:'flex' }}>
+            <button onClick={() => { const m = post.reactions?.[currentUser.uid]; reactToPost(post.id, m || '❤️'); }}
+              onContextMenu={e => { e.preventDefault(); setShowReact(p=>({...p,[post.id]:!p[post.id]})); }}
+              className={'post-action-btn'+(myR?' active':'')}
+              style={myR ? { color:'#1877F2', fontWeight:700 } : {}}>
+              <NeonLike size={25} color={myR ? '#FF2D8D' : '#65676B'} filled={!!myR}/> J'aime
+            </button>
+            {showReact[post.id] && (
+              <div onClick={e=>e.stopPropagation()} style={{ position:'absolute', bottom:'calc(100% + 8px)', left:0, background:'white', borderRadius:20, padding:'10px 8px 6px', display:'flex', gap:4, boxShadow:'0 4px 24px rgba(0,0,0,.18)', zIndex:50, border:'1px solid #E4E6EB', whiteSpace:'nowrap' }}>
+                {FB_REACTIONS.map(r => (
+                  <button key={r.emoji}
+                    onClick={()=>{ reactToPost(post.id, r.emoji); setShowReact(p=>({...p,[post.id]:false})); }}
+                    style={{ background:'none', border:'none', cursor:'pointer', display:'flex', flexDirection:'column', alignItems:'center', gap:3, padding:'0 4px', minWidth:44 }}>
+                    <span style={{ fontSize:28, lineHeight:1, display:'block', transition:'transform .15s' }}
+                      onTouchStart={ev=>ev.currentTarget.style.transform='scale(1.35) translateY(-4px)'}
+                      onTouchEnd={ev=>ev.currentTarget.style.transform='scale(1)'}
+                    >{r.emoji}</span>
+                    <span style={{ fontSize:10, color:'#65676B', fontWeight:600, fontFamily:'Poppins' }}>{r.label}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+          <button onClick={() => navigate(`/post/${post.id}`)} className='post-action-btn'>
+            <NeonComment size={25}/> Commenter
+          </button>
+          <button onClick={() => sharePost(post)} className='post-action-btn'>
+            <NeonShare size={25}/> Partager
+          </button>
+        </div>
+        )}
         </div>
 
         {/* Média — eto IHANY raha TSY manidina */}
@@ -725,40 +766,6 @@ export default function Profile() {
         )}
 
 
-        {/* Actions — eto IHANY raha TSY manidina */}
-        {(post.sharedFrom || post.eventFrom || !(post.mediaURL || (post.mediaURLs && post.mediaURLs.length))) && (
-        <div className='post-actions-row'>
-          <div style={{ position:'relative', flex:1, display:'flex' }}>
-            <button onClick={() => { const m = post.reactions?.[currentUser.uid]; reactToPost(post.id, m || '❤️'); }}
-              onContextMenu={e => { e.preventDefault(); setShowReact(p=>({...p,[post.id]:!p[post.id]})); }}
-              className={'post-action-btn'+(myR?' active':'')}
-              style={myR ? { color:'#1877F2', fontWeight:700 } : {}}>
-              <NeonLike size={25} color={myR ? '#FF2D8D' : '#65676B'} filled={!!myR}/> J'aime
-            </button>
-            {showReact[post.id] && (
-              <div onClick={e=>e.stopPropagation()} style={{ position:'absolute', bottom:'calc(100% + 8px)', left:0, background:'white', borderRadius:20, padding:'10px 8px 6px', display:'flex', gap:4, boxShadow:'0 4px 24px rgba(0,0,0,.18)', zIndex:50, border:'1px solid #E4E6EB', whiteSpace:'nowrap' }}>
-                {FB_REACTIONS.map(r => (
-                  <button key={r.emoji}
-                    onClick={()=>{ reactToPost(post.id, r.emoji); setShowReact(p=>({...p,[post.id]:false})); }}
-                    style={{ background:'none', border:'none', cursor:'pointer', display:'flex', flexDirection:'column', alignItems:'center', gap:3, padding:'0 4px', minWidth:44 }}>
-                    <span style={{ fontSize:28, lineHeight:1, display:'block', transition:'transform .15s' }}
-                      onTouchStart={ev=>ev.currentTarget.style.transform='scale(1.35) translateY(-4px)'}
-                      onTouchEnd={ev=>ev.currentTarget.style.transform='scale(1)'}
-                    >{r.emoji}</span>
-                    <span style={{ fontSize:10, color:'#65676B', fontWeight:600, fontFamily:'Poppins' }}>{r.label}</span>
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-          <button onClick={() => navigate(`/post/${post.id}`)} className='post-action-btn'>
-            <NeonComment size={25}/> Commenter
-          </button>
-          <button onClick={() => sharePost(post)} className='post-action-btn'>
-            <NeonShare size={25}/> Partager
-          </button>
-        </div>
-        )}
 
         {isOwnPost && !boosted && (
           <div style={{ padding:'0 16px 12px' }}>

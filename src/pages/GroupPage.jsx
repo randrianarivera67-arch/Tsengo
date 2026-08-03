@@ -907,7 +907,14 @@ export default function GroupPage() {
             </div>
               </div>
             )}
-            <div style={{ padding: '8px 16px', cursor: 'pointer' }} onClick={() => openPost(post.id)}>
+            <div /* CRISTAL_TEXTE */ className={(post.sharedFrom || post.eventFrom || !(post.mediaURL || (post.mediaURLs && post.mediaURLs.length))) ? 'media-cristal' : undefined}
+              style={(() => {
+                const own = !!(post.mediaURL || (post.mediaURLs && post.mediaURLs.length));
+                const nest = !!(post.sharedFrom || post.eventFrom);
+                if (own && !nest) return { padding: '8px 16px', cursor: 'pointer' };
+                return { position:'relative', cursor:'pointer', aspectRatio:'auto',
+                         minHeight:300, padding:'78px 14px 78px' };
+              })()} onClick={() => openPost(post.id)}>
               {post.content && (post.textBg ? <p style={{ background: post.textBg, minHeight:180, display:'flex', alignItems:'center', justifyContent:'center', textAlign:'center', color:'#fff', fontSize:24, fontWeight:800, padding:'24px 18px', lineHeight:1.4, wordBreak:'break-word', whiteSpace:'pre-wrap', margin:0, borderRadius:8 }}><Linkify text={post.content} color="#FFFFFF" /></p> : <p style={{ fontSize: 15, lineHeight: 1.6, wordBreak: 'break-word' }}><Linkify text={post.content} /></p>)}
               {post.sharedFrom && (
                 <div onClick={e => { e.stopPropagation(); openPost(post.sharedFrom.id, post.id); }}
@@ -959,33 +966,9 @@ export default function GroupPage() {
                   </button>
                 </div>
               )}
-            </div>
-            {/* Média — eto IHANY raha TSY manidina */}
-            {(post.sharedFrom || !(post.mediaURL || (post.mediaURLs && post.mediaURLs.length))) && (<>
-              {post.mediaURLs?.length > 1 ? (
-                <div style={{ marginTop: 8, marginLeft: -16, marginRight: -16 }}>
-                  <PhotoCarousel urls={post.mediaURLs} thumbs={post.thumbURLs} onOpen={() => setViewerState({ post, index: 0 })} />
-                </div>
-              ) : post.mediaURL && (
-                <div style={{ marginTop: 8, marginLeft: -16, marginRight: -16 }}>
-                  {post.isMusic
-                    ? <MusicPostCard post={post} />
-                    : post.mediaType === 'image'
-                      ? <SmartImage src={post.mediaURL || post.thumbURL} onClick={() => setViewerState({ post, index: 0 })} minH={240} style={{ width: '100%', maxHeight: 520, objectFit: 'cover', display: 'block', cursor: 'zoom-in' }} />
-                      : <FeedVideo src={post.mediaURL} poster={post.thumbURL} dataSaver={dataSaver || lite} onOpen={() => setViewerState({ post, index: 0 })} style={{ width: '100%', maxHeight: 520, objectFit: 'cover', display: 'block', background: '#000' }} />}
-                </div>
-              )}
-            </>)}
-
-            {total > 0 && (
-              <div style={{ padding: '4px 16px 6px', display: 'flex', alignItems: 'center', gap: 4 }}>
-                <div style={{ display: 'flex' }}>{Object.keys(rc).slice(0, 3).map((e, i) => <span key={e} style={{ fontSize: 15, marginLeft: i ? -3 : 0 }}>{e}</span>)}</div>
-                <span style={{ fontSize: 13, color: '#65676B' }}>{total}</span>
-              </div>
-            )}
             {/* Actions — eto IHANY raha TSY manidina */}
             {(post.sharedFrom || !(post.mediaURL || (post.mediaURLs && post.mediaURLs.length))) && (
-            <div className='post-actions-row'>
+              <div className='post-actions-row' style={{ position:'absolute', left:16, right:16, bottom:10, zIndex:3, margin:0, background:'rgba(255,255,255,.95)', backdropFilter:'blur(14px)', WebkitBackdropFilter:'blur(14px)', borderRadius:100, boxShadow:'0 4px 16px rgba(5,5,5,.18)', padding:'3px 6px', border:'none' }}>
               <div style={{ position: 'relative', flex: 1, display: 'flex' }}>
                 <button onClick={() => reactToPost(post.id, myR || '👍')}
                   onContextMenu={e => { e.preventDefault(); setShowReact(p => ({ ...p, [post.id]: !p[post.id] })); }}
@@ -1009,6 +992,30 @@ export default function GroupPage() {
                 <NeonShare size={25} /> Partager
               </button>
             </div>
+            )}
+            </div>
+            {/* Média — eto IHANY raha TSY manidina */}
+            {(post.sharedFrom || !(post.mediaURL || (post.mediaURLs && post.mediaURLs.length))) && (<>
+              {post.mediaURLs?.length > 1 ? (
+                <div style={{ marginTop: 8, marginLeft: -16, marginRight: -16 }}>
+                  <PhotoCarousel urls={post.mediaURLs} thumbs={post.thumbURLs} onOpen={() => setViewerState({ post, index: 0 })} />
+                </div>
+              ) : post.mediaURL && (
+                <div style={{ marginTop: 8, marginLeft: -16, marginRight: -16 }}>
+                  {post.isMusic
+                    ? <MusicPostCard post={post} />
+                    : post.mediaType === 'image'
+                      ? <SmartImage src={post.mediaURL || post.thumbURL} onClick={() => setViewerState({ post, index: 0 })} minH={240} style={{ width: '100%', maxHeight: 520, objectFit: 'cover', display: 'block', cursor: 'zoom-in' }} />
+                      : <FeedVideo src={post.mediaURL} poster={post.thumbURL} dataSaver={dataSaver || lite} onOpen={() => setViewerState({ post, index: 0 })} style={{ width: '100%', maxHeight: 520, objectFit: 'cover', display: 'block', background: '#000' }} />}
+                </div>
+              )}
+            </>)}
+
+            {total > 0 && (
+              <div style={{ padding: '4px 16px 6px', display: 'flex', alignItems: 'center', gap: 4 }}>
+                <div style={{ display: 'flex' }}>{Object.keys(rc).slice(0, 3).map((e, i) => <span key={e} style={{ fontSize: 15, marginLeft: i ? -3 : 0 }}>{e}</span>)}</div>
+                <span style={{ fontSize: 13, color: '#65676B' }}>{total}</span>
+              </div>
             )}
           </div>
         );
