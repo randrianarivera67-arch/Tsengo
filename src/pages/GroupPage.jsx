@@ -815,7 +815,7 @@ export default function GroupPage() {
         const myR = post.reactions?.[currentUser.uid];
         return (
           <div key={post.id} id={'post-' + post.id} className="card post-card animate-fade" style={{ marginBottom: 8, position:'relative', overflow:'hidden' }}>
-            <div style={(!!(post.mediaURL || (post.mediaURLs && post.mediaURLs.length)) && !post.sharedFrom) ? {
+            <div style={true /* manidina foana — mitovy amin'ny Home */ ? {
               position:'absolute', top:10, left:10, right:10, zIndex:4,
               padding:'4px 8px', display:'flex', alignItems:'center', gap:10,
               background:'rgba(255,255,255,.95)', backdropFilter:'blur(14px)', WebkitBackdropFilter:'blur(14px)',

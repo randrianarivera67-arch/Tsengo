@@ -552,7 +552,7 @@ export default function Profile() {
           </div>
         )}
 
-        <div style={(!!(post.mediaURL || (post.mediaURLs && post.mediaURLs.length)) && !(post.sharedFrom || post.eventFrom)) ? {
+        <div style={true /* manidina foana — mitovy amin'ny Home */ ? {
               position:'absolute', top:10, left:10, right:10, zIndex:4,
               padding:'4px 8px', display:'flex', alignItems:'center', justifyContent:'space-between',
               background:'rgba(255,255,255,.95)', backdropFilter:'blur(14px)', WebkitBackdropFilter:'blur(14px)',
