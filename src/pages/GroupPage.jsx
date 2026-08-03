@@ -813,8 +813,13 @@ export default function GroupPage() {
         const total = Object.keys(post.reactions || {}).length;
         const myR = post.reactions?.[currentUser.uid];
         return (
-          <div key={post.id} id={'post-' + post.id} className="card post-card animate-fade" style={{ marginBottom: 8 }}>
-            <div style={{ padding: '12px 16px 0', display: 'flex', alignItems: 'center', gap: 10 }}>
+          <div key={post.id} id={'post-' + post.id} className="card post-card animate-fade" style={{ marginBottom: 8, position:'relative', overflow:'hidden' }}>
+            <div style={(!!(post.mediaURL || (post.mediaURLs && post.mediaURLs.length)) && !post.sharedFrom) ? {
+              position:'absolute', top:10, left:10, right:10, zIndex:4,
+              padding:'4px 8px', display:'flex', alignItems:'center', gap:10,
+              background:'rgba(255,255,255,.95)', backdropFilter:'blur(14px)', WebkitBackdropFilter:'blur(14px)',
+              borderRadius:100, boxShadow:'0 4px 16px rgba(5,5,5,.18)',
+            } : { padding: '12px 16px 0', display: 'flex', alignItems: 'center', gap: 10 }}>
               <img src={post.authorPhoto || `https://ui-avatars.com/api/?name=${encodeURIComponent(post.authorName || 'U')}&background=1877F2&color=fff`}
                 alt="" className="avatar" style={{ width: 40, height: 40, cursor: 'pointer' }} onClick={() => post.shopId ? navigate(`/shop/${post.shopId}`) : post.artistId ? navigate(`/artists/${post.artistId}`) : navigate(`/profile/${post.uid}`)} />
               <div style={{ flex: 1, minWidth: 0 }}>
@@ -859,6 +864,48 @@ export default function GroupPage() {
                   )}
                 </div>
             </div>
+            {/* ── FARITRA MANIDINA : média + en-tête + actions ── */}
+            {(!!(post.mediaURL || (post.mediaURLs && post.mediaURLs.length)) && !post.sharedFrom) && (
+              <div style={{ position:'relative' }}>
+                {post.mediaURLs?.length > 1 ? (
+                  <div style={{ marginTop: 8, marginLeft: -16, marginRight: -16 }}>
+                    <PhotoCarousel urls={post.mediaURLs} thumbs={post.thumbURLs} onOpen={() => setViewerState({ post, index: 0 })} />
+                  </div>
+                ) : post.mediaURL && (
+                  <div style={{ marginTop: 8, marginLeft: -16, marginRight: -16 }}>
+                    {post.isMusic
+                      ? <MusicPostCard post={post} />
+                      : post.mediaType === 'image'
+                        ? <SmartImage src={post.thumbURL || post.mediaURL} onClick={() => setViewerState({ post, index: 0 })} minH={240} style={{ width: '100%', maxHeight: 520, objectFit: 'cover', display: 'block', cursor: 'zoom-in' }} />
+                        : <FeedVideo src={post.mediaURL} poster={post.thumbURL} dataSaver={dataSaver || lite} onOpen={() => setViewerState({ post, index: 0 })} style={{ width: '100%', maxHeight: 520, objectFit: 'cover', display: 'block', background: '#000' }} />}
+                  </div>
+                )}
+                  <div className='post-actions-row' style={{ position:'absolute', left:10, right:10, bottom:10, zIndex:3, margin:0, background:'rgba(255,255,255,.95)', backdropFilter:'blur(14px)', WebkitBackdropFilter:'blur(14px)', borderRadius:100, boxShadow:'0 4px 16px rgba(5,5,5,.18)', padding:'3px 6px', border:'none' }}>
+              <div style={{ position: 'relative', flex: 1, display: 'flex' }}>
+                <button onClick={() => reactToPost(post.id, myR || '👍')}
+                  onContextMenu={e => { e.preventDefault(); setShowReact(p => ({ ...p, [post.id]: !p[post.id] })); }}
+                  className={'post-action-btn' + (myR ? ' active' : '')}
+                  style={myR ? { color: '#FF2D8D', fontWeight: 700 } : {}}>
+                  {myR && myR !== '👍'
+                    ? <span style={{ fontSize: 24, lineHeight: 1 }}>{myR}</span>
+                    : <NeonLike size={25} color={myR ? '#FF2D8D' : '#65676B'} filled={!!myR}/>}
+                  {' '}J'aime
+                </button>
+                {showReact[post.id] && (
+                  <div style={{ position: 'absolute', bottom: '110%', left: 8, background: 'white', borderRadius: 30, padding: '8px 12px', display: 'flex', gap: 6, boxShadow: '0 4px 20px rgba(0,0,0,.2)', zIndex: 10, border: '1px solid #E4E6EB' }}>
+                    {REACTIONS.map(e => <button key={e} onClick={() => reactToPost(post.id, e)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 24 }}>{e}</button>)}
+                  </div>
+                )}
+              </div>
+              <button onClick={() => openPost(post.id)} className='post-action-btn'>
+                <NeonComment size={25} /> Commenter{post.comments?.length > 0 ? ` (${post.comments.length})` : ''}
+              </button>
+              <button onClick={() => sharePost(post)} className='post-action-btn'>
+                <NeonShare size={25} /> Partager
+              </button>
+            </div>
+              </div>
+            )}
             <div style={{ padding: '8px 16px', cursor: 'pointer' }} onClick={() => openPost(post.id)}>
               {post.content && (post.textBg ? <p style={{ background: post.textBg, minHeight:180, display:'flex', alignItems:'center', justifyContent:'center', textAlign:'center', color:'#fff', fontSize:24, fontWeight:800, padding:'24px 18px', lineHeight:1.4, wordBreak:'break-word', whiteSpace:'pre-wrap', margin:0, borderRadius:8 }}><Linkify text={post.content} color="#FFFFFF" /></p> : <p style={{ fontSize: 15, lineHeight: 1.6, wordBreak: 'break-word' }}><Linkify text={post.content} /></p>)}
               {post.sharedFrom && (
@@ -879,19 +926,6 @@ export default function GroupPage() {
                         ? <SmartImage src={post.sharedFrom.mediaURL} minH={180} style={{ width: '100%', maxHeight: 320, objectFit: 'cover', display: 'block' }} />
                         : <FeedVideo src={post.sharedFrom.mediaURL} poster={post.sharedFrom.thumbURL} dataSaver={dataSaver || lite} style={{ width: '100%', maxHeight: 320, objectFit: 'cover', display: 'block', background: '#000' }} />
                   )}
-                </div>
-              )}
-              {post.mediaURLs?.length > 1 ? (
-                <div style={{ marginTop: 8, marginLeft: -16, marginRight: -16 }}>
-                  <PhotoCarousel urls={post.mediaURLs} thumbs={post.thumbURLs} onOpen={() => setViewerState({ post, index: 0 })} />
-                </div>
-              ) : post.mediaURL && (
-                <div style={{ marginTop: 8, marginLeft: -16, marginRight: -16 }}>
-                  {post.isMusic
-                    ? <MusicPostCard post={post} />
-                    : post.mediaType === 'image'
-                      ? <SmartImage src={post.thumbURL || post.mediaURL} onClick={() => setViewerState({ post, index: 0 })} minH={240} style={{ width: '100%', maxHeight: 520, objectFit: 'cover', display: 'block', cursor: 'zoom-in' }} />
-                      : <FeedVideo src={post.mediaURL} poster={post.thumbURL} dataSaver={dataSaver || lite} onOpen={() => setViewerState({ post, index: 0 })} style={{ width: '100%', maxHeight: 520, objectFit: 'cover', display: 'block', background: '#000' }} />}
                 </div>
               )}
               {/* ── Article boutique : informations ambanin'ny sary (sary 3) ── */}
@@ -917,12 +951,31 @@ export default function GroupPage() {
                 </div>
               )}
             </div>
+            {/* Média — eto IHANY raha TSY manidina */}
+            {(post.sharedFrom || !(post.mediaURL || (post.mediaURLs && post.mediaURLs.length))) && (<>
+              {post.mediaURLs?.length > 1 ? (
+                <div style={{ marginTop: 8, marginLeft: -16, marginRight: -16 }}>
+                  <PhotoCarousel urls={post.mediaURLs} thumbs={post.thumbURLs} onOpen={() => setViewerState({ post, index: 0 })} />
+                </div>
+              ) : post.mediaURL && (
+                <div style={{ marginTop: 8, marginLeft: -16, marginRight: -16 }}>
+                  {post.isMusic
+                    ? <MusicPostCard post={post} />
+                    : post.mediaType === 'image'
+                      ? <SmartImage src={post.thumbURL || post.mediaURL} onClick={() => setViewerState({ post, index: 0 })} minH={240} style={{ width: '100%', maxHeight: 520, objectFit: 'cover', display: 'block', cursor: 'zoom-in' }} />
+                      : <FeedVideo src={post.mediaURL} poster={post.thumbURL} dataSaver={dataSaver || lite} onOpen={() => setViewerState({ post, index: 0 })} style={{ width: '100%', maxHeight: 520, objectFit: 'cover', display: 'block', background: '#000' }} />}
+                </div>
+              )}
+            </>)}
+
             {total > 0 && (
               <div style={{ padding: '4px 16px 6px', display: 'flex', alignItems: 'center', gap: 4 }}>
                 <div style={{ display: 'flex' }}>{Object.keys(rc).slice(0, 3).map((e, i) => <span key={e} style={{ fontSize: 15, marginLeft: i ? -3 : 0 }}>{e}</span>)}</div>
                 <span style={{ fontSize: 13, color: '#65676B' }}>{total}</span>
               </div>
             )}
+            {/* Actions — eto IHANY raha TSY manidina */}
+            {(post.sharedFrom || !(post.mediaURL || (post.mediaURLs && post.mediaURLs.length))) && (
             <div className='post-actions-row'>
               <div style={{ position: 'relative', flex: 1, display: 'flex' }}>
                 <button onClick={() => reactToPost(post.id, myR || '👍')}
@@ -947,6 +1000,7 @@ export default function GroupPage() {
                 <NeonShare size={25} /> Partager
               </button>
             </div>
+            )}
           </div>
         );
       })}

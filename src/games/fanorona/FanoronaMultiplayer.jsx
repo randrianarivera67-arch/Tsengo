@@ -1,5 +1,6 @@
 import React, { useState, useCallback, useMemo, useRef, useEffect } from "react";
-import { Crown, RotateCcw, Cpu, User, ChevronRight, Wifi, Copy } from "lucide-react";
+import { Crown, RotateCcw, Cpu, User, ChevronRight, Wifi, Copy, ArrowLeft } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import {
   createFanoronaRoom,
   joinFanoronaRoom,
@@ -274,6 +275,7 @@ function usePointLayout(cellSize, pad) {
 }
 
 export default function FanoronaPremium() {
+  const navigate = useNavigate();
   const [board, setBoard] = useState(initialBoard);
   const [toMove, setToMove] = useState("W");
   const [human, setHuman] = useState("W");
@@ -297,6 +299,13 @@ export default function FanoronaPremium() {
   const [joinInput, setJoinInput] = useState("");
   const [onlineError, setOnlineError] = useState(null);
   const [onlineBusy, setOnlineBusy] = useState(false);
+
+  // Own this page's viewport fully while mounted (no Tsengo scroll behind it).
+  useEffect(() => {
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => { document.body.style.overflow = prevOverflow; };
+  }, []);
 
   const cellSize = 56;
   const pad = 40;
@@ -544,6 +553,7 @@ export default function FanoronaPremium() {
 
   return (
     <div
+      className="fp-shell"
       style={{
         minHeight: "100vh",
         background: `radial-gradient(ellipse at top, ${COLORS.bgPanel} 0%, ${COLORS.bgDeep} 65%)`,
@@ -552,7 +562,9 @@ export default function FanoronaPremium() {
         display: "flex",
         flexDirection: "column",
         alignItems: "center",
-        padding: "32px 16px",
+        padding: "20px 10px",
+        overflowX: "hidden",
+        boxSizing: "border-box",
       }}
     >
       <style>{`
@@ -563,16 +575,77 @@ export default function FanoronaPremium() {
         .fp-pulse { animation: fp-pulse 1.4s ease-in-out infinite; }
         @keyframes fp-fade-in { from { opacity: 0; transform: translateY(4px);} to { opacity:1; transform:translateY(0);} }
         .fp-fade { animation: fp-fade-in .35s ease both; }
+        * { box-sizing: border-box; }
+        html, body { height: 100%; }
+        .fp-layout { display: flex; flex-direction: row; flex-wrap: nowrap; gap: 16px; justify-content: center; align-items: flex-start; width: 100%; max-width: 980px; margin: 0 auto; }
+        .fp-board-card { flex: 1 1 auto; min-width: 0; display: flex; justify-content: center; }
+        .fp-board-card svg { width: 100%; height: auto; max-width: 640px; display: block; }
+        .fp-side-panel { flex: 0 0 auto; width: 240px; display: flex; flex-direction: column; gap: 10px; }
+
+        /* Force a landscape layout even while the phone is held upright —
+           rotates the whole game 90° to fill the screen like a native
+           landscape game — and keep every panel compact enough to fit
+           without scrolling. */
+        @media (orientation: portrait) {
+          .fp-shell {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100dvh;
+            height: 100dvw;
+            min-height: 100dvw !important;
+            transform-origin: top left;
+            transform: rotate(90deg) translateY(-100%);
+            overflow: hidden;
+            display: flex !important;
+            flex-direction: column !important;
+            justify-content: center !important;
+            padding: 8px 14px !important;
+            z-index: 2147483000;
+          }
+          .fp-header { margin-bottom: 6px !important; }
+          .fp-header h1 { font-size: 18px !important; margin: 0 !important; }
+          .fp-header p { display: none !important; }
+          .fp-mode-toggle { margin-top: 6px !important; }
+          .fp-mode-toggle button { padding: 5px 12px !important; font-size: 11px !important; }
+          .fp-layout { gap: 10px; align-items: center !important; }
+          .fp-board-card svg { max-width: min(58vh, 66dvh) !important; }
+          .fp-board-wood { padding: 8px !important; border-radius: 12px !important; }
+          .fp-side-panel { width: 128px; gap: 6px; }
+          .fp-side-panel > div { padding: 7px !important; border-radius: 10px !important; }
+          .fp-side-log { display: none !important; }
+          .fp-panel-label { font-size: 8px !important; margin-bottom: 4px !important; }
+          .fp-piece-row span { font-size: 10px !important; }
+          .fp-piece-count { font-size: 13px !important; }
+          .fp-diff-btn { padding: 4px 0 !important; font-size: 9px !important; }
+          .fp-status-text { font-size: 10px !important; margin-top: 8px !important; padding-top: 8px !important; }
+          .fp-newgame-btn { margin-top: 8px !important; padding: 6px 0 !important; font-size: 10px !important; }
+          .fp-swap-btn { margin-top: 6px !important; padding: 5px 0 !important; font-size: 9px !important; }
+        }
       `}</style>
 
-      <header className="fp-fade" style={{ textAlign: "center", marginBottom: 28 }}>
+      <button
+        onClick={() => navigate("/")}
+        aria-label="Miverina"
+        style={{
+          position: "fixed", bottom: 10, left: 10, zIndex: 2147483001,
+          display: "flex", alignItems: "center", justifyContent: "center",
+          width: 32, height: 32, borderRadius: "50%",
+          background: COLORS.bgPanel, border: `1px solid ${COLORS.woodLine}55`,
+          color: COLORS.brassBright, cursor: "pointer",
+        }}
+      >
+        <ArrowLeft size={16} />
+      </button>
+
+      <header className="fp-fade fp-header" style={{ textAlign: "center", marginBottom: 20 }}>
         <h1 className="fp-display" style={{ fontSize: 40, fontWeight: 600, margin: "6px 0 4px", letterSpacing: "-0.01em" }}>
           Fanorona
         </h1>
         <p style={{ color: COLORS.textMuted, fontSize: 13, maxWidth: 380 }}>
           Ny lalao malagasy nandritra ny taonjato maro — mifidiana lalana, samboro ny mpanohitra
         </p>
-        <div style={{ display: "flex", gap: 6, justifyContent: "center", marginTop: 16 }}>
+        <div className="fp-mode-toggle" style={{ display: "flex", gap: 6, justifyContent: "center", marginTop: 16 }}>
           {[
             { key: "bot", label: "Robot", Icon: Cpu },
             { key: "online", label: "Olona", Icon: Wifi },
@@ -597,7 +670,7 @@ export default function FanoronaPremium() {
 
       {mode === "online" && !roomCode && (
         <div className="fp-fade" style={{
-          background: COLORS.bgPanel, borderRadius: 14, padding: 24, width: 320,
+          background: COLORS.bgPanel, borderRadius: 14, padding: 24, width: "min(320px, 92vw)",
           border: `1px solid ${COLORS.woodLine}33`, marginBottom: 24, textAlign: "center",
         }}>
           <Wifi size={20} color={COLORS.brassBright} />
@@ -644,7 +717,7 @@ export default function FanoronaPremium() {
 
       {mode === "online" && roomCode && roomStatus === "waiting" && (
         <div className="fp-fade" style={{
-          background: COLORS.bgPanel, borderRadius: 14, padding: 20, width: 320,
+          background: COLORS.bgPanel, borderRadius: 14, padding: 20, width: "min(320px, 92vw)",
           border: `1px solid ${COLORS.woodLine}33`, marginBottom: 24, textAlign: "center",
         }}>
           <p style={{ fontSize: 12, color: COLORS.textMuted, marginBottom: 8 }}>Miandry namana hiditra…</p>
@@ -662,19 +735,21 @@ export default function FanoronaPremium() {
         </div>
       )}
 
-      <div style={{ display: "flex", gap: 28, flexWrap: "wrap", justifyContent: "center", alignItems: "flex-start", opacity: mode === "online" && !(roomCode && roomStatus !== "waiting") ? 0.35 : 1, pointerEvents: mode === "online" && !(roomCode && roomStatus !== "waiting") ? "none" : "auto" }}>
+      <div className="fp-layout" style={{ opacity: mode === "online" && !(roomCode && roomStatus !== "waiting") ? 0.35 : 1, pointerEvents: mode === "online" && !(roomCode && roomStatus !== "waiting") ? "none" : "auto" }}>
         {/* Board */}
+        <div className="fp-board-card">
         <div
-          className="fp-fade"
+          className="fp-fade fp-board-wood"
           style={{
             background: `linear-gradient(160deg, ${COLORS.woodLight}, ${COLORS.wood} 60%)`,
             borderRadius: 18,
             padding: 22,
             boxShadow: "0 24px 60px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.06)",
             border: `1px solid ${COLORS.woodLine}55`,
+            width: "100%",
           }}
         >
-          <svg ref={boardRef} width={width} height={height} style={{ display: "block" }}>
+          <svg ref={boardRef} viewBox={`0 0 ${width} ${height}`} preserveAspectRatio="xMidYMid meet" style={{ display: "block" }}>
             <defs>
               <radialGradient id="ivoryGrad" cx="35%" cy="30%" r="75%">
                 <stop offset="0%" stopColor="#FFFBF0" />
@@ -782,26 +857,27 @@ export default function FanoronaPremium() {
             )}
           </svg>
         </div>
+        </div>
 
         {/* Side panel */}
-        <div className="fp-fade" style={{ width: 300, display: "flex", flexDirection: "column", gap: 16 }}>
+        <div className="fp-fade fp-side-panel" style={{ display: "flex", flexDirection: "column", gap: 16 }}>
           <div style={{ background: COLORS.bgPanel, borderRadius: 14, padding: 18, border: `1px solid ${COLORS.woodLine}33` }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }} className="fp-piece-row">
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                 <div style={{ width: 22, height: 22, borderRadius: "50%", background: "url(#) " + COLORS.ivory, boxShadow: `0 0 0 2px ${COLORS.ivoryShadow} inset` }} />
                 <span style={{ fontSize: 13, color: COLORS.textMuted }}>{human === "W" ? "Ianao" : mode === "bot" ? "Robot" : "Namanao"}</span>
               </div>
-              <span className="fp-mono" style={{ fontSize: 18 }}>{counts.W}</span>
+              <span className="fp-mono fp-piece-count" style={{ fontSize: 18 }}>{counts.W}</span>
             </div>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 10 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 10 }} className="fp-piece-row">
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                 <div style={{ width: 22, height: 22, borderRadius: "50%", background: COLORS.onyx, boxShadow: `0 0 0 2px #000 inset` }} />
                 <span style={{ fontSize: 13, color: COLORS.textMuted }}>{human === "B" ? "Ianao" : mode === "bot" ? "Robot" : "Namanao"}</span>
               </div>
-              <span className="fp-mono" style={{ fontSize: 18 }}>{counts.B}</span>
+              <span className="fp-mono fp-piece-count" style={{ fontSize: 18 }}>{counts.B}</span>
             </div>
 
-            <div style={{ marginTop: 14, paddingTop: 14, borderTop: `1px solid ${COLORS.woodLine}33`, fontSize: 13 }}>
+            <div style={{ marginTop: 14, paddingTop: 14, borderTop: `1px solid ${COLORS.woodLine}33`, fontSize: 13 }} className="fp-status-text">
               {winner ? (
                 <div style={{ display: "flex", alignItems: "center", gap: 8, color: COLORS.brassBright }}>
                   <Crown size={16} />
@@ -832,13 +908,14 @@ export default function FanoronaPremium() {
 
           {mode === "bot" ? (
             <div style={{ background: COLORS.bgPanel, borderRadius: 14, padding: 18, border: `1px solid ${COLORS.woodLine}33` }}>
-              <div style={{ fontSize: 11, letterSpacing: "0.14em", textTransform: "uppercase", color: COLORS.textMuted, marginBottom: 10 }}>
+              <div className="fp-panel-label" style={{ fontSize: 11, letterSpacing: "0.14em", textTransform: "uppercase", color: COLORS.textMuted, marginBottom: 10 }}>
                 Robot
               </div>
               <div style={{ display: "flex", gap: 6 }}>
                 {["easy", "medium", "hard"].map((d) => (
                   <button
                     key={d}
+                    className="fp-diff-btn"
                     onClick={() => setDifficulty(d)}
                     style={{
                       flex: 1,
@@ -856,6 +933,7 @@ export default function FanoronaPremium() {
                 ))}
               </div>
               <button
+                className="fp-newgame-btn"
                 onClick={() => resetGame(human)}
                 style={{
                   marginTop: 12, width: "100%", padding: "10px 0", borderRadius: 8, border: "none",
@@ -866,6 +944,7 @@ export default function FanoronaPremium() {
                 <RotateCcw size={14} /> Lalao vaovao
               </button>
               <button
+                className="fp-swap-btn"
                 onClick={() => resetGame(human === "W" ? "B" : "W")}
                 style={{
                   marginTop: 8, width: "100%", padding: "9px 0", borderRadius: 8,
@@ -877,7 +956,7 @@ export default function FanoronaPremium() {
             </div>
           ) : (
             <div style={{ background: COLORS.bgPanel, borderRadius: 14, padding: 18, border: `1px solid ${COLORS.woodLine}33` }}>
-              <div style={{ fontSize: 11, letterSpacing: "0.14em", textTransform: "uppercase", color: COLORS.textMuted, marginBottom: 10 }}>
+              <div className="fp-panel-label" style={{ fontSize: 11, letterSpacing: "0.14em", textTransform: "uppercase", color: COLORS.textMuted, marginBottom: 10 }}>
                 Lalao an-tserasera
               </div>
               {roomCode && (
@@ -889,6 +968,7 @@ export default function FanoronaPremium() {
                 </div>
               )}
               <button
+                className="fp-swap-btn"
                 onClick={leaveRoom}
                 style={{
                   width: "100%", padding: "9px 0", borderRadius: 8,
@@ -900,8 +980,8 @@ export default function FanoronaPremium() {
             </div>
           )}
 
-          <div style={{ background: COLORS.bgPanel, borderRadius: 14, padding: 18, border: `1px solid ${COLORS.woodLine}33`, maxHeight: 220, overflowY: "auto" }}>
-            <div style={{ fontSize: 11, letterSpacing: "0.14em", textTransform: "uppercase", color: COLORS.textMuted, marginBottom: 10 }}>
+          <div className="fp-side-log" style={{ background: COLORS.bgPanel, borderRadius: 14, padding: 18, border: `1px solid ${COLORS.woodLine}33`, maxHeight: 220, overflowY: "auto" }}>
+            <div className="fp-panel-label" style={{ fontSize: 11, letterSpacing: "0.14em", textTransform: "uppercase", color: COLORS.textMuted, marginBottom: 10 }}>
               Tantaram-pilalaovana
             </div>
             {log.length === 0 && <div style={{ fontSize: 12, color: COLORS.textMuted + "aa" }}>Mbola tsy nisy fihetsehana</div>}

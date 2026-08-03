@@ -97,10 +97,17 @@ ok('tsy misy flexDirection amin\'ny carte', !H.includes("flexDirection:'column',
 /* ═══ 6. Pejy hafa ═════════════════════════════════════════════════════ */
 console.log('\n6) Pejy hafa tsy voakasika');
 // Profile : voapatch izao (rafitra mitovy). GroupPage : mbola tsy.
-ok('Profile voapatch (rafitra mitovy)', fs.readFileSync('./src/pages/Profile.jsx','utf8').includes('FARITRA MANIDINA'));
-for (const [n,p] of Object.entries({ 'GroupPage':'./src/pages/GroupPage.jsx',
-  'PostDetail':'./src/pages/PostDetail.jsx' }))
-  ok(n + ' tsy voakasika', !fs.readFileSync(p,'utf8').includes('FARITRA MANIDINA'));
+// Telo mitovy rafitra izao : Home · Profile · GroupPage
+for (const [n,p] of Object.entries({ 'Profile':'./src/pages/Profile.jsx',
+  'GroupPage':'./src/pages/GroupPage.jsx' })) {
+  const t = fs.readFileSync(p,'utf8');
+  ok(n + ' voapatch', t.includes('FARITRA MANIDINA'));
+  eq(n + ' : média indroa', (t.match(/\{post\.mediaURLs\?\.length > 1 \? \(/g) || []).length, 2);
+  const i = t.indexOf('FARITRA MANIDINA');
+  const ins = t.slice(i, i + 3000);
+  eq(n + ' : 1 média ao anaty faritra', (ins.match(/\{post\.mediaURLs\?\.length > 1 \? \(/g) || []).length, 1);
+}
+ok('PostDetail tsy voakasika', !fs.readFileSync('./src/pages/PostDetail.jsx','utf8').includes('FARITRA MANIDINA'));
 
 console.log('\n─────────────────────────────');
 console.log(pass + ' pass, ' + fail + ' fail');
