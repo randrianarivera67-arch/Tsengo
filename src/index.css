@@ -705,10 +705,7 @@ input::placeholder, textarea::placeholder { color: #8A8D91 !important; font-size
 /* Sary/video : MANONTOLO, tsy voatapaka */
 .media-cristal > img, .media-cristal > video {
   position: relative; z-index: 1;
-  /* mameno ny conteneur */
-  /* ⚠️ `max-width/height` + `width:auto` dia TSY mampitombo ny sary kely —
-     mijanona kely izy. `width/height: 100%` + `contain` no mameno tsara. */
-  width: 100%; height: 100%;
+  max-width: 100%; max-height: 100%; width: auto; height: auto;
   object-fit: contain; display: block;
-  border-radius: 16px; box-shadow: 0 6px 22px rgba(5,5,5,.18);
+  border-radius: 10px; box-shadow: 0 6px 22px rgba(5,5,5,.18);
 }
