@@ -870,7 +870,7 @@ export default function GroupPage() {
               <div className="media-cristal">
                 {post.mediaURLs?.length > 1 ? (
                   <div style={{ marginTop: 8, marginLeft: -16, marginRight: -16 }}>
-                    <PhotoCarousel className="media-fit" urls={post.mediaURLs} thumbs={post.thumbURLs} onOpen={() => setViewerState({ post, index: 0 })} />
+                    <div className="media-fit"><PhotoCarousel urls={post.mediaURLs} thumbs={post.thumbURLs} onOpen={() => setViewerState({ post, index: 0 })} /></div>
                   </div>
                 ) : post.mediaURL && (
                   <div style={{ marginTop: 8, marginLeft: -16, marginRight: -16 }}>
@@ -878,7 +878,7 @@ export default function GroupPage() {
                       ? <MusicPostCard post={post} />
                       : post.mediaType === 'image'
                         ? <SmartImage className="media-fit" src={post.mediaURL || post.thumbURL} onClick={() => setViewerState({ post, index: 0 })} minH={240} style={{ width: '100%', maxHeight:'100%', objectFit:'contain', display: 'block', cursor: 'zoom-in' }} />
-                        : <FeedVideo className="media-fit" onOpenReels={() => navigate('/reels', { state: { startId: post.id } })} /* media-fit voafono */ src={post.mediaURL} poster={post.thumbURL} dataSaver={dataSaver || lite} onOpen={() => setViewerState({ post, index: 0 })} style={{ width: '100%', maxHeight:'100%', objectFit:'contain', display: 'block', background: '#000' }} />}
+                        : <div className="media-fit"><FeedVideo onOpenReels={() => navigate('/reels', { state: { startId: post.id } })} /* media-fit voafono */ src={post.mediaURL} poster={post.thumbURL} dataSaver={dataSaver || lite} onOpen={() => setViewerState({ post, index: 0 })} style={{ width: '100%', maxHeight:'100%', objectFit:'contain', display: 'block', background: '#000' }} /></div>}
                   </div>
                 )}
                   <div className='post-actions-row' style={{ position:'absolute', left:10, right:10, bottom:10, zIndex:3, margin:0, background:'rgba(255,255,255,.95)', backdropFilter:'blur(14px)', WebkitBackdropFilter:'blur(14px)', borderRadius:100, boxShadow:'0 4px 16px rgba(5,5,5,.18)', padding:'3px 6px', border:'none' }}>
