@@ -599,7 +599,7 @@ export default function Profile() {
           <div className="media-cristal">
             {post.mediaURLs?.length > 1 ? (
               <div style={{ marginTop:8 }}>
-                <PhotoCarousel urls={post.mediaURLs} thumbs={post.thumbURLs} onOpen={()=>navigate(`/post/${post.id}`)} />
+                <PhotoCarousel className="media-fit" urls={post.mediaURLs} thumbs={post.thumbURLs} onOpen={()=>navigate(`/post/${post.id}`)} />
               </div>
             ) : post.mediaURL && (
               <div style={{ marginTop:8 }}>

@@ -683,7 +683,7 @@ input::placeholder, textarea::placeholder { color: #8A8D91 !important; font-size
   position: relative;
   /* Tsy aspect raikitra : ny conteneur manaraka ny sary. Ny padding no
      manome fond MITOVY manodidina, na portrait na paysage na video. */
-  padding: 14px;
+  padding: 28px 14px;   /* ~1 cm ambony/ambany · 5 mm sisiny */
   border-radius: 16px;
   overflow: hidden;
   display: flex; align-items: center; justify-content: center;
@@ -723,7 +723,7 @@ input::placeholder, textarea::placeholder { color: #8A8D91 !important; font-size
 }
 .media-fit img, .media-fit video {
   width: 100% !important; height: auto !important;
-  max-width: 100% !important; max-height: 78vh !important;
+  max-width: 100% !important; max-height: none !important;
   object-fit: contain !important;
   border-radius: 16px !important;
   display: block !important;
