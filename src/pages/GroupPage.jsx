@@ -918,7 +918,7 @@ export default function GroupPage() {
                          display:'flex', flexDirection:'column', justifyContent:'center',
                          minHeight:300, padding:'78px 14px 78px' };
               })()} onClick={() => openPost(post.id)}>
-              {post.content && (post.textBg ? <p style={{ background: post.textBg, minHeight:180, display:'flex', alignItems:'center', justifyContent:'center', textAlign:'center', color:'#fff', fontSize:24, fontWeight:800, padding:'24px 18px', lineHeight:1.4, wordBreak:'break-word', whiteSpace:'pre-wrap', margin:0, borderRadius:8 }}><Linkify text={post.content} color="#FFFFFF" /></p> : <p style={{ fontSize: 15, lineHeight: 1.6, wordBreak: 'break-word' }}><Linkify text={post.content} /></p>)}
+              {post.content && (post.textBg ? <p style={{ background: post.textBg, width:'100%', height:'100%', minHeight:200, borderRadius:16, display:'flex', alignItems:'center', justifyContent:'center', textAlign:'center', color:'#fff', fontSize:26, fontWeight:800, padding:'28px 20px', lineHeight:1.4, wordBreak:'break-word', whiteSpace:'pre-wrap', margin:0 }}><Linkify text={post.content} color="#FFFFFF" /></p> : <p style={{ fontSize: 15, lineHeight: 1.6, wordBreak: 'break-word' }}><Linkify text={post.content} /></p>)}
               {post.sharedFrom && (
                 <div onClick={e => { e.stopPropagation(); openPost(post.sharedFrom.id, post.id); }}
                   style={{ marginTop: 8, border: '1px solid #E4E6EB', borderRadius: 12, overflow: 'hidden', cursor: 'pointer' }}>
