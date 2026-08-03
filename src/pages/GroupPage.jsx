@@ -912,7 +912,10 @@ export default function GroupPage() {
                 const own = !!(post.mediaURL || (post.mediaURLs && post.mediaURLs.length));
                 const nest = !!(post.sharedFrom || post.eventFrom);
                 if (own && !nest) return { padding: '8px 16px', cursor: 'pointer' };
+                // ⚠️ `.media-cristal` dia `display:flex` (row ho azy) — ny zanaka
+                // dia lasa mifanila. `column` no ilaina.
                 return { position:'relative', cursor:'pointer', aspectRatio:'auto',
+                         display:'flex', flexDirection:'column', justifyContent:'center',
                          minHeight:300, padding:'78px 14px 78px' };
               })()} onClick={() => openPost(post.id)}>
               {post.content && (post.textBg ? <p style={{ background: post.textBg, minHeight:180, display:'flex', alignItems:'center', justifyContent:'center', textAlign:'center', color:'#fff', fontSize:24, fontWeight:800, padding:'24px 18px', lineHeight:1.4, wordBreak:'break-word', whiteSpace:'pre-wrap', margin:0, borderRadius:8 }}><Linkify text={post.content} color="#FFFFFF" /></p> : <p style={{ fontSize: 15, lineHeight: 1.6, wordBreak: 'break-word' }}><Linkify text={post.content} /></p>)}

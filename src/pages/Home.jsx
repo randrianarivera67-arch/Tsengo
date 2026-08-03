@@ -2549,7 +2549,10 @@ const fields = {
                 const nest = !!(post.sharedFrom || post.eventFrom);
                 if (own && !nest) return { padding: post.textBg ? 0 : '10px 16px', cursor:'pointer' };
                 // Faritra manidinana : toerana ho an'ny en-tête (ambony) sy ny barre (ambany)
+                // ⚠️ `.media-cristal` dia `display:flex` (row ho azy) — ny zanaka
+                // dia lasa mifanila. `column` no ilaina.
                 return { position:'relative', cursor:'pointer', aspectRatio:'auto',
+                         display:'flex', flexDirection:'column', justifyContent:'center',
                          minHeight:300, padding:'78px 14px 78px' };
               })()} onClick={() => openPost(post.id)}>
               {post.content && (

@@ -647,7 +647,10 @@ export default function Profile() {
                 const own = !!(post.mediaURL || (post.mediaURLs && post.mediaURLs.length));
                 const nest = !!(post.sharedFrom || post.eventFrom);
                 if (own && !nest) return { padding:'10px 16px', cursor:'pointer' };
+                // ⚠️ `.media-cristal` dia `display:flex` (row ho azy) — ny zanaka
+                // dia lasa mifanila. `column` no ilaina.
                 return { position:'relative', cursor:'pointer', aspectRatio:'auto',
+                         display:'flex', flexDirection:'column', justifyContent:'center',
                          minHeight:300, padding:'78px 14px 78px' };
               })()} onClick={() => navigate(`/post/${post.id}`)}>
           {post.content && (<>
