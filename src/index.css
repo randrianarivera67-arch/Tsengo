@@ -703,14 +703,7 @@ input::placeholder, textarea::placeholder { color: #8A8D91 !important; font-size
     linear-gradient(160deg, #171A21 0%, #12151B 100%);
 }
 /* Sary/video : MANONTOLO, tsy voatapaka */
-/* ⚠️ SÉLECTEUR DESCENDANT (tsy « > ») : ny SmartImage dia mamoaka <div>
-   mifono ny <img>, ka ZAFIKELY ny sary — tsy zanaka mivantana. */
-.media-cristal > div, .media-cristal > .skeleton-shimmer {
-  width: 100% !important; height: 100% !important;
-  min-height: 0 !important; border-radius: 16px !important;
-  background: transparent !important;
-}
-.media-cristal img, .media-cristal video {
+.media-cristal > img, .media-cristal > video {
   position: relative; z-index: 1;
   /* mameno ny conteneur */
   /* ⚠️ `max-width/height` + `width:auto` dia TSY mampitombo ny sary kely —
