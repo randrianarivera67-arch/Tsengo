@@ -604,7 +604,7 @@ export default function Profile() {
             ) : post.mediaURL && (
               <div style={{ marginTop:8 }}>
                 {post.mediaType==='image'
-                  ? <SmartImage src={post.thumbURL || post.mediaURL} onClick={()=>navigate(`/post/${post.id}`)} minH={220} style={{ width:'100%', borderRadius:10, maxHeight:350, objectFit:'cover', cursor:'zoom-in' }}/>
+                  ? <SmartImage src={post.mediaURL || post.thumbURL} onClick={()=>navigate(`/post/${post.id}`)} minH={220} style={{ width:'100%', borderRadius:10, maxHeight:350, objectFit:'cover', cursor:'zoom-in' }}/>
                   : <VideoThumb src={post.mediaURL} poster={post.thumbURL} onClick={()=>navigate('/reels',{state:{startId:post.id}})} style={{ width:'100%', maxHeight:350, borderRadius:10 }} playSize={50}/>}
               </div>
             )}
@@ -694,7 +694,7 @@ export default function Profile() {
           ) : post.mediaURL && (
             <div style={{ marginTop:8 }}>
               {post.mediaType==='image'
-                ? <SmartImage src={post.thumbURL || post.mediaURL} onClick={()=>navigate(`/post/${post.id}`)} minH={220} style={{ width:'100%', borderRadius:10, maxHeight:350, objectFit:'cover', cursor:'zoom-in' }}/>
+                ? <SmartImage src={post.mediaURL || post.thumbURL} onClick={()=>navigate(`/post/${post.id}`)} minH={220} style={{ width:'100%', borderRadius:10, maxHeight:350, objectFit:'cover', cursor:'zoom-in' }}/>
                 : <VideoThumb src={post.mediaURL} poster={post.thumbURL} onClick={()=>navigate('/reels',{state:{startId:post.id}})} style={{ width:'100%', maxHeight:350, borderRadius:10 }} playSize={50}/>}
             </div>
           )}

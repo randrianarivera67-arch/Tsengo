@@ -38,7 +38,7 @@ function monotonic(onProgress) {
  * Mamerina `null` raha tsy mety : ny mpiantso dia mitazona `thumbURL = ''`
  * ka miverina amin'ny `mediaURL` ny feed. Tsy misy fahatapahana.
  */
-export async function makeThumb(file, maxWidth = 360) {
+export async function makeThumb(file, maxWidth = 540) {
   try {
     if (!file || !file.type || !file.type.startsWith('image/')) return null;
     const t = await compressImage(file, maxWidth, 0.60);
@@ -48,7 +48,7 @@ export async function makeThumb(file, maxWidth = 360) {
   } catch (e) { return null; }
 }
 
-async function compressImage(file, maxWidth = 720, quality = 0.62) {
+async function compressImage(file, maxWidth = 1080, quality = 0.72) {
   if (!file.type.startsWith('image/')) return file;
   return new Promise(resolve => {
     const img = new Image();

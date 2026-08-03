@@ -876,7 +876,7 @@ export default function GroupPage() {
                     {post.isMusic
                       ? <MusicPostCard post={post} />
                       : post.mediaType === 'image'
-                        ? <SmartImage src={post.thumbURL || post.mediaURL} onClick={() => setViewerState({ post, index: 0 })} minH={240} style={{ width: '100%', maxHeight: 520, objectFit: 'cover', display: 'block', cursor: 'zoom-in' }} />
+                        ? <SmartImage src={post.mediaURL || post.thumbURL} onClick={() => setViewerState({ post, index: 0 })} minH={240} style={{ width: '100%', maxHeight: 520, objectFit: 'cover', display: 'block', cursor: 'zoom-in' }} />
                         : <FeedVideo src={post.mediaURL} poster={post.thumbURL} dataSaver={dataSaver || lite} onOpen={() => setViewerState({ post, index: 0 })} style={{ width: '100%', maxHeight: 520, objectFit: 'cover', display: 'block', background: '#000' }} />}
                   </div>
                 )}
@@ -962,7 +962,7 @@ export default function GroupPage() {
                   {post.isMusic
                     ? <MusicPostCard post={post} />
                     : post.mediaType === 'image'
-                      ? <SmartImage src={post.thumbURL || post.mediaURL} onClick={() => setViewerState({ post, index: 0 })} minH={240} style={{ width: '100%', maxHeight: 520, objectFit: 'cover', display: 'block', cursor: 'zoom-in' }} />
+                      ? <SmartImage src={post.mediaURL || post.thumbURL} onClick={() => setViewerState({ post, index: 0 })} minH={240} style={{ width: '100%', maxHeight: 520, objectFit: 'cover', display: 'block', cursor: 'zoom-in' }} />
                       : <FeedVideo src={post.mediaURL} poster={post.thumbURL} dataSaver={dataSaver || lite} onOpen={() => setViewerState({ post, index: 0 })} style={{ width: '100%', maxHeight: 520, objectFit: 'cover', display: 'block', background: '#000' }} />}
                 </div>
               )}
