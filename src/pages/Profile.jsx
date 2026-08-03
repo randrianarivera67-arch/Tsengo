@@ -95,15 +95,6 @@ export default function Profile() {
   const [coverURL,       setCoverURL]    = useState(null);
   const [uploadingCover, setUploadCover] = useState(false);
   const [openCmt,        setOpenCmt]     = useState({});
-  // Refy ny média — voafetra 9/16 → 4/3 (portrait avo, paysage fond kely)
-  const [mediaRatio, setMediaRatio] = useState({});
-  const onMediaLoad = (id) => (e) => {
-    const t = e?.target || {};
-    const w = t.naturalWidth || t.videoWidth, h = t.naturalHeight || t.videoHeight;
-    if (!w || !h) return;
-    const r = Math.min(Math.max(w / h, 9 / 16), 4 / 3);
-    setMediaRatio(p => (p[id] === r ? p : { ...p, [id]: r }));
-  };
   const [cmtText,        setCmtText]     = useState({});
   const [cmtMedia,       setCmtMedia]    = useState({});
   const [showReact,      setShowReact]   = useState({});
@@ -605,7 +596,7 @@ export default function Profile() {
         </div>
         {/* ── FARITRA MANIDINA : média + en-tête + actions ── */}
         {(!!(post.mediaURL || (post.mediaURLs && post.mediaURLs.length)) && !(post.sharedFrom || post.eventFrom)) && (
-          <div className="media-cristal" style={{ aspectRatio: mediaRatio[post.id] || '4 / 5' }}>
+          <div style={{ position:'relative' }}>
             {post.mediaURLs?.length > 1 ? (
               <div style={{ marginTop:8 }}>
                 <PhotoCarousel urls={post.mediaURLs} thumbs={post.thumbURLs} onOpen={()=>navigate(`/post/${post.id}`)} />
@@ -613,7 +604,7 @@ export default function Profile() {
             ) : post.mediaURL && (
               <div style={{ marginTop:8 }}>
                 {post.mediaType==='image'
-                  ? <SmartImage onLoad={onMediaLoad(post.id)} src={post.mediaURL || post.thumbURL} onClick={()=>navigate(`/post/${post.id}`)} minH={220} style={{ width:'100%', borderRadius:10, maxHeight:350, objectFit:'contain', cursor:'zoom-in' }}/>
+                  ? <SmartImage src={post.mediaURL || post.thumbURL} onClick={()=>navigate(`/post/${post.id}`)} minH={220} style={{ width:'100%', borderRadius:10, maxHeight:350, objectFit:'cover', cursor:'zoom-in' }}/>
                   : <VideoThumb src={post.mediaURL} poster={post.thumbURL} onClick={()=>navigate('/reels',{state:{startId:post.id}})} style={{ width:'100%', maxHeight:350, borderRadius:10 }} playSize={50}/>}
               </div>
             )}

@@ -74,15 +74,6 @@ export default function GroupPage() {
   const [gpMoodOpen, setGpMoodOpen] = useState(false);
   const [gpTagOpen,  setGpTagOpen]  = useState(false);
   const [gpTagSel,   setGpTagSel]   = useState({});
-  // Refy ny média — voafetra 9/16 → 4/3 (portrait avo, paysage fond kely)
-  const [mediaRatio, setMediaRatio] = useState({});
-  const onMediaLoad = (id) => (e) => {
-    const t = e?.target || {};
-    const w = t.naturalWidth || t.videoWidth, h = t.naturalHeight || t.videoHeight;
-    if (!w || !h) return;
-    const r = Math.min(Math.max(w / h, 9 / 16), 4 / 3);
-    setMediaRatio(p => (p[id] === r ? p : { ...p, [id]: r }));
-  };
   const [gpTagList,  setGpTagList]  = useState([]);
 
   // Confirmation avant de quitter le composer du groupe
@@ -876,7 +867,7 @@ export default function GroupPage() {
             </div>
             {/* ── FARITRA MANIDINA : média + en-tête + actions ── */}
             {(!!(post.mediaURL || (post.mediaURLs && post.mediaURLs.length)) && !post.sharedFrom) && (
-              <div className="media-cristal" style={{ aspectRatio: mediaRatio[post.id] || '4 / 5' }}>
+              <div style={{ position:'relative' }}>
                 {post.mediaURLs?.length > 1 ? (
                   <div style={{ marginTop: 8, marginLeft: -16, marginRight: -16 }}>
                     <PhotoCarousel urls={post.mediaURLs} thumbs={post.thumbURLs} onOpen={() => setViewerState({ post, index: 0 })} />
@@ -886,8 +877,8 @@ export default function GroupPage() {
                     {post.isMusic
                       ? <MusicPostCard post={post} />
                       : post.mediaType === 'image'
-                        ? <SmartImage onLoad={onMediaLoad(post.id)} src={post.mediaURL || post.thumbURL} onClick={() => setViewerState({ post, index: 0 })} minH={240} style={{ width: '100%', maxHeight:'100%', objectFit:'contain', display: 'block', cursor: 'zoom-in' }} />
-                        : <FeedVideo onLoadedMetadata={onMediaLoad(post.id)} src={post.mediaURL} poster={post.thumbURL} dataSaver={dataSaver || lite} onOpen={() => setViewerState({ post, index: 0 })} style={{ width: '100%', maxHeight:'100%', objectFit:'contain', display: 'block', background: '#000' }} />}
+                        ? <SmartImage src={post.mediaURL || post.thumbURL} onClick={() => setViewerState({ post, index: 0 })} minH={240} style={{ width: '100%', maxHeight: 520, objectFit: 'cover', display: 'block', cursor: 'zoom-in' }} />
+                        : <FeedVideo src={post.mediaURL} poster={post.thumbURL} dataSaver={dataSaver || lite} onOpen={() => setViewerState({ post, index: 0 })} style={{ width: '100%', maxHeight: 520, objectFit: 'cover', display: 'block', background: '#000' }} />}
                   </div>
                 )}
                   <div className='post-actions-row' style={{ position:'absolute', left:10, right:10, bottom:10, zIndex:3, margin:0, background:'rgba(255,255,255,.95)', backdropFilter:'blur(14px)', WebkitBackdropFilter:'blur(14px)', borderRadius:100, boxShadow:'0 4px 16px rgba(5,5,5,.18)', padding:'3px 6px', border:'none' }}>
