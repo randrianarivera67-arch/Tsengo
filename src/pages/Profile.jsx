@@ -214,7 +214,7 @@ export default function Profile() {
     const file = e.target.files[0]; if (!file) return;
     setUploadCover(true);
     try {
-      const r = await uploadToTelegram(file);
+      const r = await uploadToTelegram(file, undefined, 1600);   // couverture : manerana ny sakany
       await updateDoc(doc(db,'users',currentUser.uid), { coverURL: r.url });
       setCoverURL(r.url);
       setProfile(p=>({...p,coverURL:r.url}));

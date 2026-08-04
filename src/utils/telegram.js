@@ -179,8 +179,10 @@ async function uploadVideoInChunks(file, onProgress) {
   return { url, type, chunks: ids.length };
 }
 
-export async function uploadToTelegram(file, onProgress) {
-  if (file.type.startsWith('image/')) file = await compressImage(file);
+export async function uploadToTelegram(file, onProgress, maxWidth) {
+  // `maxWidth` tsy voatondro → 1080 (default `compressImage`) : tsy miova ny
+  // antso rehetra efa misy. Ny couverture ihany no mangataka bebe kokoa.
+  if (file.type.startsWith('image/')) file = await compressImage(file, maxWidth || 1080);
 
   if (file.size > MAX_SIZE) {
     throw new Error('Fichier trop volumineux (' + Math.round(file.size / MB) + ' Mo). Maximum : 500 Mo.');
