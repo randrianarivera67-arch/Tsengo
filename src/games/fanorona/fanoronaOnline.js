@@ -34,15 +34,15 @@ import {
 } from "firebase/firestore";
 import { getAuth, signInAnonymously, onAuthStateChanged } from "firebase/auth";
 
-// TODO: replace with the SECOND Firebase project's config
-// (keep it separate from Tsengo's main Firebase config/quota)
+// Firebase project: trengo-fanorona (separate from Tsengo's main project,
+// so this game's quota never eats into Tsengo's)
 const FANORONA_FIREBASE_CONFIG = {
-  apiKey: "REPLACE_ME",
-  authDomain: "REPLACE_ME.firebaseapp.com",
-  projectId: "REPLACE_ME",
-  storageBucket: "REPLACE_ME.appspot.com",
-  messagingSenderId: "REPLACE_ME",
-  appId: "REPLACE_ME",
+  apiKey: "AIzaSyDh_ztUSkbvnaCr9ySoA2IoJBe1F_BhJ-E",
+  authDomain: "trengo-fanorona.firebaseapp.com",
+  projectId: "trengo-fanorona",
+  storageBucket: "trengo-fanorona.firebasestorage.app",
+  messagingSenderId: "386383120849",
+  appId: "1:386383120849:web:f8dbdd573d8ce493d338f0",
 };
 
 let app;

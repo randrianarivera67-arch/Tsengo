@@ -34,8 +34,7 @@ const NEIGHBOR_DIRS = (() => {
   const table = [];
   for (let i = 0; i < SIZE; i++) {
     const [r, c] = rc(i);
-    const dirs = [...ORTHO];
-    if ((r + c) % 2 === 0) dirs.push(...DIAG);
+    const dirs = [...ORTHO, ...DIAG];
     table[i] = dirs.filter(([dr, dc]) => inBounds(r + dr, c + dc));
   }
   return table;
@@ -82,7 +81,10 @@ function captureRun(board, start, dir, mover) {
       return []; // own piece blocks — no capture
     }
   }
-  return []; // ran off the board — no capture
+  // Ran off the edge of the board without hitting an empty square or an
+  // own piece: the line of enemy pieces was "unbroken" all the way to
+  // the edge, so per official rules every piece found is still captured.
+  return captured;
 }
 
 // All single-step options from a given piece: quiet moves and
@@ -161,15 +163,12 @@ function getAllTurns(board, player) {
       else captureFirsts.push(opt);
     }
   }
-  if (captureFirsts.length > 0) {
-    let turns = [];
-    for (const first of captureFirsts) {
-      const visited = new Set([first.from]);
-      turns = turns.concat(expandCaptureChain(board, first, visited, first.dir));
-    }
-    return turns;
+  let turns = quiets.map((q) => ({ path: [q], board: applyStep(board, q) }));
+  for (const first of captureFirsts) {
+    const visited = new Set([first.from]);
+    turns = turns.concat(expandCaptureChain(board, first, visited, first.dir));
   }
-  return quiets.map((q) => ({ path: [q], board: applyStep(board, q) }));
+  return turns;
 }
 
 function countPieces(board) {
@@ -244,19 +243,23 @@ function chooseAiTurn(board, aiPlayer, difficulty) {
    ============================================================ */
 
 const COLORS = {
-  bgDeep: "#150E09",
-  bgPanel: "#1F160F",
-  wood: "#3E2A1C",
-  woodLight: "#5A3E28",
-  woodLine: "#7A5A3A",
-  ivory: "#EAE0C8",
-  ivoryShadow: "#B9AC8C",
-  onyx: "#17110C",
-  onyxShine: "#3A3229",
-  brass: "#A9834B",
-  brassBright: "#D9A653",
-  oxblood: "#8B3A2F",
-  textMuted: "#B8A88C",
+  bgDeep: "#0A0E1C",
+  bgPanel: "#131a30",
+  wood: "#1B2140",       // board base — deep indigo instead of wood
+  woodLight: "#262E58",  // board highlight
+  woodLine: "#5C69A0",   // grid lines — soft silver-blue
+  ivory: "#F4F6FC",      // light piece — argenté / pearl
+  ivoryShadow: "#AFB9DA",
+  onyx: "#12162A",       // dark piece
+  onyxShine: "#2A3260",
+  brass: "#4F7DF3",      // primary accent — Trengo blue
+  brassBright: "#F0C36D",// highlight / pulse — doré
+  oxblood: "#FF3E7F",    // capture markers — Trengo rose
+  textMuted: "#9AA3C8",
+  pink: "#FF3E7F",
+  blue: "#4F7DF3",
+  gold: "#F0C36D",
+  silver: "#C9D3E8",
 };
 
 function PointDot({ x, y, r = 6 }) {
@@ -288,9 +291,14 @@ export default function FanoronaPremium() {
   const [visited, setVisited] = useState(new Set());
   const [log, setLog] = useState([]);
   const [winner, setWinner] = useState(null);
+  const [draw, setDraw] = useState(false);
   const [thinking, setThinking] = useState(false);
   const [trail, setTrail] = useState([]); // brass capture-trail for last completed turn
   const boardRef = useRef(null);
+  const noCaptureStreakRef = useRef(0);
+  const positionHistoryRef = useRef(new Map());
+  const initialMountRef = useRef(true);
+  const prevCountsRef = useRef(countPieces(initialBoard()));
 
   // --- Online multiplayer state ---
   const [mode, setMode] = useState("bot"); // "bot" | "online"
@@ -307,6 +315,37 @@ export default function FanoronaPremium() {
     return () => { document.body.style.overflow = prevOverflow; };
   }, []);
 
+  // Draw detection: Fanorona's official rules leave the exact draw
+  // threshold to the two players ("both can call it a draw" when
+  // neither can see a way to win) — 50 plies without a capture, or
+  // the same position (board + side to move) recurring 3 times, are
+  // the conventions most digital implementations use.
+  useEffect(() => {
+    if (initialMountRef.current) {
+      initialMountRef.current = false;
+      return;
+    }
+    if (winner || draw) return;
+    const c = countPieces(board);
+    const wasCapture = (c.W + c.B) < (prevCountsRef.current.W + prevCountsRef.current.B);
+    prevCountsRef.current = c;
+
+    if (wasCapture) {
+      noCaptureStreakRef.current = 0;
+      positionHistoryRef.current.clear();
+    } else {
+      noCaptureStreakRef.current += 1;
+    }
+
+    const key = board.join("") + "|" + toMove;
+    const seen = (positionHistoryRef.current.get(key) || 0) + 1;
+    positionHistoryRef.current.set(key, seen);
+
+    if (noCaptureStreakRef.current >= 50 || seen >= 3) {
+      setDraw(true);
+    }
+  }, [board, toMove]);
+
   const cellSize = 56;
   const pad = 40;
   const points = usePointLayout(cellSize, pad);
@@ -315,6 +354,17 @@ export default function FanoronaPremium() {
 
   const aiPlayer = opponent(human);
   const counts = useMemo(() => countPieces(board), [board]);
+  const fireworkParticles = useMemo(() => Array.from({ length: 18 }).map((_, i) => {
+    const angle = (i / 18) * Math.PI * 2 + Math.random() * 0.3;
+    const dist = 85 + Math.random() * 55;
+    const palette = [COLORS.gold, COLORS.pink, COLORS.blue, COLORS.silver];
+    return {
+      fx: Math.cos(angle) * dist,
+      fy: Math.sin(angle) * dist,
+      color: palette[i % palette.length],
+      delay: Math.random() * 1.1,
+    };
+  }), []);
 
   const resetGame = useCallback((startHuman = "W") => {
     setBoard(initialBoard());
@@ -328,7 +378,12 @@ export default function FanoronaPremium() {
     setVisited(new Set());
     setLog([]);
     setWinner(null);
+    setDraw(false);
     setTrail([]);
+    noCaptureStreakRef.current = 0;
+    positionHistoryRef.current.clear();
+    initialMountRef.current = true;
+    prevCountsRef.current = countPieces(initialBoard());
   }, []);
 
   const leaveRoom = useCallback(() => {
@@ -475,11 +530,7 @@ export default function FanoronaPremium() {
 
     if (selected === null) {
       if (board[i] !== human) return;
-      const allTurns = getAllTurns(board, human);
-      const mustCapture = allTurns.some((t) => t.path[0].captured.length > 0);
-      const myOptions = stepOptions(board, i, human).filter(
-        (o) => !mustCapture || o.captured.length > 0
-      );
+      const myOptions = stepOptions(board, i, human);
       if (myOptions.length === 0) return;
       setSelected(i);
       setAvailableOptions(myOptions);
@@ -488,11 +539,7 @@ export default function FanoronaPremium() {
       const opt = availableOptions.find((o) => o.to === i);
       if (!opt) {
         if (board[i] === human) {
-          const allTurns = getAllTurns(board, human);
-          const mustCapture = allTurns.some((t) => t.path[0].captured.length > 0);
-          const myOptions = stepOptions(board, i, human).filter(
-            (o) => !mustCapture || o.captured.length > 0
-          );
+          const myOptions = stepOptions(board, i, human);
           if (myOptions.length) { setSelected(i); setAvailableOptions(myOptions); }
         }
         return;
@@ -533,7 +580,7 @@ export default function FanoronaPremium() {
 
   // AI turn
   useEffect(() => {
-    if (mode !== "bot" || winner || toMove !== aiPlayer) return;
+    if (mode !== "bot" || winner || draw || toMove !== aiPlayer) return;
     setThinking(true);
     const t = setTimeout(() => {
       const turn = chooseAiTurn(board, aiPlayer, difficulty);
@@ -546,10 +593,15 @@ export default function FanoronaPremium() {
     }, 550);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mode, toMove, winner]);
+  }, [mode, toMove, winner, draw]);
 
   const highlightSet = new Set(availableOptions.map((o) => o.to));
   const captureTargets = new Set(availableOptions.flatMap((o) => o.captured));
+  const capturablePieces = useMemo(() => {
+    if (winner || draw || toMove !== human) return new Set();
+    const turns = getAllTurns(board, human);
+    return new Set(turns.filter((t) => t.path[0].captured.length > 0).map((t) => t.path[0].from));
+  }, [board, human, toMove, winner, draw]);
 
   return (
     <div
@@ -575,6 +627,25 @@ export default function FanoronaPremium() {
         .fp-pulse { animation: fp-pulse 1.4s ease-in-out infinite; }
         @keyframes fp-fade-in { from { opacity: 0; transform: translateY(4px);} to { opacity:1; transform:translateY(0);} }
         .fp-fade { animation: fp-fade-in .35s ease both; }
+        @keyframes fp-firework {
+          0% { transform: translate(0,0) scale(1); opacity: 1; }
+          100% { transform: translate(var(--fx), var(--fy)) scale(0); opacity: 0; }
+        }
+        .fp-firework-particle {
+          position: absolute; top: 50%; left: 50%; width: 8px; height: 8px; border-radius: 50%;
+          animation: fp-firework 1.1s ease-out infinite;
+        }
+        @keyframes fp-pop-in {
+          0% { transform: scale(0.6); opacity: 0; }
+          60% { transform: scale(1.08); opacity: 1; }
+          100% { transform: scale(1); opacity: 1; }
+        }
+        .fp-result-pop { animation: fp-pop-in .5s cubic-bezier(.2,1.4,.4,1) both; }
+        @keyframes fp-glow-text {
+          0%,100% { text-shadow: 0 0 18px rgba(240,195,109,0.55), 0 0 40px rgba(255,62,127,0.35); }
+          50% { text-shadow: 0 0 30px rgba(240,195,109,0.9), 0 0 60px rgba(255,62,127,0.55); }
+        }
+        .fp-win-text { animation: fp-glow-text 1.8s ease-in-out infinite; }
         * { box-sizing: border-box; }
         html, body { height: 100%; }
         .fp-layout { display: flex; flex-direction: row; flex-wrap: nowrap; gap: 16px; justify-content: center; align-items: flex-start; width: 100%; max-width: 980px; margin: 0 auto; }
@@ -606,7 +677,6 @@ export default function FanoronaPremium() {
           .fp-header { margin-bottom: 6px !important; }
           .fp-header h1 { font-size: 18px !important; margin: 0 !important; }
           .fp-header p { display: none !important; }
-          .fp-mode-toggle { margin-top: 6px !important; }
           .fp-mode-toggle button { padding: 5px 12px !important; font-size: 11px !important; }
           .fp-layout { gap: 10px; align-items: center !important; }
           .fp-board-card svg { max-width: min(58vh, 66dvh) !important; }
@@ -639,7 +709,11 @@ export default function FanoronaPremium() {
       </button>
 
       <header className="fp-fade fp-header" style={{ textAlign: "center", marginBottom: 20 }}>
-        <h1 className="fp-display" style={{ fontSize: 40, fontWeight: 600, margin: "6px 0 4px", letterSpacing: "-0.01em" }}>
+        <h1 className="fp-display" style={{
+          fontSize: 40, fontWeight: 600, margin: "6px 0 4px", letterSpacing: "-0.01em",
+          background: `linear-gradient(100deg, ${COLORS.silver}, ${COLORS.gold} 45%, ${COLORS.pink} 85%)`,
+          WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text",
+        }}>
           Fanorona
         </h1>
         <p style={{ color: COLORS.textMuted, fontSize: 13, maxWidth: 380 }}>
@@ -668,70 +742,227 @@ export default function FanoronaPremium() {
         </div>
       </header>
 
-      {mode === "online" && !roomCode && (
-        <div className="fp-fade" style={{
-          background: COLORS.bgPanel, borderRadius: 14, padding: 24, width: "min(320px, 92vw)",
-          border: `1px solid ${COLORS.woodLine}33`, marginBottom: 24, textAlign: "center",
+      {mode === "online" && (!roomCode || roomStatus === "waiting") && (
+        <div style={{
+          position: "fixed", inset: 0, zIndex: 2147483002,
+          display: "flex", alignItems: "center", justifyContent: "center",
+          background: "rgba(6,9,20,0.6)", backdropFilter: "blur(2px)",
         }}>
-          <Wifi size={20} color={COLORS.brassBright} />
-          <p style={{ fontSize: 13, color: COLORS.textMuted, margin: "10px 0 16px" }}>
-            Mamorona lalao vaovao ka izarao ilay kaody, na ampidiro ny kaody nomen'ny namanao
-          </p>
-          <button
-            onClick={handleCreateRoom}
-            disabled={onlineBusy}
-            style={{
-              width: "100%", padding: "10px 0", borderRadius: 8, border: "none",
-              background: COLORS.brass, color: "#1C130D", fontWeight: 600, fontSize: 13, cursor: "pointer",
-              marginBottom: 10, opacity: onlineBusy ? 0.6 : 1,
-            }}
-          >
-            Mamorona lalao
-          </button>
-          <div style={{ display: "flex", gap: 8 }}>
-            <input
-              value={joinInput}
-              onChange={(e) => setJoinInput(e.target.value.toUpperCase())}
-              placeholder="Kaody (5 marika)"
-              maxLength={5}
-              className="fp-mono"
-              style={{
-                flex: 1, padding: "9px 10px", borderRadius: 8, border: `1px solid ${COLORS.woodLine}55`,
-                background: "transparent", color: COLORS.ivory, fontSize: 13, letterSpacing: "0.1em",
-              }}
-            />
+          <div className="fp-fade fp-lobby-card" style={{
+            position: "relative",
+            background: `linear-gradient(165deg, ${COLORS.bgPanel}, ${COLORS.bgDeep})`,
+            borderRadius: 16, padding: 22, width: "min(300px, 78vw)", maxHeight: "82%", overflowY: "auto",
+            border: `1px solid ${COLORS.blue}44`,
+            boxShadow: `0 20px 60px rgba(0,0,0,0.6), 0 0 0 1px ${COLORS.pink}22`,
+            textAlign: "center",
+          }}>
             <button
-              onClick={handleJoinRoom}
-              disabled={onlineBusy}
+              onClick={() => switchMode("bot")}
+              aria-label="Miala"
               style={{
-                padding: "0 16px", borderRadius: 8, border: `1px solid ${COLORS.woodLine}55`,
-                background: "transparent", color: COLORS.ivory, fontSize: 13, cursor: "pointer", opacity: onlineBusy ? 0.6 : 1,
+                position: "absolute", top: 8, right: 8, width: 26, height: 26, borderRadius: "50%",
+                border: `1px solid ${COLORS.woodLine}55`, background: "transparent", color: COLORS.textMuted,
+                display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", fontSize: 15,
               }}
             >
-              Miditra
+              ×
             </button>
+
+            {!roomCode ? (
+              <>
+                <Wifi size={20} color={COLORS.gold} />
+                <p style={{ fontSize: 12.5, color: COLORS.textMuted, margin: "10px 0 16px" }}>
+                  Mamorona lalao vaovao ka izarao ilay kaody, na ampidiro ny kaody nomen'ny namanao
+                </p>
+                <button
+                  onClick={handleCreateRoom}
+                  disabled={onlineBusy}
+                  style={{
+                    width: "100%", padding: "10px 0", borderRadius: 8, border: "none",
+                    background: `linear-gradient(120deg, ${COLORS.blue}, ${COLORS.pink})`, color: "#fff", fontWeight: 700, fontSize: 13, cursor: "pointer", boxShadow: `0 6px 18px ${COLORS.blue}55`,
+                    marginBottom: 10, opacity: onlineBusy ? 0.6 : 1,
+                  }}
+                >
+                  Mamorona lalao
+                </button>
+                <div style={{ display: "flex", gap: 8 }}>
+                  <input
+                    value={joinInput}
+                    onChange={(e) => setJoinInput(e.target.value.toUpperCase())}
+                    placeholder="Kaody (5 marika)"
+                    maxLength={5}
+                    className="fp-mono"
+                    style={{
+                      flex: 1, padding: "9px 10px", borderRadius: 8, border: `1px solid ${COLORS.woodLine}55`,
+                      background: "transparent", color: COLORS.ivory, fontSize: 13, letterSpacing: "0.1em",
+                    }}
+                  />
+                  <button
+                    onClick={handleJoinRoom}
+                    disabled={onlineBusy}
+                    style={{
+                      padding: "0 16px", borderRadius: 8, border: `1px solid ${COLORS.gold}66`,
+                      background: "transparent", color: COLORS.gold, fontSize: 13, cursor: "pointer", opacity: onlineBusy ? 0.6 : 1,
+                    }}
+                  >
+                    Miditra
+                  </button>
+                </div>
+                {onlineError && <p style={{ color: COLORS.pink, fontSize: 12, marginTop: 10 }}>{onlineError}</p>}
+              </>
+            ) : (
+              <>
+                <p style={{ fontSize: 12, color: COLORS.textMuted, marginBottom: 8 }}>Miandry namana hiditra…</p>
+                <div style={{
+                  display: "flex", alignItems: "center", justifyContent: "center", gap: 10,
+                  fontSize: 24, letterSpacing: "0.3em", fontWeight: 600,
+                  background: `linear-gradient(120deg, ${COLORS.gold}, ${COLORS.pink})`,
+                  WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text",
+                }} className="fp-mono fp-pulse">
+                  {roomCode}
+                </div>
+                <button
+                  onClick={() => navigator.clipboard?.writeText(roomCode)}
+                  style={{
+                    marginTop: 12, display: "inline-flex", alignItems: "center", gap: 6,
+                    padding: "6px 14px", borderRadius: 999, border: `1px solid ${COLORS.woodLine}55`,
+                    background: "transparent", color: COLORS.textMuted, fontSize: 11, cursor: "pointer",
+                  }}
+                >
+                  <Copy size={12} /> Adikao
+                </button>
+              </>
+            )}
           </div>
-          {onlineError && <p style={{ color: COLORS.oxblood, fontSize: 12, marginTop: 10 }}>{onlineError}</p>}
         </div>
       )}
 
-      {mode === "online" && roomCode && roomStatus === "waiting" && (
-        <div className="fp-fade" style={{
-          background: COLORS.bgPanel, borderRadius: 14, padding: 20, width: "min(320px, 92vw)",
-          border: `1px solid ${COLORS.woodLine}33`, marginBottom: 24, textAlign: "center",
+      {winner && (
+        <div style={{
+          position: "fixed", inset: 0, zIndex: 2147483003,
+          display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
+          background: "rgba(6,9,20,0.78)", backdropFilter: "blur(3px)", padding: 20, textAlign: "center",
         }}>
-          <p style={{ fontSize: 12, color: COLORS.textMuted, marginBottom: 8 }}>Miandry namana hiditra…</p>
-          <div style={{
-            display: "flex", alignItems: "center", justifyContent: "center", gap: 10,
-            fontSize: 26, letterSpacing: "0.3em", fontWeight: 600,
-          }} className="fp-mono fp-pulse">
-            {roomCode}
-            <Copy
-              size={16}
-              style={{ cursor: "pointer" }}
-              onClick={() => navigator.clipboard?.writeText(roomCode)}
-            />
-          </div>
+          {winner === human ? (
+            <div className="fp-result-pop" style={{ position: "relative", width: 180, height: 180, display: "flex", alignItems: "center", justifyContent: "center" }}>
+              {fireworkParticles.map((p, i) => (
+                <span
+                  key={i}
+                  className="fp-firework-particle"
+                  style={{ "--fx": `${p.fx}px`, "--fy": `${p.fy}px`, background: p.color, animationDelay: `${p.delay}s` }}
+                />
+              ))}
+              <Crown size={46} color={COLORS.gold} style={{ position: "relative", zIndex: 1 }} />
+            </div>
+          ) : (
+            <div className="fp-result-pop" style={{
+              width: 104, height: 104, borderRadius: "50%", border: `4px solid ${COLORS.pink}`,
+              display: "flex", alignItems: "center", justifyContent: "center",
+              boxShadow: `0 0 40px ${COLORS.pink}88`,
+            }}>
+              <span style={{ fontSize: 54, color: COLORS.pink, fontWeight: 800, lineHeight: 1 }}>×</span>
+            </div>
+          )}
+
+          <h2
+            className={`fp-display fp-result-pop${winner === human ? " fp-win-text" : ""}`}
+            style={{
+              fontSize: 30, margin: "16px 0 6px", fontWeight: 700,
+              ...(winner === human
+                ? {
+                    background: `linear-gradient(120deg, ${COLORS.gold}, ${COLORS.pink})`,
+                    WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text",
+                  }
+                : { color: COLORS.pink }),
+            }}
+          >
+            {winner === human ? "Nandresy ianao!" : "Resy ianao"}
+          </h2>
+          <p style={{ color: COLORS.textMuted, fontSize: 13, marginBottom: 18 }}>
+            {mode === "bot"
+              ? (winner === human ? "Naharesy ny robot ianao" : "Nandresy anao ny robot")
+              : (winner === human ? "Naharesy ny namanao ianao" : "Nandresy anao ny namanao")}
+          </p>
+          <button
+            onClick={() => (mode === "bot" ? resetGame(human) : leaveRoom())}
+            style={{
+              padding: "10px 24px", borderRadius: 999, border: "none",
+              background: `linear-gradient(120deg, ${COLORS.blue}, ${COLORS.pink})`,
+              color: "#fff", fontWeight: 700, fontSize: 13, cursor: "pointer",
+              boxShadow: `0 6px 18px ${COLORS.blue}55`,
+            }}
+          >
+            Lalao vaovao
+          </button>
+        </div>
+      )}
+
+      {(winner || draw) && (
+        <div style={{
+          position: "fixed", inset: 0, zIndex: 2147483003,
+          display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
+          background: "rgba(6,9,20,0.78)", backdropFilter: "blur(3px)",
+        }}>
+          {draw ? (
+            <div className="fp-result-pop" style={{
+              width: 110, height: 110, borderRadius: "50%", border: `4px solid ${COLORS.silver}`,
+              display: "flex", alignItems: "center", justifyContent: "center",
+              boxShadow: `0 0 40px ${COLORS.silver}55`,
+            }}>
+              <span style={{ fontSize: 42, color: COLORS.silver, fontWeight: 800, lineHeight: 1 }}>=</span>
+            </div>
+          ) : winner === human ? (
+            <div className="fp-result-pop" style={{ position: "relative", width: 200, height: 200, display: "flex", alignItems: "center", justifyContent: "center" }}>
+              {fireworkParticles.map((p, i) => (
+                <span
+                  key={i}
+                  className="fp-firework-particle"
+                  style={{ "--fx": `${p.fx}px`, "--fy": `${p.fy}px`, background: p.color, animationDelay: `${p.delay}s` }}
+                />
+              ))}
+              <Crown size={50} color={COLORS.gold} style={{ position: "relative", zIndex: 1 }} />
+            </div>
+          ) : (
+            <div className="fp-result-pop" style={{
+              width: 110, height: 110, borderRadius: "50%", border: `4px solid ${COLORS.pink}`,
+              display: "flex", alignItems: "center", justifyContent: "center",
+              boxShadow: `0 0 40px ${COLORS.pink}77`,
+            }}>
+              <span style={{ fontSize: 58, color: COLORS.pink, fontWeight: 800, lineHeight: 1 }}>×</span>
+            </div>
+          )}
+
+          <h2
+            className={`fp-display fp-result-pop${winner === human ? " fp-win-text" : ""}`}
+            style={{
+              fontSize: 32, margin: "16px 0 6px", fontWeight: 700,
+              ...(draw
+                ? { color: COLORS.silver }
+                : winner === human
+                ? { background: `linear-gradient(120deg, ${COLORS.gold}, ${COLORS.pink})`, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" }
+                : { color: COLORS.pink }),
+            }}
+          >
+            {draw ? "Mitovy" : winner === human ? "Nandresy ianao!" : "Resy ianao"}
+          </h2>
+          <p style={{ color: COLORS.textMuted, fontSize: 13, marginBottom: 18 }}>
+            {draw
+              ? "Samy tsy nahita fomba handresena ny mpilalao roa tonta"
+              : mode === "bot"
+              ? (winner === human ? "Naharesy ny robot ianao" : "Nandresy anao ny robot")
+              : (winner === human ? "Naharesy ny namanao ianao" : "Nandresy anao ny namanao")}
+          </p>
+          <button
+            onClick={() => (mode === "bot" ? resetGame(human) : leaveRoom())}
+            style={{
+              padding: "10px 24px", borderRadius: 999, border: "none",
+              background: `linear-gradient(120deg, ${COLORS.blue}, ${COLORS.pink})`,
+              color: "#fff", fontWeight: 700, fontSize: 13, cursor: "pointer",
+              boxShadow: `0 6px 18px ${COLORS.blue}55`,
+            }}
+          >
+            Lalao vaovao
+          </button>
         </div>
       )}
 
@@ -804,6 +1035,23 @@ export default function FanoronaPremium() {
               <PointDot key={i} x={x} y={y} />
             ))}
 
+            {/* coordinate labels — lets players report an exact point (e.g. "E3") */}
+            {points.map(({ i, x, y }) => (
+              <text
+                key={`lbl-${i}`}
+                x={x}
+                y={y - cellSize * 0.42}
+                textAnchor="middle"
+                fontSize={9}
+                fontFamily="'IBM Plex Mono', monospace"
+                fill={COLORS.textMuted}
+                opacity={0.55}
+                style={{ pointerEvents: "none" }}
+              >
+                {pointLabel(i)}
+              </text>
+            ))}
+
             {/* capture targets (about to be removed) */}
             {[...captureTargets].map((i) => {
               const p = points[i];
@@ -828,8 +1076,12 @@ export default function FanoronaPremium() {
               const p = board[i];
               if (!p) return null;
               const isSelected = selected === i;
+              const mustCapture = p === human && capturablePieces.has(i);
               return (
                 <g key={`piece-${i}`} onClick={() => handlePointClick(i)} style={{ cursor: toMove === human ? "pointer" : "default" }}>
+                  {mustCapture && !isSelected && (
+                    <circle cx={x} cy={y} r={cellSize * 0.36} fill="none" stroke={COLORS.pink} strokeWidth={2} className="fp-pulse" />
+                  )}
                   {isSelected && (
                     <circle cx={x} cy={y} r={cellSize * 0.34} fill="none" stroke={COLORS.brassBright} strokeWidth={2.5} />
                   )}
@@ -878,7 +1130,11 @@ export default function FanoronaPremium() {
             </div>
 
             <div style={{ marginTop: 14, paddingTop: 14, borderTop: `1px solid ${COLORS.woodLine}33`, fontSize: 13 }} className="fp-status-text">
-              {winner ? (
+              {draw ? (
+                <div style={{ display: "flex", alignItems: "center", gap: 8, color: COLORS.silver }}>
+                  <span>Mitovy</span>
+                </div>
+              ) : winner ? (
                 <div style={{ display: "flex", alignItems: "center", gap: 8, color: COLORS.brassBright }}>
                   <Crown size={16} />
                   <span>{winner === human ? "Nandresy ianao!" : mode === "bot" ? "Nandresy ny robot" : "Nandresy ny namanao"}</span>
@@ -937,7 +1193,7 @@ export default function FanoronaPremium() {
                 onClick={() => resetGame(human)}
                 style={{
                   marginTop: 12, width: "100%", padding: "10px 0", borderRadius: 8, border: "none",
-                  background: COLORS.brass, color: "#1C130D", fontWeight: 600, fontSize: 13,
+                  background: `linear-gradient(120deg, ${COLORS.blue}, ${COLORS.pink})`, color: "#fff", fontWeight: 700, fontSize: 13,
                   display: "flex", alignItems: "center", justifyContent: "center", gap: 6, cursor: "pointer",
                 }}
               >

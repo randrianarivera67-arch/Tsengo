@@ -878,7 +878,7 @@ export default function GroupPage() {
                       ? <MusicPostCard post={post} />
                       : post.mediaType === 'image'
                         ? <SmartImage className="media-fit" src={post.mediaURL || post.thumbURL} onClick={() => setViewerState({ post, index: 0 })} minH={240} style={{ width: '100%', maxHeight:'100%', objectFit:'contain', display: 'block', cursor: 'zoom-in' }} />
-                        : <div className="media-fit"><FeedVideo onOpenReels={() => navigate('/reels', { state: { startId: post.id } })} /* media-fit voafono */ src={post.mediaURL} poster={post.thumbURL} dataSaver={dataSaver || lite} onOpen={() => setViewerState({ post, index: 0 })} style={{ width: '100%', maxHeight:'100%', objectFit:'contain', display: 'block', background: '#000' }} /></div>}
+                        : <div className="media-fit"><FeedVideo onOpenReels={() => navigate('/reels', { state: { startId: post.id } })} /* media-fit voafono */ src={post.mediaURL} poster={post.thumbURL} dataSaver={dataSaver || lite})} style={{ width: '100%', maxHeight:'100%', objectFit:'contain', display: 'block', background: '#000' }} /></div>}
                   </div>
                 )}
                   <div className='post-actions-row' style={{ position:'absolute', left:10, right:10, bottom:10, zIndex:3, margin:0, background:'rgba(255,255,255,.95)', backdropFilter:'blur(14px)', WebkitBackdropFilter:'blur(14px)', borderRadius:100, boxShadow:'0 4px 16px rgba(5,5,5,.18)', padding:'3px 6px', border:'none' }}>
@@ -899,7 +899,7 @@ export default function GroupPage() {
                 )}
               </div>
               <button onClick={() => openPost(post.id)} className='post-action-btn'>
-                <NeonComment size={25} /> Commenter{post.comments?.length > 0 ? ` (${post.comments.length})` : ''}
+                <NeonComment size={25} /> Commenter
               </button>
               <button onClick={() => sharePost(post)} className='post-action-btn'>
                 <NeonShare size={25} /> Partager
@@ -918,7 +918,16 @@ export default function GroupPage() {
                          display:'flex', flexDirection:'column', justifyContent:'center',
                          minHeight:300, padding:'78px 14px 78px' };
               })()} onClick={() => openPost(post.id)}>
-              {post.content && (post.textBg ? <p style={{ background: post.textBg, width:'100%', height:'100%', minHeight:200, borderRadius:16, display:'flex', alignItems:'center', justifyContent:'center', textAlign:'center', color:'#fff', fontSize:26, fontWeight:800, padding:'28px 20px', lineHeight:1.4, wordBreak:'break-word', whiteSpace:'pre-wrap', margin:0 }}><Linkify text={post.content} color="#FFFFFF" /></p> : <p style={{ fontSize: 15, lineHeight: 1.6, wordBreak: 'break-word' }}><Linkify text={post.content} /></p>)}
+              {post.content && (post.textBg ? <p style={{ background: post.textBg, width:'100%', height:'100%', minHeight:200, borderRadius:16, display:'flex', alignItems:'center', justifyContent:'center', textAlign:'center', color:'#fff', fontSize:26, fontWeight:800, padding:'28px 20px', lineHeight:1.4, wordBreak:'break-word', whiteSpace:'pre-wrap', margin:0 }}><Linkify text={post.content} color="#FFFFFF" /></p> : <>
+                <p style={{ fontSize: 15, lineHeight: 1.6, wordBreak: 'break-word' ,
+                  ...(expandedPosts[post.id] ? {} : { display:'-webkit-box', WebkitLineClamp:2, WebkitBoxOrient:'vertical', overflow:'hidden' }) }}><Linkify text={post.content} /></p>
+                {post.content.length > 90 && (
+                  <button onClick={e => { e.stopPropagation(); setExpandedPosts(p => ({ ...p, [post.id]: !p[post.id] })); }}
+                    style={{ background:'none', border:'none', padding:'2px 0 0', cursor:'pointer', color:'#65676B', fontSize:12.5, fontWeight:600, fontFamily:'Poppins' }}>
+                    {expandedPosts[post.id] ? 'Voir moins' : 'Voir plus'}
+                  </button>
+                )}
+              </>)}
               {post.sharedFrom && (
                 <div onClick={e => { e.stopPropagation(); openPost(post.sharedFrom.id, post.id); }}
                   style={{ marginTop: 8, border: '1px solid #E4E6EB', borderRadius: 12, overflow: 'hidden', cursor: 'pointer' }}>
@@ -989,7 +998,7 @@ export default function GroupPage() {
                 )}
               </div>
               <button onClick={() => openPost(post.id)} className='post-action-btn'>
-                <NeonComment size={25} /> Commenter{post.comments?.length > 0 ? ` (${post.comments.length})` : ''}
+                <NeonComment size={25} /> Commenter
               </button>
               <button onClick={() => sharePost(post)} className='post-action-btn'>
                 <NeonShare size={25} /> Partager
@@ -1018,6 +1027,11 @@ export default function GroupPage() {
               <div style={{ padding: '4px 16px 6px', display: 'flex', alignItems: 'center', gap: 4 }}>
                 <div style={{ display: 'flex' }}>{Object.keys(rc).slice(0, 3).map((e, i) => <span key={e} style={{ fontSize: 15, marginLeft: i ? -3 : 0 }}>{e}</span>)}</div>
                 <span style={{ fontSize: 13, color: '#65676B' }}>{total}</span>
+                {post.comments?.length > 0 && (
+                  <span style={{ fontSize: 13, color: '#65676B', marginLeft: 'auto' }}>
+                    {post.comments.length} commentaire{post.comments.length > 1 ? 's' : ''}
+                  </span>
+                )}
               </div>
             )}
           </div>
