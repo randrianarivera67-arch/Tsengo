@@ -40,6 +40,7 @@ export default function MediaViewer({
   const [showComments, setShowComments] = useState(false);
   const [expanded, setExpanded] = useState(false);
   const [scale, setScale] = useState(1);
+  const [pan, setPan] = useState({ x: 0, y: 0 });   // fanakisahana rehefa zoom
   const [toast, setToast] = useState('');
   const [text, setText] = useState('');
   const [replyToName, setReplyToName] = useState(null);
@@ -48,9 +49,10 @@ export default function MediaViewer({
   const lpTimer = useRef(null);
   const lpFired = useRef(false);
   const pinch = useRef({ d: 0, s: 1, lastTap: 0 });
+  const drag  = useRef({ on: false, x: 0, y: 0, px: 0, py: 0 });
 
   // Le zoom se remet a 1 quand on change d'image
-  useEffect(() => { setScale(1); }, [index]);
+  useEffect(() => { setScale(1); setPan({ x: 0, y: 0 }); }, [index]);
 
   function flash(msg) { setToast(msg); setTimeout(() => setToast(''), 2600); }
 
@@ -61,8 +63,18 @@ export default function MediaViewer({
       pinch.current.s = scale;
     } else {
       const now = Date.now();
-      if (now - pinch.current.lastTap < 300) setScale((v) => (v > 1 ? 1 : 2.5));
+      if (now - pinch.current.lastTap < 300) {
+        // Double-tap : zoom / dézoom — ary averina afovoany ny pan
+        setScale((v) => (v > 1 ? 1 : 2.5));
+        setPan({ x: 0, y: 0 });
+      }
       pinch.current.lastTap = now;
+      // ⚠️ Rantsan-tanana iray : mampihetsika IHANY raha zoom (scale > 1).
+      // Raha scale === 1 dia avela ho an'ny swipe (sary manaraka).
+      if (scale > 1) {
+        drag.current = { on: true, x: e.touches[0].clientX, y: e.touches[0].clientY,
+                         px: pan.x, py: pan.y };
+      }
     }
   }
   function onTouchMoveImg(e) {
@@ -70,8 +82,17 @@ export default function MediaViewer({
       const d = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
       const ns = Math.min(Math.max(pinch.current.s * (d / (pinch.current.d || d)), 1), 4);
       setScale(ns);
+      if (ns <= 1) setPan({ x: 0, y: 0 });
+    } else if (drag.current.on && scale > 1) {
+      // Fanakisahana VOAFETRA : tsy mivoaka tanteraka ny sary.
+      // Ny fetra dia mitombo miaraka amin'ny zoom.
+      const lim = (scale - 1) * 260;
+      const nx = drag.current.px + (e.touches[0].clientX - drag.current.x);
+      const ny = drag.current.py + (e.touches[0].clientY - drag.current.y);
+      setPan({ x: Math.max(-lim, Math.min(lim, nx)), y: Math.max(-lim, Math.min(lim, ny)) });
     }
   }
+  function onTouchEndImg() { drag.current.on = false; }
 
   // ── Appui long -> palette de reactions (indispensable sur mobile)
   function startLP() { lpFired.current = false; lpTimer.current = setTimeout(() => { lpFired.current = true; setShowPicker(true); }, 450); }
@@ -178,8 +199,10 @@ export default function MediaViewer({
                 src={u} alt=""
                 onTouchStart={i === index ? onTouchStartImg : undefined}
                 onTouchMove={i === index ? onTouchMoveImg : undefined}
+                onTouchEnd={i === index ? onTouchEndImg : undefined}
+                onTouchCancel={i === index ? onTouchEndImg : undefined}
                 onDoubleClick={i === index ? () => setScale((v) => (v > 1 ? 1 : 2.5)) : undefined}
-                style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain', display: 'block', transform: i === index ? `scale(${scale})` : 'none', transition: 'transform .18s', touchAction: 'none' }}
+                style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain', display: 'block', transform: i === index ? `translate(${pan.x}px, ${pan.y}px) scale(${scale})` : 'none', transition: 'transform .18s', touchAction: 'none' }}
               />
             </div>
           ))}
