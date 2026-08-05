@@ -25,8 +25,7 @@ import {
   HiBell, HiOutlineBell, HiMenu, HiX, HiSearch, HiLogout, HiCog,
   HiOutlineCog, HiTag, HiFilm, HiPhotograph,
   HiBookmark, HiOutlineBookmark, HiCalendar, HiSpeakerphone, HiShoppingBag, HiChevronRight,
-  HiMicrophone, HiIdentification, HiDocumentText, HiChartBar, HiSwitchHorizontal, HiCheck, HiShoppingCart, HiShieldCheck,
-} from 'react-icons/hi';
+  HiMicrophone, HiIdentification, HiDocumentText, HiChartBar, HiSwitchHorizontal, HiCheck, HiShoppingCart, HiShieldCheck, HiPuzzle } from 'react-icons/hi';
 
 // Icône "JEJO" — wordmark rose clay 3D + étoiles + smiley (style bijou)
 function JejoIcon({ w = 90 }) {
@@ -503,6 +502,24 @@ export default function Layout({ children }) {
             </span>
             <span style={{ fontWeight: 700, fontSize: 14, color: text }}>Bloc-notes</span>
             <span style={{ fontSize: 11, color: '#65676B', marginTop: -6 }}>Vos notes privées</span>
+          </button>
+
+          {/* jeux-menu-v1 */}
+          <button onClick={() => { navigate('/games'); setDrawerOpen(false); }}
+            style={{
+              display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 8,
+              padding: '14px', textAlign: 'left',
+              background: isDark ? '#15181F' : 'white',
+              border: '1.5px solid ' + bdr, borderRadius: 16, cursor: 'pointer',
+              boxShadow: '0 1px 3px rgba(0,0,0,.06)',
+            }}>
+            <span className="icon-badge-3d icon-sweep"
+              style={{ width: 44, height: 44, borderRadius: 13,
+                       background: 'linear-gradient(145deg,#8B5CF6,#5B21B6)' }}>
+              <HiPuzzle size={22} color="white" />
+            </span>
+            <span style={{ fontWeight: 700, fontSize: 14, color: text }}>Jeux</span>
+            <span style={{ fontSize: 11, color: '#65676B', marginTop: -6 }}>Fanorona et plus</span>
           </button>
 
           {/* ── MODE LITE ── Mihetsika avy hatrany, tsy mila manokatra indray.

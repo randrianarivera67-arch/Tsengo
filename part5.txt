@@ -1,0 +1,146 @@
+{s.screen==="game"&&(
+   <div className="screen" id="screenGame">
+    <div className="topbar">
+     <button className="iconbtn" onClick={leaveToHome}><Ic n="back"/></button>
+     <div className="ttitle">Fanorona</div>
+     <button className="iconbtn" onClick={openSettings}><Ic n="gear"/></button>
+    </div>
+    <div className="glayout">
+     <div className="gcol">
+      <div className="panel">
+       <div className="panel-label">{t("score")}</div>
+       <div className="count-row"><div className="who"><span className="chip w"/>{labW()}</div><span className="count">{counts.W}</span></div>
+       <div className="count-row"><div className="who"><span className="chip b"/>{labB()}</div><span className="count">{counts.B}</span></div>
+       <div className="status-chip" dangerouslySetInnerHTML={{__html:statusHTML()}}/>
+      </div>
+      <div className="panel">
+       <button className="cbtn pri wide" onClick={()=>resetGame()}><Ic n="rot"/><span>{t("newgame")}</span></button>
+      </div>
+     </div>
+     <section className="gboard">
+      <svg id="boardSvg" viewBox={"0 0 "+W+" "+H} preserveAspectRatio="xMidYMid meet">
+       <defs>
+        <radialGradient id="boardG" cx="28%" cy="20%" r="115%"><stop offset="0%" stopColor="#2A3260"/><stop offset="100%" stopColor="#1B2140"/></radialGradient>
+        <radialGradient id="stW" cx="35%" cy="28%" r="80%"><stop offset="0%" stopColor="#FFFFFF"/><stop offset="45%" stopColor="#F4F6FC"/><stop offset="78%" stopColor="#C9D3E8"/><stop offset="100%" stopColor="#8fa0c6"/></radialGradient>
+        <radialGradient id="stB" cx="35%" cy="28%" r="80%"><stop offset="0%" stopColor="#3A4470"/><stop offset="45%" stopColor="#1B2140"/><stop offset="78%" stopColor="#12162A"/><stop offset="100%" stopColor="#05060d"/></radialGradient>
+        <radialGradient id="spec" cx="50%" cy="50%" r="50%"><stop offset="0%" stopColor="rgba(255,255,255,.95)"/><stop offset="55%" stopColor="rgba(255,255,255,.25)"/><stop offset="100%" stopColor="rgba(255,255,255,0)"/></radialGradient>
+        <radialGradient id="bdW" cx="35%" cy="30%" r="80%"><stop offset="0%" stopColor="#FBE79A"/><stop offset="100%" stopColor="#F5C542"/></radialGradient>
+        <radialGradient id="bdB" cx="35%" cy="30%" r="80%"><stop offset="0%" stopColor="#A8F0C8"/><stop offset="100%" stopColor="#2FBF7F"/></radialGradient>
+        <filter id="blur3" x="-60%" y="-60%" width="220%" height="220%"><feGaussianBlur stdDeviation="3"/></filter>
+        <filter id="slabSh" x="-15%" y="-25%" width="130%" height="160%"><feDropShadow dx="0" dy="10" stdDeviation="12" floodColor="#000" floodOpacity="0.45"/></filter>
+       </defs>
+       <g dangerouslySetInnerHTML={{__html:sceneMarkup()}}/>
+      </svg>
+     </section>
+     <div className="gcol">
+      <div className="panel">
+       <div className="panel-label">{t("hist")}</div>
+       <button className="cbtn wide" onClick={toggleHist}><Ic n="clock"/><span>{t("hist")}</span></button>
+       {(s.mode==="bot"&&!s.tourMatch)&&(
+        <button className="cbtn wide" style={{marginTop:7}} onClick={swapColors}><Ic n="swap"/><span>{t("swap")}</span></button>
+       )}
+      </div>
+      {s.mode==="online"&&(
+       <div className="panel">
+        <div className="panel-label">{t("online")}</div>
+        <div className="count-row"><span style={{fontFamily:"'IBM Plex Mono',monospace",color:"var(--gold)",letterSpacing:".15em"}}>{s.roomCode||"—"}</span><span style={{fontSize:9.5,color:"var(--mut)"}}>{s.human==="W"?t("white"):t("black")}</span></div>
+        <button className="cbtn wide" onClick={leaveRoomToLobby}><span>{t("leave")}</span></button>
+       </div>
+      )}
+     </div>
+    </div>
+   </div>
+  )}
+
+  {s.histOpen&&(
+   <div className="histwrap" onClick={e=>{if(e.target===e.currentTarget){s.histOpen=false;rr();}}}>
+    <div className="drawer">
+     <div className="dhead"><div className="panel-label" style={{margin:0}}>{t("hist")}</div>
+      <button className="iconbtn" onClick={()=>{s.histOpen=false;rr();}}><Ic n="x"/></button></div>
+     <div className="log-list">
+      {s.log.length?s.log.map((e,i)=>(<div className="entry" key={i}><span className="m">{e.mover}</span><span>{e.notation}</span></div>)):<div className="log-empty">{t("noLog")}</div>}
+     </div>
+    </div>
+   </div>
+  )}
+
+  {s.setOpen&&(
+   <div className="overlay">
+    <div className="card">
+     <button className="closebtn" onClick={()=>{s.setOpen=false;rr();}}><Ic n="x"/></button>
+     <h2>{t("settings")}</h2>
+     <div className="panel-label">{t("appear")}</div>
+     <div style={{display:"flex",gap:7,marginBottom:10}}>
+      <button className={"cbtn"+(s.theme==="light"?" on":"")} style={{flex:1}} onClick={()=>setTheme("light")}>{t("light")}</button>
+      <button className={"cbtn"+(s.theme==="dark"?" on":"")} style={{flex:1}} onClick={()=>setTheme("dark")}>{t("dark")}</button>
+     </div>
+     <div className="panel-label">{t("lang")}</div>
+     <div style={{display:"flex",gap:7,marginBottom:10}}>
+      <button className={"cbtn"+(s.lang==="mg"?" on":"")} style={{flex:1}} onClick={()=>setLang("mg")}>MG</button>
+      <button className={"cbtn"+(s.lang==="fr"?" on":"")} style={{flex:1}} onClick={()=>setLang("fr")}>FR</button>
+     </div>
+     <div className="panel-label">{t("sound")}</div>
+     <div style={{display:"flex",gap:7,marginBottom:10}}>
+      <button className={"cbtn"+(s.sound?" on":"")} style={{flex:1}} onClick={()=>setSound(true)}>{t("on")}</button>
+      <button className={"cbtn"+(!s.sound?" on":"")} style={{flex:1}} onClick={()=>setSound(false)}>{t("off")}</button>
+     </div>
+     <div style={{display:"flex",gap:7}}>
+      <button className="cbtn" style={{flex:1}} onClick={()=>{s.setOpen=false;openTut();}}>{t("tut")}</button>
+      <button className="cbtn" style={{flex:1}} onClick={()=>{s.setOpen=false;openHelp();}}>{t("help")}</button>
+     </div>
+    </div>
+   </div>
+  )}
+
+  {s.tutOpen&&(
+   <div className="overlay">
+    <div className="card">
+     <button className="closebtn" onClick={()=>{s.tutOpen=false;rr();}}><Ic n="x"/></button>
+     <h2>{t("tut")} — {(s.tutI+1)+"/"+TUT[s.lang].length}</h2>
+     <div className="tut-step" dangerouslySetInnerHTML={{__html:TUT[s.lang][s.tutI]}}/>
+     <div className="tut-nav">
+      <button className="cbtn" onClick={()=>tutNav(-1)}>{t("prev")}</button>
+      <div className="tut-dots">{TUT[s.lang].map((_,i)=>(<span key={i} className={"tdot"+(i===s.tutI?" on":"")}/>))}</div>
+      <button className="cbtn pri" onClick={()=>tutNav(1)}>{s.tutI===TUT[s.lang].length-1?t("go"):t("next")}</button>
+     </div>
+    </div>
+   </div>
+  )}
+
+  {s.helpOpen&&(
+   <div className="overlay">
+    <div className="card">
+     <button className="closebtn" onClick={()=>{s.helpOpen=false;rr();}}><Ic n="x"/></button>
+     <h2>{t("help")}</h2>
+     <div className="tut-step" style={{minHeight:0}} dangerouslySetInnerHTML={{__html:HELP[s.lang].join("<br><br>")}}/>
+    </div>
+   </div>
+  )}
+
+  {s.winner&&(
+   <div className="overlay">
+    <div className="card result-card">
+     <div className="rwrap">
+      <span dangerouslySetInnerHTML={{__html:sparksHTML()}}/>
+      <div className={"rbadge "+(s.winner===s.human||s.mode==="local"?"win":"lose")}>
+       {(s.winner===s.human||s.mode==="local")?<Ic n="crown" big/>:<Ic n="x" big/>}
+      </div>
+     </div>
+     <h2 className={s.winner===s.human||s.mode==="local"?"":"bad"}>
+      {s.mode==="local"?t("winName").replace("{n}",s.winner==="W"?labW():labB()):(s.winner===s.human?t("winYou"):t("loseYou"))}
+     </h2>
+     <p>{s.mode==="local"?"":(s.winner===s.human?(s.mode==="bot"?t("beatRobot"):t("beatFriend")):(s.mode==="bot"?t("lostRobot"):t("lostFriend")))}</p>
+     {s.tourMatch?(
+      <>
+       <button className="cbtn pri wide" onClick={()=>recordResult(s.winner)}>{t("record")}</button>
+       <button className="cbtn wide" style={{marginTop:8}} onClick={()=>{s.tourMatch=null;s.nw=null;s.nb=null;s.winner=null;resetGame();renderTour();show("screenTour");}}>{t("back")}</button>
+      </>
+     ):(
+      <>
+       <button className="cbtn pri wide" onClick={()=>resetGame()}>{t("newgame")}</button>
+       <button className="cbtn wide" style={{marginTop:8}} onClick={leaveToHome}>{t("back")}</button>
+      </>
+     )}
+    </div>
+   </div>
+  )}

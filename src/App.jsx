@@ -52,6 +52,7 @@ import Register from './pages/Register';
 import OAuthCallback from './pages/OAuthCallback';
 
 const Home               = lazy(() => import('./pages/Home'));
+const Games              = lazy(() => import('./pages/Games')); /*jeux-import-v1*/
 const Profile            = lazy(() => import('./pages/Profile'));
 const UserByName = lazy(() => import('./pages/UserByName'));
 const HashtagPage = lazy(() => import('./pages/HashtagPage'));
@@ -137,6 +138,7 @@ function AppRoutes() {
 
         <Route path="/stats"          element={<PrivateRoute><Layout><Stats /></Layout></PrivateRoute>} />
         <Route path="/notes"          element={<PrivateRoute><Layout><Notes /></Layout></PrivateRoute>} />
+        <Route path="/games"          element={<PrivateRoute><Layout><Games /></Layout></PrivateRoute>} /> /*jeux-route-v1*/
         <Route path="/games/fanorona" element={<PrivateRoute><Fanorona /></PrivateRoute>} />
         <Route path="/messages"       element={<PrivateRoute><Layout><Messages /></Layout></PrivateRoute>} />
         <Route path="/messages/settings" element={<PrivateRoute><MessagesSettings /></PrivateRoute>} />

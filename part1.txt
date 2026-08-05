@@ -1,0 +1,30 @@
+import React, { useRef, useState, useEffect } from "react";
+import { Crown, RotateCcw, Cpu, Users, Wifi, Copy, ArrowLeft, Settings, History, SwapHoriz, Trophy, Shuffle, X, Sun, Moon, Volume2, VolumeX, BookOpen, HelpCircle } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+
+/* ===== ENGINE (tsy misy draw: lany vato na tsy afa-mietsika vao resy) ===== */
+const ROWS=5, COLS=9, SIZE=45;
+const idx=(r,c)=>r*COLS+c, rc=i=>[Math.floor(i/COLS),i%COLS], inB=(r,c)=>r>=0&&r<ROWS&&c>=0&&c<COLS;
+const ORTHO=[[-1,0],[1,0],[0,-1],[0,1]], DIAG=[[-1,-1],[-1,1],[1,-1],[1,1]];
+const NDIRS=(()=>{const t=[];for(let i=0;i<SIZE;i++){const q=rc(i);t[i]=ORTHO.concat(DIAG).filter(d=>inB(q[0]+d[0],q[1]+d[1]));}return t;})();
+function initialBoard(){const b=new Array(SIZE).fill(null);let c;for(c=0;c<COLS;c++){b[idx(0,c)]="W";b[idx(1,c)]="W";}for(c=0;c<4;c++)b[idx(2,c)]="W";b[idx(2,4)]=null;for(c=5;c<COLS;c++)b[idx(2,c)]="B";for(c=0;c<COLS;c++){b[idx(3,c)]="B";b[idx(4,c)]="B";}return b;}
+const opponent=p=>p==="W"?"B":"W";
+function captureRun(board,start,dir,mover){const[dr,dc]=dir;let[r,c]=rc(start);r+=dr;c+=dc;const cap=[];while(inB(r,c)){const p=board[idx(r,c)];if(p===opponent(mover)){cap.push(idx(r,c));r+=dr;c+=dc;}else if(p===null)return cap;else return[];}return cap;}
+function stepOptions(board,from,pl){const out=[];for(const dir of NDIRS[from]){const[r,c]=rc(from),to=idx(r+dir[0],c+dir[1]);if(board[to]!==null)continue;const ap=captureRun(board,to,dir,pl),wd=captureRun(board,from,[-dir[0],-dir[1]],pl);if(ap.length)out.push({from,to,dir,type:"approach",captured:ap});if(wd.length)out.push({from,to,dir,type:"withdrawal",captured:wd});if(!ap.length&&!wd.length)out.push({from,to,dir,type:"quiet",captured:[]});}return out;}
+function applyStep(board,s){const n=board.slice(),m=board[s.from];n[s.from]=null;n[s.to]=m;for(const c of s.captured)n[c]=null;return n;}
+function expandChain(board,step,visited,lastDir){const turns=[{path:[step],board:applyStep(board,step)}];const nb=applyStep(board,step),nv=new Set(visited);nv.add(step.to);const mover=board[step.from];for(const dir of NDIRS[step.to]){if(dir[0]===lastDir[0]&&dir[1]===lastDir[1])continue;const[r,c]=rc(step.to),to=idx(r+dir[0],c+dir[1]);if(nb[to]!==null||nv.has(to))continue;const ap=captureRun(nb,to,dir,mover),wd=captureRun(nb,step.to,[-dir[0],-dir[1]],mover),kinds=[];if(ap.length)kinds.push({type:"approach",captured:ap});if(wd.length)kinds.push({type:"withdrawal",captured:wd});for(const k of kinds){const cs={from:step.to,to,dir,...k};for(const s of expandChain(nb,cs,nv,dir))turns.push({path:[step,...s.path],board:s.board});}}return turns;}
+function getAllTurns(board,pl){const cf=[],q=[];for(let i=0;i<SIZE;i++){if(board[i]!==pl)continue;for(const o of stepOptions(board,i,pl)){if(o.type==="quiet")q.push(o);else cf.push(o);}}let turns=q.map(x=>({path:[x],board:applyStep(board,x)}));for(const f of cf)turns=turns.concat(expandChain(board,f,new Set([f.from]),f.dir));return turns;}
+function countPieces(b){let w=0,x=0;for(const p of b){if(p==="W")w++;else if(p==="B")x++;}return{W:w,B:x};}
+function checkWinner(board,toMove){const c=countPieces(board);if(c.W===0)return"B";if(c.B===0)return"W";if(getAllTurns(board,toMove).length===0)return opponent(toMove);return null;}
+function evaluate(board,ai){const c=countPieces(board),me=ai==="W"?c.W:c.B,op=ai==="W"?c.B:c.W;return(me-op)*10+(getAllTurns(board,ai).length-getAllTurns(board,opponent(ai)).length)*.3;}
+function minimax(board,player,depth,alpha,beta,ai){const w=checkWinner(board,player);if(w)return w===ai?10000-depth:-10000+depth;if(depth===0)return evaluate(board,ai);const turns=getAllTurns(board,player);if(!turns.length)return evaluate(board,ai);const max=player===ai;let best=max?-Infinity:Infinity;for(const t of turns){const v=minimax(t.board,opponent(player),depth-1,alpha,beta,ai);if(max){if(v>best)best=v;if(best>alpha)alpha=best;}else{if(v<best)best=v;if(best<beta)beta=best;}if(beta<=alpha)break;}return best;}
+function chooseAiTurn(board,ai,diff){const depth=diff==="easy"?1:diff==="hard"?3:2;const turns=getAllTurns(board,ai);if(!turns.length)return null;if(diff==="easy"&&Math.random()<.35)return turns[Math.floor(Math.random()*turns.length)];let bv=-Infinity,bt=[];for(const t of turns){const v=minimax(t.board,opponent(ai),depth-1,-Infinity,Infinity,ai);if(v>bv){bv=v;bt=[t];}else if(v===bv)bt.push(t);}return bt[Math.floor(Math.random()*bt.length)];}
+/* ===== ONLINE (Firebase dynamic import — tsy mila fichier hafa) ===== */
+const FB={apiKey:"X",authDomain:"X",projectId:"X",storageBucket:"X",messagingSenderId:"X",appId:"X"};
+let fbP=null;
+function loadFB(){if(!fbP)fbP=Promise.all([import("https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js"),import("https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js")]).then(([a,f])=>{const app=a.getApps().length?a.getApp():a.initializeApp(FB);return{fs:f,db:f.getFirestore(app)};});return fbP;}
+const genCode=n=>{const ch="ABCDEFGHJKLMNPQRSTUVWXYZ23456789";let s="";for(let i=0;i<n;i++)s+=ch[Math.floor(Math.random()*ch.length)];return s;};
+function createRoom(board){return loadFB().then(m=>{const code=genCode(5);return m.fs.setDoc(m.fs.doc(m.db,"fanorona",code),{board,toMove:"W",status:"waiting",winner:null,log:[],hasB:false,createdAt:Date.now()}).then(()=>({code,color:"W"}));});}
+function joinRoom(code){return loadFB().then(m=>{const ref=m.fs.doc(m.db,"fanorona",code);return m.fs.getDoc(ref).then(sn=>{if(!sn.exists())throw new Error("room-not-found");const d=sn.data();if(d.hasB||d.status!=="waiting")throw new Error("room-full");return m.fs.updateDoc(ref,{hasB:true,status:"ongoing"}).then(()=>({code,color:"B"}));});});}
+function subscribeRoom(code,cb){return loadFB().then(m=>m.fs.onSnapshot(m.fs.doc(m.db,"fanorona",code),sn=>{if(sn.exists())cb(sn.data());}));}
+function submitTurn(code,p){return loadFB().then(m=>{const ref=m.fs.doc(m.db,"fanorona",code);return m.fs.getDoc(ref).then(sn=>{const d=sn.exists()?sn.data():{log:[]};return m.fs.updateDoc(ref,{board:p.boardAfter,toMove:p.nextToMove,winner:p.winner,status:p.winner?"finished":"ongoing",log:[p.logEntry].concat(d.log||[]).slice(0,40)});});});}
