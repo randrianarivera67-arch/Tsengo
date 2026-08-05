@@ -86,7 +86,7 @@ export default function MediaViewer({
     } else if (drag.current.on && scale > 1) {
       // Fanakisahana VOAFETRA : tsy mivoaka tanteraka ny sary.
       // Ny fetra dia mitombo miaraka amin'ny zoom.
-      const lim = (scale - 1) * 260;
+      const lim = (scale - 1) * 900;
       const nx = drag.current.px + (e.touches[0].clientX - drag.current.x);
       const ny = drag.current.py + (e.touches[0].clientY - drag.current.y);
       setPan({ x: Math.max(-lim, Math.min(lim, nx)), y: Math.max(-lim, Math.min(lim, ny)) });
