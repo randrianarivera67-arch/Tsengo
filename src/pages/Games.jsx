@@ -1,5 +1,4 @@
 import { useNavigate } from "react-router-dom";
-import { useTheme } from "../context/ThemeContext";
 import { HiArrowLeft } from "react-icons/hi";
 
 const GAMES = [
@@ -8,13 +7,14 @@ const GAMES = [
 ];
 
 export default function Games() {
-  const { isDark } = useTheme();
   const navigate = useNavigate();
-  const bg     = isDark ? "#0F1115" : "#F5F6F8";
-  const cardBg = isDark ? "#1A1D24" : "white";
-  const text   = isDark ? "#E8ECF2" : "#1A1D24";
-  const mut    = isDark ? "#8A94A6" : "#65676B";
-  const bdr    = isDark ? "#2A2E38" : "#E5E7EB";
+  // Apparence CLAIRE foana — tsy manaraka ny thème an'ny app.
+  const bg     = "#F5F6F8";
+  const cardBg = "white";
+  const text   = "#1A1D24";
+  const mut    = "#65676B";
+  const bdr    = "#E5E7EB";
+  const isDark = false;
 
   return (
     <div style={{ minHeight: "100vh", background: bg, padding: "14px 14px 90px" }}>
