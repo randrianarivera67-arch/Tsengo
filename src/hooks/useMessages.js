@@ -1,5 +1,7 @@
 // src/hooks/useMessages.js
-// ✅ FIX BUG #4: Filtered to current user's conversations only
+// ✅ PERF v2 : ny index `userChats/{uid}` ihany no vakina (~10 Ko)
+// fa TSY ny `conversations` MANONTOLO (an'ny olona rehetra) toy ny taloha.
+// Io no loharano lehibe indrindra nandany data isaky ny misokatra ny app.
 import { useState, useEffect } from 'react';
 import { ref, onValue } from 'firebase/database';
 import { rtdb } from '../firebase';
@@ -12,24 +14,28 @@ export function useMessages() {
 
   useEffect(() => {
     if (!currentUser) return;
-    // ✅ FIX: filter by uid in chatId (Firebase Rules should also enforce this)
-    const convsRef = ref(rtdb, `conversations`);
-    const unsub = onValue(convsRef, (snap) => {
-      if (!snap.exists()) return;
-      const data = snap.val();
+    const unsub = onValue(ref(rtdb, `userChats/${currentUser.uid}`), (snap) => {
+      const data = snap.val() || {};
       let total = 0;
       const convList = [];
-      Object.entries(data).forEach(([chatId, conv]) => {
-        if (!chatId.includes(currentUser.uid)) return;
-        const messages = conv.messages ? Object.values(conv.messages) : [];
-        const unread = messages.filter(m => m.toUid === currentUser.uid && !m.read).length;
-        total += unread;
-        const lastMsg = messages[messages.length - 1];
-        convList.push({ chatId, lastMsg, unread, ...conv.meta });
+      Object.entries(data).forEach(([chatId, c]) => {
+        if (!c || typeof c !== 'object') return;
+        total += c.u || 0;
+        convList.push({
+          chatId,
+          lastMsg: { text: c.lt || '', ts: c.ts || 0, mediaType: c.mt || '' },
+          unread: c.u || 0,
+          otherUid: c.o || '',
+          type: c.t || 'd',
+          name: c.n || c.fn || '',
+          photo: c.ph || c.fu || '',
+          meta: { lastMessage: c.lt || '', lastTs: c.ts || 0 },
+        });
       });
+      convList.sort((a, b) => ((b.lastMsg?.ts || 0) - (a.lastMsg?.ts || 0)));
       setUnreadCount(total);
       setConversations(convList);
-    });
+    }, () => {});
     return () => unsub();
   }, [currentUser]);
 
