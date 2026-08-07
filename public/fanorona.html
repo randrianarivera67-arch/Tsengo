@@ -679,7 +679,24 @@ function refreshSettings(){
   a=document.querySelectorAll(".sn");for(i=0;i<a.length;i++)a[i].classList.toggle("on",a[i].getAttribute("data-s")===(S.sound?"1":"0"));
 }
 function setTheme(th){S.theme=th;document.body.setAttribute("data-theme",th);savePrefs();refreshSettings();SND.click();}
-function setLang(l){S.lang=l;savePrefs();show("screenHome");applyLang();refreshSettings();SND.click();}
+function setLang(l){S.lang=l;savePrefs();show("screenHome");
+/*dbg-v1*/
+(function(){
+  var d=document.createElement('div');
+  d.id='dbg';
+  d.style.cssText='position:fixed;left:4px;bottom:4px;z-index:99999;max-width:92vw;max-height:32vh;overflow:auto;background:rgba(0,0,0,.85);color:#7CFC00;font:10px/1.4 monospace;padding:6px 8px;border-radius:8px;white-space:pre-wrap;pointer-events:none;box-shadow:0 2px 8px rgba(0,0,0,.4);';
+  document.documentElement.appendChild(d);
+  window.dlog=function(s){d.textContent+=s+'\n';d.scrollTop=d.scrollHeight;};
+  var cl=console.log;
+  console.log=function(){
+    var a=[].slice.call(arguments).map(function(x){try{return typeof x==='object'?JSON.stringify(x):String(x);}catch(e){return String(x);}}).join(' ');
+    dlog(a); cl.apply(console,arguments);
+  };
+  window.addEventListener('error',function(e){dlog('❌ ERR: '+e.message);});
+  dlog('🟢 debug ON');
+})();
+
+applyLang();refreshSettings();SND.click();}
 function setSound(v){S.sound=v;savePrefs();refreshSettings();SND.click();}
 function openTut(){S.tutI=0;S.tutOpen=true;document.getElementById("tutOverlay").classList.remove("hidden");renderTut();}
 function openHelp(){S.helpOpen=true;document.getElementById("helpOverlay").classList.remove("hidden");renderHelp();}
