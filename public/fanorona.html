@@ -437,6 +437,8 @@ function chooseAiTurn(board,ai,diff){
   return bt[Math.floor(Math.random()*bt.length)];
 }
 var FB={apiKey:"AIzaSyDh_ztUSkbvnaCr9ySoA2IoJBe1F_BhJ-E",authDomain:"trengo-fanorona.firebaseapp.com",projectId:"trengo-fanorona",storageBucket:"trengo-fanorona.firebasestorage.app",messagingSenderId:"386383120849",appId:"1:386383120849:web:f8dbdd573d8ce493d338f0"};
+var FB={apiKey:"AIzaSyDh_ztUSkbvnaCr9ySoA2IoJBe1F_BhJ-E",authDomain:"trengo-fanorona.firebaseapp.com",projectId:"trengo-fanorona",storageBucket:"trengo-fanorona.firebasestorage.app",messagingSenderId:"386383120849",appId:"1:386383120849:web:f8dbdd573d8ce493d338f0"};
+function L(s){ try{ if(window.dlog)window.dlog(s); console.log(s);}catch(e){} }
 var fbP=null;
 function loadFB(){
   if(!fbP)fbP=Promise.all([
@@ -446,83 +448,62 @@ function loadFB(){
   ]).then(function(m){
     var a=m[0],f=m[1],au=m[2];
     var app=a.getApps().length?a.getApp():a.initializeApp(FB);
+    L("[fb] app ready: "+app.name);
     return{fs:f,db:f.getFirestore(app),auth:au.getAuth(app),au:au,app:app};
   });
   return fbP;
 }
 function ensureAuth(m){
-  return new Promise(function(resolve,reject){
-    var unsub=m.au.onAuthStateChanged(m.auth,function(user){
-      if(user){unsub();resolve(user.uid);}
-    },reject);
-    if(!m.auth.currentUser)m.au.signInAnonymously(m.auth).catch(reject);
+  return new Promise(function(res,rej){
+    var un=m.au.onAuthStateChanged(m.auth,function(u){ if(u){un();L("[auth] uid="+u.uid.slice(0,8));res(u.uid);} },rej);
+    if(!m.auth.currentUser)m.au.signInAnonymously(m.auth).catch(rej);
   });
 }
 function genCode(n){var ch="ABCDEFGHJKLMNPQRSTUVWXYZ23456789",s="";for(var i=0;i<n;i++)s+=ch[Math.floor(Math.random()*ch.length)];return s;}
-
 function createRoom(board){
-  return loadFB().then(function(m){
-    return ensureAuth(m).then(function(uid){
-      var code=genCode(5);
-      return m.fs.setDoc(m.fs.doc(m.db,"fanorona_rooms",code),{
-        board: JSON.stringify(board),
-        toMove: "W",
-        players: { W: uid, B: null },
-        status: "waiting",
-        winner: null,
-        log: [],
-        updatedAt: m.fs.serverTimestamp()
-      }).then(function(){ return {code:code,color:"W",uid:uid}; });
-    });
-  });
+  L("[create] start");
+  return loadFB().then(function(m){return ensureAuth(m).then(function(uid){
+    var code=genCode(5),ref=m.fs.doc(m.db,"fanorona_rooms",code);
+    L("[create] -> "+ref.path);
+    return m.fs.setDoc(ref,{board:JSON.stringify(board),toMove:"W",players:{W:uid,B:null},status:"waiting",winner:null,log:[],updatedAt:m.fs.serverTimestamp()})
+      .then(function(){L("[create] OK code="+code);return{code:code,color:"W",uid:uid};});
+  });});
 }
-
 function joinRoom(code){
-  return loadFB().then(function(m){
-    return ensureAuth(m).then(function(uid){
-      code=code.toUpperCase();
-      var ref=m.fs.doc(m.db,"fanorona_rooms",code);
-      return m.fs.runTransaction(m.db,function(tx){
-        return tx.get(ref).then(function(snap){
-          if(!snap.exists())throw new Error("room-not-found");
-          var d=snap.data();
-          if(d.players.B && d.players.B!==uid){
-            if(d.players.W===uid) return "W";
-            throw new Error("room-full");
-          }
-          if(d.players.B===uid) return "B";
-          tx.update(ref,{"players.B":uid, status:"ongoing", updatedAt:m.fs.serverTimestamp()});
-          return "B";
-        });
-      }).then(function(color){ return {code:code,color:color,uid:uid}; });
-    });
-  });
+  L("[join] start code="+code);
+  return loadFB().then(function(m){return ensureAuth(m).then(function(uid){
+    code=code.toUpperCase();
+    var ref=m.fs.doc(m.db,"fanorona_rooms",code);
+    L("[join] -> "+ref.path);
+    return m.fs.runTransaction(m.db,function(tx){return tx.get(ref).then(function(sn){
+      L("[join] exists="+sn.exists());
+      if(!sn.exists())throw new Error("room-not-found");
+      var d=sn.data();
+      L("[join] players="+JSON.stringify(d.players));
+      if(d.players.B&&d.players.B!==uid){ if(d.players.W===uid)return "W"; throw new Error("room-full"); }
+      if(d.players.B===uid)return "B";
+      tx.update(ref,{"players.B":uid,status:"ongoing",updatedAt:m.fs.serverTimestamp()});
+      return "B";
+    });}).then(function(col){L("[join] OK color="+col);return{code:code,color:col,uid:uid};});
+  });});
 }
-
 function subscribeRoom(code,cb){
   return loadFB().then(function(m){
-    return m.fs.onSnapshot(m.fs.doc(m.db,"fanorona_rooms",code.toUpperCase()),function(snap){
-      if(!snap.exists())return;
-      var d=snap.data();
+    return m.fs.onSnapshot(m.fs.doc(m.db,"fanorona_rooms",code.toUpperCase()),function(sn){
+      if(!sn.exists())return;
+      var d=sn.data();
+      L("[snap] toMove="+d.toMove+" status="+d.status);
       cb({code:code,toMove:d.toMove,status:d.status,winner:d.winner,log:d.log||[],board:JSON.parse(d.board)});
     });
   });
 }
-
 function submitTurn(code,p){
   return loadFB().then(function(m){
-    var ref=m.fs.doc(m.db,"fanorona_rooms",code.toUpperCase());
-    return m.fs.updateDoc(ref,{
-      board: JSON.stringify(p.boardAfter),
-      toMove: p.nextToMove,
-      winner: p.winner ? p.winner : null,
-      status: p.winner ? "finished" : "ongoing",
-      log: p.logEntry ? [p.logEntry] : [],
-      updatedAt: m.fs.serverTimestamp()
-    });
+    return m.fs.updateDoc(m.fs.doc(m.db,"fanorona_rooms",code.toUpperCase()),{
+      board:JSON.stringify(p.boardAfter),toMove:p.nextToMove,winner:p.winner?p.winner:null,
+      status:p.winner?"finished":"ongoing",log:p.logEntry?[p.logEntry]:[],updatedAt:m.fs.serverTimestamp()});
   });
 }
-
 var S0={lang:"mg",theme:"dark",sound:true};
 try{var _p=JSON.parse(localStorage.getItem("fanoronaPrefs")||"{}");if(_p.lang)S0.lang=_p.lang;if(_p.theme)S0.theme=_p.theme;if(typeof _p.sound==="boolean")S0.sound=_p.sound;}catch(e){}
 var S={lang:S0.lang,theme:S0.theme,sound:S0.sound,screen:"home",mode:"bot",board:initialBoard(),toMove:"W",human:"W",difficulty:"medium",selected:null,chainPath:[],availableOptions:[],inChain:false,visited:new Set(),log:[],winner:null,thinking:false,trail:[],roomCode:null,roomStatus:null,joinInput:"",onlineError:null,onlineBusy:false,nw:null,nb:null,tourMatch:null,tour:{players:[],rounds:[],champ:null},histOpen:false,setOpen:false,tutOpen:false,helpOpen:false,tutI:0};
