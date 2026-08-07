@@ -29,6 +29,24 @@
     <meta name="twitter:description" content="Le réseau social malgache." />
   
 
+
+<!-- sw-cleanup-v1 -->
+<script>
+// Manala service worker taloha mba tsy hisakana ny update
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', async () => {
+    try {
+      const regs = await navigator.serviceWorker.getRegistrations();
+      for (const reg of regs) {
+        if (reg.scope.indexOf('localhost') === -1) {
+          console.log('[SW] Unregistering old worker:', reg.scope);
+          await reg.unregister();
+        }
+      }
+    } catch(e) {}
+  });
+}
+</script>
 </head>
   <body>
     <div id="root"></div>
