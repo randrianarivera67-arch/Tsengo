@@ -1,0 +1,38 @@
+<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>FB Test</title>
+<style>body{font-family:monospace;background:#111;color:#0f0;padding:12px}#log{white-space:pre-wrap;font-size:13px;line-height:1.6}#res{font-size:22px;font-weight:bold;margin-top:14px}</style></head><body>
+<h3>Firebase Fanorona — Auto Test</h3><div id="log"></div><div id="res"></div>
+<script>
+var logEl=document.getElementById('log');
+function L(s){logEl.textContent+=s+'\n';}
+function done(ok,s){var r=document.getElementById('res');r.style.color=ok?'#0f0':'#f66';r.textContent=s;}
+var FB={apiKey:"AIzaSyDh_ztUSkbvnaCr9ySoA2IoJBe1F_BhJ-E",authDomain:"trengo-fanorona.firebaseapp.com",projectId:"trengo-fanorona",storageBucket:"trengo-fanorona.firebasestorage.app",messagingSenderId:"386383120849",appId:"1:386383120849:web:f8dbdd573d8ce493d338f0"};
+Promise.all([
+ import("https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js"),
+ import("https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js"),
+ import("https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js")
+]).then(function(m){
+ var a=m[0],f=m[1],au=m[2];
+ var app=a.initializeApp(FB),db=f.getFirestore(app),auth=au.getAuth(app);
+ L('1. Firebase loaded');
+ function login(){return new Promise(function(res,rej){var un=au.onAuthStateChanged(auth,function(u){if(u){un();res(u.uid);}},rej);if(!auth.currentUser)au.signInAnonymously(auth).catch(rej);});}
+ login().then(function(uidA){
+  L('2. A (creator): '+uidA.slice(0,8));
+  var code='T'+Math.floor(1000+Math.random()*9000);
+  var ref=f.doc(db,'fanorona_rooms',code);
+  return f.setDoc(ref,{board:JSON.stringify(new Array(45).fill(null)),toMove:'W',players:{W:uidA,B:null},status:'waiting',winner:null,log:[],updatedAt:f.serverTimestamp()})
+  .then(function(){L('3. CREATE ok: '+code);
+   return au.signOut(auth).then(function(){L('4. signOut ok');
+    return login().then(function(uidB){L('5. B (joiner): '+uidB.slice(0,8));
+     return f.getDoc(ref).then(function(sn){L('6. getDoc exists='+sn.exists());
+      if(!sn.exists())throw new Error('room-not-found');
+      return f.runTransaction(db,function(tx){return tx.get(ref).then(function(s2){var d=s2.data();
+        if(d.players.B&&d.players.B!==uidB)throw new Error('room-full');
+        tx.update(ref,{'players.B':uidB,status:'ongoing',updatedAt:f.serverTimestamp()});return 'B';});})
+      .then(function(col){L('7. JOIN ok, color='+col);done(true,'✅ TEST PASSED — mandeha ny online!');});
+     });
+    });
+   });
+  });
+ }).catch(function(e){L('❌ '+e.message+' ['+(e.code||'none')+']');done(false,'❌ FAILED: '+e.message);});
+}).catch(function(e){L('❌ import: '+e.message);done(false,'❌ import failed');});
+</script></body></html>
