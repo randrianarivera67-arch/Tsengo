@@ -937,9 +937,15 @@ export default function Profile() {
         </div>
       )}
       <div>
-      <div style={{ height:200, background: hasPhoto(coverURL) ? 'linear-gradient(135deg,#1877F2,#63A9FF,#FFB3D9)' : '#fff', position:'relative' }}>
+      <div style={{ height:200, background: hasPhoto(coverURL) ? 'linear-gradient(135deg,#1877F2,#63A9FF,#FFB3D9)' : '#fff', position:'relative',
+                     borderBottom: hasPhoto(coverURL) ? 'none' : '1px solid #E4E6EB' }}>
         {/* Tsy misy couverture → icône fakan-tsary rose neon */}
-        {!hasPhoto(coverURL) && <PhotoPlaceholder type="camera" size={200} round={false} style={{ width:'100%', position:'absolute', inset:0 }} />}
+        {!hasPhoto(coverURL) && (
+          <div onClick={() => { if (isOwn) coverRef.current?.click(); }}
+            style={{ position:'absolute', inset:0, cursor: isOwn ? 'pointer' : 'default' }}>
+            <PhotoPlaceholder type="camera" size={200} round={false} style={{ width:'100%' }} />
+          </div>
+        )}
         {hasPhoto(coverURL) && <img src={coverURL} alt='cover' onClick={()=>setPhotoViewer({ album:'cover', index: Math.max(0, albumCover.findIndex(p => p.mediaURL === coverURL)) })} style={{ width:'100%', height:'100%', objectFit:'cover', position:'absolute', inset:0, cursor:'pointer' }}/>}
         {isOwn && <>
           <button onClick={()=>coverRef.current.click()} disabled={uploadingCover} style={{ position:'absolute', bottom:10, right:10, background:'#1877F2', border:'2px solid white', borderRadius:'50%', width:32, height:32, cursor:'pointer', color:'white', display:'flex', alignItems:'center', justifyContent:'center', zIndex:2 }}>{uploadingCover?'...':<HiCamera size={16}/>}</button>
@@ -949,7 +955,12 @@ export default function Profile() {
           <div style={{ position:'relative' }}>
             {hasPhoto(profile.photoURL)
               ? <img src={profile.photoURL||`https://ui-avatars.com/api/?name=${encodeURIComponent(profile.fullName)}&background=1877F2&color=fff&size=100`} alt="" className="avatar avatar-ring" onClick={()=>profile.photoURL && setPhotoViewer({ album:'profile', index: Math.max(0, albumProfile.findIndex(p => p.mediaURL === profile.photoURL)) })} style={{ width:100, height:100, border: activeStoryUids.has(targetUid) ? '4px solid #1877F2' : '4px solid white', boxShadow: activeStoryUids.has(targetUid) ? '0 0 0 3px white, 0 0 0 6px #63A9FF' : 'none', objectFit:'cover', cursor:'pointer' }}/>
-              : <PhotoPlaceholder type="person" size={100} style={{ boxShadow:'0 0 0 4px #fff' }} />}
+              : <div /* placeholder-clic */
+                  onClick={() => { if (isOwn) photoRef.current?.click(); }}
+                  style={{ cursor: isOwn ? 'pointer' : 'default', borderRadius: '50%',
+                           boxShadow: '0 0 0 4px #fff, 0 0 0 5.5px #DCEBFF, 0 2px 10px rgba(5,5,5,.10)' }}>
+                  <PhotoPlaceholder type="person" size={100} />
+                </div>}
             {isOwn&&<><button onClick={() => photoRef.current.click()} disabled={uploadingPhoto} style={{ position:'absolute', bottom:2, right:2, background:'#1877F2', border:'2px solid white', borderRadius:'50%', width:28, height:28, cursor:'pointer', color:'white', display:'flex', alignItems:'center', justifyContent:'center' }}>{uploadingPhoto?'...':<HiCamera size={14}/>}</button><input ref={photoRef} type="file" accept="image/*" onChange={uploadProfilePhoto} style={{ display:'none' }}/></>}
           </div>
         </div>
