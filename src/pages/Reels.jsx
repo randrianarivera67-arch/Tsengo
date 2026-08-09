@@ -1,5 +1,6 @@
 // src/pages/Reels.jsx — TikTok style vertical scroll
 import Linkify from '../components/Linkify';
+import { avatarSrc } from '../utils/avatarSrc';
 import MentionPanel from '../components/MentionPanel';
 import useMentions from '../hooks/useMentions';
 import { useState, useEffect, useRef, useCallback } from 'react';
@@ -395,7 +396,7 @@ export default function Reels() {
               {/* Author info */}
               <div style={{ position:'absolute', bottom:80, left:14, right:80 }}>
                 <div onClick={() => navigate(`/profile/${post.uid}`)} style={{ display:'flex', alignItems:'center', gap:8, cursor:'pointer', marginBottom:8 }}>
-                  <img src={post.authorPhoto||`https://ui-avatars.com/api/?name=${encodeURIComponent(post.authorName||'U')}&background=1877F2&color=fff`} alt="" style={{ width:36, height:36, borderRadius:'50%', border:'2px solid white', flexShrink:0 }}/>
+                  <img src={avatarSrc(post.authorPhoto)} alt="" style={{ width:36, height:36, borderRadius:'50%', border:'2px solid white', flexShrink:0 }}/>
                   <p style={{ color:'white', fontWeight:700, fontSize:14 }}>{post.authorName}{post.authorIsVip&&<VIPBadge/>}</p>
                 </div>
                 {post.content&&<p style={{ color:'rgba(255,255,255,0.9)', fontSize:13, lineHeight:1.5, display:'-webkit-box', WebkitLineClamp:2, WebkitBoxOrient:'vertical', overflow:'hidden' }}><Linkify text={post.content} color="#8ECBFF" /></p>}
@@ -482,7 +483,7 @@ export default function Reels() {
           <div style={{ flex:1, overflowY:'auto', marginBottom:10 }}>
             {activePost.comments?.map(c=>(
               <div key={c.id} style={{ display:'flex', gap:8, marginBottom:12 }}>
-                <img src={c.authorPhoto||`https://ui-avatars.com/api/?name=${encodeURIComponent(c.authorName||'U')}&background=1877F2&color=fff`} alt="" style={{ width:32, height:32, borderRadius:'50%', flexShrink:0, cursor:'pointer' }} onClick={()=>navigate(`/profile/${c.uid}`)}/>
+                <img src={avatarSrc(c.authorPhoto)} alt="" style={{ width:32, height:32, borderRadius:'50%', flexShrink:0, cursor:'pointer' }} onClick={()=>navigate(`/profile/${c.uid}`)}/>
                 <div style={{ flex:1 }}>
                   <div style={{ background:'rgba(255,255,255,0.1)', borderRadius:12, padding:'8px 10px' }}>
                     <span style={{ color:'#63A9FF', fontWeight:700, fontSize:13 }}>{c.authorName}{c.authorIsVip&&<VIPBadge/>}{' '}</span>
@@ -566,7 +567,7 @@ export default function Reels() {
               const info = reactionModal.userData?.[uid]||{};
               return (
                 <div key={uid} onClick={()=>{setRM(null);navigate(`/profile/${uid}`);}} style={{ display:'flex', alignItems:'center', gap:10, padding:'8px 0', borderBottom:'1px solid #232733', cursor:'pointer' }}>
-                  <img src={info.photo||`https://ui-avatars.com/api/?name=${encodeURIComponent(info.name||'U')}&background=1877F2&color=fff`} alt="" style={{ width:36, height:36, borderRadius:'50%', objectFit:'cover' }}/>
+                  <img src={avatarSrc(info.photo)} alt="" style={{ width:36, height:36, borderRadius:'50%', objectFit:'cover' }}/>
                   <p style={{ fontSize:14, fontWeight:600, flex:1, color:'white' }}>{uid===currentUser.uid?'Vous':(info.name||uid)}</p>
                   <span style={{ fontSize:20 }}>{emoji}</span>
                 </div>

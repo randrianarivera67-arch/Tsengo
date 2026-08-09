@@ -1,5 +1,6 @@
 // src/pages/Profile.jsx
 import Linkify from '../components/Linkify';
+import { avatarSrc } from '../utils/avatarSrc';
 import PhotoPlaceholder from '../components/PhotoPlaceholder';
 
 // Ny lien Cloudinary dia VAKY (kaonty nofoanana) — raisina ho tsy misy sary.
@@ -563,7 +564,7 @@ export default function Profile() {
               borderRadius:100, boxShadow:'0 4px 16px rgba(5,5,5,.18)',
             } : { padding:'14px 16px 0', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
           <div style={{ display:'flex', alignItems:'center', gap:10, flex:1, minWidth:0 }}>
-            <img src={profile.photoURL||`https://ui-avatars.com/api/?name=${encodeURIComponent(profile.fullName||'U')}&background=1877F2&color=fff`} alt="" className="avatar" style={{ width:40, height:40, flexShrink:0 }}/>
+            <img src={avatarSrc(profile.photoURL)} alt="" className="avatar" style={{ width:40, height:40, flexShrink:0 }}/>
             <div style={{ minWidth:0 }}>
               <p style={{ fontWeight:600, fontSize:14, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{profile.fullName}{profile.isVip&&<VIPBadge/>}</p>
               <p style={{ fontSize:12, color:'#65676B' }}>@{profile.username} · {post.createdAt?timeAgo(post.createdAt):"À l'instant"}</p>
@@ -683,7 +684,7 @@ export default function Profile() {
             <div onClick={e => { e.stopPropagation(); navigate(`/post/${post.sharedFrom.id}`); }}
               style={{ marginTop:8, border:'1px solid #E4E6EB', borderRadius:12, overflow:'hidden', cursor:'pointer' }}>
               <div style={{ display:'flex', alignItems:'center', gap:8, padding:'9px 12px' }}>
-                <img src={post.sharedFrom.authorPhoto||`https://ui-avatars.com/api/?name=${encodeURIComponent(post.sharedFrom.authorName||'U')}&background=1877F2&color=fff`}
+                <img src={avatarSrc(post.sharedFrom.authorPhoto)}
                   alt="" style={{ width:30, height:30, borderRadius:'50%', objectFit:'cover' }}/>
                 <p style={{ fontWeight:700, fontSize:13 }}>{post.sharedFrom.groupName ? `${post.sharedFrom.groupName} · ${post.sharedFrom.authorName}` : post.sharedFrom.authorName}</p>
               </div>
@@ -788,7 +789,7 @@ export default function Profile() {
           <div style={{ padding:'0 16px 14px', borderTop:'1px solid #E4E6EB' }}>
             {post.comments?.map(c => (
               <div key={c.id} style={{ display:'flex', gap:8, marginTop:10 }}>
-                <img src={c.authorPhoto||`https://ui-avatars.com/api/?name=${encodeURIComponent(c.authorName||'U')}&background=1877F2&color=fff`} alt="" className="avatar" style={{ width:30, height:30, flexShrink:0, cursor:'pointer' }} onClick={() => navigate(`/profile/${c.uid}`)}/>
+                <img src={avatarSrc(c.authorPhoto)} alt="" className="avatar" style={{ width:30, height:30, flexShrink:0, cursor:'pointer' }} onClick={() => navigate(`/profile/${c.uid}`)}/>
                 <div style={{ flex:1, background:'#F0F2F5', borderRadius:12, padding:'8px 10px' }}>
                   <span style={{ fontWeight:600, fontSize:13 }}>{c.authorName}{c.authorIsVip&&<VIPBadge/>}{' '}</span>
                   {c.text&&<span style={{ fontSize:13 }}><Linkify text={c.text} /></span>}
@@ -827,7 +828,7 @@ export default function Profile() {
             )}
 
             <div style={{ display:'flex', gap:6, marginTop:10, alignItems:'center' }}>
-              <img src={userProfile?.photoURL||`https://ui-avatars.com/api/?name=${encodeURIComponent(userProfile?.fullName||'U')}&background=1877F2&color=fff`} alt="" className="avatar" style={{ width:30, height:30, flexShrink:0 }}/>
+              <img src={avatarSrc(userProfile?.photoURL)} alt="" className="avatar" style={{ width:30, height:30, flexShrink:0 }}/>
               <input ref={el=>cPhotoRef.current[post.id]=el} type="file" accept="image/jpeg,image/png,image/gif,image/webp" style={{ display:'none' }} onChange={e=>{const f=e.target.files[0];if(f)setCmtMedia(p=>({...p,[post.id]:{file:f,type:'image',preview:URL.createObjectURL(f)}}));}}/>
               <input ref={el=>cVideoRef.current[post.id]=el} type="file" accept="video/mp4,video/webm,video/quicktime" style={{ display:'none' }} onChange={e=>{const f=e.target.files[0];if(f)setCmtMedia(p=>({...p,[post.id]:{file:f,type:'video',preview:URL.createObjectURL(f)}}));}}/>
               <MentionPanel open={mentions.isOpen(post.id)} query={mentions.query} people={mentions.people}
@@ -891,7 +892,7 @@ export default function Profile() {
           }}>
             <div style={{ padding:'14px 16px', display:'flex', alignItems:'center', gap:10 }}>
               <img
-                src={profile.photoURL||`https://ui-avatars.com/api/?name=${encodeURIComponent(profile.fullName||'U')}&background=1877F2&color=fff`}
+                src={avatarSrc(profile.photoURL)}
                 alt="" style={{ width:42,height:42,borderRadius:'50%',objectFit:'cover' }}/>
               <div style={{ flex:1 }}>
                 <p style={{ fontWeight:700,fontSize:14 }}>{profile.fullName}</p>
@@ -954,7 +955,7 @@ export default function Profile() {
         <div style={{ position:'absolute', bottom:-55, left:'50%', transform:'translateX(-50%)' }}>
           <div style={{ position:'relative' }}>
             {hasPhoto(profile.photoURL)
-              ? <img src={profile.photoURL||`https://ui-avatars.com/api/?name=${encodeURIComponent(profile.fullName)}&background=1877F2&color=fff&size=100`} alt="" className="avatar avatar-ring" onClick={()=>profile.photoURL && setPhotoViewer({ album:'profile', index: Math.max(0, albumProfile.findIndex(p => p.mediaURL === profile.photoURL)) })} style={{ width:100, height:100, border: activeStoryUids.has(targetUid) ? '4px solid #1877F2' : '4px solid white', boxShadow: activeStoryUids.has(targetUid) ? '0 0 0 3px white, 0 0 0 6px #63A9FF' : 'none', objectFit:'cover', cursor:'pointer' }}/>
+              ? <img src={avatarSrc(profile.photoURL)} alt="" className="avatar avatar-ring" onClick={()=>profile.photoURL && setPhotoViewer({ album:'profile', index: Math.max(0, albumProfile.findIndex(p => p.mediaURL === profile.photoURL)) })} style={{ width:100, height:100, border: activeStoryUids.has(targetUid) ? '4px solid #1877F2' : '4px solid white', boxShadow: activeStoryUids.has(targetUid) ? '0 0 0 3px white, 0 0 0 6px #63A9FF' : 'none', objectFit:'cover', cursor:'pointer' }}/>
               : <div /* placeholder-clic */
                   onClick={() => { if (isOwn) photoRef.current?.click(); }}
                   style={{ cursor: isOwn ? 'pointer' : 'default', borderRadius: '50%',
@@ -1175,7 +1176,7 @@ export default function Profile() {
               return (
                 <div key={uid} onClick={() => { setRM(null); navigate(`/profile/${uid}`); }}
                   style={{ display:'flex', alignItems:'center', gap:10, padding:'8px 0', borderBottom:'1px solid #E4E6EB', cursor:'pointer' }}>
-                  <img src={info.photo||`https://ui-avatars.com/api/?name=${encodeURIComponent(info.name||'U')}&background=1877F2&color=fff`} alt="" style={{ width:36, height:36, borderRadius:'50%', objectFit:'cover' }}/>
+                  <img src={avatarSrc(info.photo)} alt="" style={{ width:36, height:36, borderRadius:'50%', objectFit:'cover' }}/>
                   <p style={{ fontSize:14, fontWeight:600, flex:1 }}>{uid===currentUser.uid?'Vous':(info.name||uid)}</p>
                   <span style={{ fontSize:20 }}>{emoji}</span>
                 </div>
@@ -1225,7 +1226,7 @@ export default function Profile() {
               {friendsData.map(f => (
                 <div key={f.uid} onClick={() => navigate(`/profile/${f.uid}`)} className="card"
                   style={{ padding:14, display:'flex', flexDirection:'column', alignItems:'center', gap:8, cursor:'pointer', textAlign:'center' }}>
-                  <img src={f.photoURL||`https://ui-avatars.com/api/?name=${encodeURIComponent(f.fullName||'U')}&background=1877F2&color=fff`} alt="" style={{ width:60, height:60, borderRadius:'50%', objectFit:'cover', border:'2px solid #E4E6EB' }}/>
+                  <img src={avatarSrc(f.photoURL)} alt="" style={{ width:60, height:60, borderRadius:'50%', objectFit:'cover', border:'2px solid #E4E6EB' }}/>
                   <div>
                     <p style={{ fontWeight:600, fontSize:13, color:'#050505' }}>{f.fullName}{f.isVip&&<img src='/vip-badge.png' style={{ width:32, height:32, marginLeft:5, verticalAlign:'middle', display:'inline-block', flexShrink:0, objectFit:'contain' }} alt='VIP'/>}</p>
                     <p style={{ fontSize:11, color:'#65676B' }}>@{f.username}</p>
@@ -1385,7 +1386,7 @@ export default function Profile() {
             {tagFriendsList.map(f => (
               <label key={f.uid} style={{ display:'flex', alignItems:'center', gap:10, padding:'9px 4px', cursor:'pointer', borderBottom:'1px solid #F0F2F5' }}>
                 <input type="checkbox" checked={!!tagSelected[f.uid]} onChange={e => setTagSelected(p => ({ ...p, [f.uid]: e.target.checked }))} style={{ width:18, height:18, accentColor:'#1877F2' }} />
-                <img src={f.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(f.fullName||'U')}&background=1877F2&color=fff`} alt="" style={{ width:36, height:36, borderRadius:'50%', objectFit:'cover' }} />
+                <img src={avatarSrc(f.photoURL)} alt="" style={{ width:36, height:36, borderRadius:'50%', objectFit:'cover' }} />
                 <p style={{ fontWeight:600, fontSize:14 }}>{f.fullName}</p>
               </label>
             ))}

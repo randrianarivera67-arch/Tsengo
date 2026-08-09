@@ -9,6 +9,7 @@ import { collection, query, where, orderBy, limit, getDocs } from 'firebase/fire
 import { db } from '../firebase';
 import { HiArrowLeft } from 'react-icons/hi';
 import Linkify from '../components/Linkify';
+import { avatarSrc } from '../utils/avatarSrc';
 import SmartImage from '../components/SmartImage';
 import { timeAgo } from '../utils/timeAgo';
 
@@ -99,7 +100,7 @@ export default function HashtagPage() {
         <div key={p.id} className="card" onClick={() => navigate('/post/' + p.id)}
           style={{ padding: 12, marginBottom: 10, cursor: 'pointer' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 9, marginBottom: 8 }}>
-            <img src={p.authorPhoto || `https://ui-avatars.com/api/?name=${encodeURIComponent(p.authorName || 'U')}&background=1877F2&color=fff`}
+            <img src={avatarSrc(p.authorPhoto)}
               alt="" style={{ width: 34, height: 34, borderRadius: '50%', objectFit: 'cover' }} />
             <div style={{ minWidth: 0 }}>
               <p style={{ fontSize: 13.5, fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>

@@ -2,6 +2,7 @@
 import { useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useNotifications } from '../hooks/useNotifications';
+import { avatarSrc } from '../utils/avatarSrc';
 import { useLang } from '../context/LanguageContext';
 import { getChatId } from '../utils/chat';
 import { useAuth } from '../context/AuthContext';
@@ -142,7 +143,7 @@ export default function Notifications() {
                 background:notif.read?'white':'#F0F2F5', borderLeft:notif.read?'none':'3px solid #1877F2', cursor:'pointer' }}>
               <div style={{ display:'flex', alignItems:'center', flex:1, gap:12 }} onClick={() => handleClick(notif)}>
                 <div style={{ position:'relative', flexShrink:0 }}>
-                  <img src={notif.fromPhoto||`https://ui-avatars.com/api/?name=${encodeURIComponent(notif.fromName||'U')}&background=1877F2&color=fff`} alt="" className="avatar" style={{ width:44, height:44 }}/>
+                  <img src={avatarSrc(notif.fromPhoto)} alt="" className="avatar" style={{ width:44, height:44 }}/>
                   <div style={{ position:'absolute', bottom:-2, right:-2, background:cfg.color, borderRadius:'50%', width:20, height:20, display:'flex', alignItems:'center', justifyContent:'center', border:'2px solid white' }}>
                     <Icon size={11} color="white"/>
                   </div>

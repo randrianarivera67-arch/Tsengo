@@ -1,5 +1,6 @@
 // src/pages/Home.jsx
 import Linkify from '../components/Linkify';
+import { avatarSrc } from '../utils/avatarSrc';
 import { useState, useEffect, useRef } from 'react';
 import SmartImage from '../components/SmartImage';
 import Avatar from '../components/Avatar';
@@ -1784,7 +1785,7 @@ const fields = {
         <input ref={storyFileRef} type="file" accept="image/*,video/mp4,video/webm,video/quicktime" style={{ display:'none' }} onChange={addStory} />
         <div className="story-card" onClick={() => !addingStory && setCreateStoryMenuOpen(true)} style={{ background:'white', border:'1px solid #E4E6EB' }}>
           <div style={{ height:'62%', overflow:'hidden' }}>
-            <img src={userProfile?.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(userProfile?.fullName||'U')}&background=1877F2&color=fff`}
+            <img src={avatarSrc(userProfile?.photoURL)}
               alt="" style={{ width:'100%', height:'100%', objectFit:'cover' }} />
           </div>
           <div style={{ position:'absolute', top:'62%', left:'50%', transform:'translate(-50%,-50%)', width:34, height:34, borderRadius:'50%', background:'#1877F2', border:'3.5px solid white', display:'flex', alignItems:'center', justifyContent:'center', color:'white', fontSize:20, fontWeight:700 }}>+</div>
@@ -1807,7 +1808,7 @@ const fields = {
                 : <img src={last.mediaURL} alt="" />}
               <div className="story-gradient" />
               <img className="story-avatar"
-                src={g.photo || `https://ui-avatars.com/api/?name=${encodeURIComponent(g.name||'U')}&background=1877F2&color=fff`} alt="" />
+                src={avatarSrc(g.photo)} alt="" />
               <span className="story-name">{g.uid === currentUser.uid ? 'Votre story' : g.name?.split(' ')[0]}</span>
             </div>
           );
@@ -1892,7 +1893,7 @@ const fields = {
             </div>
             {/* En-tête */}
             <div style={{ display:'flex', alignItems:'center', gap:10, padding:'6px 12px' }}>
-              <img src={storyViewer.group.photo || `https://ui-avatars.com/api/?name=${encodeURIComponent(storyViewer.group.name||'U')}&background=1877F2&color=fff`}
+              <img src={avatarSrc(storyViewer.group.photo)}
                 alt="" style={{ width:36, height:36, borderRadius:'50%', objectFit:'cover', border:'2px solid #1877F2' }} />
               <p style={{ color:'white', fontWeight:700, fontSize:14, flex:1 }}>{storyViewer.group.name}</p>
               {cur.uid === currentUser.uid && (
@@ -1981,7 +1982,7 @@ const fields = {
                   {storyReactors.map(r => (
                     <div key={r.uid} onClick={() => { setStoryReactors(null); setStoryViewer(null); navigate(`/profile/${r.uid}`); }}
                       style={{ display:'flex', alignItems:'center', gap:10, padding:'9px 2px', cursor:'pointer', borderBottom:'1px solid #F0F2F5' }}>
-                      <img src={r.photo || `https://ui-avatars.com/api/?name=${encodeURIComponent(r.name||'U')}&background=1877F2&color=fff`} alt="" style={{ width:38, height:38, borderRadius:'50%', objectFit:'cover' }} />
+                      <img src={avatarSrc(r.photo)} alt="" style={{ width:38, height:38, borderRadius:'50%', objectFit:'cover' }} />
                       <p style={{ flex:1, fontWeight:600, fontSize:14 }}>{r.name}</p>
                       {r.emojis.length > 0
                         ? <span style={{ fontSize:18 }}>{r.emojis.join(' ')}</span>
@@ -1998,7 +1999,7 @@ const fields = {
       {/* Create post — barre kely (icône fotsiny, clic = page feno) */}
       <div className="card post-card" style={{ padding:12, marginBottom:8 }}>
         <div style={{ display:'flex', gap:10, alignItems:'center' }}>
-          <img src={userProfile?.photoURL||`https://ui-avatars.com/api/?name=${encodeURIComponent(userProfile?.fullName||'U')}&background=1877F2&color=fff`} alt="" className="avatar" style={{ width:40, height:40, flexShrink:0 }}/>
+          <img src={avatarSrc(userProfile?.photoURL)} alt="" className="avatar" style={{ width:40, height:40, flexShrink:0 }}/>
           <button onClick={() => setPublishFullOpen(true)}
             style={{ flex:1, textAlign:'left', background:'#F0F2F5', border:'none', borderRadius:22, padding:'10px 16px', color:'#65676B', fontSize:14.5, fontFamily:'Poppins', cursor:'pointer' }}>
             {t('whatsOnMind')}
@@ -2037,7 +2038,7 @@ const fields = {
             {posting?'...':t('publishPost')}
           </button>
         </div>        <div style={{ display:'flex', gap:10, alignItems:'flex-start' }}>
-          <img src={userProfile?.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(userProfile?.fullName||'U')}&background=1877F2&color=fff`} alt="" className="avatar" style={{ width:42, height:42, flexShrink:0 }}/>
+          <img src={avatarSrc(userProfile?.photoURL)} alt="" className="avatar" style={{ width:42, height:42, flexShrink:0 }}/>
           <div style={{ flex:1 }}>
             {textBg ? (
               <div style={{ background:textBg, borderRadius:14, minHeight:180, display:'flex', alignItems:'center', justifyContent:'center', padding:'20px 16px', width:'100%' }} onClick={()=>document.getElementById('textbg-input')?.focus()}>
@@ -2295,7 +2296,7 @@ const fields = {
               return (
                 <div key={uid} onClick={() => { setRM(null); navigate(`/profile/${uid}`); }}
                   style={{ display:'flex', alignItems:'center', gap:10, padding:'8px 0', borderBottom:'1px solid #E4E6EB', cursor:'pointer' }}>
-                  <img src={info.photo||`https://ui-avatars.com/api/?name=${encodeURIComponent(info.name||'U')}&background=1877F2&color=fff`} alt="" style={{ width:36, height:36, borderRadius:'50%', objectFit:'cover' }}/>
+                  <img src={avatarSrc(info.photo)} alt="" style={{ width:36, height:36, borderRadius:'50%', objectFit:'cover' }}/>
                   <p style={{ fontSize:14, fontWeight:600, flex:1 }}>{uid===currentUser.uid?'Vous':(info.name||uid)}</p>
                   <span style={{ fontSize:20 }}>{emoji}</span>
                 </div>
@@ -2377,7 +2378,7 @@ const fields = {
                     </div>
                     {/* Avatar an'ilay olona superposé (format Facebook) */}
                     <img onClick={() => navigate(`/profile/${post.uid}`)}
-                      src={post.authorPhoto||`https://ui-avatars.com/api/?name=${encodeURIComponent(post.authorName||'U')}&background=1877F2&color=fff`}
+                      src={avatarSrc(post.authorPhoto)}
                       alt="" style={{ position:'absolute', bottom:-4, right:-4, width:22, height:22, borderRadius:'50%', objectFit:'cover', border:'2.5px solid white', cursor:'pointer', boxShadow:'0 1px 4px rgba(0,0,0,.25)' }}/>
                   </div>
                   <div style={{ minWidth:0 }}>
@@ -2587,7 +2588,7 @@ const fields = {
                 <div onClick={e => { e.stopPropagation(); openPost(post.sharedFrom.id, post.id); }}
                   style={{ marginTop:8, border:'1px solid #E4E6EB', borderRadius:12, overflow:'hidden', cursor:'pointer' }}>
                   <div style={{ display:'flex', alignItems:'center', gap:8, padding:'9px 12px' }}>
-                    <img src={post.sharedFrom.authorPhoto||`https://ui-avatars.com/api/?name=${encodeURIComponent(post.sharedFrom.authorName||'U')}&background=1877F2&color=fff`}
+                    <img src={avatarSrc(post.sharedFrom.authorPhoto)}
                       alt="" style={{ width:30, height:30, borderRadius:'50%', objectFit:'cover' }}/>
                     <p style={{ fontWeight:700, fontSize:13 }}>{post.sharedFrom.groupName ? `${post.sharedFrom.groupName} · ${post.sharedFrom.authorName}` : post.sharedFrom.authorName}</p>
                   </div>
@@ -2762,7 +2763,7 @@ const fields = {
                   const crCount = Object.keys(c.reactions||{}).length;
                   return (
                   <div key={c.id} style={{ display:'flex', gap:8, marginTop:10 }}>
-                    <img src={c.authorPhoto||`https://ui-avatars.com/api/?name=${encodeURIComponent(c.authorName||'U')}&background=1877F2&color=fff`} alt="" className="avatar" style={{ width:32, height:32, flexShrink:0, cursor:'pointer' }} onClick={() => navigate(`/profile/${c.uid}`)}/>
+                    <img src={avatarSrc(c.authorPhoto)} alt="" className="avatar" style={{ width:32, height:32, flexShrink:0, cursor:'pointer' }} onClick={() => navigate(`/profile/${c.uid}`)}/>
                     <div style={{ flex:1, minWidth:0 }}>
                       {/* Bulle (format Facebook) */}
                       <div style={{ position:'relative', display:'inline-block', maxWidth:'100%', background:'#F0F2F5', borderRadius:16, padding:'8px 12px' }}>
@@ -2817,7 +2818,7 @@ const fields = {
                 )}
 
                 <div style={{ display:'flex', gap:6, marginTop:10, alignItems:'center' }}>
-                  <img src={userProfile?.photoURL||`https://ui-avatars.com/api/?name=${encodeURIComponent(userProfile?.fullName||'U')}&background=1877F2&color=fff`} alt="" className="avatar" style={{ width:30, height:30, flexShrink:0 }}/>
+                  <img src={avatarSrc(userProfile?.photoURL)} alt="" className="avatar" style={{ width:30, height:30, flexShrink:0 }}/>
                   <input ref={el=>cPhotoRef.current[post.id]=el} type="file" accept="image/jpeg,image/png,image/gif,image/webp" style={{ display:'none' }} onChange={e=>{const f=e.target.files[0];if(f)setCmtMedia(p=>({...p,[post.id]:{file:f,type:'image',preview:URL.createObjectURL(f)}}));}}/>
                   <input ref={el=>cVideoRef.current[post.id]=el} type="file" accept="video/mp4,video/webm,video/quicktime" style={{ display:'none' }} onChange={e=>{const f=e.target.files[0];if(f)setCmtMedia(p=>({...p,[post.id]:{file:f,type:'video',preview:URL.createObjectURL(f)}}));}}/>
                   <div style={{ flex:1, position:'relative', minWidth:0 }}>
@@ -2932,7 +2933,7 @@ const fields = {
                             ? <StoryVideoThumb thumbURL={last.thumbURL} mediaURL={last.mediaURL} />
                             : <img src={last.mediaURL} alt="" />}
                           <div className="story-gradient" />
-                          <img className="story-avatar" src={g.photo || `https://ui-avatars.com/api/?name=${encodeURIComponent(g.name||'U')}&background=1877F2&color=fff`} alt="" />
+                          <img className="story-avatar" src={avatarSrc(g.photo)} alt="" />
                           <span className="story-name">{g.uid === currentUser.uid ? 'Votre story' : g.name?.split(' ')[0]}</span>
                         </div>
                       );
@@ -2953,7 +2954,7 @@ const fields = {
                 <div style={{ display:'flex', gap:10, overflowX:'auto', padding:'0 16px 4px', scrollbarWidth:'none' }}>
                   {chunk.map(u => (
                     <div key={u.uid} style={{ flexShrink:0, width:136, border:'1px solid #E4E6EB', borderRadius:12, overflow:'hidden', background:'white' }}>
-                      <img src={u.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(u.fullName)}&background=1877F2&color=fff`}
+                      <img src={avatarSrc(u.photoURL)}
                         alt="" onClick={() => navigate(`/profile/${u.uid}`)}
                         style={{ width:'100%', height:110, objectFit:'cover', cursor:'pointer', display:'block' }} />
                       <div style={{ padding:'8px 8px 10px' }}>
@@ -3084,7 +3085,7 @@ const fields = {
             {composerTagList.map(f => (
               <label key={f.uid} style={{ display:'flex', alignItems:'center', gap:10, padding:'9px 4px', cursor:'pointer', borderBottom:'1px solid #F0F2F5' }}>
                 <input type="checkbox" checked={!!composerTagSel[f.uid]} onChange={e => setComposerTagSel(p => ({ ...p, [f.uid]: e.target.checked }))} style={{ width:18, height:18, accentColor:'#1877F2' }}/>
-                <img src={f.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(f.fullName||'U')}&background=1877F2&color=fff`} alt="" style={{ width:36, height:36, borderRadius:'50%', objectFit:'cover' }}/>
+                <img src={avatarSrc(f.photoURL)} alt="" style={{ width:36, height:36, borderRadius:'50%', objectFit:'cover' }}/>
                 <p style={{ fontWeight:600, fontSize:14 }}>{f.fullName}</p>
               </label>
             ))}
@@ -3105,7 +3106,7 @@ const fields = {
             {tagFriendsList.map(f => (
               <label key={f.uid} style={{ display:'flex', alignItems:'center', gap:10, padding:'9px 4px', cursor:'pointer', borderBottom:'1px solid #F0F2F5' }}>
                 <input type="checkbox" checked={!!tagSelected[f.uid]} onChange={e => setTagSelected(p => ({ ...p, [f.uid]: e.target.checked }))} style={{ width:18, height:18, accentColor:'#1877F2' }}/>
-                <img src={f.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(f.fullName||'U')}&background=1877F2&color=fff`} alt="" style={{ width:36, height:36, borderRadius:'50%', objectFit:'cover' }}/>
+                <img src={avatarSrc(f.photoURL)} alt="" style={{ width:36, height:36, borderRadius:'50%', objectFit:'cover' }}/>
                 <p style={{ fontWeight:600, fontSize:14 }}>{f.fullName}</p>
               </label>
             ))}

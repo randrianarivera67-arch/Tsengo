@@ -1,5 +1,6 @@
 // src/pages/PostDetail.jsx
 import Linkify from '../components/Linkify';
+import { avatarSrc } from '../utils/avatarSrc';
 import MentionPanel from '../components/MentionPanel';
 import CommentSheet from '../components/CommentSheet';
 import useMentions from '../hooks/useMentions';
@@ -214,7 +215,7 @@ export default function PostDetail() {
               const info = reactionModal.userData?.[uid]||{};
               return (
                 <div key={uid} onClick={() => { setRM(null); navigate(`/profile/${uid}`); }} style={{ display:'flex', alignItems:'center', gap:10, padding:'8px 0', borderBottom:'1px solid #E4E6EB', cursor:'pointer' }}>
-                  <img src={info.photo||`https://ui-avatars.com/api/?name=${encodeURIComponent(info.name||'U')}&background=1877F2&color=fff`} alt="" style={{ width:36, height:36, borderRadius:'50%', objectFit:'cover' }}/>
+                  <img src={avatarSrc(info.photo)} alt="" style={{ width:36, height:36, borderRadius:'50%', objectFit:'cover' }}/>
                   <p style={{ fontSize:14, fontWeight:600, flex:1 }}>{uid===currentUser.uid?'Vous':(info.name||uid)}</p>
                   <span style={{ fontSize:20 }}>{emoji}</span>
                 </div>
@@ -343,7 +344,7 @@ export default function PostDetail() {
             <div onClick={() => navigate(`/post/${post.sharedFrom.id}`)}
               style={{ marginBottom:10, border:'1px solid #E4E6EB', borderRadius:12, overflow:'hidden', cursor:'pointer' }}>
               <div style={{ display:'flex', alignItems:'center', gap:8, padding:'9px 12px' }}>
-                <img src={post.sharedFrom.authorPhoto||`https://ui-avatars.com/api/?name=${encodeURIComponent(post.sharedFrom.authorName||'U')}&background=1877F2&color=fff`}
+                <img src={avatarSrc(post.sharedFrom.authorPhoto)}
                   alt="" style={{ width:30, height:30, borderRadius:'50%', objectFit:'cover' }}/>
                 <p style={{ fontWeight:700, fontSize:13 }}>{post.sharedFrom.groupName ? `${post.sharedFrom.groupName} · ${post.sharedFrom.authorName}` : post.sharedFrom.authorName}</p>
               </div>

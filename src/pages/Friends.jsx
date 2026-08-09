@@ -8,6 +8,7 @@ import {
 } from 'firebase/firestore';
 import { db } from '../firebase';
 import { SkeletonList } from '../components/Skeleton';
+import { avatarSrc } from '../utils/avatarSrc';
 import { useAuth } from '../context/AuthContext';
 import { useLang } from '../context/LanguageContext';
 import { getChatId } from '../utils/chat';
@@ -258,7 +259,7 @@ export default function Friends() {
             return (
               <div key={user.uid} className="card" style={{ padding: '12px 14px', marginBottom: 10, display: 'flex', alignItems: 'center', gap: 12 }}>
                 <img
-                  src={user.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.fullName)}&background=1877F2&color=fff`}
+                  src={avatarSrc(user.photoURL)}
                   alt=""
                   onClick={() => navigate(`/profile/${user.uid}`)}
                   style={{ cursor: 'pointer', width: 50, height: 50, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }}
@@ -311,7 +312,7 @@ export default function Friends() {
           ) : sentRequestUsers.map(user => (
             <div key={user.uid} className="card" style={{ padding: '12px 14px', marginBottom: 10, display: 'flex', alignItems: 'center', gap: 12 }}>
               <img
-                src={user.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.fullName)}&background=1877F2&color=fff`}
+                src={avatarSrc(user.photoURL)}
                 alt=""
                 onClick={() => navigate(`/profile/${user.uid}`)}
                 style={{ cursor: 'pointer', width: 50, height: 50, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }}
@@ -341,7 +342,7 @@ export default function Friends() {
             friends.map(friend => (
               <div key={friend.uid} className="card" style={{ padding: '12px 14px', marginBottom: 10, display: 'flex', alignItems: 'center', gap: 12 }}>
                 <img
-                  src={friend.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(friend.fullName)}&background=1877F2&color=fff`}
+                  src={avatarSrc(friend.photoURL)}
                   alt=""
                   style={{ width: 50, height: 50, borderRadius: '50%', objectFit: 'cover', cursor: 'pointer', flexShrink: 0 }}
                   onClick={() => navigate(`/profile/${friend.uid}`)}
@@ -386,7 +387,7 @@ export default function Friends() {
               {suggestions.map(u => (
                 <div key={u.uid} style={{ border:'1px solid #E4E6EB', borderRadius:14, overflow:'hidden', background:'white' }}>
                   <img
-                    src={u.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(u.fullName||'U')}&background=1877F2&color=fff`}
+                    src={avatarSrc(u.photoURL)}
                     alt=""
                     onClick={() => navigate(`/profile/${u.uid}`)}
                     style={{ width:'100%', height:110, objectFit:'cover', cursor:'pointer', display:'block' }}
@@ -429,7 +430,7 @@ export default function Friends() {
             requests.map(req => (
               <div key={req.reqId} className="card" style={{ padding: '12px 14px', marginBottom: 10, display: 'flex', alignItems: 'center', gap: 12 }}>
                 <img
-                  src={req.user.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(req.user.fullName)}&background=1877F2&color=fff`}
+                  src={avatarSrc(req.user.photoURL)}
                   alt=""
                   style={{ width: 50, height: 50, borderRadius: '50%', objectFit: 'cover', cursor: 'pointer', flexShrink: 0 }}
                   onClick={() => navigate(`/profile/${req.fromUid}`)}

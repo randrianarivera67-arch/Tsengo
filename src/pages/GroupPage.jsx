@@ -1,5 +1,6 @@
 // src/pages/GroupPage.jsx — Page d'un groupe public (format Facebook)
 import Linkify from '../components/Linkify';
+import { avatarSrc } from '../utils/avatarSrc';
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, useNavigationType } from 'react-router-dom';
 import {
@@ -609,7 +610,7 @@ export default function GroupPage() {
       {isMember && (
         <div className="card post-card" style={{ padding: 12, marginTop: 14, marginBottom: 8 }}>
           <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-            <img src={userProfile?.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(userProfile?.fullName || 'U')}&background=1877F2&color=fff`}
+            <img src={avatarSrc(userProfile?.photoURL)}
               alt="" className="avatar" style={{ width: 40, height: 40, flexShrink: 0 }} />
             <button onClick={() => setGpFullOpen(true)}
               style={{ flex:1, textAlign:'left', background:'#F0F2F5', border:'none', borderRadius:22, padding:'10px 16px', color:'#65676B', fontSize:14.5, fontFamily:'Poppins', cursor:'pointer' }}>
@@ -645,7 +646,7 @@ export default function GroupPage() {
           </button>
         </div>
         <div style={{ display:'flex', gap:10, alignItems:'flex-start' }}>
-          <img src={userProfile?.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(userProfile?.fullName || 'U')}&background=1877F2&color=fff`} alt="" className="avatar" style={{ width:42, height:42, flexShrink:0 }}/>
+          <img src={avatarSrc(userProfile?.photoURL)} alt="" className="avatar" style={{ width:42, height:42, flexShrink:0 }}/>
           {textBg ? (
             <div style={{ flex:1, background:textBg, borderRadius:14, minHeight:160, display:'flex', alignItems:'center', justifyContent:'center', padding:'18px 14px' }}>
               <textarea placeholder="Écrire quelque chose..." value={content} onChange={e => setContent(e.target.value)} style={{ resize:'none', width:'100%', border:'none', background:'transparent', color:'#fff', fontWeight:800, fontSize:22, textAlign:'center', outline:'none', lineHeight:1.4, minHeight:80 }} maxLength={2000} autoFocus/>
@@ -743,7 +744,7 @@ export default function GroupPage() {
                 <label key={f.uid} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 4px', cursor: 'pointer', borderBottom: '1px solid #F0F2F5' }}>
                   <input type="checkbox" checked={!!selectedFriends[f.uid]} onChange={e => setSelectedFriends(p => ({ ...p, [f.uid]: e.target.checked }))}
                     style={{ width: 18, height: 18, accentColor: '#1877F2' }} />
-                  <img src={f.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(f.fullName || 'U')}&background=1877F2&color=fff`} alt="" style={{ width: 36, height: 36, borderRadius: '50%', objectFit: 'cover' }} />
+                  <img src={avatarSrc(f.photoURL)} alt="" style={{ width: 36, height: 36, borderRadius: '50%', objectFit: 'cover' }} />
                   <div>
                     <p style={{ fontWeight: 600, fontSize: 14 }}>{f.fullName}</p>
                     <p style={{ fontSize: 12, color: '#65676B' }}>@{f.username}</p>
@@ -784,7 +785,7 @@ export default function GroupPage() {
               const mAdmin = group.admins?.includes(m.uid);
               return (
                 <div key={m.uid} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 0', borderBottom: '1px solid #F0F2F5' }}>
-                  <img src={m.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(m.fullName || 'U')}&background=1877F2&color=fff`} alt="" style={{ width: 36, height: 36, borderRadius: '50%', objectFit: 'cover' }} />
+                  <img src={avatarSrc(m.photoURL)} alt="" style={{ width: 36, height: 36, borderRadius: '50%', objectFit: 'cover' }} />
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <p style={{ fontWeight: 600, fontSize: 14, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                       {m.fullName}{m.uid === currentUser.uid ? ' (vous)' : ''}
@@ -821,7 +822,7 @@ export default function GroupPage() {
               background:'rgba(255,255,255,.95)', backdropFilter:'blur(14px)', WebkitBackdropFilter:'blur(14px)',
               borderRadius:100, boxShadow:'0 4px 16px rgba(5,5,5,.18)',
             } : { padding: '12px 16px 0', display: 'flex', alignItems: 'center', gap: 10 }}>
-              <img src={post.authorPhoto || `https://ui-avatars.com/api/?name=${encodeURIComponent(post.authorName || 'U')}&background=1877F2&color=fff`}
+              <img src={avatarSrc(post.authorPhoto)}
                 alt="" className="avatar" style={{ width: 40, height: 40, cursor: 'pointer' }} onClick={() => post.shopId ? navigate(`/shop/${post.shopId}`) : post.artistId ? navigate(`/artists/${post.artistId}`) : navigate(`/profile/${post.uid}`)} />
               <div style={{ flex: 1, minWidth: 0 }}>
                 <p style={{ fontWeight: 700, fontSize: 14, cursor: 'pointer' }} onClick={() => post.shopId ? navigate(`/shop/${post.shopId}`) : post.artistId ? navigate(`/artists/${post.artistId}`) : navigate(`/profile/${post.uid}`)}>{post.authorName}{post.shopId ? ' 🏪' : ''}</p>
@@ -932,7 +933,7 @@ export default function GroupPage() {
                 <div onClick={e => { e.stopPropagation(); openPost(post.sharedFrom.id, post.id); }}
                   style={{ marginTop: 8, border: '1px solid #E4E6EB', borderRadius: 12, overflow: 'hidden', cursor: 'pointer' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '9px 12px' }}>
-                    <img src={post.sharedFrom.authorPhoto || `https://ui-avatars.com/api/?name=${encodeURIComponent(post.sharedFrom.authorName || 'U')}&background=1877F2&color=fff`}
+                    <img src={avatarSrc(post.sharedFrom.authorPhoto)}
                       alt="" style={{ width: 30, height: 30, borderRadius: '50%', objectFit: 'cover' }} />
                     <p style={{ fontWeight: 700, fontSize: 13 }}>{post.sharedFrom.groupName ? `${post.sharedFrom.groupName} · ${post.sharedFrom.authorName}` : post.sharedFrom.authorName}</p>
                   </div>
@@ -1116,7 +1117,7 @@ export default function GroupPage() {
             {gpTagList.map(f => (
               <label key={f.uid} style={{ display:'flex', alignItems:'center', gap:10, padding:'9px 4px', cursor:'pointer', borderBottom:'1px solid #F0F2F5' }}>
                 <input type="checkbox" checked={!!gpTagSel[f.uid]} onChange={e => setGpTagSel(p => ({ ...p, [f.uid]: e.target.checked }))} style={{ width:18, height:18, accentColor:'#1877F2' }}/>
-                <img src={f.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(f.fullName||'U')}&background=1877F2&color=fff`} alt="" style={{ width:36, height:36, borderRadius:'50%', objectFit:'cover' }}/>
+                <img src={avatarSrc(f.photoURL)} alt="" style={{ width:36, height:36, borderRadius:'50%', objectFit:'cover' }}/>
                 <p style={{ fontWeight:600, fontSize:14 }}>{f.fullName}</p>
               </label>
             ))}
