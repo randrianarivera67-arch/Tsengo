@@ -26,6 +26,7 @@ export default function MediaViewer({
   currentUser, userProfile, navigate,
   myR, rc, total, reactorNames,
   onReact, onOpenReactionModal, onDownload, onShare,
+  onDeletePhoto,   // Profile ihany no manome — sary profil/couverture
   reactToCmt, addComment, deleteCmt,
   cmtText, setCmtText, replyTo, setReplyTo,
   onSubmitComment, onReactCmt, onDeleteCmt,
@@ -179,6 +180,24 @@ export default function MediaViewer({
           </p>
           {post.createdAt && <p style={{ color: '#B0B3B8', fontSize: 11 }}>{timeAgo(post.createdAt)}</p>}
         </div>
+        {/* Supprimer — aseho IHANY raha nomena `onDeletePhoto` (Profile)
+            ARY an'ny mpampiasa ankehitriny ny publication. */}
+        {onDeletePhoto && post?.uid && currentUser?.uid && post.uid === currentUser.uid && (
+          <button aria-label="Supprimer"
+            onClick={() => {
+              if (!window.confirm('Supprimer cette photo ?')) return;
+              onDeletePhoto(post);
+            }}
+            style={{ background: 'rgba(255,45,141,.22)', border: 'none', borderRadius: '50%',
+                     width: 38, height: 38, color: '#FF7DC0', cursor: 'pointer',
+                     display: 'flex', alignItems: 'center', justifyContent: 'center', marginRight: 8 }}>
+            <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+              strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M3 6h18M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+              <path d="M10 11v6M14 11v6" />
+            </svg>
+          </button>
+        )}
         <button onClick={handleDownload} aria-label="Télécharger"
           style={{ background: 'rgba(255,255,255,.15)', border: 'none', borderRadius: '50%', width: 38, height: 38, color: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
           <HiDownload size={19} />

@@ -1313,6 +1313,18 @@ export default function Profile() {
         const cur = album[photoViewer.index];
         return (
           <MediaViewer
+            onDeletePhoto={async (p) => {
+              // Sary profil / couverture ihany — voafetra amin'ny tompony
+              if (!p?.id || p.uid !== currentUser?.uid) return;
+              try {
+                await deleteDoc(doc(db, 'posts', p.id));
+                const isCov = !!p.isCoverPhoto;
+                await updateDoc(doc(db, 'users', currentUser.uid),
+                  isCov ? { coverURL: '' } : { photoURL: '', photoThumb: '' });
+                setProfile(v => ({ ...v, ...(isCov ? { coverURL: '' } : { photoURL: '', photoThumb: '' }) }));
+                setPhotoViewer(null);
+              } catch (e) { alert('Erreur : ' + (e.message || e.code)); }
+            }}
             post={cur}
             galleryUrls={album.map(p => p.mediaURL)}
             startIndex={photoViewer.index}
