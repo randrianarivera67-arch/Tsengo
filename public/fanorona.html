@@ -661,21 +661,6 @@ function refreshSettings(){
 }
 function setTheme(th){S.theme=th;document.body.setAttribute("data-theme",th);savePrefs();refreshSettings();SND.click();}
 function setLang(l){S.lang=l;savePrefs();show("screenHome");
-/*dbg-v1*/
-(function(){
-  var d=document.createElement('div');
-  d.id='dbg';
-  d.style.cssText='position:fixed;left:4px;bottom:4px;z-index:99999;max-width:92vw;max-height:32vh;overflow:auto;background:rgba(0,0,0,.85);color:#7CFC00;font:10px/1.4 monospace;padding:6px 8px;border-radius:8px;white-space:pre-wrap;pointer-events:none;box-shadow:0 2px 8px rgba(0,0,0,.4);';
-  document.documentElement.appendChild(d);
-  window.dlog=function(s){d.textContent+=s+'\n';d.scrollTop=d.scrollHeight;};
-  var cl=console.log;
-  console.log=function(){
-    var a=[].slice.call(arguments).map(function(x){try{return typeof x==='object'?JSON.stringify(x):String(x);}catch(e){return String(x);}}).join(' ');
-    dlog(a); cl.apply(console,arguments);
-  };
-  window.addEventListener('error',function(e){dlog('❌ ERR: '+e.message);});
-  dlog('🟢 debug ON');
-})();
 
 applyLang();refreshSettings();SND.click();}
 function setSound(v){S.sound=v;savePrefs();refreshSettings();SND.click();}
@@ -954,51 +939,5 @@ document.getElementById("teamInput").addEventListener("keydown",function(e){if(e
 show("screenHome");applyLang();
 </script>
 
-<!--auto-test-v2-->
-<div id="dbgBox" style="position:fixed;left:6px;bottom:6px;z-index:2147483647;width:92vw;max-height:40vh;overflow:auto;background:#000;color:#0f0;font:12px/1.5 monospace;padding:10px;border-radius:10px;white-space:pre-wrap;border:2px solid #0f0;pointer-events:auto;"></div>
-<script>
-(function(){
-  var d=document.getElementById('dbgBox');
-  function dl(s){d.textContent+=(new Date()).toLocaleTimeString()+' '+s+'\n';d.scrollTop=d.scrollHeight;console.log(s);}
-  dl('🟢 DEBUG BOX ACTIVE');
-
-  if(location.search.indexOf('test=1')>=0){
-    dl('🧪 AUTO-TEST START');
-    var tryTest=setInterval(function(){
-      if(typeof loadFB!=='function'||typeof createRoom!=='function'||typeof joinRoom!=='function')return;
-      clearInterval(tryTest);
-      dl('📦 functions ready, starting...');
-      setTimeout(function(){
-        loadFB().then(function(m){
-          dl('✅ Firebase loaded');
-          return ensureAuth(m).then(function(uidA){
-            dl('👤 A (creator): '+uidA.slice(0,8));
-            return createRoom(new Array(45).fill(null)).then(function(r){
-              dl('✅ createRoom OK: code='+r.code);
-              return m.au.signOut(m.auth).then(function(){
-                dl('🚪 signed out, signing in as B...');
-                return ensureAuth(m).then(function(uidB){
-                  dl('👤 B (joiner): '+uidB.slice(0,8));
-                  if(uidA===uidB){dl('⚠️ same UID, skip join test');return;}
-                  return joinRoom(r.code).then(function(j){
-                    dl('🎉🎉🎉 TEST PASSED! join OK, color='+j.color);
-                  });
-                });
-              });
-            });
-          });
-        }).catch(function(e){
-          dl('❌ TEST FAILED');
-          dl('   message: '+e.message);
-          dl('   code: '+(e.code||'none'));
-          dl('   name: '+(e.name||'none'));
-        });
-      },500);
-    },300);
-  } else {
-    dl('💡 Tip: ampio ?test=1 amin'ny URL hanaovana auto-test');
-  }
-})();
-</script>
 </body>
 </html>
