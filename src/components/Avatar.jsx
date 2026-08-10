@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useActiveStoryUids } from '../hooks/useActiveStoryUids';
 import { useOnline } from '../hooks/useOnline';
 import { NeonEye, NeonPeople } from './NeonIcons';
+import { avatarSrc } from '../utils/avatarSrc';
 
 export default function Avatar({ uid, src, name = 'U', size = 40, showStory = true, showOnline = true, style = {} }) {
   const navigate = useNavigate();
@@ -12,7 +13,8 @@ export default function Avatar({ uid, src, name = 'U', size = 40, showStory = tr
 
   const hasStory = !!(showStory && uid && storyUids.has(uid));
   const isOnline = !!(showOnline && uid && online[uid] === true);
-  const photo = src || `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=1877F2&color=fff`;
+  // Placeholder neon (icône olona manga malefaka) raha foana na Cloudinary
+  const photo = avatarSrc(src);
   const dot = Math.max(10, Math.round(size * 0.26));
 
   const handleClick = (e) => {
