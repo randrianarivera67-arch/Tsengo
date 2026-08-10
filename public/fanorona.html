@@ -560,13 +560,16 @@ function commitTurn(path,bA,mover){
   var next=opponent(mover),w=checkWinner(bA,next);
   S.trail=path.map(function(x){return x.to;});
   S.selected=null;S.availableOptions=[];S.inChain=false;S.chainPath=[];S.visited=new Set();
+  // Optimistic update: miova eo no ho eo ny board (na online na tsia)
+  S.board=bA;
+  S.log=[{mover:mover,notation:notation}].concat(S.log).slice(0,40);
+  if(w){S.winner=w;if(mover===S.human||S.mode==="local"){SND.win();setTimeout(spawnFireworks,80);}else SND.lose();}
+  else S.toMove=next;
   if(S.mode==="online"&&S.roomCode){
-    submitTurn(S.roomCode,{boardAfter:bA,nextToMove:next,winner:w,logEntry:{mover:mover,notation:notation}}).catch(function(){});
-  }else{
-    S.board=bA;
-    S.log=[{mover:mover,notation:notation}].concat(S.log).slice(0,40);
-    if(w){S.winner=w;if(mover===S.human||S.mode==="local"){SND.win();setTimeout(spawnFireworks,80);}else SND.lose();}
-    else S.toMove=next;
+    submitTurn(S.roomCode,{boardAfter:bA,nextToMove:next,winner:w,logEntry:{mover:mover,notation:notation}}).catch(function(e){
+      console.error("submitTurn failed:",e&&e.code,e&&e.message);
+      alert("⚠️ Tsy nalefa ny move: "+(e&&e.message?e.message:"error"));
+    });
   }
   render();
   if(S.mode==="bot"&&!S.winner)maybeAiMove();
