@@ -1,9 +1,11 @@
-import React from "react";
+// ✅ Cache-busting : ny APK taloha dia tsy maintsy mahazo ny fanorona.html VAOVAO
+// (ny WebView dia mitahiry ny .html ao anaty cache raha tsy misy ?v=)
+const FANORONA_VERSION = "20260810";
 
 export default function FanoronaMultiplayer() {
   return (
     <iframe
-      src="/fanorona.html"
+      src={"/fanorona.html?v=" + FANORONA_VERSION}
       title="Fanorona"
       style={{
         position: "fixed",
