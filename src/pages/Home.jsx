@@ -1946,7 +1946,7 @@ const fields = {
                 <input value={storyReply} onChange={e => setStoryReply(e.target.value)}
                   onKeyDown={e => { if (e.key === 'Enter') sendStoryReply(cur); }}
                   placeholder="Répondre..." maxLength={500}
-                  style={{ flex:1, background:'rgba(255,255,255,.15)', border:'1.5px solid rgba(255,255,255,.35)', borderRadius:22, padding:'10px 16px', color:'white', fontSize:14, fontFamily:'Poppins', outline:'none' }} />
+                  style={{ width:230, flexShrink:0, background:'transparent', border:'1.5px solid rgba(255,255,255,.6)', borderRadius:100, padding:'13px 18px', color:'white', fontSize:15, fontFamily:'Poppins', outline:'none' }} />
                 {storyReply.trim() && (
                   <button onClick={() => sendStoryReply(cur)} disabled={sendingStoryReply}
                     style={{ background:'#1877F2', border:'none', borderRadius:'50%', width:40, height:40, cursor:'pointer', color:'white', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
@@ -1957,7 +1957,7 @@ const fields = {
             )}
 
             {/* ── Réactions (format Facebook, plusieurs possibles) ── */}
-            <div style={{ padding:'10px 14px 18px', display:'flex', alignItems:'center', justifyContent:'center', gap:10 }} onClick={e => e.stopPropagation()}>
+            <div /* story-barre-v1 */ style={{ padding:'4px 14px 18px', display:'flex', flexWrap:'nowrap', alignItems:'center', gap:11, overflowX:'auto', overflowY:'hidden', scrollbarWidth:'none', WebkitOverflowScrolling:'touch', justifyContent: isMyStory ? 'center' : 'flex-start' }} onClick={e => e.stopPropagation()}>
               {isMyStory ? (
                 <button onClick={() => openStoryReactors(cur)}
                   style={{ background:'rgba(255,255,255,.14)', border:'1px solid rgba(255,255,255,.3)', borderRadius:22, padding:'9px 18px', cursor:'pointer', color:'white', fontFamily:'Poppins', fontSize:13, fontWeight:700, display:'flex', alignItems:'center', gap:8 }}>
@@ -1966,7 +1966,7 @@ const fields = {
               ) : (
                 REACTIONS.map(em => (
                   <button key={em} onClick={e => reactToStory(cur, em, e)}
-                    style={{ background: myStoryR.includes(em) ? 'rgba(255,255,255,.32)' : 'rgba(255,255,255,.12)', border: myStoryR.includes(em) ? '1.5px solid white' : '1px solid rgba(255,255,255,.25)', borderRadius:'50%', width:44, height:44, cursor:'pointer', fontSize:22, display:'flex', alignItems:'center', justifyContent:'center', transform: myStoryR.includes(em) ? 'scale(1.15)' : 'none', transition:'all .15s' }}>
+                    style={{ background:'transparent', border:'none', padding:0, cursor:'pointer', fontSize:34, lineHeight:1, flexShrink:0, display:'flex', alignItems:'center', justifyContent:'center', transform: myStoryR.includes(em) ? 'scale(1.22)' : 'none', filter: myStoryR.includes(em) ? 'drop-shadow(0 0 8px rgba(255,255,255,.9))' : 'none', transition:'all .15s' }}>
                     {em}
                   </button>
                 ))
