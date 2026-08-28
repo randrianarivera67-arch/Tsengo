@@ -1942,7 +1942,7 @@ const fields = {
 
             {/* ── Répondre (envoie un message direct au propriétaire) ── */}
             {!isMyStory && (
-              <div style={{ padding:'0 14px 8px', display:'flex', alignItems:'center', gap:8 }} onClick={e => e.stopPropagation()}>
+              <div style={{ padding:'0 14px 14px', display:'flex', flexWrap:'nowrap', alignItems:'center', gap:11, overflowX:'auto', overflowY:'hidden', scrollbarWidth:'none', WebkitOverflowScrolling:'touch' }} onClick={e => e.stopPropagation()}>
                 <input value={storyReply} onChange={e => setStoryReply(e.target.value)}
                   onKeyDown={e => { if (e.key === 'Enter') sendStoryReply(cur); }}
                   placeholder="Répondre..." maxLength={500}
@@ -1957,7 +1957,7 @@ const fields = {
             )}
 
             {/* ── Réactions (format Facebook, plusieurs possibles) ── */}
-            <div /* story-barre-v1 */ style={{ padding:'4px 14px 18px', display:'flex', flexWrap:'nowrap', alignItems:'center', gap:11, overflowX:'auto', overflowY:'hidden', scrollbarWidth:'none', WebkitOverflowScrolling:'touch', justifyContent: isMyStory ? 'center' : 'flex-start' }} onClick={e => e.stopPropagation()}>
+            <div /* story-barre-v1 */ style={{ padding: isMyStory ? '4px 14px 18px' : 0, display: isMyStory ? 'flex' : 'contents', alignItems:'center', justifyContent:'center' }} onClick={e => e.stopPropagation()}>
               {isMyStory ? (
                 <button onClick={() => openStoryReactors(cur)}
                   style={{ background:'rgba(255,255,255,.14)', border:'1px solid rgba(255,255,255,.3)', borderRadius:22, padding:'9px 18px', cursor:'pointer', color:'white', fontFamily:'Poppins', fontSize:13, fontWeight:700, display:'flex', alignItems:'center', gap:8 }}>
