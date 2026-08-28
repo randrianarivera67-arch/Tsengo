@@ -1940,40 +1940,38 @@ const fields = {
                 style={{ position:'absolute', right:0, top:0, bottom:0, width:'65%', touchAction:'none' }} />
             </div>
 
-            {/* ── STORY-BARRE-UNIFIEE : champ "Répondre" + emojis dans UN SEUL bloc ── */}
-            {!isMyStory ? (
-              <div style={{ padding:'0 14px 18px', display:'flex', flexDirection:'column', gap:10 }} onClick={e => e.stopPropagation()}>
-                {/* Champ : message direct au propriétaire */}
-                <div style={{ display:'flex', alignItems:'center', gap:8 }}>
-                  <input value={storyReply} onChange={e => setStoryReply(e.target.value)}
-                    onKeyDown={e => { if (e.key === 'Enter') sendStoryReply(cur); }}
-                    placeholder="Répondre..." maxLength={500}
-                    style={{ flex:1, background:'rgba(255,255,255,.15)', border:'1.5px solid rgba(255,255,255,.35)', borderRadius:22, padding:'10px 16px', color:'white', fontSize:14, fontFamily:'Poppins', outline:'none' }} />
-                  {storyReply.trim() && (
-                    <button onClick={() => sendStoryReply(cur)} disabled={sendingStoryReply}
-                      style={{ background:'#1877F2', border:'none', borderRadius:'50%', width:40, height:40, cursor:'pointer', color:'white', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
-                      <HiPaperAirplane size={18} />
-                    </button>
-                  )}
-                </div>
-                {/* Réactions (format Facebook, plusieurs possibles) */}
-                <div style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:10 }}>
-                  {REACTIONS.map(em => (
-                    <button key={em} onClick={e => reactToStory(cur, em, e)}
-                      style={{ background: myStoryR.includes(em) ? 'rgba(255,255,255,.32)' : 'rgba(255,255,255,.12)', border: myStoryR.includes(em) ? '1.5px solid white' : '1px solid rgba(255,255,255,.25)', borderRadius:'50%', width:44, height:44, cursor:'pointer', fontSize:22, display:'flex', alignItems:'center', justifyContent:'center', transform: myStoryR.includes(em) ? 'scale(1.15)' : 'none', transition:'all .15s' }}>
-                      {em}
-                    </button>
-                  ))}
-                </div>
+            {/* ── Répondre (envoie un message direct au propriétaire) ── */}
+            {!isMyStory && (
+              <div style={{ padding:'0 14px 8px', display:'flex', alignItems:'center', gap:8 }} onClick={e => e.stopPropagation()}>
+                <input value={storyReply} onChange={e => setStoryReply(e.target.value)}
+                  onKeyDown={e => { if (e.key === 'Enter') sendStoryReply(cur); }}
+                  placeholder="Répondre..." maxLength={500}
+                  style={{ flex:1, background:'rgba(255,255,255,.15)', border:'1.5px solid rgba(255,255,255,.35)', borderRadius:22, padding:'10px 16px', color:'white', fontSize:14, fontFamily:'Poppins', outline:'none' }} />
+                {storyReply.trim() && (
+                  <button onClick={() => sendStoryReply(cur)} disabled={sendingStoryReply}
+                    style={{ background:'#1877F2', border:'none', borderRadius:'50%', width:40, height:40, cursor:'pointer', color:'white', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
+                    <HiPaperAirplane size={18} />
+                  </button>
+                )}
               </div>
-            ) : (
-              <div style={{ padding:'10px 14px 18px', display:'flex', alignItems:'center', justifyContent:'center', gap:10 }} onClick={e => e.stopPropagation()}>
+            )}
+
+            {/* ── Réactions (format Facebook, plusieurs possibles) ── */}
+            <div style={{ padding:'10px 14px 18px', display:'flex', alignItems:'center', justifyContent:'center', gap:10 }} onClick={e => e.stopPropagation()}>
+              {isMyStory ? (
                 <button onClick={() => openStoryReactors(cur)}
                   style={{ background:'rgba(255,255,255,.14)', border:'1px solid rgba(255,255,255,.3)', borderRadius:22, padding:'9px 18px', cursor:'pointer', color:'white', fontFamily:'Poppins', fontSize:13, fontWeight:700, display:'flex', alignItems:'center', gap:8 }}>
                   👁 {vCount} vue{vCount>1?'s':''}{rCount > 0 ? ` · ${[...new Set(allEmojis)].slice(0,3).join('')} ${rCount}` : ''} — voir
                 </button>
-              </div>
-            )}
+              ) : (
+                REACTIONS.map(em => (
+                  <button key={em} onClick={e => reactToStory(cur, em, e)}
+                    style={{ background: myStoryR.includes(em) ? 'rgba(255,255,255,.32)' : 'rgba(255,255,255,.12)', border: myStoryR.includes(em) ? '1.5px solid white' : '1px solid rgba(255,255,255,.25)', borderRadius:'50%', width:44, height:44, cursor:'pointer', fontSize:22, display:'flex', alignItems:'center', justifyContent:'center', transform: myStoryR.includes(em) ? 'scale(1.15)' : 'none', transition:'all .15s' }}>
+                    {em}
+                  </button>
+                ))
+              )}
+            </div>
 
             {/* Animation : emoji miakatra sy manjavona rehefa misy réaction (format story Facebook) */}
             {flyingEmojis.map(f => (
