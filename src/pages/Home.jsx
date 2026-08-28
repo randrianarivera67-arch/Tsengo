@@ -678,7 +678,10 @@ export default function Home() {
   // Contexte de score amin'ny ref → azo vakiana avy hatrany (synchrone) na aiza
   // na aiza (refresh, pagination) tsy miandry re-render
   const scoreCtxRef = useRef({ seed: Date.now() });
-  const lastHeadRef = useRef('');   // lohan'ny filaharana teo aloha (sorohana ny fiverimberenana)
+  const lastHeadRef = useRef('');
+  // `id` REHETRA efa naseho — sorohana ny fiverimberenana amin'ny pagination.
+  // Diovina isaky ny `first` (fanokafana / refresh).
+  const seenIdsRef = useRef(new Set());   // lohan'ny filaharana teo aloha (sorohana ny fiverimberenana)
   useEffect(() => {
     scoreCtxRef.current = {
       myUid: currentUser?.uid || null,
@@ -765,6 +768,11 @@ export default function Home() {
         }
         lastHeadRef.current = ranked.slice(0, 3).map(r => r.id).join('|');
       }
+      // Fanokafana / refresh → diovina ; pagination → esorina ny efa naseho
+      if (first) seenIdsRef.current = new Set();
+      else ranked = ranked.filter(r => !seenIdsRef.current.has(r.id));
+      ranked.forEach(r => seenIdsRef.current.add(r.id));
+
       const rankedIds = ranked.map(r => r.id);
       const serverIds = new Set(rankedIds);
       setOrder(prev => {
